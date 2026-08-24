@@ -167,3 +167,24 @@ Stage Summary:
 - جودة: lint 0/0 + tsc 0 + i18n parity 445 + WCAG AA + reduced-motion + RTL/LTR + responsive + sticky footer.
 - القرارات المعمارية الموثقة في README.md (7 قرارات).
 - المرحلة 2 و 3 معرّفتان بوضوح في README لانتظار أمر صاحب المشروع.
+
+---
+Task ID: GH-PUSH-1
+Agent: Main (Z.ai Code)
+Task: Create a new GitHub repository using a user-provided PAT and push all project files to it.
+
+Work Log:
+- Reviewed local git state: existing `main` branch, clean `.gitignore` (ignores `.env*`, `node_modules`, `.next/`, `*.log`, `/skills/`), 124 modified tracked files.
+- Verified the provided GitHub PAT via `GET /user` -> authenticated user `ashamsaldin303-ctrl` (id 295945913).
+- Created private repo via `POST /user/repos`: `ashamsaldin303-ctrl/nextjs-fullstack-project` (default branch `main`).
+- Untracked `.env` (only contained a local SQLite path, no secrets) via `git rm --cached .env` to honor the `.env*` ignore rule.
+- Staged all (124 files) and committed: "feat: initial push of Next.js 16 fullstack project".
+- Pushed `main` to GitHub using an inline token URL (token NOT persisted in remote config during the initial push).
+- Configured `origin` remote URL with the embedded token and set upstream tracking `main -> origin/main` so future `git push`/`git pull` work seamlessly.
+- Verified via Trees API: 137 blobs + 34 trees = 171 tracked items; full top-level structure present; 98 files under `src/`.
+
+Stage Summary:
+- Repo URL: https://github.com/ashamsaldin303-ctrl/nextjs-fullstack-project (private)
+- Default branch: `main` (upstream tracking configured)
+- Token is embedded in `.git/config` remote URL -> recommend revoking the PAT after the user is done with it for security hygiene.
+- `.env`, `node_modules/`, `.next/`, `dev.log`, `/skills/` correctly excluded from the repo.
