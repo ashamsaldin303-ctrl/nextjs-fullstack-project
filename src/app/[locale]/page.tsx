@@ -1,7 +1,7 @@
 import { Hero } from '@/components/home/hero'
 import { TrustBar } from '@/components/home/trust-bar'
 import { ServicesBento } from '@/components/home/bento'
-import { AutomationSimulator } from '@/components/home/automation-simulator'
+import { SimulatorLazy } from '@/components/home/simulator-lazy'
 import { FeaturedWork } from '@/components/home/featured-work'
 import { Methodology } from '@/components/home/methodology'
 import { Testimonials } from '@/components/home/testimonials'
@@ -15,7 +15,9 @@ export default function HomePage() {
       <Hero />
       <TrustBar />
       <ServicesBento />
-      <AutomationSimulator />
+      {/* Hotfix H-4: simulator loads/hydrates only near the viewport —
+          cuts homepage TBT (was 690ms prod) without touching LCP. */}
+      <SimulatorLazy />
       <FeaturedWork />
       <Methodology />
       <Testimonials />

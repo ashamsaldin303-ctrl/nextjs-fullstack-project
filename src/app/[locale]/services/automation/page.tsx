@@ -8,7 +8,7 @@ import { PageHero } from '@/components/shared/page-hero'
 import { CTA } from '@/components/shared/cta'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { Reveal } from '@/components/shared/reveal'
-import { AutomationSimulator } from '@/components/home/automation-simulator'
+import { SimulatorLazy } from '@/components/home/simulator-lazy'
 import { ServiceProse } from '@/components/shared/service-prose'
 import { buildPageMetadata } from '@/lib/seo'
 
@@ -106,8 +106,8 @@ export default async function AutomationPage() {
         </div>
       </section>
 
-      {/* Extended simulator with scenarios */}
-      <AutomationSimulator showScenarioPicker />
+      {/* Extended simulator with scenarios (lazy — Hotfix H-4) */}
+      <SimulatorLazy showScenarioPicker />
 
       {/* Phase 2 — deeper prose: what's included / how we work (§6.4) */}
       <ServiceProse namespace="pages.automation.prose" />

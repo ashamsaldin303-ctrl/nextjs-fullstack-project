@@ -31,7 +31,9 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
+# Hotfix H-2: the template MUST ship with the repo — real secrets stay ignored.
 .env*
+!.env.example
 
 # vercel
 .vercel

@@ -290,3 +290,20 @@ Stage Summary:
 - Complete: backend (endpoint + rate limit + Prisma + signed webhook, both scenarios proven), LCP/Three.js/JS-size structural fixes, deployment kit (Dockerfile/.env.example/README), all verification scripts committed.
 - lint 0/0 · tsc 0 · parity 499/499 · zero console errors · DB clean.
 - Launch readiness: code-complete; owner must supply real site-config data, real n8n env, domain/hosting, and run lighthouse-prod.sh in a build-capable environment.
+
+---
+Task ID: HOTFIX-01
+Agent: Main (Z.ai Code)
+Task: Close the 4 launch gaps from the independent Phase-3 verification report (elyra-phase3-verification.md), base commit dd1c3ce.
+
+Work Log:
+- **H-1 (CLS during streaming)**: `src/app/[locale]/loading.tsx` fallback raised from `min-h-[60vh]` to `min-h-[100svh]` — the footer leaves the visible frame during React streaming, so its displacement is excluded from CLS (root cause of the 0.424 CLS on AR pages). Verified: compiled CSS contains `.min-h-[100svh]{min-height:100svh}` AND live measurement caught the streamed fallback at exactly viewport height (minH=800px = vh=800px @191ms into /about). Layout + spinner unchanged.
+- **H-2 (.env.example missing from repo)**: root cause found — the `.env*` gitignore rule was silently swallowing the template (it was written in Phase 3 but never committed). Added `!.env.example` exception + recreated the file with the ABSOLUTE DATABASE_URL path (`file:/app/db/custom.db`) per H-3.
+- **H-3 (relative DB path trap)**: README Deployment section now documents that `file:./db/custom.db` breaks every write with 500 on standalone (relative paths resolve from CWD ≠ bundle dir), with an environments table and a bare-metal example.
+- **H-4 (homepage TBT 690ms)**: chose option A — new `SimulatorLazy` wrapper (`next/dynamic` ssr:false + IntersectionObserver rootMargin 400px + section-shaped placeholder for zero CLS). Wired into `/` and `/services/automation` (replacing direct AutomationSimulator). Verified structurally: at load event the simulator chunk is ABSENT (29 JS chunks, hasSimulatorChunk=false); after scrolling near the placeholder it loads (38 chunks, simulatorLoaded=true) and completes a full run (اكتمل التدفق ✓); scenario tabs on /services/automation load on scroll and switching works. README decision #23-26 added.
+- **Regression suites**: sensory 16/16 + performance 10/10 (one dev-only timing flake on the Three.js check re-run clean), lint 0/0 strict, tsc 0, parity 499/499, zero console errors.
+- **Production build**: still forbidden in this sandbox — CLS/TBT verification done structurally + with live measurements; `scripts/lighthouse-prod.sh` remains the designated measurement tool for a build-capable environment (documented).
+
+Stage Summary:
+- All 4 hotfix items closed with structural proof (dev environment): H-1 measured live at 100svh, H-2 file tracked in git with gitignore exception, H-3 documented with table+example, H-4 simulator chunk provably out of the initial load set and functional after lazy load.
+- Ready for the final production Lighthouse run in a build-capable environment (expected: CLS < 0.1 everywhere, homepage TBT well below 690ms).
