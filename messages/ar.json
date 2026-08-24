@@ -33,6 +33,7 @@
     "about": "من نحن",
     "contact": "تواصل",
     "cta": "ابدأ مشروعك",
+    "ariaLabel": "القائمة الرئيسية",
     "openMenu": "فتح القائمة الرئيسية",
     "closeMenu": "إغلاق القائمة",
     "switchLocale": "English",
@@ -393,6 +394,7 @@
     "madeWith": "صُنِع بشغفٍ وقهوةٍ كثيرة",
     "social": {
       "telegram": "تيليجرام",
+      "whatsapp": "واتساب",
       "instagram": "إنستغرام",
       "linkedin": "لينكدإن",
       "github": "جيت هاب"

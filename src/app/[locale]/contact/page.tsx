@@ -6,6 +6,7 @@ import { Reveal } from '@/components/shared/reveal'
 import { ContactForm } from '@/components/pages/contact-form'
 import { Calculator } from '@/components/home/calculator'
 import { buildPageMetadata } from '@/lib/seo'
+import { SITE_CONTACT, SITE_SOCIAL } from '@/lib/site-config'
 
 export async function generateMetadata({
   params,
@@ -20,10 +21,11 @@ export async function generateMetadata({
   })
 }
 
+// Channel links read from the centralized site config (audit P1-14).
 const CHANNELS = [
-  { key: 'email' as const, icon: Mail, href: 'mailto:hello@elyra.agency', external: false },
-  { key: 'whatsapp' as const, icon: MessageCircle, href: 'https://wa.me/963991000000', external: true },
-  { key: 'telegram' as const, icon: Send, href: 'https://t.me/elyra_agency', external: true },
+  { key: 'email' as const, icon: Mail, href: `mailto:${SITE_CONTACT.email}`, external: false },
+  { key: 'whatsapp' as const, icon: MessageCircle, href: SITE_SOCIAL.whatsapp, external: true },
+  { key: 'telegram' as const, icon: Send, href: SITE_SOCIAL.telegram, external: true },
 ]
 
 export default async function ContactPage() {

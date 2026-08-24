@@ -3,9 +3,8 @@
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { motion, useReducedMotion } from 'framer-motion'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { KineticWords } from './reveal'
-import { useIsRtl } from '@/lib/use-rtl'
 import { cn } from '@/lib/utils'
 
 interface PageHeroProps {
@@ -21,8 +20,6 @@ interface PageHeroProps {
 export function PageHero({ namespace, ctaHref = '/contact', className }: PageHeroProps) {
   const t = useTranslations(namespace)
   const reduced = useReducedMotion()
-  const isRtl = useIsRtl()
-  const Arrow = isRtl ? ArrowLeft : ArrowRight
 
   return (
     <section
@@ -82,7 +79,7 @@ export function PageHero({ namespace, ctaHref = '/contact', className }: PageHer
               className="group inline-flex h-12 items-center gap-2 rounded-full bg-primary px-6 text-base font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
             >
               {t('cta')}
-              <Arrow className="size-4 transition-transform group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5" aria-hidden="true" />
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" aria-hidden="true" />
             </Link>
           </motion.div>
         ) : null}

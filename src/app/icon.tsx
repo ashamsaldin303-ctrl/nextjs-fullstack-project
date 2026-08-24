@@ -2,11 +2,11 @@ import { ImageResponse } from 'next/og'
 
 export const size = { width: 32, height: 32 }
 export const contentType = 'image/png' as const
-export const runtime = 'edge'
 
 /**
  * Elyra favicon — the distinctive E mark with a 4-color quad dot
- * on a dark rounded square. Generated at the edge; zero static asset.
+ * on a dark rounded square. Rendered via ImageResponse on the Node
+ * runtime (edge-runtime metadata routes 404 under Turbopack dev).
  */
 export default function Icon() {
   return new ImageResponse(

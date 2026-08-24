@@ -8,7 +8,6 @@ import {
   Check, Play, RotateCw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Reveal } from '@/components/shared/reveal'
 import { SectionHeading } from '@/components/shared/section-heading'
 
 /** Bento card with cursor-following radial glow (works in RTL & LTR). */
@@ -157,6 +156,8 @@ function MiniFlow() {
 /* ---------- Mini interactive: 3D draggable cube (CSS 3D) ---------- */
 function MiniCube() {
   const t = useTranslations('bento.threeD.mini')
+  // Reduced motion: skip the CSS easing between drag rotations — the cube
+  // still rotates (user-driven, not autonomous) but with no transition.
   const reduced = useReducedMotion()
   const [rot, setRot] = useState({ x: -18, y: 28 })
   const [dragging, setDragging] = useState(false)
@@ -200,7 +201,7 @@ function MiniCube() {
           style={{
             transformStyle: 'preserve-3d',
             transform: `rotateX(${rot.x}deg) rotateY(${rot.y}deg)`,
-            transition: dragging ? 'none' : 'transform 0.2s ease-out',
+            transition: dragging || reduced ? 'none' : 'transform 0.2s ease-out',
           }}
           role="img"
           aria-label={t('hint')}
@@ -216,7 +217,6 @@ function MiniCube() {
           ))}
         </div>
       </div>
-      {reduced ? null : null}
     </div>
   )
 }
@@ -224,6 +224,10 @@ function MiniCube() {
 /* ---------- Mini interactive: AI prompt-response ---------- */
 function MiniAgent() {
   const t = useTranslations('bento.ai.mini')
+  // Typewriter is a JS-driven (setInterval) animation — the global CSS
+  // reduced-motion override can't stop it, so we honor the hook directly:
+  // reduced-motion users get the full response instantly (audit P1-6).
+  const reduced = useReducedMotion()
   const [typed, setTyped] = useState(false)
   const [chars, setChars] = useState(0)
   const response = t('response')
@@ -235,6 +239,10 @@ function MiniAgent() {
       return
     }
     setTyped(true)
+    if (reduced) {
+      setChars(response.length)
+      return
+    }
     let i = 0
     const id = window.setInterval(() => {
       i += 2
@@ -258,7 +266,7 @@ function MiniAgent() {
         {typed ? (
           <div className="flex items-start gap-2 rounded-lg bg-white/5 px-2 py-1.5 text-xs text-white/90">
             <Sparkles className="mt-0.5 size-3.5 shrink-0 text-g-yellow" aria-hidden="true" />
-            <span>{response.slice(0, chars)}<span className="animate-pulse">▌</span></span>
+            <span>{response.slice(0, chars)}{reduced ? null : <span className="animate-pulse">▌</span>}</span>
           </div>
         ) : null}
       </div>
@@ -267,9 +275,26 @@ function MiniAgent() {
 }
 
 /* ---------- Mini interactive: orbiting integration initials ---------- */
+// Orbit positions are static, so they're computed once at module scope.
+// Offsets are pre-combined and rounded to 4 decimals and formatted to match
+// the CSSOM canonical calc() form exactly — React 19's dev-mode hydration
+// diff reads normalized CSSOM style values, so raw strings like
+// `calc(50% + -24.00000000000002px - 14px)` would falsely "mismatch" against
+// the browser-simplified `calc(50% - 38px)`.
+const ORBIT_ITEMS = ['CRM', 'n8n', 'AI', 'SH', 'TG', '@'].map((label, i, arr) => {
+  const angle = (i / arr.length) * Math.PI * 2
+  const radius = 48
+  const x = Math.round((Math.cos(angle) * radius - 14) * 1e4) / 1e4
+  const y = Math.round((Math.sin(angle) * radius - 14) * 1e4) / 1e4
+  return {
+    label,
+    left: `calc(50% ${x >= 0 ? `+ ${x}` : `- ${Math.abs(x)}`}px)`,
+    top: `calc(50% ${y >= 0 ? `+ ${y}` : `- ${Math.abs(y)}`}px)`,
+  }
+})
+
 function MiniOrbit() {
   const t = useTranslations('bento.integrations.mini')
-  const apps = ['CRM', 'n8n', 'AI', 'SH', 'TG', '@']
   return (
     <div className="mt-6">
       <p className="text-[11px] text-muted-foreground/70">{t('hint')}</p>
@@ -279,22 +304,15 @@ function MiniOrbit() {
           className="absolute inset-0"
           style={{ animation: 'elyra-orbit 14s linear infinite' }}
         >
-          {apps.map((a, i) => {
-            const angle = (i / apps.length) * Math.PI * 2
-            const radius = 48
-            return (
-              <span
-                key={a}
-                className="absolute flex size-7 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[9px] font-bold text-white"
-                style={{
-                  left: `calc(50% + ${Math.cos(angle) * radius}px - 14px)`,
-                  top: `calc(50% + ${Math.sin(angle) * radius}px - 14px)`,
-                }}
-              >
-                {a}
-              </span>
-            )
-          })}
+          {ORBIT_ITEMS.map((item) => (
+            <span
+              key={item.label}
+              className="absolute flex size-7 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[9px] font-bold text-white"
+              style={{ left: item.left, top: item.top }}
+            >
+              {item.label}
+            </span>
+          ))}
         </div>
       </div>
       <style>{`@keyframes elyra-orbit { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>

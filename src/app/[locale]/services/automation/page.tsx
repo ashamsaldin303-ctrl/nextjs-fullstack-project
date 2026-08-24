@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
-import { Check, type LucideIcon } from 'lucide-react'
+import { type LucideIcon } from 'lucide-react'
 import {
   Users, FileText, Mail, Send, Table, Bot, CreditCard, Database,
 } from 'lucide-react'

@@ -5,9 +5,8 @@ import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { motion, useReducedMotion } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Play } from 'lucide-react'
+import { ArrowRight, Play } from 'lucide-react'
 import { KineticWords } from '@/components/shared/reveal'
-import { useIsRtl } from '@/lib/use-rtl'
 
 const HeroCanvas = dynamic(
   () => import('./hero-canvas').then((m) => m.HeroCanvas),
@@ -20,8 +19,6 @@ const HeroCanvas = dynamic(
 export function Hero() {
   const t = useTranslations('hero')
   const reduced = useReducedMotion()
-  const isRtl = useIsRtl()
-  const Arrow = isRtl ? ArrowLeft : ArrowRight
 
   const heroRef = useRef<HTMLElement>(null)
   const [active, setActive] = useState(true)
@@ -117,7 +114,7 @@ export function Hero() {
             className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-6 text-base font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
           >
             {t('ctaPrimary')}
-            <Arrow className="size-4 transition-transform group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5" aria-hidden="true" />
+            <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" aria-hidden="true" />
           </Link>
           <Link
             href="/work"

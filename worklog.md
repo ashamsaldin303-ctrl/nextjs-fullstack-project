@@ -188,3 +188,45 @@ Stage Summary:
 - Default branch: `main` (upstream tracking configured)
 - Token is embedded in `.git/config` remote URL -> recommend revoking the PAT after the user is done with it for security hygiene.
 - `.env`, `node_modules/`, `.next/`, `dev.log`, `/skills/` correctly excluded from the repo.
+
+---
+Task ID: AUDIT-FIX-1
+Agent: Main (Z.ai Code)
+Task: Execute all fixes from the Phase-1 audit report (elyra-phase1-audit.md): P0-1 mandatory + all 14 P1 items + extra defects found during browser verification.
+
+Work Log:
+- **P0-1 (ESLint)**: re-enabled React 19 strict rules in `eslint.config.mjs` (`@typescript-eslint/no-explicit-any|no-non-null-assertion|no-unused-vars`, `react-hooks/exhaustive-deps|purity|immutability`, `react-compiler/react-compiler: warn`); installed `eslint-plugin-react-compiler@19.1.0-rc.2`. Fixed all 19 surfaced errors:
+  - hero-canvas.tsx: particle geometry `useMemo` → `useState` lazy initializer (Math.random legality per react-hooks/purity).
+  - navbar.tsx: removed dead `isHome`.
+  - cta.tsx: `className` prop now applied to section.
+  - automation-simulator.tsx: removed dead `elapsedMs` state + `elapsed` accumulator.
+  - sidebar.tsx: random width useMemo → useState; justified eslint-disable for vendored cookie write (react-compiler).
+  - use-toast.ts: `actionTypes as const` → direct readonly type alias.
+  - hero-canvas/bento/work/automation pages: unused imports removed.
+- **P1-1**: global-error.tsx bilingual (ar/en) via `useSyncExternalStore` browser-language detection (set-state-in-effect-safe), `<html lang dir>` dynamic.
+- **P1-2**: loading.tsx → async server component with `getTranslations('common')` (key `common.loading` existed).
+- **P1-3**: prisma schema: dropped template User/Post → added `Lead` model (calculator/contact capture, @@index([status, createdAt]) + @@index([email])); `bun run db:push` + `db:generate` OK.
+- **P1-4**: cta.tsx Link gets `group` class (arrow hover works).
+- **P1-5**: removed redundant aria-label from cta.tsx section (h2 names it) and work-grid.tsx tablist (self-describing tabs).
+- **P1-6**: MiniAgent typewriter honors `useReducedMotion` — instant full text, no pulsing cursor.
+- **P1-7**: MiniCube dead `{reduced ? null : null}` removed; `reduced` now disables the rotation easing transition.
+- **P1-8**: single-flip arrows everywhere — `ArrowRight + rtl:rotate-180` for forward links (cta/hero/page-hero/featured-work); calculator back=`ArrowLeft`/next=`ArrowRight`, each with one `rtl:rotate-180`.
+- **P1-9**: Footer year hydration-safe via `useSyncExternalStore` (server snapshot 2026) — better than audit's suggested useEffect+setState which violates `react-hooks/set-state-in-effect`.
+- **P1-10**: added `footer.social.whatsapp` key (ar: واتساب / en: WhatsApp); aria-label localized.
+- **P1-11**: added `nav.ariaLabel` key (القائمة الرئيسية / Main navigation); navbar uses it.
+- **P1-12**: mobile Sheet `side={isRtl ? 'left' : 'right'}` — verified opens from left in AR.
+- **P1-13**: before-after slider fully RTL-mirrored: pos measured from START edge, clip `inset(0 pos% 0 0)` in RTL, handle anchored `right:`, pointer math mirrored; keyboard semantics already RTL-correct.
+- **P1-14**: created `src/lib/site-config.ts` (SITE_CONTACT + SITE_SOCIAL + BRAND_COLORS); footer, contact page, and home JSON-LD now read from it. ⚠️ Values remain PLACEHOLDERS — real WhatsApp number/social accounts still required before launch.
+- **Bonus fix 1**: React 19 hydration false-positive in MiniOrbit (CSSOM normalizes `calc(50% + -24.00000000000002px - 14px)` → `calc(50% - 38px)`); positions now pre-computed at module scope, rounded to 4 decimals, formatted in CSSOM canonical form.
+- **Bonus fix 2**: `/icon` 404 — root cause: content-hash lives in query string (no path extension) so the next-intl matcher didn't exclude `/icon` and rewrote it into [locale]. Added `icon` to proxy.ts matcher exclusions + removed manual `icons:{icon:'/icon'}` from layout metadata (convention link is hashed) + removed `runtime='edge'` from icon.tsx. Favicon now serves a valid PNG.
+- **Bonus fix 3**: `/robots.txt` 500 — conflicting template leftover `public/robots.txt` vs dynamic `src/app/robots.ts`. Deleted the static file (audit wrongly claimed no conflict existed).
+
+Stage Summary:
+- `bun run lint` = 0 errors / 0 warnings (with strict rules ON — README claim now meaningful)
+- `bunx tsc --noEmit` = 0 errors
+- i18n parity = 447/447 keys (added nav.ariaLabel + footer.social.whatsapp)
+- All 12 routes (7 paths × ar/en) = 200, zero console/hydration errors (agent-browser verified)
+- Calculator E2E flow verified (steps → form → success state)
+- RTL slider, mobile menu direction, footer year, socials all browser-verified
+- Prisma `Lead` model live in SQLite
+- P2-2 (enable reactCompiler in next.config) and P2-3 (per-language sitemap URLs) intentionally deferred

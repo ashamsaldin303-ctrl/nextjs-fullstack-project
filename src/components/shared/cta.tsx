@@ -2,10 +2,9 @@
 
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { Reveal } from './reveal'
 import { cn } from '@/lib/utils'
-import { useIsRtl } from '@/lib/use-rtl'
 
 interface CTAProps {
   namespace: string
@@ -17,6 +16,10 @@ interface CTAProps {
 /**
  * Reusable end-of-page call-to-action. Reads title/subtitle/button from a
  * given i18n namespace path, e.g. "pages.websites.cta".
+ *
+ * The section is named implicitly by its <h2> (no redundant aria-label —
+ * audit P1-5), and the button uses a single ArrowRight glyph that flips via
+ * `rtl:rotate-180` (audit P1-8: no double-reversal).
  */
 export function CTA({
   namespace,
@@ -25,17 +28,15 @@ export function CTA({
   className,
 }: CTAProps) {
   const t = useTranslations(namespace)
-  const isRtl = useIsRtl()
-  const Arrow = isRtl ? ArrowLeft : ArrowRight
   const onDark = variant === 'on-dark'
 
   return (
     <section
       className={cn(
         'py-20 sm:py-24',
-        onDark ? 'bg-elyra-dark text-elyra-on-dark' : 'bg-background text-foreground'
+        onDark ? 'bg-elyra-dark text-elyra-on-dark' : 'bg-background text-foreground',
+        className
       )}
-      aria-label={t('title')}
     >
       <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
         <Reveal>
@@ -62,14 +63,17 @@ export function CTA({
           <Link
             href={href}
             className={cn(
-              'mt-8 inline-flex h-12 items-center gap-2 rounded-full px-6 text-base font-medium transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              'group mt-8 inline-flex h-12 items-center gap-2 rounded-full px-6 text-base font-medium transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
               onDark
                 ? 'bg-primary text-primary-foreground focus-visible:ring-offset-elyra-dark'
                 : 'bg-primary text-primary-foreground focus-visible:ring-offset-background'
             )}
           >
             {t('button')}
-            <Arrow className="size-4 transition-transform group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5" aria-hidden="true" />
+            <ArrowRight
+              className="size-4 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5"
+              aria-hidden="true"
+            />
           </Link>
         </Reveal>
       </div>

@@ -15,7 +15,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { useIsRtl } from '@/lib/use-rtl'
 import { SectionHeading } from '@/components/shared/section-heading'
 import {
   computeEstimate, formatMoney,
@@ -54,8 +53,6 @@ export function Calculator() {
   const t = useTranslations('calculator')
   const locale = useLocale()
   const reduced = useReducedMotion()
-  const isRtl = useIsRtl()
-  const Arrow = isRtl ? ArrowLeft : ArrowRight
 
   const [step, setStep] = useState<Step>(0)
   const [dir, setDir] = useState<1 | -1>(1)
@@ -486,7 +483,8 @@ export function Calculator() {
                   step === 0 ? 'cursor-not-allowed opacity-40' : 'hover:bg-foreground/5'
                 )}
               >
-                <Arrow className="size-4 rtl:rotate-180" aria-hidden="true" />
+                {/* Single-flip arrows: ArrowLeft flips to point right ("back") in RTL */}
+                <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
                 {t('back')}
               </button>
               <button
@@ -495,7 +493,8 @@ export function Calculator() {
                 className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform hover:scale-105"
               >
                 {step === 1 ? t('calculate') : t('next')}
-                <Arrow className="size-4 rtl:rotate-180" aria-hidden="true" />
+                {/* ArrowRight flips to point left ("forward") in RTL */}
+                <ArrowRight className="size-4 rtl:rotate-180" aria-hidden="true" />
               </button>
             </div>
           ) : null}
@@ -506,7 +505,7 @@ export function Calculator() {
                 onClick={goBack}
                 className="inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors hover:bg-foreground/5"
               >
-                <Arrow className="size-4 rtl:rotate-180" aria-hidden="true" />
+                <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
                 {t('back')}
               </button>
               <span className="text-sm text-muted-foreground">

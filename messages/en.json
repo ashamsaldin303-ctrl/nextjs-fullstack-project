@@ -33,6 +33,7 @@
     "about": "About",
     "contact": "Contact",
     "cta": "Start Your Project",
+    "ariaLabel": "Main navigation",
     "openMenu": "Open main menu",
     "closeMenu": "Close menu",
     "switchLocale": "عربي",
@@ -393,6 +394,7 @@
     "madeWith": "Crafted with passion and a lot of coffee",
     "social": {
       "telegram": "Telegram",
+      "whatsapp": "WhatsApp",
       "instagram": "Instagram",
       "linkedin": "LinkedIn",
       "github": "GitHub"

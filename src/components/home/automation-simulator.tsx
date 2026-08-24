@@ -79,7 +79,6 @@ export function AutomationSimulator({
   const [status, setStatus] = useState<'idle' | 'running' | 'completed'>('idle')
   const [currentStep, setCurrentStep] = useState(-1)
   const [completed, setCompleted] = useState<number[]>([])
-  const [elapsedMs, setElapsedMs] = useState(0)
   const [counter, setCounter] = useState(0) // live ms counter for current step
 
   const timeouts = useRef<number[]>([])
@@ -103,7 +102,6 @@ export function AutomationSimulator({
     setStatus('idle')
     setCurrentStep(-1)
     setCompleted([])
-    setElapsedMs(0)
     setCounter(0)
   }, [clearAll])
 
@@ -123,14 +121,12 @@ export function AutomationSimulator({
   const run = useCallback(() => {
     clearAll()
     setCompleted([])
-    setElapsedMs(0)
     setCounter(0)
     setStatus('running')
     setCurrentStep(0)
 
     const STEP_DISPLAY = reduced ? 250 : 850
     const TRANSITION = reduced ? 80 : 320
-    let elapsed = 0
 
     steps.forEach((step, i) => {
       const startAt = i * (STEP_DISPLAY + TRANSITION)
@@ -151,7 +147,6 @@ export function AutomationSimulator({
           }
           rafRef.current = requestAnimationFrame(tick)
         }
-        elapsed += target
       }, startAt)
 
       schedule(() => {
@@ -163,12 +158,6 @@ export function AutomationSimulator({
       setStatus('completed')
       setCurrentStep(-1)
       setCounter(0)
-      // recompute elapsed from message data
-      const total = steps.reduce((acc, step) => {
-        const ms = Number(t.raw(`scenarios.${scenario}.steps.${step.id}.ms`))
-        return acc + (Number.isFinite(ms) ? ms : 0)
-      }, 0)
-      setElapsedMs(total)
     }, steps.length * (STEP_DISPLAY + TRANSITION))
   }, [clearAll, reduced, steps, scenario, t, schedule])
 

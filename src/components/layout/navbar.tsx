@@ -8,6 +8,7 @@ import { LanguageSwitcher } from './language-switcher'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet'
 import { Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useIsRtl } from '@/lib/use-rtl'
 
 function navItems(t: ReturnType<typeof useTranslations>) {
   return [
@@ -22,6 +23,7 @@ function navItems(t: ReturnType<typeof useTranslations>) {
 export function Navbar() {
   const t = useTranslations()
   const pathname = usePathname()
+  const isRtl = useIsRtl()
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
 
@@ -33,7 +35,6 @@ export function Navbar() {
   }, [])
 
   const items = navItems(t)
-  const isHome = pathname === '/'
 
   // Transparent over the hero, glass-dark once scrolled.
   const surface = scrolled
@@ -44,7 +45,7 @@ export function Navbar() {
     <header className="fixed inset-x-0 top-0 z-50 transition-colors duration-300">
       <nav
         className={cn('mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8', surface)}
-        aria-label={t('nav.services')}
+        aria-label={t('nav.ariaLabel')}
       >
         <Link
           href="/"
@@ -94,7 +95,7 @@ export function Navbar() {
               <Menu className="size-5" aria-hidden="true" />
             </SheetTrigger>
             <SheetContent
-              side="right"
+              side={isRtl ? 'left' : 'right'}
               className="w-[88vw] max-w-sm border-white/10 bg-elyra-dark text-elyra-on-dark sm:w-[420px]"
             >
               <SheetHeader className="flex flex-row items-center justify-between">

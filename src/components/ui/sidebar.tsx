@@ -83,6 +83,9 @@ function SidebarProvider({
       }
 
       // This sets the cookie to keep the sidebar state.
+      // (Vendored shadcn pattern: cookie write inside an event callback —
+      // safe side effect, intentionally suppressed for react-compiler.)
+      // eslint-disable-next-line react-compiler/react-compiler
       document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
     },
     [setOpenProp, open]
@@ -606,10 +609,11 @@ function SidebarMenuSkeleton({
 }: React.ComponentProps<"div"> & {
   showIcon?: boolean
 }) {
-  // Random width between 50 to 90%.
-  const width = React.useMemo(() => {
+  // Random width between 50 to 90%. Computed once via a lazy state
+  // initializer (Math.random is impure — not allowed in useMemo/render).
+  const [width] = React.useState(() => {
     return `${Math.floor(Math.random() * 40) + 50}%`
-  }, [])
+  })
 
   return (
     <div

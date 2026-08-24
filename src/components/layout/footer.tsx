@@ -1,15 +1,27 @@
 'use client'
 
+import { useSyncExternalStore } from 'react'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { Logo } from '@/components/brand/logo'
 import { LiveClock } from './live-clock'
 import { Mail, MessageCircle, Send, Github, Linkedin, Instagram } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { SITE_CONTACT, SITE_SOCIAL } from '@/lib/site-config'
+
+const subscribeNoop = () => () => {}
+const getServerYear = () => 2026
+
+function getClientYear(): number {
+  return new Date().getFullYear()
+}
 
 export function Footer({ className }: { className?: string }) {
   const t = useTranslations()
-  const year = new Date().getFullYear()
+  // Hydration-safe year (guide §1.6 + audit P1-9): useSyncExternalStore keeps
+  // the server snapshot constant (no mismatch) while the client reads the
+  // real clock — and avoids setState-in-effect cascading renders.
+  const year = useSyncExternalStore(subscribeNoop, getClientYear, getServerYear)
 
   return (
     <footer
@@ -97,16 +109,16 @@ export function Footer({ className }: { className?: string }) {
             <ul className="mt-4 space-y-2 text-sm">
               <li>
                 <a
-                  href="mailto:hello@elyra.agency"
+                  href={`mailto:${SITE_CONTACT.email}`}
                   className="inline-flex items-center gap-2 text-white/80 transition-colors hover:text-white"
                 >
                   <Mail className="size-4" aria-hidden="true" />
-                  hello@elyra.agency
+                  {SITE_CONTACT.email}
                 </a>
               </li>
               <li>
                 <a
-                  href="https://t.me/elyra_agency"
+                  href={SITE_SOCIAL.telegram}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-white/80 transition-colors hover:text-white"
@@ -119,7 +131,7 @@ export function Footer({ className }: { className?: string }) {
             <ul className="mt-4 flex gap-3">
               <li>
                 <a
-                  href="https://t.me/elyra_agency"
+                  href={SITE_SOCIAL.telegram}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={t('footer.social.telegram')}
@@ -130,10 +142,10 @@ export function Footer({ className }: { className?: string }) {
               </li>
               <li>
                 <a
-                  href="https://wa.me/963991000000"
+                  href={SITE_SOCIAL.whatsapp}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label="WhatsApp"
+                  aria-label={t('footer.social.whatsapp')}
                   className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
                 >
                   <MessageCircle className="size-4" aria-hidden="true" />
@@ -141,7 +153,7 @@ export function Footer({ className }: { className?: string }) {
               </li>
               <li>
                 <a
-                  href="https://instagram.com/elyra.agency"
+                  href={SITE_SOCIAL.instagram}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={t('footer.social.instagram')}
@@ -152,7 +164,7 @@ export function Footer({ className }: { className?: string }) {
               </li>
               <li>
                 <a
-                  href="https://linkedin.com/company/elyra-agency"
+                  href={SITE_SOCIAL.linkedin}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={t('footer.social.linkedin')}
@@ -163,7 +175,7 @@ export function Footer({ className }: { className?: string }) {
               </li>
               <li>
                 <a
-                  href="https://github.com/elyra-agency"
+                  href={SITE_SOCIAL.github}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={t('footer.social.github')}

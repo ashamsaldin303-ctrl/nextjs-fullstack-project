@@ -132,10 +132,12 @@ export function BeforeAfter({
     const el = containerRef.current
     if (!el) return
     const rect = el.getBoundingClientRect()
-    const x = clientX - rect.left
+    // pos is measured from the START edge (left in LTR, right in RTL) so the
+    // reveal direction follows the reading direction (audit P1-13).
+    const x = isRtl ? rect.right - clientX : clientX - rect.left
     const pct = (x / rect.width) * 100
     setPos(Math.max(2, Math.min(98, pct)))
-  }, [])
+  }, [isRtl])
 
   const onPointerDown = (e: React.PointerEvent) => {
     dragging.current = true
@@ -165,9 +167,10 @@ export function BeforeAfter({
     }
   }
 
-  // Physical clip: the "after" layer reveals from the left edge up to pos%.
-  // Works identically in RTL and LTR (the handle moves with pos).
-  const clipAfter = `inset(0 0 0 ${pos}%)`
+  // Clip is mirrored in RTL: pos counts from the START edge (right), so the
+  // "after" layer reveals from the LEFT — matching RTL reading order where
+  // "before" sits on the right and "after" on the left (audit P1-13).
+  const clipAfter = isRtl ? `inset(0 ${pos}% 0 0)` : `inset(0 0 0 ${pos}%)`
 
   return (
     <div
@@ -200,10 +203,10 @@ export function BeforeAfter({
         </span>
       </div>
 
-      {/* handle */}
+      {/* handle — anchored to the START edge (right in RTL) */}
       <div
         className="absolute inset-y-0 z-10 w-0.5 bg-white/80"
-        style={{ left: `${pos}%` }}
+        style={isRtl ? { right: `${pos}%` } : { left: `${pos}%` }}
         aria-hidden="true"
       >
         <div className="absolute top-1/2 left-1/2 flex size-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-white/90 text-elyra-dark shadow-lg">
@@ -222,7 +225,10 @@ export function BeforeAfter({
         aria-valuetext={`${Math.round(pos)}%`}
         onKeyDown={onKeyDown}
         className="absolute inset-y-0 z-20 w-2 cursor-ew-resize focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        style={{ left: `calc(${pos}% - 4px)`, touchAction: 'none' }}
+        style={{
+          ...(isRtl ? { right: `calc(${pos}% - 4px)` } : { left: `calc(${pos}% - 4px)` }),
+          touchAction: 'none',
+        }}
       />
 
       {/* hint */}

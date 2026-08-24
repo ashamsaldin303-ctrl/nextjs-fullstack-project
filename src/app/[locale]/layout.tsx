@@ -62,9 +62,9 @@ export async function generateMetadata({
       title: t('title'),
       description: t('description'),
     },
-    icons: {
-      icon: '/icon',
-    },
+    // Favicon is provided by the src/app/icon.tsx file convention — no
+    // manual `icons` override (an explicit `/icon` URL 404s because the
+    // convention route is content-hashed by Next).
   }
 }
 

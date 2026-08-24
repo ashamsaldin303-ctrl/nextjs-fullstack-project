@@ -1,7 +1,7 @@
 'use client'
 
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useMemo, useRef, useState, useEffect } from 'react'
+import { Canvas, useFrame } from '@react-three/fiber'
+import { useRef, useState, useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 
 /**
@@ -24,17 +24,18 @@ const COLORS = [
 
 function Particles({ mouse }: { mouse: React.MutableRefObject<{ x: number; y: number; tx: number; ty: number }> }) {
   const pointsRef = useRef<THREE.Points>(null)
-  const { viewport } = useThree()
   const mouseVec = useRef(new THREE.Vector3(0, 0, 0))
 
-  const { positions, scales, speeds, colors } = useMemo(() => {
+  // Particle geometry is generated ONCE per mount with Math.random — an impure
+  // call that React 19 only permits inside a lazy state initializer (never in
+  // render body or useMemo factories). See react-hooks/purity.
+  const [buffers] = useState(() => {
     const positions = new Float32Array(PARTICLE_COUNT * 3)
     const scales = new Float32Array(PARTICLE_COUNT)
     const speeds = new Float32Array(PARTICLE_COUNT)
     const colors = new Float32Array(PARTICLE_COUNT * 3)
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       // Spread in a wide box around the camera
-      const r = Math.random()
       const radius = 4 + Math.random() * 9
       const theta = Math.random() * Math.PI * 2
       const phi = Math.acos(2 * Math.random() - 1)
@@ -50,7 +51,8 @@ function Particles({ mouse }: { mouse: React.MutableRefObject<{ x: number; y: nu
       colors[i * 3 + 2] = c.b
     }
     return { positions, scales, speeds, colors }
-  }, [])
+  })
+  const { positions, scales, speeds, colors } = buffers
 
   const uniforms = useMemo(
     () => ({

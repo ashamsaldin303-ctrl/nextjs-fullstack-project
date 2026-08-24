@@ -2,11 +2,10 @@
 
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { Reveal } from '@/components/shared/reveal'
 import { BeforeAfter } from './before-after'
-import { useIsRtl } from '@/lib/use-rtl'
 
 const PROJECTS = [
   { key: 'project1' as const, variant: 'site-new' as const, accent: '#0071E3', metrics: ['metric1', 'metric2'] },
@@ -15,8 +14,6 @@ const PROJECTS = [
 
 export function FeaturedWork() {
   const t = useTranslations('workSection')
-  const isRtl = useIsRtl()
-  const Arrow = isRtl ? ArrowLeft : ArrowRight
 
   return (
     <section className="bg-background py-20 sm:py-28" aria-labelledby="work-title">
@@ -71,7 +68,7 @@ export function FeaturedWork() {
             className="group inline-flex h-11 items-center gap-2 rounded-full border border-border px-5 text-sm font-medium transition-colors hover:bg-foreground/5"
           >
             {t('viewAll')}
-            <Arrow className="size-4 transition-transform group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5" aria-hidden="true" />
+            <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" aria-hidden="true" />
           </Link>
         </div>
       </div>

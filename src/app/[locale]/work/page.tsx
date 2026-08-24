@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { getTranslations } from 'next-intl/server'
 import { PageHero } from '@/components/shared/page-hero'
 import { CTA } from '@/components/shared/cta'
 import { WorkGrid } from '@/components/pages/work-grid'

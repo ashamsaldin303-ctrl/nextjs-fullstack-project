@@ -1,34 +1,35 @@
 import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
 import nextTypescript from "eslint-config-next/typescript";
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import reactCompiler from "eslint-plugin-react-compiler";
 
 const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
+  // Register the React Compiler ESLint plugin (guide §1.4 + audit P0-1).
+  // This makes `react-compiler/react-compiler` rule available to the rules block.
+  plugins: { "react-compiler": reactCompiler },
   rules: {
-    // TypeScript rules
-    "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-unused-vars": "off",
-    "@typescript-eslint/no-non-null-assertion": "off",
+    // ---- TypeScript strict (audit P0-1) ----
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-non-null-assertion": "error",
+    "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+    // Keep these TS niceties lenient for trusted server/infra patterns
     "@typescript-eslint/ban-ts-comment": "off",
     "@typescript-eslint/prefer-as-const": "off",
     "@typescript-eslint/no-unused-disable-directive": "off",
-    
-    // React rules
-    "react-hooks/exhaustive-deps": "off",
-    "react-hooks/purity": "off",
+
+    // ---- React 19 hardening (audit P0-1) ----
+    "react-hooks/exhaustive-deps": "error",
+    "react-hooks/purity": "error",
+    "react-hooks/immutability": "error", // ← key for the R3F uniform-mutation pattern
+    "react-compiler/react-compiler": "warn",
     "react/no-unescaped-entities": "off",
     "react/display-name": "off",
     "react/prop-types": "off",
-    "react-compiler/react-compiler": "off",
-    
-    // Next.js rules
+
+    // ---- Next.js (kept lenient: we use next/image where it counts) ----
     "@next/next/no-img-element": "off",
     "@next/next/no-html-link-for-pages": "off",
-    
-    // General JavaScript rules
+
+    // ---- General JS (kept lenient for server/cli code) ----
     "prefer-const": "off",
     "no-unused-vars": "off",
     "no-console": "off",

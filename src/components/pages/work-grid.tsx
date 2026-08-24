@@ -45,7 +45,9 @@ export function WorkGrid() {
   return (
     <section className="bg-background py-20 sm:py-28" aria-labelledby="work-grid-title">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-wrap justify-center gap-2" role="tablist" aria-label={t('hero.title')}>
+        {/* Tabs are self-describing (visible text labels) — no redundant
+            aria-label repeating the section title (audit P1-5). */}
+        <div className="flex flex-wrap justify-center gap-2" role="tablist">
           {filters.map((f) => {
             const active = filter === f.id
             return (
