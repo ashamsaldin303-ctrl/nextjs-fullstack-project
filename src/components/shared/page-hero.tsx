@@ -2,9 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
-import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
-import { KineticWords } from './reveal'
 import { cn } from '@/lib/utils'
 
 interface PageHeroProps {
@@ -16,10 +14,13 @@ interface PageHeroProps {
 /**
  * Dark page hero used across all inner pages (consistent navbar treatment,
  * dramatic design — guide §2 says all heroes are dark).
+ *
+ * Phase 3 (§4.1): above-the-fold content uses CSS-only entrance keyframes
+ * (`hero-enter`) — framer-motion removed, so inner-page LCP paints with the
+ * first server-rendered frame. h1/subtitle (LCP candidates) carry no delay.
  */
 export function PageHero({ namespace, ctaHref = '/contact', className }: PageHeroProps) {
   const t = useTranslations(namespace)
-  const reduced = useReducedMotion()
 
   return (
     <section
@@ -37,43 +38,24 @@ export function PageHero({ namespace, ctaHref = '/contact', className }: PageHer
         aria-hidden="true"
       />
       <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
-        <motion.span
-          className="kicker kicker-on-dark"
-          initial={reduced ? undefined : { opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
+        <span className="kicker kicker-on-dark hero-enter hero-enter-1">
           {t('kicker')}
-        </motion.span>
+        </span>
         <h1
           id="page-hero-title"
-          className="mt-6 text-balance text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl"
+          className="hero-enter mt-6 text-balance text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl"
           style={{ fontVariationSettings: '"wght" 200' }}
         >
-          <span className="block">
-            <KineticWords text={t('title')} />
-          </span>
+          <span className="block">{t('title')}</span>
           {t.has('titleAccent') ? (
-            <span className="block text-primary">
-              <KineticWords text={t('titleAccent')} />
-            </span>
+            <span className="block text-primary">{t('titleAccent')}</span>
           ) : null}
         </h1>
-        <motion.p
-          className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-white/70 sm:text-lg md:text-xl"
-          initial={reduced ? undefined : { opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.25 }}
-        >
+        <p className="hero-enter mx-auto mt-6 max-w-2xl text-base leading-relaxed text-white/70 sm:text-lg md:text-xl">
           {t('subtitle')}
-        </motion.p>
+        </p>
         {ctaHref && t.has('cta') ? (
-          <motion.div
-            className="mt-10"
-            initial={reduced ? undefined : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.4 }}
-          >
+          <div className="hero-enter hero-enter-2 mt-10">
             <Link
               href={ctaHref}
               data-cursor="magnet"
@@ -82,7 +64,7 @@ export function PageHero({ namespace, ctaHref = '/contact', className }: PageHer
               {t('cta')}
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" aria-hidden="true" />
             </Link>
-          </motion.div>
+          </div>
         ) : null}
       </div>
     </section>

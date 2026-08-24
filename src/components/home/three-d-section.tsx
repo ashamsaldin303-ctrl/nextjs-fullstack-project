@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
-import { useReducedMotion } from 'framer-motion'
 import { MousePointer2 } from 'lucide-react'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { Reveal } from '@/components/shared/reveal'
+import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 
 const CapabilityScene = dynamic(
   () => import('@/components/three/capability-scene').then((m) => m.CapabilityScene),
@@ -18,18 +18,24 @@ const CapabilityScene = dynamic(
 
 export function ThreeDSection() {
   const t = useTranslations('pages.websites.threeD')
-  const reduced = useReducedMotion()
+  const reduced = usePrefersReducedMotion()
   const ref = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState(true)
+  // Phase 3 §4.2: the Three.js chunk only loads when the section actually
+  // approaches the viewport — below-fold sections never pay the cost up front.
+  const [nearViewport, setNearViewport] = useState(false)
 
   useEffect(() => {
     const el = ref.current
     if (!el) return
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (entry) setActive(entry.isIntersecting)
+        if (entry) {
+          setActive(entry.isIntersecting)
+          if (entry.isIntersecting) setNearViewport(true)
+        }
       },
-      { threshold: 0.1 }
+      { rootMargin: '200px 0px', threshold: 0.1 }
     )
     io.observe(el)
     const onVis = () => setActive(!document.hidden)
@@ -56,7 +62,7 @@ export function ThreeDSection() {
             className="relative aspect-[16/10] w-full overflow-hidden rounded-3xl border border-white/10 sm:aspect-[16/8]"
             aria-label={t('hint')}
           >
-            {!reduced ? <CapabilityScene active={active} /> : null}
+            {!reduced && nearViewport ? <CapabilityScene active={active} /> : null}
             <div className="hero-fallback absolute inset-0 -z-10" aria-hidden="true" />
             <div className="pointer-events-none absolute bottom-4 start-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs text-white/80 backdrop-blur-sm">
               <MousePointer2 className="size-3.5" aria-hidden="true" />

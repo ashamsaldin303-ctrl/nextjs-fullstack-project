@@ -2,10 +2,10 @@
 
 import { useCallback, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { motion, useReducedMotion } from 'framer-motion'
 import { MoveHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useIsRtl } from '@/lib/use-rtl'
+import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 
 type SceneVariant = 'site-old' | 'site-new' | 'dashboard-old' | 'dashboard-new'
 
@@ -119,7 +119,7 @@ export function BeforeAfter({
   label = 'Project',
 }: BeforeAfterProps) {
   const t = useTranslations('workSection')
-  const reduced = useReducedMotion()
+  const reduced = usePrefersReducedMotion()
   const isRtl = useIsRtl()
   const containerRef = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState(50) // 0-100
@@ -231,16 +231,11 @@ export function BeforeAfter({
         }}
       />
 
-      {/* hint */}
+      {/* hint — CSS keyframes cycle (.ba-hint), framer-free (§4.3) */}
       {reduced ? null : (
-        <motion.div
-          className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-2.5 py-1 text-[10px] text-white/90 backdrop-blur-sm"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: [0, 1, 1, 0] }}
-          transition={{ duration: 3.5, repeat: Infinity, repeatDelay: 1 }}
-        >
+        <div className="ba-hint pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-2.5 py-1 text-[10px] text-white/90 backdrop-blur-sm">
           {t('dragHint')}
-        </motion.div>
+        </div>
       )}
     </div>
   )

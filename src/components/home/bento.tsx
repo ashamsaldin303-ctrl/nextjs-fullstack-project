@@ -2,13 +2,13 @@
 
 import { useCallback, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { motion, useReducedMotion } from 'framer-motion'
 import {
   Globe, Workflow, Boxes, Bot, Sparkles,
   Check, Play, RotateCw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SectionHeading } from '@/components/shared/section-heading'
+import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 
 /** Bento card with cursor-following radial glow (works in RTL & LTR). */
 function GlowCard({
@@ -91,7 +91,7 @@ function MiniSite() {
 /* ---------- Mini interactive: automation pulse ---------- */
 function MiniFlow() {
   const t = useTranslations('bento.automation.mini')
-  const reduced = useReducedMotion()
+  const reduced = usePrefersReducedMotion()
   const [state, setState] = useState<'idle' | 'running' | 'done'>('idle')
 
   const run = () => {
@@ -118,23 +118,26 @@ function MiniFlow() {
                     : 'border-white/15 bg-white/5'
               )}
             >
-              <motion.span
-                className="block size-full rounded-full"
-                animate={
-                  state === 'running'
-                    ? { boxShadow: ['0 0 0 0 rgba(0,113,227,0.6)', '0 0 0 8px rgba(0,113,227,0)'] }
-                    : {}
-                }
-                transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.3 }}
+              {/* Pulse via pure CSS (.elyra-pulse) — Phase 3 §4.3 */}
+              <span
+                className={cn(
+                  'block size-full rounded-full',
+                  state === 'running' && !reduced && 'elyra-pulse'
+                )}
+                style={state === 'running' && reduced ? { boxShadow: '0 0 0 4px rgba(0,113,227,0.35)' } : undefined}
               />
             </div>
             {i < 2 ? (
               <div className="relative h-px flex-1 bg-white/10">
-                <motion.span
-                  className="absolute inset-0 bg-primary"
-                  animate={state === 'running' ? { scaleX: [0, 1] } : { scaleX: 0 }}
-                  transition={{ duration: 0.5, delay: i * 0.3 + 0.15, ease: 'easeInOut' }}
-                  style={{ originX: 0 }}
+                <span
+                  className={cn(
+                    'absolute inset-0 bg-primary transition-transform duration-500 ease-in-out',
+                    state === 'running' ? 'scale-x-100' : 'scale-x-0'
+                  )}
+                  style={{
+                    transformOrigin: 'start',
+                    transitionDelay: `${i * 0.3 + 0.15}s`,
+                  }}
                 />
               </div>
             ) : null}
@@ -159,7 +162,7 @@ function MiniCube() {
   const t = useTranslations('bento.threeD.mini')
   // Reduced motion: skip the CSS easing between drag rotations — the cube
   // still rotates (user-driven, not autonomous) but with no transition.
-  const reduced = useReducedMotion()
+  const reduced = usePrefersReducedMotion()
   const [rot, setRot] = useState({ x: -18, y: 28 })
   const [dragging, setDragging] = useState(false)
   const start = useRef({ x: 0, y: 0, rx: 0, ry: 0 })
@@ -228,7 +231,7 @@ function MiniAgent() {
   // Typewriter is a JS-driven (setInterval) animation — the global CSS
   // reduced-motion override can't stop it, so we honor the hook directly:
   // reduced-motion users get the full response instantly (audit P1-6).
-  const reduced = useReducedMotion()
+  const reduced = usePrefersReducedMotion()
   const [typed, setTyped] = useState(false)
   const [chars, setChars] = useState(0)
   const response = t('response')

@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { motion, AnimatePresence } from 'framer-motion'
 import { Wrench } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Reveal } from '@/components/shared/reveal'
@@ -79,53 +78,51 @@ export function WorkGrid() {
           })}
         </div>
 
-        <motion.div layout className="mt-12 grid gap-8 md:grid-cols-2">
-          <AnimatePresence mode="popLayout">
-            {visible.map((p, i) => {
-              const metrics = t.raw(`projects.${p.key}.metrics`) as string[]
-              const services = t.raw(`projects.${p.key}.services`) as string[]
-              return (
-                <motion.article
-                  key={p.key}
-                  layout
-                  initial={{ opacity: 0, scale: 0.96 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.96 }}
-                  transition={{ duration: 0.35, delay: i * 0.04 }}
-                >
-                  <Reveal>
-                    <BeforeAfter variant={p.variant} accent={p.accent} label={t(`projects.${p.key}.title`)} />
-                    <div className="mt-5 flex items-center gap-3">
-                      <span className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">
-                        {t(`projects.${p.key}.type`)}
-                      </span>
-                      <h3 className="text-lg font-semibold tracking-tight">{t(`projects.${p.key}.title`)}</h3>
-                    </div>
-                    <p className="mt-2 text-sm text-muted-foreground">{t(`projects.${p.key}.desc`)}</p>
+        {/* Phase 3 §4.3: framer layout-animation replaced by a CSS fade
+            keyed on the filter — filtering stays instant and framer-free,
+            dropping /work's initial JS below the 200KB target. */}
+        <div key={filter} className="reveal-filter-in mt-12 grid gap-8 md:grid-cols-2">
+          {visible.map((p, i) => {
+            const metrics = t.raw(`projects.${p.key}.metrics`) as string[]
+            const services = t.raw(`projects.${p.key}.services`) as string[]
+            return (
+              <article
+                key={p.key}
+                className="reveal reveal-visible"
+                style={{ transitionDelay: `${i * 0.04}s` }}
+              >
+                <Reveal>
+                  <BeforeAfter variant={p.variant} accent={p.accent} label={t(`projects.${p.key}.title`)} />
+                  <div className="mt-5 flex items-center gap-3">
+                    <span className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">
+                      {t(`projects.${p.key}.type`)}
+                    </span>
+                    <h3 className="text-lg font-semibold tracking-tight">{t(`projects.${p.key}.title`)}</h3>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">{t(`projects.${p.key}.desc`)}</p>
 
-                    {/* Services delivered (Phase 2 content enrichment) */}
-                    <ul className="mt-4 space-y-1.5">
-                      {services.map((s) => (
-                        <li key={s} className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Wrench className="size-3 shrink-0 text-primary/70" aria-hidden="true" />
-                          {s}
-                        </li>
-                      ))}
-                    </ul>
+                  {/* Services delivered (Phase 2 content enrichment) */}
+                  <ul className="mt-4 space-y-1.5">
+                    {services.map((s) => (
+                      <li key={s} className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Wrench className="size-3 shrink-0 text-primary/70" aria-hidden="true" />
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
 
-                    <ul className="mt-4 flex flex-wrap gap-2">
-                      {metrics.map((m, idx) => (
-                        <li key={idx} className="inline-flex items-center gap-1.5 rounded-lg bg-primary/5 px-2.5 py-1 text-xs font-medium text-primary-strong">
-                          {m}
-                        </li>
-                      ))}
-                    </ul>
-                  </Reveal>
-                </motion.article>
-              )
-            })}
-          </AnimatePresence>
-        </motion.div>
+                  <ul className="mt-4 flex flex-wrap gap-2">
+                    {metrics.map((m, idx) => (
+                      <li key={idx} className="inline-flex items-center gap-1.5 rounded-lg bg-primary/5 px-2.5 py-1 text-xs font-medium text-primary-strong">
+                        {m}
+                      </li>
+                    ))}
+                  </ul>
+                </Reveal>
+              </article>
+            )
+          })}
+        </div>
       </div>
     </section>
   )

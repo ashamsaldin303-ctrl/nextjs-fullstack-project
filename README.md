@@ -2,6 +2,8 @@
 
 الموقع الرسمي لوكالة **Elyra** الرقمية (إيليرا) — مواقع فائقة الجمال وأنظمة أتمتة ذكية بـ n8n.
 
+> **المرحلة 3 مكتملة** — الظهر الكامل (API + Prisma + ويبهوك n8n موقّع) + إصلاحات الأداء الإنتاجي + توثيق النشر.
+>
 > **المرحلة 2 مكتملة** — طبقة الإحساس (مؤشر مغناطيسي + حبيبات سينمائية + Audio UX) + إثراء المحتوى + React Compiler + hreflang.
 >
 > **المرحلة 1 مكتملة** — التأسيس + الصفحة الرئيسية (9 أقسام) + صفحتا الخدمتين + work / about / contact + كل معايير الجودة.
@@ -65,36 +67,150 @@
 
 17. **sitemap/metadata بـ hreflang كامل**: كل مسار يُصدر `<url>` واحداً مع `alternates.languages` (ar / en / x-default) — وتوصية next-intl الرسمية مُطبّقة في `sitemap.ts` و`seo.ts` و`layout.tsx`.
 
+## قرارات المرحلة 3 (الظهر + الأداء + النشر)
+
+18. **إعادة الحساب الخادمية دائماً**: `POST /api/leads` يستورد `computeEstimate` من `lib/calculator.ts` (لا نسخ) ويحسب الميزانية/المدة من خيارات المعالج فقط. حقول أرقام العميل المعروفة (`minBudget`/`maxBudget`/`weeksMin`/`weeksMax`/`estimate`) تُجرد قبل التحقق الصارم (دفاع مزدوج: العميل المزوّر يُتجاهل ولا يُخزن له رقم)، وكل حقل آخر غير معروف ← 400 قاطع.
+
+19. **الحصر في الذاكرة**: `lib/rate-limit.ts` — نافذة انزلاقية 60 ثانية × 5 طلبات/IP في `Map` مع تنظيف دوري يمنع تسرّب الذاكرة (خادم Node واحد standalone). الرد 429 يحمل `Retry-After` ورسالة مترجمة (ترويسة `x-elyra-locale` → fallback إلى accept-language → العربية).
+
+20. **نمط الويبهوك وأمانه**: توقيع HMAC-SHA256 على `timestamp.nonce.body` بمفتاح 32+ محرفاً من متغيرات بيئة فقط. عند غيابهما: تعطيل هادئ بسطر سجل واحد. التسليم best-effort بعد نجاح التخزين (fire-and-forget — الطلب يبقى 201)، مهلة 5 ثوانٍ بـ AbortController، وإعادة محاولة واحدة عند فشل الشبكة فقط. الوصفة الكاملة للاستقبال في n8n أدناه.
+
+21. **قرارات الأداء (§4)**: (أ) محتوى فوق الطية في الرئيسية وPageHero يُرسم من الخادم بمدخل CSS-only (`hero-enter` keyframes تبدأ عند أول رسم — بلا انتظار hydration) — بصمة framer القديمة (`opacity:0` inline) اختفت من HTML الخادم؛ (ب) `HeroCanvas` يؤجّل تحميل Three.js حتى `requestIdleCallback` (مهلة 2.5s) أو أول تفاعل، و`CapabilityScene` حتى اقتراب قسمها من الشاشة؛ (ج) `Reveal` أعيد كتابته بـ IntersectionObserver + CSS (بلا framer) لكل الاستخدامات البسيطة مع بقاء framer للمتخصصات فقط (الحاسبة/المحاكي/methodology) — صفحات مثل /about و/work و/services/websites لم تعد تحمّل framer في حزمة JS المبدئية؛ (د) فلترة /work أصبحت CSS keyframes بدل AnimatePresence (قرار أداء موثّق — الوظيفة ذاتها).
+
+22. **فخ HOSTNAME في standalone**: موثّق كاملاً في قسم Deployment أدناه (حلقة 307 مع `HOSTNAME=127.0.0.1` — التوصية `0.0.0.0`).
+
 ## معايير الجودة المحققة
 
 | المعيار | الحالة |
 |---|---|
 | `bun run lint` | ✓ 0 أخطاء / 0 تحذيرات (قواعد React 19 الصارمة مفعّلة) |
 | `bunx tsc --noEmit` | ✓ 0 أخطاء (مع `noUncheckedIndexedAccess`) |
-| تكافؤ i18n (ar/en) | ✓ 478 مفتاحاً متطابقاً |
+| تكافؤ i18n (ar/en) | ✓ 499 مفتاحاً متطابقاً |
 | جميع المسارات (×2 لغة) | ✓ 200 OK |
 | تحقق في المتصفح | ✓ رسم + تفاعلات + RTL/LTR + responsive + sticky footer |
 | أخطاء console/hydration | ✓ صفر |
 | WCAG 2.1 AA | focus-visible, aria-label, keyboard (before/after slider), 44px targets |
 | `prefers-reduced-motion` | ✓ محترم في كل ميزة حركية (بما فيها المؤشر المغناطيسي — يُخفى كلياً) |
+| API الأمني | ✓ 13/13 (Zod 400 · تجاهل أرقام مزوّرة · 429+Retry-After · توقيعات HMAC) |
 
 ## المهام المرحلية
 
-- **المرحلة 3** (بأمر لاحق): `POST /api/leads` (Zod على الخادم + إعادة حساب الميزانية في Serializable tx + Prisma `Lead` + ويبهوك n8n موقّع HMAC-SHA256 + طابع زمني ±5 دقائق + nonce idempotency) + خاتمة SEO النهائية + تدقيق قائمة الفحص قبل النشر.
+- **كل المراحل الثلاث مكتملة.** ما تبقّى بيد صاحب المشروع: بيانات التواصل الحقيقية في `site-config.ts` · إعداد n8n الفعلي بالوصفة أعلاه · النطاق والاستضافة · تشغيل `scripts/lighthouse-prod.sh` في بيئة بناء.
 
 ## قيود بيئة التنفيذ (مهم للمراجعة)
 
 - **البناء الإنتاجي (`bun run build`) غير مسموح في هذه البيئة** (سياسة الصندوق الرمل) — التحقق تم عبر خادم التطوير + lint + tsc + فحص المتصفح الفعلي. أرقام Lighthouse للوضع التطويري غير ممثلة للإنتاج (React بوضع dev وغير مضغوط) وتوثّق كمثل.
 - أرقام التواصل في `src/lib/site-config.ts` ما تزال placeholder بانتظار صاحب المشروع.
 
+## الظهر (المرحلة 3)
+
+### `POST /api/leads` — نقطة النهاية الوحيدة
+
+| الحالة | المعنى |
+|---|---|
+| `201` | خُزّن. الرد: `{ "reference": "cuid8" }` — أول 8 محارف من معرّف السجل |
+| `400` | فشل Zod — أخطاء الحقول مترجمة (اعتماداً على `x-elyra-locale`) |
+| `429` | تجاوز 5 طلبات/دقيقة/IP — ترويسة `Retry-After` بالثواني |
+| `500` | خطأ عام بلا تفاصيل — التفاصيل لسجل الخادم فقط |
+
+مصدران للطلبات على النقطة نفسها: `source: "calculator"` (كل إجابات المعالج) و`source: "contact-form"` (نموذج التواصل مع `message`) — التمييز محفوظ داخل JSON عمود `integrations` (`{ source, items }`).
+
+### سيناريو الويبهوك
+
+يُطلق بعد نجاح التخزين (لا قبله) وبصمت تام عند الفشل. الترويسات: `X-Elyra-Signature` (`sha256=<hex>`) · `X-Elyra-Timestamp` (ثواني unix) · `X-Elyra-Nonce` (UUID).
+
+### وصفة التحقق في n8n (Code Node)
+
+انسخها كما هي في عقدة Code قبل أي منطق للـ workflow (النمط من دليل §9):
+
+```js
+const crypto = require('node:crypto')
+
+const SECRET = process.env.N8N_WEBHOOK_SECRET || '<ضع-السر-هنا>'
+const MAX_SKEW_SEC = 300        // ± 5 دقائق
+const NONCE_TTL_MS = 10 * 60_000 // 10 دقائق
+
+// 1) خزّن الـ nonces المستهلكة (idempotency) — memory أو Redis في الإنتاج
+if (!globalThis.__elyraNonces) globalThis.__elyraNonces = new Map()
+const seen = globalThis.__elyraNonces
+
+module.exports = function verify(req) {
+  const sig = req.headers['x-elyra-signature']
+  const ts = req.headers['x-elyra-timestamp']
+  const nonce = req.headers['x-elyra-nonce']
+  if (!sig || !ts || !nonce) return { ok: false, reason: 'missing-headers' }
+
+  // 2) حداثة الطابع الزمني
+  if (Math.abs(Date.now() / 1000 - Number(ts)) > MAX_SKEW_SEC)
+    return { ok: false, reason: 'stale-timestamp' }
+
+  // 3) HMAC — timingSafeEqual (لا === أبداً)
+  const body = req.rawBody                        // الجسم الخام كما وصل
+  const expected = 'sha256=' + crypto
+    .createHmac('sha256', SECRET)
+    .update(`${ts}.${nonce}.${body}`)
+    .digest('hex')
+  const a = Buffer.from(sig)
+  const b = Buffer.from(expected)
+  const sigOk = a.length === b.length && crypto.timingSafeEqual(a, b)
+  if (!sigOk) return { ok: false, reason: 'bad-signature' }
+
+  // 4) منع إعادة التشغيل
+  const now = Date.now()
+  for (const [n, t] of seen) if (now - t > NONCE_TTL_MS) seen.delete(n)
+  if (seen.has(nonce)) return { ok: false, reason: 'nonce-reused' }
+  seen.set(nonce, now)
+
+  return { ok: true }
+}
+```
+
+> ملاحظة: في n8n، استخدم `$input.rawBody` أو ما يكافئه حسب نسختك، وتأكد من عدم إعادة ترميز JSON قبل التحقق (التوقيع على السلسلة الخام).
+
+## Deployment
+
+### فخ `HOSTNAME` في الخادم المستقل (مهم!)
+
+تشغيل خادم standalone مع `HOSTNAME=127.0.0.1` حصرياً يسبب **حلقة 307 لانهائية** على مسارات اللغة الافتراضية: Next يبني روابط إعادة الكتابة بصيغة `localhost`، وعند مخالفة HOSTNAME تتسرّب إعادة الكتابة كتوجيه — مطابق للحالة المفتوحة upstream: `vectorize-io/hindsight#1926` (Next 16.2.x).
+
+| وضع التشغيل | النتيجة |
+|---|---|
+| `HOSTNAME=127.0.0.1` | ❌ حلقة 307 على مسارات اللغة الافتراضية |
+| `HOSTNAME=0.0.0.0` | ✅ (المعيار في Docker — يعمل مع CORS/بروكيات الحاوية) |
+| `HOSTNAME=localhost` | ✅ محلياً فقط |
+| `next start` | ✅ (لا يمرّ عبر standalone) |
+
+**التوصية**: في Docker/VPS استخدم دائماً `HOSTNAME=0.0.0.0` (كما في Dockerfile المرفق).
+
+### Docker
+
+```bash
+# البناء — NEXT_PUBLIC_SITE_URL إلزامي وقت البناء (canonical/SEO)
+docker build --build-arg NEXT_PUBLIC_SITE_URL=https://elyra.agency -t elyra .
+
+# التشغيل — قاعدة البيانات في volume
+ docker run -p 3000:3000 \
+  -e DATABASE_URL=file:/app/db/custom.db \
+  -e N8N_WEBHOOK_URL=https://n8n.example.com/webhook/elyra-leads \
+  -e N8N_WEBHOOK_SECRET=<openssl rand -hex 32> \
+  -v elyra-db:/app/db elyra
+```
+
+راجع `.env.example` لكل المتغيرات وتوثيقها. **قبل أول إطلاق**: شغّل `bun scripts/clean-leads.ts` أو `--dry-run` لضمان خلو قاعدة البيانات من بيانات الاختبار.
+
 ## الأوامر
 
 ```bash
 bun run dev                              # خادم التطوير (المنفذ 3000)
-bun run lint                             # فحص الجودة
+bun run lint                             # فحص الجودة (القواعد الصارمة)
 bunx tsc --noEmit                        # فحص الأنواع
 node scripts/check-i18n-parity.js        # فحص تكافؤ الترجمات
-bun run db:push                          # دفع schema (للمرحلة 3)
+bun run db:push                          # دفع schema
+bun scripts/verify-api.mjs               # التحقق الأمني الكامل للـ API (13 فحصاً)
+node scripts/verify-performance.mjs      # فحص إصلاحات الأداء (10 فحوص)
+node scripts/verify-sensory.mjs          # فحص طبقة الإحساس (16 فحصاً)
+bash scripts/lighthouse-prod.sh          # قياس Lighthouse إنتاجي (بيئة تسمح بالبناء)
+bun scripts/clean-leads.ts [--dry-run]   # تنظيف بيانات الاختبار قبل النشر
 ```
 
 ## بنية المجلدات
@@ -117,9 +233,11 @@ src/
 │   ├── pages/             # work-grid, contact-form
 │   └── seo/               # home-json-ld
 ├── i18n/                  # routing, request, navigation
-├── lib/                   # calculator, seo, sound, site-config, use-rtl, db, utils
+├── lib/                   # calculator, sound, rate-limit, n8n-webhook, api-i18n,
+│                          # seo, site-config, use-rtl, use-reduced-motion, db, utils
+├── app/api/leads/route.ts # نقطة الكتابة الوحيدة (Zod + إعادة حساب + Prisma + 429)
 └── proxy.ts               # next-intl middleware (Next.js 16)
-messages/{ar,en}.json      # 478 مفتاحاً متطابقاً
+messages/{ar,en}.json      # 499 مفتاحاً متطابقاً
 ```
 
 ---

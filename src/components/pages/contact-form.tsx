@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { Send } from 'lucide-react'
@@ -22,6 +22,7 @@ type FormValues = z.infer<typeof schema>
 
 export function ContactForm() {
   const t = useTranslations('pages.contact.form')
+  const locale = useLocale()
   const [values, setValues] = useState<FormValues>({ name: '', email: '', message: '' })
   const [errors, setErrors] = useState<{ name?: string; email?: string; message?: string }>({})
   const [submitting, setSubmitting] = useState(false)
@@ -42,13 +43,50 @@ export function ContactForm() {
     }
     setErrors({})
     setSubmitting(true)
-    // Phase 1: client-only success. Phase 3 wires POST /api/leads with
-    // server-side validation (guide §2.2) + storage + n8n webhook.
-    await new Promise((r) => setTimeout(r, 900))
-    setSubmitting(false)
-    playSuccess() // Phase 2 sensory feedback (no-op while muted)
-    toast.success(t('successTitle'), { description: t('successDesc') })
-    setValues({ name: '', email: '', message: '' })
+    // Phase 3: real storage — same endpoint as the calculator with
+    // source "contact-form" (prompt §3.2); no duplicated logic.
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-elyra-locale': locale,
+        },
+        body: JSON.stringify({
+          source: 'contact-form',
+          name: parsed.data.name,
+          email: parsed.data.email,
+          message: parsed.data.message,
+        }),
+      })
+
+      if (res.status === 201) {
+        playSuccess() // sensory feedback — fires on REAL success only
+        toast.success(t('successTitle'), { description: t('successDesc') })
+        setValues({ name: '', email: '', message: '' })
+        return
+      }
+
+      // Server rejected — surface translated server-side messages.
+      const data = (await res.json().catch(() => null)) as
+        | { message?: string; fields?: Record<string, string> }
+        | null
+      if (res.status === 400 && data?.fields) {
+        const fe: typeof errors = {}
+        if (data.fields.name) fe.name = data.fields.name
+        if (data.fields.email) fe.email = data.fields.email
+        if (data.fields.message) fe.message = data.fields.message
+        setErrors(fe)
+      }
+      toast.error(t('errorTitle'), {
+        description: data?.message ?? t('errorNetwork'),
+      })
+    } catch {
+      // Network failure — the message stays for a retry.
+      toast.error(t('errorTitle'), { description: t('errorNetwork') })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const field = (key: keyof FormValues) => ({

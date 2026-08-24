@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { playSuccess } from '@/lib/sound'
+import { toast } from 'sonner'
 import {
   computeEstimate, formatMoney,
   type CalculatorInput, type ServiceType, type IntegrationKey,
@@ -62,6 +63,7 @@ export function Calculator() {
   const [errors, setErrors] = useState<{ name?: string; email?: string }>({})
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
+  const [reference, setReference] = useState<string | null>(null)
 
   const result = useMemo(() => computeEstimate(input), [input])
 
@@ -102,12 +104,57 @@ export function Calculator() {
     }
     setErrors({})
     setSubmitting(true)
-    // Phase 1: client-side success only. Phase 3 wires POST /api/leads with
-    // server-side recompute (guide §2.9) + Prisma storage + n8n webhook.
-    await new Promise((r) => setTimeout(r, 900))
-    setSubmitting(false)
-    setDone(true)
-    playSuccess() // Phase 2 sensory feedback (no-op while muted)
+    // Phase 3: real storage — the server recomputes the estimate from the
+    // wizard options and returns a reference (guide §2.9). Client numbers
+    // are never sent: only the option set travels.
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-elyra-locale': locale,
+        },
+        body: JSON.stringify({
+          source: 'calculator',
+          name: parsed.data.name,
+          email: parsed.data.email,
+          whatsapp: parsed.data.whatsapp || undefined,
+          service: input.service,
+          pages: input.pages,
+          languages: input.languages,
+          threeD: input.threeD,
+          integrations: input.integrations,
+          automationLevel: input.automationLevel,
+        }),
+      })
+
+      if (res.status === 201) {
+        const data = (await res.json()) as { reference?: string }
+        setReference(data.reference ?? null)
+        setDone(true)
+        playSuccess() // Phase 2 sensory feedback — fires on REAL success only
+        return
+      }
+
+      // Server rejected: surface translated server-side messages.
+      const data = (await res.json().catch(() => null)) as
+        | { message?: string; fields?: Record<string, string> }
+        | null
+      if (res.status === 400 && data?.fields) {
+        const fe: { name?: string; email?: string } = {}
+        if (data.fields.name) fe.name = data.fields.name
+        if (data.fields.email) fe.email = data.fields.email
+        setErrors(fe)
+      }
+      toast.error(t('form.errorTitle'), {
+        description: data?.message ?? t('form.errorNetwork'),
+      })
+    } catch {
+      // Network failure — data stays in the form for a retry.
+      toast.error(t('form.errorTitle'), { description: t('form.errorNetwork') })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const slideVariants = reduced
@@ -361,9 +408,14 @@ export function Calculator() {
                       </div>
                       <h3 className="mt-5 text-2xl font-semibold">{t('form.successTitle')}</h3>
                       <p className="mt-2 max-w-md text-muted-foreground">{t('form.successDesc')}</p>
+                      {reference ? (
+                        <p className="mt-3 rounded-full border border-g-green/30 bg-g-green/5 px-4 py-1.5 font-mono text-sm font-semibold tracking-wide text-g-green">
+                          {t('form.successReference', { reference })}
+                        </p>
+                      ) : null}
                       <button
                         type="button"
-                        onClick={() => { setDone(false); setStep(0); setInput(INITIAL_INPUT); setForm({ name: '', email: '', whatsapp: '' }) }}
+                        onClick={() => { setDone(false); setReference(null); setStep(0); setInput(INITIAL_INPUT); setForm({ name: '', email: '', whatsapp: '' }) }}
                         className="mt-6 inline-flex h-11 items-center gap-2 rounded-full border border-border px-5 text-sm font-medium hover:bg-foreground/5"
                       >
                         <RotateCw className="size-4" aria-hidden="true" />

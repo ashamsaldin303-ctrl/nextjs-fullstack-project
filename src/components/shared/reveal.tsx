@@ -1,50 +1,77 @@
 'use client'
 
-import { motion, useInView, useReducedMotion } from 'framer-motion'
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 /**
- * Scroll-reveal wrapper — respects prefers-reduced-motion.
- * Renders content immediately for SSR; transforms fire only after mount+inView.
+ * Lightweight scroll-reveal (Phase 3 §4.3) — IntersectionObserver + CSS
+ * transitions, ZERO framer-motion. This is the drop-in replacement for the
+ * old framer-based Reveal in every "simple" usage; framer-motion remains
+ * only for the genuinely complex interactions (calculator step slider,
+ * automation simulator, methodology scroll-linked cards).
+ *
+ * Behavior parity with the old component:
+ *   - content is present in the SSR HTML (SEO/no-JS see it after CSS runs);
+ *   - animates once when scrolled into view (rootMargin -10%);
+ *   - `delay` staggers via transition-delay (seconds);
+ *   - reduced-motion users get instant content (global CSS override).
  */
+
 export function Reveal({
   children,
   className,
   delay = 0,
-  y = 24,
 }: {
   children: React.ReactNode
   className?: string
+  /** Stagger in seconds (CSS transition-delay). */
   delay?: number
-  y?: number
 }) {
-  const reduced = useReducedMotion()
   const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-10% 0px -10% 0px' })
+  const [visible, setVisible] = useState(false)
 
-  if (reduced) {
-    return <div className={className}>{children}</div>
-  }
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    if (typeof IntersectionObserver === 'undefined') {
+      // Legacy fallback — async (rAF) so we never setState synchronously
+      // inside the effect body (react-hooks/set-state-in-effect).
+      const id = window.requestAnimationFrame(() => setVisible(true))
+      return () => window.cancelAnimationFrame(id)
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0]
+        if (entry?.isIntersecting) {
+          setVisible(true)
+          io.disconnect()
+        }
+      },
+      { rootMargin: '0px 0px -10% 0px', threshold: 0 }
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
 
   return (
-    <motion.div
+    <div
       ref={ref}
-      className={className}
-      initial={{ opacity: 0, y }}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y }}
-      transition={{ duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] }}
+      className={cn('reveal', visible && 'reveal-visible', className)}
+      style={delay > 0 ? { transitionDelay: `${delay}s` } : undefined}
     >
       {children}
-    </motion.div>
+    </div>
   )
 }
 
 /**
- * KineticTypography — animates the variable-font weight axis of each word
- * as it enters the viewport. Works for both Latin (Inter) and Arabic (Cairo)
- * because both are variable fonts; Arabic words animate as whole units
- * (Arabic letters are connected — word-level motion is correct).
+ * KineticTypography — variable-font weight animation per word, now CSS-only.
+ * Each word is an inline-block running the `kinetic-word` keyframes with a
+ * per-word stagger. Runs on first paint (no JS dependency, no in-view wait —
+ * same as the previous framer implementation which animated on mount).
+ *
+ * Above-the-fold heroes do NOT use this (LCP discipline — Phase 3 §4.1);
+ * it is only for below-fold section headings.
  */
 export function KineticWords({
   text,
@@ -55,44 +82,20 @@ export function KineticWords({
   className?: string
   wordClassName?: string
 }) {
-  const reduced = useReducedMotion()
-  const ref = useRef<HTMLSpanElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-15% 0px -15% 0px' })
-
   const words = text.split(' ').filter(Boolean)
-
-  if (reduced) {
-    return (
-      <span ref={ref} className={className}>
-        {text}
-      </span>
-    )
-  }
-
   return (
-    <span ref={ref} className={cn('inline-block', className)} aria-label={text}>
+    <span className={cn('inline-block', className)} aria-label={text}>
       <span className="sr-only">{text}</span>
       <span aria-hidden="true">
         {words.map((w, i) => (
-          <motion.span
+          <span
             key={`${w}-${i}`}
-            className={cn('inline-block whitespace-nowrap', wordClassName)}
-            initial={{ opacity: 0, y: 30, fontVariationSettings: '"wght" 200' }}
-            animate={
-              inView
-                ? { opacity: 1, y: 0, fontVariationSettings: '"wght" 700' }
-                : { opacity: 0, y: 30, fontVariationSettings: '"wght" 200' }
-            }
-            transition={{
-              duration: 1.1,
-              delay: 0.08 * i,
-              ease: [0.16, 1, 0.3, 1],
-            }}
-            style={{ willChange: 'transform, opacity, font-variation-settings' }}
+            className={cn('kinetic-word', wordClassName)}
+            style={{ animationDelay: `${i * 80}ms` }}
           >
             {w}
             {i < words.length - 1 ? '\u00A0' : ''}
-          </motion.span>
+          </span>
         ))}
       </span>
     </span>

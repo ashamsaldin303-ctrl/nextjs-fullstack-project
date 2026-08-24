@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useInView, useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import { Reveal } from '@/components/shared/reveal'
+import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 
 interface CounterProps {
   value: number
@@ -11,10 +11,40 @@ interface CounterProps {
   durationMs?: number
 }
 
+/**
+ * In-view detection without framer-motion (Phase 3 §4.3) — a tiny
+ * IntersectionObserver hook with the same once/margin semantics.
+ */
+function useInViewOnce(ref: React.RefObject<HTMLElement | null>): boolean {
+  const [inView, setInView] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    if (typeof IntersectionObserver === 'undefined') {
+      // Legacy fallback — async (rAF) so we never setState synchronously
+      // inside the effect body (react-hooks/set-state-in-effect).
+      const id = window.requestAnimationFrame(() => setInView(true))
+      return () => window.cancelAnimationFrame(id)
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setInView(true)
+          io.disconnect()
+        }
+      },
+      { rootMargin: '-15% 0px -15% 0px' }
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [ref])
+  return inView
+}
+
 function Counter({ value, suffix, durationMs = 1600 }: CounterProps) {
   const ref = useRef<HTMLSpanElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-15% 0px' })
-  const reduced = useReducedMotion()
+  const inView = useInViewOnce(ref)
+  const reduced = usePrefersReducedMotion()
   const [display, setDisplay] = useState(0)
 
   useEffect(() => {

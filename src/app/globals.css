@@ -210,9 +210,110 @@
   *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
     transition-duration: 0.001ms !important;
+    transition-delay: 0s !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* =========================================================================
+   Phase 3 — Performance: CSS-only scroll reveal + kinetic words + hero
+   entrance (framer-motion-free, LCP-safe — prompt §4.1/§4.3)
+   ========================================================================= */
+
+/* Lightweight Reveal (IntersectionObserver toggles .reveal-visible) */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* KineticWords — variable-font weight ramp per word (below-fold headings) */
+.kinetic-word {
+  display: inline-block;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(0.35em);
+  animation: kinetic-word-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes kinetic-word-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.35em);
+    font-variation-settings: 'wght' 200;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    font-variation-settings: 'wght' 700;
+  }
+}
+
+/* Hero above-fold entrance — CSS-only, starts on FIRST PAINT (no JS wait),
+   so the LCP element is painted within ~1 frame (prompt §4.1). The h1 and
+   subtitle (LCP candidates) carry NO delay; badge/CTAs stagger slightly. */
+.hero-enter {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: hero-enter-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.hero-enter-1 { animation-delay: 0.12s; }
+.hero-enter-2 { animation-delay: 0.22s; }
+@keyframes hero-enter-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scroll indicator pulse (was framer motion.div in hero) */
+.hero-scroll-hint {
+  opacity: 0;
+  animation: hero-hint-in 1s ease-out 0.9s forwards;
+}
+@keyframes hero-hint-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Automation pulse node (bento MiniFlow — was framer motion.span) */
+.elyra-pulse {
+  animation: elyra-pulse 0.9s ease-out infinite;
+}
+@keyframes elyra-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(0, 113, 227, 0.6); }
+  100% { box-shadow: 0 0 0 8px rgba(0, 113, 227, 0); }
+}
+
+/* Before/after drag hint (was framer motion.div) */
+.ba-hint {
+  animation: ba-hint-cycle 3.5s ease-in-out 1s infinite;
+}
+@keyframes ba-hint-cycle {
+  0% { opacity: 0; }
+  25% { opacity: 1; }
+  60% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Work-grid filter transition (was framer AnimatePresence layout) */
+.reveal-filter-in {
+  animation: filter-in 0.35s ease-out;
+}
+@keyframes filter-in {
+  from { opacity: 0.4; transform: scale(0.99); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 /* Hide scrollbars where intentionally horizontal scrolling is the UX */

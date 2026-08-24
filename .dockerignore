@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+db
+lighthouse-results
+*.log
+.env
+.env.*
+!.env.example
+upload
+tool-results
+tests
+examples
+mini-services
+skills
+.zscripts
+download

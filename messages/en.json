@@ -388,7 +388,10 @@
       "sending": "Sending...",
       "successTitle": "We've Received Your Request!",
       "successDesc": "Our team will contact you within 24 business hours with the final estimate details.",
-      "successRestart": "Calculate Another Project"
+      "successRestart": "Calculate Another Project",
+      "errorTitle": "Couldn't submit your request",
+      "errorNetwork": "Check your connection and try again — your data is preserved.",
+      "successReference": "Your reference: {reference}"
     },
     "errors": {
       "name": "Name is required (at least 2 characters)",
@@ -840,7 +843,9 @@
           "name": "Name is required (at least 2 characters)",
           "email": "Please enter a valid email address",
           "message": "Message is required (at least 10 characters)"
-        }
+        },
+        "errorTitle": "Couldn't send your message",
+        "errorNetwork": "Check your connection and try again — your message is preserved."
       },
       "calculator": {
         "kicker": "The Fast Lane",
@@ -867,5 +872,24 @@
       "enable": "Enable sound effects",
       "disable": "Mute sound effects"
     }
+  },
+  "apiErrors": {
+    "invalid": "Please check the highlighted fields and try again.",
+    "fields": {
+      "name": "Name is required (2–100 characters).",
+      "email": "Please enter a valid email address.",
+      "whatsapp": "Invalid WhatsApp number (30 characters max).",
+      "message": "Message is required (10 characters minimum).",
+      "service": "Invalid service value.",
+      "pages": "Pages must be between 1 and 20.",
+      "languages": "Invalid languages value.",
+      "threeD": "Invalid 3D option value.",
+      "integrations": "Invalid integrations list.",
+      "automationLevel": "Invalid automation level value.",
+      "source": "Invalid request source."
+    },
+    "unknownField": "Unknown field.",
+    "rateLimited": "Too many attempts — please wait a minute and try again.",
+    "serverError": "An internal error occurred. Please try again shortly."
   }
 }

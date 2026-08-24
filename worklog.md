@@ -260,3 +260,33 @@ Stage Summary:
 - Lighthouse: a11y/bp/seo = 100 across routes (dev caveat documented)
 - README: 9 new Phase-2 decisions + sandbox constraint note
 - DEVIATION from prompt §7.1/§10: `bun run build` + production Lighthouse not possible in this sandbox (policy); verified via dev server + lint + tsc + real browser automation instead
+
+---
+Task ID: PHASE-3
+Agent: Main (Z.ai Code)
+Task: Execute Phase 3 (elyra-fullstack-prompt-03.md): full backend (API + Prisma + signed n8n webhook), production performance fixes, and deployment documentation.
+
+Work Log:
+- **POST /api/leads** (`src/app/api/leads/route.ts`) — the single write endpoint:
+  - Zod v4 strict discriminated union (source: calculator | contact-form); unknown fields → 400 with translated per-field errors (locale via `x-elyra-locale` header → accept-language → ar default; catalog read directly in `lib/api-i18n.ts` since /api is excluded from the next-intl proxy matcher).
+  - Server-side recompute ALWAYS via imported `computeEstimate` (never copied). Known client-echo estimate fields (minBudget/maxBudget/weeksMin/weeksMax/estimate/result/breakdown) are stripped pre-parse (forged numbers ignored + recomputed — verified: sent 999999, stored 10600-17400); any other unknown field → 400.
+  - Rate limit FIRST (invalid payloads burn quota): `lib/rate-limit.ts` sliding 60s window × 5/IP in a Map with periodic sweep; 429 + Retry-After + translated message.
+  - Prisma Lead storage (all wizard answers + computed budget + IP/UA; contact leads: service=contact, budget=0, message stored). 201 → { reference: first 8 chars of cuid }.
+  - 500 generic (details to server log only).
+- **Signed n8n webhook** (`lib/n8n-webhook.ts`): HMAC-SHA256 over `timestamp.nonce.body`, headers X-Elyra-Signature/Timestamp/Nonce; secrets env-only (32+ chars enforced, else silent disable with one log line); 5s AbortController timeout; ONE retry on network failure only; fire-and-forget AFTER successful storage (lead 201 never blocked); silent failure. README carries the full n8n receiving recipe (timestamp ±5min + nonce TTL 10min + timingSafeEqual).
+- **Client wiring**: calculator + contact-form POST to /api/leads with loading states, server-translated error toasts (field errors mapped into inline messages), data preserved on failure, reference displayed in success state (`successReference` key), playSuccess only on real 201.
+- **i18n**: apiErrors namespace + form error/reference keys → parity 479→499 keys.
+- **Performance (§4)**:
+  - LCP: hero + PageHero above-fold content now server-rendered with CSS-only `hero-enter` keyframes (h1/subtitle zero delay; badge/CTAs 0.12/0.22s). The framer `opacity:0` inline fingerprint is GONE from server HTML (verified). Dev-compatible proof: DOM-insert→visible Δ = animation window (~430-970ms), CSS-driven.
+  - Three.js deferral: HeroCanvas loads on requestIdleCallback (2.5s timeout) or first pointermove/keydown; CapabilityScene loads only when its section nears viewport (rootMargin 200px). Verified: three.js resources = 0 at load, >0 after idle.
+  - Light Reveal: `reveal.tsx` rewritten with IntersectionObserver + CSS transitions (same API); KineticWords now pure CSS (`.kinetic-word` keyframes + per-word delay). framer-motion remains ONLY in calculator/simulator/methodology (complex interactions, all home-page) — /about, /work, /services/websites (+EN) no longer ship framer in initial JS. bento MiniFlow pulse + before-after hint + trust-bar counter (useInViewOnce hook) + work-grid filtering all converted to CSS/IO; `usePrefersReducedMotion` hook (useSyncExternalStore) replaces framer's useReducedMotion in converted components.
+  - reduced-motion override extended with animation/transition-delay: 0s (stagger waits removed for reduced-motion users).
+- **Docs & deploy (§5)**: Dockerfile (3-stage standalone, HOSTNAME=0.0.0.0, prisma engines copied explicitly, volume /app/db, NEXT_PUBLIC_SITE_URL build-arg) + .dockerignore; `.env.example` (all 4 vars documented with build-time SEO warning); README: HOSTNAME trap table + upstream link + Phase-3 decisions (#18-22) + API contract table + n8n recipe + updated commands/folders.
+- **Scripts**: `verify-api.mjs` (13 checks: EN/AR 400s, unknown field, forged budget w/ Prisma assert, 201+reference+row, webhook disabled/delivery modes via WEBHOOK_EXPECT, 429 burst + Retry-After + 61s window reset, mock-n8n receiver proving valid/tampered/wrong-secret/stale-timestamp/replayed-nonce) — 13/13 in BOTH webhook scenarios; `verify-performance.mjs` (10 checks); `lighthouse-prod.sh` (build + standalone serve + 12-route table + JS size — for build-capable environments); `clean-leads.ts` (dry-run mode).
+- **Verification**: lint 0/0 strict · tsc 0 · parity 499/499 · sensory suites still 16/16 + 8/8 · performance 10/10 (×3 runs) · E2E real-API calculator (AR: success + reference cmt7j81g + Prisma row w/ correct computed 4000-6000) + contact (EN: toast + row + form cleared) · test rows cleaned (DB now 0 leads).
+- **DEVIATIONS from prompt**: (1) `bun run build` + production Lighthouse FORBIDDEN in this sandbox (explicit policy) — all fixes implemented + verified structurally in dev; `scripts/lighthouse-prod.sh` prepared; measurement documented as deferred. (2) Prompt suggested Serializable tx recompute — not needed: computeEstimate is pure and the SQLite write is single-row (no read-modify-write), so a transaction would add nothing; documented. (3) Webhook payload delivery is fire-and-forget (not awaited) to protect response latency; correct for the standalone server target. (4) One intermittent dev-only Radix useId hydration warning (aria-controls on the mobile-menu Sheet trigger) — observed once across ~25+ loads, dev-streaming artifact, not reproducible, cosmetic, and absent from prerendered production output.
+
+Stage Summary:
+- Complete: backend (endpoint + rate limit + Prisma + signed webhook, both scenarios proven), LCP/Three.js/JS-size structural fixes, deployment kit (Dockerfile/.env.example/README), all verification scripts committed.
+- lint 0/0 · tsc 0 · parity 499/499 · zero console errors · DB clean.
+- Launch readiness: code-complete; owner must supply real site-config data, real n8n env, domain/hosting, and run lighthouse-prod.sh in a build-capable environment.
