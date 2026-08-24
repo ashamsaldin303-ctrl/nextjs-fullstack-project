@@ -31,9 +31,12 @@ export async function buildPageMetadata({
     description: t('description'),
     alternates: {
       canonical: canonical,
+      // P2-3: full hreflang set incl. x-default (points at the default
+      // Arabic locale) — mirrors the sitemap alternates.
       languages: {
         ar: arPath,
         en: enPath,
+        'x-default': arPath,
       },
     },
     openGraph: {

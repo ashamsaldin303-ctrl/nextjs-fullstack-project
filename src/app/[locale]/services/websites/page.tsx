@@ -6,6 +6,7 @@ import { CTA } from '@/components/shared/cta'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { Reveal } from '@/components/shared/reveal'
 import { ThreeDSection } from '@/components/home/three-d-section'
+import { ServiceProse } from '@/components/shared/service-prose'
 import { buildPageMetadata } from '@/lib/seo'
 
 const TYPES = [
@@ -65,22 +66,29 @@ export default async function WebsitesPage() {
 
       <ThreeDSection />
 
+      {/* Phase 2 — deeper prose: what's included / how we work (§6.4) */}
+      <ServiceProse namespace="pages.websites.prose" />
+
       <section className="bg-background py-20 sm:py-28" aria-labelledby="journey-title">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <SectionHeading kicker={t('journey.kicker')} title={t('journey.title')} />
           <ol className="mt-14 space-y-4">
             {JOURNEY.map((s, i) => (
-              <Reveal key={s} delay={i * 0.05}>
-                <li className="flex gap-4 rounded-2xl border border-border bg-card p-5 sm:gap-6 sm:p-6">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                    {String(i + 1).padStart(2, '0')}
+              /* li must be a direct child of ol — Reveal (a div) wraps the
+                 CONTENT inside the li instead (Lighthouse a11y: list-item). */
+              <li key={s}>
+                <Reveal delay={i * 0.05}>
+                  <div className="flex gap-4 rounded-2xl border border-border bg-card p-5 sm:gap-6 sm:p-6">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                      {String(i + 1).padStart(2, '0')}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">{t(`journey.steps.${s}.title`)}</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">{t(`journey.steps.${s}.desc`)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold">{t(`journey.steps.${s}.title`)}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">{t(`journey.steps.${s}.desc`)}</p>
-                  </div>
-                </li>
-              </Reveal>
+                </Reveal>
+              </li>
             ))}
           </ol>
         </div>

@@ -38,7 +38,7 @@ export function PageHero({ namespace, ctaHref = '/contact', className }: PageHer
       />
       <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
         <motion.span
-          className="kicker text-primary"
+          className="kicker kicker-on-dark"
           initial={reduced ? undefined : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -76,6 +76,7 @@ export function PageHero({ namespace, ctaHref = '/contact', className }: PageHer
           >
             <Link
               href={ctaHref}
+              data-cursor="magnet"
               className="group inline-flex h-12 items-center gap-2 rounded-full bg-primary px-6 text-base font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
             >
               {t('cta')}

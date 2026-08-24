@@ -31,6 +31,8 @@ export const SITE_SOCIAL = {
  */
 export const BRAND_COLORS = {
   primary: '#0071E3',
+  /** WCAG-strong deep shade (small text on light surfaces). */
+  primaryStrong: '#0066CC',
   dark: '#0F172A',
   onDark: '#F1F5F9',
   gBlue: '#4285F4',

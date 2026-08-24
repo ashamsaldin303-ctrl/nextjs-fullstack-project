@@ -49,8 +49,10 @@ export default async function ContactPage() {
               </Reveal>
               <ul className="mt-8 space-y-3">
                 {CHANNELS.map(({ key, icon: Icon, href, external }, i) => (
-                  <Reveal key={key} delay={i * 0.06}>
-                    <li>
+                  /* li must be a direct child of ul — Reveal wraps the
+                     CONTENT inside the li (Lighthouse a11y: list-item). */
+                  <li key={key}>
+                    <Reveal delay={i * 0.06}>
                       <a
                         href={href}
                         {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
@@ -64,8 +66,8 @@ export default async function ContactPage() {
                           <span className="block font-semibold">{t(`channels.${key}.value`)}</span>
                         </span>
                       </a>
-                    </li>
-                  </Reveal>
+                    </Reveal>
+                  </li>
                 ))}
               </ul>
               <Reveal delay={0.2}>
@@ -96,7 +98,7 @@ export default async function ContactPage() {
       <section className="bg-elyra-dark py-6 text-elyra-on-dark" aria-labelledby="calc-cta">
         <div className="mx-auto max-w-5xl px-4 text-center sm:px-6 lg:px-8">
           <Reveal>
-            <span className="kicker text-primary">{t('calculator.kicker')}</span>
+            <span className="kicker kicker-on-dark">{t('calculator.kicker')}</span>
             <h2 id="calc-cta" className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
               {t('calculator.title')}
             </h2>

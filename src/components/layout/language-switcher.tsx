@@ -29,6 +29,7 @@ export function LanguageSwitcher({
   return (
     <button
       type="button"
+      data-cursor="magnet"
       className={cn(base, colors, className)}
       aria-label={t('switchLocaleLabel')}
       onClick={() => router.replace(pathname, { locale: target })}

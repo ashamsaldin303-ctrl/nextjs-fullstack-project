@@ -7,6 +7,9 @@ import { routing, getDir } from '@/i18n/routing'
 import { Navbar } from '@/components/layout/navbar'
 import { Footer } from '@/components/layout/footer'
 import { Toaster } from '@/components/ui/sonner'
+import { MagneticCursor } from '@/components/sensory/magnetic-cursor'
+import { FilmGrain } from '@/components/sensory/film-grain'
+import { SoundToggle } from '@/components/sensory/sound-toggle'
 import '../globals.css'
 
 const inter = Inter({
@@ -32,6 +35,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'meta' })
+  // Locale-aware canonical: Arabic (default) at "/", English at "/en"
+  // (Lighthouse SEO: the EN homepage must not canonicalize to the AR one).
+  const canonicalPath = locale === 'ar' ? '/' : '/en'
 
   return {
     title: {
@@ -43,16 +49,18 @@ export async function generateMetadata({
       process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
     ),
     alternates: {
-      canonical: '/',
+      canonical: canonicalPath,
+      // P2-3: hreflang set incl. x-default (default Arabic locale).
       languages: {
         ar: '/',
         en: '/en',
+        'x-default': '/',
       },
     },
     openGraph: {
       title: t('title'),
       description: t('description'),
-      url: '/',
+      url: canonicalPath,
       siteName: 'Elyra',
       locale: locale === 'ar' ? 'ar_AR' : 'en_US',
       type: 'website',
@@ -102,7 +110,13 @@ export default async function LocaleLayout({
             {children}
           </main>
           <Footer />
+          {/* Phase 2 — sound toggle lives INSIDE the intl provider (uses
+              useTranslations). Grain + cursor are context-free. */}
+          <SoundToggle />
         </NextIntlClientProvider>
+        {/* Phase 2 — Sensory Polish Layer (app-wide, single instance each) */}
+        <FilmGrain />
+        <MagneticCursor />
         <Toaster position="top-center" richColors closeButton />
       </body>
     </html>

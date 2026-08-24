@@ -62,7 +62,7 @@ function MethodologyStep({
             <h3 className="text-2xl font-semibold tracking-tight sm:text-3xl">
               {t(`steps.${step.key}.title`)}
             </h3>
-            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary-strong">
               {t(`steps.${step.key}.duration`)}
             </span>
           </div>

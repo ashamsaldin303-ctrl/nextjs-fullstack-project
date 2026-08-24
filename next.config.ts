@@ -23,6 +23,11 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   reactStrictMode: true,
   poweredByHeader: false,
+  // P2-2 (audit): React Compiler — auto-memoization across the app.
+  // Next.js 16 graduated this to a top-level option. The strict eslint
+  // rule (`react-compiler/react-compiler: warn`) already runs with 0
+  // findings; this enables the actual compiler pass.
+  reactCompiler: true,
   allowedDevOrigins: [
     '*.space-z.ai',
     '*.chatglm.cn',

@@ -12,6 +12,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useIsRtl } from '@/lib/use-rtl'
 import { SectionHeading } from '@/components/shared/section-heading'
+import { playSuccess } from '@/lib/sound'
 
 type StepId =
   | 'receive' | 'validate' | 'crm' | 'email' | 'telegram'
@@ -158,6 +159,7 @@ export function AutomationSimulator({
       setStatus('completed')
       setCurrentStep(-1)
       setCounter(0)
+      playSuccess() // Phase 2 sensory feedback (no-op while muted)
     }, steps.length * (STEP_DISPLAY + TRANSITION))
   }, [clearAll, reduced, steps, scenario, t, schedule])
 
@@ -193,6 +195,7 @@ export function AutomationSimulator({
                 key={s}
                 type="button"
                 role="tab"
+                data-cursor="magnet"
                 aria-selected={scenario === s}
                 onClick={() => setScenario(s)}
                 className={cn(
@@ -359,6 +362,7 @@ export function AutomationSimulator({
           {status !== 'running' ? (
             <button
               type="button"
+              data-cursor="magnet"
               onClick={run}
               className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
             >

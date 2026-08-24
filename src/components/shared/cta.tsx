@@ -62,6 +62,7 @@ export function CTA({
         <Reveal delay={0.15}>
           <Link
             href={href}
+            data-cursor="magnet"
             className={cn(
               'group mt-8 inline-flex h-12 items-center gap-2 rounded-full px-6 text-base font-medium transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
               onDark

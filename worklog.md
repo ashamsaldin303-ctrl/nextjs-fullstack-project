@@ -230,3 +230,33 @@ Stage Summary:
 - RTL slider, mobile menu direction, footer year, socials all browser-verified
 - Prisma `Lead` model live in SQLite
 - P2-2 (enable reactCompiler in next.config) and P2-3 (per-language sitemap URLs) intentionally deferred
+
+---
+Task ID: PHASE-2
+Agent: Main (Z.ai Code)
+Task: Execute Phase 2 "Sensory Polish Layer" (elyra-fullstack-prompt-02.md): magnetic cursor + film grain + Audio UX + content enrichment + React Compiler + hreflang sitemap + Lighthouse tuning.
+
+Work Log:
+- **Magnetic Cursor** (`src/components/sensory/magnetic-cursor.tsx`): two layers (6px dot exact + 32px ring lerp 0.2) driven by ONE rAF loop writing `translate3d` via refs (zero React re-renders). Magnet snap within 80px of `[data-cursor="magnet"]` centers (distance-based → RTL/LTR neutral). Guards: `pointer:fine` + NOT reduced-motion + client-only. Native cursor hidden only under those conditions (double CSS media guard). Layers: `pointer-events:none`, `aria-hidden`, z-200 ABOVE Sheet/Dialog (native hidden → must stay visible over modals), `mix-blend-difference` for light/dark visibility. Magnet rects cached, refreshed on scroll/resize (rAF-throttled) + debounced MutationObserver for client navigations. Press feedback (scale 0.82) on pointerdown.
+- **Film Grain** (`film-grain.tsx` + `.elyra-grain` in globals.css): static SVG feTurbulence data-URI, fixed inset-0, opacity 3.5% (WCAG-safe), pointer-events:none, aria-hidden, hidden @media print, single instance in layout, z-90. CSP img-src already allows data:.
+- **Audio UX** (`src/lib/sound.ts` + `sound-toggle.tsx`): Web Audio API only (oscillators + gain envelopes; sine hover ~30ms gain 0.035 throttled 60ms; triangle click ~60ms gain 0.09 falling pitch; C5-E5-G5 success arpeggio 90ms/note; master gain 0.6). Muted by default; localStorage `elyra:sound` via useSyncExternalStore external store (hydration-safe); lazy AudioContext on first gesture after enabling; silent failure everywhere. Delegated pointerover/pointerdown listeners (pointer-only → keyboard/sr never sound). Toggle button fixed bottom-start, aria-pressed, translated labels (common.sound.enable/disable). Success sounds wired: calculator submit, simulator completion, contact form. Fixed truthy-string bug ('off' !== false).
+- **data-cursor="magnet"** added to: hero CTAs, navbar CTA, language switcher, CTA component, page-hero CTA, calculator (service cards/back/next/submit), simulator (run + scenario tabs), featured-work viewAll, work-grid filters, contact-form submit, bento mini buttons, sound toggle.
+- **Content enrichment** (i18n 447→479 keys, parity OK):
+  - /work: 6 projects across 6 industries (e-commerce لمسة, real-estate عقار بلس, education أكاديمية مسار NEW, restaurant بيت الشام, SaaS فواتير سمارت, creative-agency استوديو بصمة NEW) each with services[] list (rendered with Wrench icons), desc, 2-3 metrics, variant. work-grid renders services.
+  - /about: team bios (4 members), agency numbers → years/projects/automations/clients (dropped sectors/satisfaction).
+  - Testimonials: 4 deeper quotes with name/role/company field + results-specific numbers; grid md:2 xl:4; stars row → role="img".
+  - Service pages: ServiceProse component («ماذا تشمل» + «كيف نعمل») on websites (after 3D) + automation (after simulator). SectionHeading gained titleId prop.
+- **P2-2 React Compiler**: `reactCompiler: true` top-level (Next 16 graduated it from experimental) + babel-plugin-react-compiler devDep. lint stays 0/0.
+- **P2-3 hreflang**: sitemap emits per-path alternates {ar, en, x-default}; seo.ts buildPageMetadata + layout languages add x-default; layout canonical now locale-aware (fixes EN canonical→AR bug flagged by Lighthouse).
+- **Quick wins**: getServerYear → new Date().getFullYear() (dynamic, still hydration-safe); README Phase-2 decision log (9 new documented decisions).
+- **Lighthouse-driven a11y fixes** (dev-server runs): aria-label on star div → role="img"; dl structures fixed (trust-bar + about numbers: label inside dd; websites journey + contact channels: li direct child of list, Reveal moved inside); new `--primary-strong: #0066CC` token for small primary text on light surfaces (AA 4.5:1); dark-section kickers → `kicker-on-dark` using existing g-blue (#4285F4, 4.99:1 on #0F172A) via compound specificity; methodology duration chip → primary-strong; work-grid sr-only h2 (fixed broken aria-labelledby + h1→h3 order jump).
+- **Verification**: Playwright (full chromium, new headless → real pointer:fine) scripts `scripts/verify-sensory.mjs` (16/16) + `verify-sensory-negative.mjs` (8/8): activation guards, exact dot tracking, ring convergence (0.1px), magnet snap (0px dist), release, native-cursor hidden, grain computed styles, sound lifecycle (default-off → toggle → localStorage persist → cross-route → mute), keyboard focus unaffected, zero console errors. E2E: calculator full flow + simulator completion with sound ON, zero errors. VLM visual checks: cursor visible + snapped, sound toggle positioned, 4 testimonial cards with companies, work services lists, team bios.
+- **Lighthouse (dev server — production build forbidden in this sandbox)**: a11y 100 (all 7 routes), bp 100, seo 100 (all), perf 17-48 (dev-mode artifact: unminified dev React + on-demand compile; documented as non-representative). Before Phase-2 fixes: a11y 92-96, seo 92 on EN.
+- New sensory layer source: 17KB total (≈4-5KB gzipped est.) — film grain is pure CSS (0 JS). No new runtime deps.
+
+Stage Summary:
+- lint 0/0 (strict rules ON) · tsc 0 · i18n parity 479/479 · zero console/hydration errors on all 12 route-locale combinations
+- All three sensory features browser-verified in AR+EN (positive + negative paths)
+- Lighthouse: a11y/bp/seo = 100 across routes (dev caveat documented)
+- README: 9 new Phase-2 decisions + sandbox constraint note
+- DEVIATION from prompt §7.1/§10: `bun run build` + production Lighthouse not possible in this sandbox (policy); verified via dev server + lint + tsc + real browser automation instead

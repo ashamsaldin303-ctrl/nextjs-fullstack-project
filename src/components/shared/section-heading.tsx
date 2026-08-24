@@ -11,6 +11,8 @@ interface SectionHeadingProps {
   variant?: 'on-light' | 'on-dark'
   align?: 'center' | 'start'
   kinetic?: boolean
+  /** Optional id for the h2 (lets parents wire aria-labelledby). */
+  titleId?: string
   className?: string
 }
 
@@ -22,6 +24,7 @@ export function SectionHeading({
   variant = 'on-light',
   align = 'center',
   kinetic = true,
+  titleId,
   className,
 }: SectionHeadingProps) {
   const onDark = variant === 'on-dark'
@@ -37,13 +40,14 @@ export function SectionHeading({
     >
       {kicker ? (
         <Reveal>
-          <span className={cn('kicker', onDark && 'text-primary')}>
+          <span className={cn('kicker', onDark && 'kicker-on-dark')}>
             {kicker}
           </span>
         </Reveal>
       ) : null}
       <Reveal delay={0.05}>
         <h2
+          id={titleId}
           className={cn(
             'max-w-3xl text-balance text-3xl font-semibold leading-tight tracking-tight sm:text-4xl md:text-5xl',
             onDark ? 'text-white' : 'text-foreground',

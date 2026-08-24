@@ -17,6 +17,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-strong: var(--primary-strong);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -65,6 +66,10 @@
   --popover-foreground: #1D1D1F;
   --primary: #0071E3;
   --primary-foreground: #FFFFFF;
+  /* Accessible deep shade of the brand primary — same hue family, meets
+     WCAG AA 4.5:1 for small text on light surfaces (Phase 2 Lighthouse fix).
+     BRAND primary #0071E3 stays untouched for buttons/accents/large text. */
+  --primary-strong: #0066CC;
   --secondary: #E8E8ED;
   --secondary-foreground: #1D1D1F;
   --muted: #ECECEF;
@@ -140,13 +145,20 @@
       linear-gradient(180deg, #0F172A 0%, #0A1120 100%);
   }
 
-  /* Section heading kicker — small, tracked, primary-colored */
+  /* Section heading kicker — small, tracked; uses the WCAG-strong primary
+     shade for AA contrast on light surfaces. Dark sections override via
+     `text-primary` on the span (see SectionHeading on-dark variant). */
   .kicker {
-    @apply inline-flex items-center gap-2 text-sm font-medium tracking-wide text-primary;
+    @apply inline-flex items-center gap-2 text-sm font-medium tracking-wide text-primary-strong;
   }
   .kicker::before {
     content: '';
     @apply inline-block h-px w-8 bg-primary/60;
+  }
+  /* Dark-section kickers use the existing brand g-blue — AA contrast
+     (4.99:1) on #0F172A; compound selector beats the base .kicker rule. */
+  .kicker.kicker-on-dark {
+    @apply text-g-blue;
   }
 
   /* Reverse typography — mix-blend-difference section titles over visuals */
@@ -210,4 +222,75 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* =========================================================================
+   Phase 2 — Sensory Polish Layer
+   ========================================================================= */
+
+/* --- Film Grain (prompt §4) --------------------------------------------
+   Static SVG feTurbulence noise as a data-URI. One layer, fixed, 3.5%
+   opacity (WCAG-safe), inert, and hidden when printing. URL-encoded for
+   the CSP-safe `data:` URI scheme (img-src already allows data:). */
+.elyra-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+@media print {
+  .elyra-grain {
+    display: none;
+  }
+}
+
+/* --- Magnetic Cursor (prompt §3) ----------------------------------------
+   The two layers are positioned by JS (translate3d) inside a single rAF
+   loop — never via these properties. `mix-blend-difference` keeps them
+   visible over both light and dark sections without extra colors. */
+.elyra-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 200; /* above Sheet/Dialog overlays (z-50) — native cursor is hidden */
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  will-change: transform;
+}
+
+.elyra-cursor-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: #ffffff;
+  mix-blend-mode: difference;
+}
+
+.elyra-cursor-ring {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  mix-blend-mode: difference;
+}
+
+.elyra-cursor--visible {
+  opacity: 1;
+}
+
+/* Hide the native cursor ONLY for fine-pointer users without a
+   reduced-motion preference (defense-in-depth for the JS guard —
+   magnetic-cursor.tsx only adds this class under the same conditions). */
+@media (pointer: fine) {
+  @media (prefers-reduced-motion: no-preference) {
+    .elyra-cursor-active,
+    .elyra-cursor-active * {
+      cursor: none;
+    }
+  }
 }

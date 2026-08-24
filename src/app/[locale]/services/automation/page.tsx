@@ -9,6 +9,7 @@ import { CTA } from '@/components/shared/cta'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { Reveal } from '@/components/shared/reveal'
 import { AutomationSimulator } from '@/components/home/automation-simulator'
+import { ServiceProse } from '@/components/shared/service-prose'
 import { buildPageMetadata } from '@/lib/seo'
 
 const INTEGRATIONS: { key: string; icon: LucideIcon }[] = [
@@ -107,6 +108,9 @@ export default async function AutomationPage() {
 
       {/* Extended simulator with scenarios */}
       <AutomationSimulator showScenarioPicker />
+
+      {/* Phase 2 — deeper prose: what's included / how we work (§6.4) */}
+      <ServiceProse namespace="pages.automation.prose" />
 
       <CTA namespace="pages.automation.cta" />
     </>

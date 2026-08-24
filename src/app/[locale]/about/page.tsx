@@ -15,7 +15,9 @@ const VALUES = [
 
 const TEAM = ['m1', 'm2', 'm3', 'm4'] as const
 
-const NUMBERS = ['years', 'projects', 'sectors', 'satisfaction'] as const
+// Phase 2 content enrichment (prompt §6.2): agency numbers — years,
+// projects, automations executed, happy clients.
+const NUMBERS = ['years', 'projects', 'automations', 'clients'] as const
 
 const AVATAR_GRADIENTS = [
   'from-primary to-g-blue',
@@ -89,12 +91,15 @@ export default async function AboutPage() {
               const initials = name.split(' ').map((w) => w[0]).slice(0, 2).join('')
               return (
                 <Reveal key={m} delay={i * 0.08}>
-                  <article className="flex flex-col items-center rounded-3xl border border-border bg-card p-6 text-center">
+                  <article className="flex h-full flex-col items-center rounded-3xl border border-border bg-card p-6 text-center">
                     <div className={`flex size-20 items-center justify-center rounded-full bg-gradient-to-br ${AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length] ?? 'from-primary to-g-blue'} text-2xl font-bold text-white`}>
                       {initials}
                     </div>
                     <h3 className="mt-4 font-semibold">{name}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">{t(`team.members.${m}.role`)}</p>
+                    <p className="mt-1 text-sm text-primary/90">{t(`team.members.${m}.role`)}</p>
+                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                      {t(`team.members.${m}.bio`)}
+                    </p>
                   </article>
                 </Reveal>
               )
@@ -112,13 +117,17 @@ export default async function AboutPage() {
           </Reveal>
           <dl className="mt-12 grid grid-cols-2 gap-px overflow-hidden rounded-3xl border border-border bg-border lg:grid-cols-4">
             {NUMBERS.map((n) => (
+              /* div wrapper inside dl is valid only when it contains
+                 exclusively dt/dd — the visible label lives inside the dd. */
               <div key={n} className="bg-background p-6 text-center sm:p-8">
                 <dt className="sr-only">{t(`numbers.${n}.label`)}</dt>
-                <dd className="text-4xl font-bold tracking-tight text-primary sm:text-5xl">
-                  {Number(t.raw(`numbers.${n}.value`))}
-                  {t(`numbers.${n}.suffix`)}
+                <dd>
+                  <span className="block text-4xl font-bold tracking-tight text-primary sm:text-5xl">
+                    {Number(t.raw(`numbers.${n}.value`))}
+                    {t(`numbers.${n}.suffix`)}
+                  </span>
+                  <span className="mt-2 block text-sm text-muted-foreground">{t(`numbers.${n}.label`)}</span>
                 </dd>
-                <p className="mt-2 text-sm text-muted-foreground">{t(`numbers.${n}.label`)}</p>
               </div>
             ))}
           </dl>

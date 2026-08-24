@@ -111,6 +111,7 @@ export function Hero() {
         >
           <Link
             href="/contact"
+            data-cursor="magnet"
             className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-6 text-base font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
           >
             {t('ctaPrimary')}
@@ -118,6 +119,7 @@ export function Hero() {
           </Link>
           <Link
             href="/work"
+            data-cursor="magnet"
             className="group inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 text-base font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
           >
             <Play className="size-4" aria-hidden="true" />

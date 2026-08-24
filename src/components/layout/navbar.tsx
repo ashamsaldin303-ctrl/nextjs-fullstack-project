@@ -80,6 +80,7 @@ export function Navbar() {
           <LanguageSwitcher variant="on-dark" className="hidden sm:inline-flex" />
           <Link
             href="/contact"
+            data-cursor="magnet"
             className="hidden h-9 items-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:inline-flex"
           >
             {t('nav.cta')}

@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { playSuccess } from '@/lib/sound'
 
 const schema = z.object({
   name: z.string().trim().min(2),
@@ -45,6 +46,7 @@ export function ContactForm() {
     // server-side validation (guide §2.2) + storage + n8n webhook.
     await new Promise((r) => setTimeout(r, 900))
     setSubmitting(false)
+    playSuccess() // Phase 2 sensory feedback (no-op while muted)
     toast.success(t('successTitle'), { description: t('successDesc') })
     setValues({ name: '', email: '', message: '' })
   }
@@ -80,7 +82,7 @@ export function ContactForm() {
         />
         {errors.message ? <p id="cf-message-err" role="alert" className="mt-1 text-xs text-destructive">{errors.message}</p> : null}
       </div>
-      <Button type="submit" disabled={submitting} className={cn('w-full gap-2 sm:w-auto')}>
+      <Button type="submit" data-cursor="magnet" disabled={submitting} className={cn('w-full gap-2 sm:w-auto')}>
         {submitting ? (
           <>
             <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true" />

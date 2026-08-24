@@ -10,7 +10,10 @@ import { cn } from '@/lib/utils'
 import { SITE_CONTACT, SITE_SOCIAL } from '@/lib/site-config'
 
 const subscribeNoop = () => () => {}
-const getServerYear = () => 2026
+// Quick win (prompt §8.2): dynamic server year — hydration stays safe
+// because useSyncExternalStore renders the server snapshot during
+// hydration, then re-renders with the client value if it differs.
+const getServerYear = () => new Date().getFullYear()
 
 function getClientYear(): number {
   return new Date().getFullYear()

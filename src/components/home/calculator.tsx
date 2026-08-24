@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { SectionHeading } from '@/components/shared/section-heading'
+import { playSuccess } from '@/lib/sound'
 import {
   computeEstimate, formatMoney,
   type CalculatorInput, type ServiceType, type IntegrationKey,
@@ -106,6 +107,7 @@ export function Calculator() {
     await new Promise((r) => setTimeout(r, 900))
     setSubmitting(false)
     setDone(true)
+    playSuccess() // Phase 2 sensory feedback (no-op while muted)
   }
 
   const slideVariants = reduced
@@ -171,6 +173,7 @@ export function Calculator() {
                         <button
                           key={id}
                           type="button"
+                          data-cursor="magnet"
                           onClick={() => setInput((p) => ({ ...p, service: id }))}
                           aria-pressed={active}
                           className={cn(
@@ -450,7 +453,7 @@ export function Calculator() {
                             />
                           </div>
                         </div>
-                        <Button type="submit" disabled={submitting} className="mt-6 w-full gap-2">
+                        <Button type="submit" data-cursor="magnet" disabled={submitting} className="mt-6 w-full gap-2">
                           {submitting ? (
                             <>
                               <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true" />
@@ -476,6 +479,7 @@ export function Calculator() {
             <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
               <button
                 type="button"
+                data-cursor="magnet"
                 onClick={goBack}
                 disabled={step === 0}
                 className={cn(
@@ -489,6 +493,7 @@ export function Calculator() {
               </button>
               <button
                 type="button"
+                data-cursor="magnet"
                 onClick={goNext}
                 className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform hover:scale-105"
               >

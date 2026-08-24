@@ -10,11 +10,16 @@ const STATIC_PATHS = [
   '/contact',
 ]
 
+/**
+ * P2-3 (audit + prompt §7.4): every path is emitted as ONE <url> entry
+ * carrying full hreflang alternates (ar / en / x-default) per the
+ * next-intl recommendation. Arabic (default locale) has no prefix;
+ * English lives under /en; x-default points at the Arabic canonical.
+ */
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date()
 
   return STATIC_PATHS.map((path) => {
-    // Arabic (default locale) has no prefix; English lives under /en.
     const arUrl = `${SITE_URL}${path === '' ? '/' : path}`
     const enUrl = `${SITE_URL}/en${path === '' ? '' : path}`
     return {
@@ -26,6 +31,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
         languages: {
           ar: arUrl,
           en: enUrl,
+          'x-default': arUrl,
         },
       },
     }

@@ -50,7 +50,7 @@ export function FeaturedWork() {
                     {metrics.map((m, idx) => (
                       <li
                         key={idx}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-primary/5 px-2.5 py-1 text-xs font-medium text-primary"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-primary/5 px-2.5 py-1 text-xs font-medium text-primary-strong"
                       >
                         {m}
                       </li>
@@ -65,6 +65,7 @@ export function FeaturedWork() {
         <div className="mt-12 text-center">
           <Link
             href="/work"
+            data-cursor="magnet"
             className="group inline-flex h-11 items-center gap-2 rounded-full border border-border px-5 text-sm font-medium transition-colors hover:bg-foreground/5"
           >
             {t('viewAll')}

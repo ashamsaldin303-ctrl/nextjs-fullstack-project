@@ -67,6 +67,8 @@ export function TrustBar() {
 
         <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-3xl border border-border bg-border lg:grid-cols-4">
           {items.map((item, i) => (
+            /* Reveal renders the div wrapper (valid dl child) — but that div
+               may only contain dt/dd, so the visible label lives inside dd. */
             <Reveal
               key={item.key}
               delay={i * 0.08}
@@ -78,8 +80,8 @@ export function TrustBar() {
                 style={{ fontVariationSettings: '"wght" 700' }}
               >
                 <Counter value={Number(item.value)} suffix={item.suffix} />
+                <span className="mt-2 block text-sm font-normal tracking-normal text-muted-foreground">{item.label}</span>
               </dd>
-              <p className="mt-2 text-sm text-muted-foreground">{item.label}</p>
             </Reveal>
           ))}
         </dl>
