@@ -1,0 +1,110 @@
+import type { Metadata } from 'next'
+import { Inter, Cairo } from 'next/font/google'
+import { notFound } from 'next/navigation'
+import { hasLocale, NextIntlClientProvider } from 'next-intl'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
+import { routing, getDir } from '@/i18n/routing'
+import { Navbar } from '@/components/layout/navbar'
+import { Footer } from '@/components/layout/footer'
+import { Toaster } from '@/components/ui/sonner'
+import '../globals.css'
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
+
+const cairo = Cairo({
+  subsets: ['arabic', 'latin'],
+  variable: '--font-cairo',
+  display: 'swap',
+})
+
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }))
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: 'meta' })
+
+  return {
+    title: {
+      default: t('title'),
+      template: `%s — Elyra`,
+    },
+    description: t('description'),
+    metadataBase: new URL(
+      process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+    ),
+    alternates: {
+      canonical: '/',
+      languages: {
+        ar: '/',
+        en: '/en',
+      },
+    },
+    openGraph: {
+      title: t('title'),
+      description: t('description'),
+      url: '/',
+      siteName: 'Elyra',
+      locale: locale === 'ar' ? 'ar_AR' : 'en_US',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: t('title'),
+      description: t('description'),
+    },
+    icons: {
+      icon: '/icon',
+    },
+  }
+}
+
+export default async function LocaleLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode
+  params: Promise<{ locale: string }>
+}) {
+  const { locale } = await params
+  if (!hasLocale(routing.locales, locale)) {
+    notFound()
+  }
+  setRequestLocale(locale)
+  const dir = getDir(locale)
+
+  return (
+    <html
+      lang={locale}
+      dir={dir}
+      className={`${inter.variable} ${cairo.variable}`}
+      suppressHydrationWarning
+    >
+      <body className="min-h-screen flex flex-col bg-background text-foreground antialiased">
+        <NextIntlClientProvider>
+          <a
+            href="#main"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:start-4 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
+          >
+            {locale === 'ar' ? 'تخطَّ إلى المحتوى' : 'Skip to content'}
+          </a>
+          <Navbar />
+          <main id="main" className="flex-1">
+            {children}
+          </main>
+          <Footer />
+        </NextIntlClientProvider>
+        <Toaster position="top-center" richColors closeButton />
+      </body>
+    </html>
+  )
+}

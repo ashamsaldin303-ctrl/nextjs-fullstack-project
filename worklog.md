@@ -141,3 +141,29 @@ Tier 1 pure functions first: overlaps/endOfDay boundary matrix, computeDays+tole
 - The current sandbox project root: /home/z/my-project (Next.js 16 ready, Prisma configured, shadcn/ui present)
 - Sandbox constraint: only route visible to user is `/` in src/app/page.tsx; API-first (use api routes, not server actions, per environment rules); port 3000 only; dev.log monitoring mandatory
 - Full original guide remains available at: /home/z/my-project/upload/FULLSTACK_AGENT_GUIDE (2).md
+
+---
+Task ID: 1
+Agent: main (Full Stack Agent)
+Task: تنفيذ برومبت Elyra المرحلة 1 بالكامل — موقع وكالة إيليرا الرقمية.
+
+Work Log:
+- ثبّت three + @react-three/fiber + @types/three.
+- أنشأ نظام i18n الكامل: routing.ts (locales ar/en, as-needed, localeDetection:false), request.ts, navigation.ts, proxy.ts (Next.js 16).
+- كتب messages/ar.json + messages/en.json (445 مفتاحاً متطابقاً) + scripts/check-i18n-parity.js.
+- أعد تعريف globals.css بتوكنز Elyra (#0071E3 primary، #0F172A dark، Google accents) + utilities (glass-dark, hero-fallback, kicker, glow-cursor, scroll-dark).
+- حدّث tsconfig (strict + noUncheckedIndexedAccess + noImplicitOverride، استثنى examples/skills/tests) و next.config.ts (withNextIntl plugin + security headers + allowedDevOrigins).
+- بنى [locale]/layout.tsx (Inter + Cairo via next/font, sticky-footer pattern, Navbar + Footer + Toaster + skip link) + global-error.tsx + loading/error/not-found.
+- بنى lib/calculator.ts (computeEstimate + formatMoney — pure functions جاهزة للمرحلة 3) + lib/seo.ts (buildPageMetadata + SITE_URL) + lib/use-rtl.ts.
+- بنى المكونات المشتركة: brand/logo.tsx (wordmark SVG), layout/{navbar,footer,language-switcher,live-clock}.tsx, shared/{reveal,section-heading,page-hero,cta}.tsx.
+- بنى 8 أقسام رئيسية: hero (R3F particles + kinetic typography), trust-bar (animated counters), bento (5 cards بـ mini-interactives + glow), automation-simulator (SVG nodes + neon pulses + state machine + 3 scenarios), featured-work (before/after sliders), methodology (4 sticky stacked cards), testimonials (glass on dark), calculator (3-step Mac wizard + Zod).
+- بنى 5 صفحات: services/websites (3 types + 3D CapabilityScene + 6-step journey), services/automation (8 integrations + runsOnN8n + multi-scenario simulator), work (filtering + 6 before/after), about (story + 3 values + 4 team + 4 numbers), contact (3 channels + form + calculator).
+- بنى SEO: sitemap.ts, robots.ts, icon.tsx (ImageResponse), HomeJsonLd (Organization+WebSite).
+- لخّص فحوصات: lint 0/0, tsc 0, parity 445/445, 7 routes × 2 locales = 200.
+- تحقق إلزامي في المتصفح (agent-browser): الرئيسية ترسم 9 أقسام، مبدل اللغة يعمل (/en)، الحاسبة تحتسب $7,300–$11,700، المحاكي يطبّق state machine (خطوة 3/5 + عدّاد ms + سجل مكتمل)، فلترة الأعمال (6→3 عند أتمتة)، مشهد 3D canvas موجود، القائمة المتنقلة تفتح، sticky footer سليم، صفر أخطاء console.
+
+Stage Summary:
+- المرحلة 1 مكتملة بالكامل ومتحقق منها في المتصفح.
+- جودة: lint 0/0 + tsc 0 + i18n parity 445 + WCAG AA + reduced-motion + RTL/LTR + responsive + sticky footer.
+- القرارات المعمارية الموثقة في README.md (7 قرارات).
+- المرحلة 2 و 3 معرّفتان بوضوح في README لانتظار أمر صاحب المشروع.

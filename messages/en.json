@@ -1,0 +1,671 @@
+{
+  "meta": {
+    "siteName": "Elyra",
+    "title": "Elyra — Stunning Websites & n8n Automation Systems",
+    "description": "Elyra is a digital agency crafting beautifully designed websites, interactive 3D experiences, and intelligent n8n automation systems. Try our project calculator for an instant estimate.",
+    "websites": {
+      "title": "Professional Website Building | Elyra",
+      "description": "Company sites, e-commerce stores and SaaS platforms with Apple-level beauty and outstanding performance, plus interactive 3D experiences."
+    },
+    "automation": {
+      "title": "n8n Automation Systems | Elyra",
+      "description": "Connect your tools and automate your operations: CRM integrations, invoicing, instant alerts and AI agents — through 422+ ready integrations."
+    },
+    "work": {
+      "title": "Our Work | Elyra",
+      "description": "Selected website and automation projects we have built — results that speak in numbers."
+    },
+    "about": {
+      "title": "About Us | Elyra",
+      "description": "Discover Elyra's story, team and values: beauty, precision, and automation that serves people."
+    },
+    "contact": {
+      "title": "Contact Us | Elyra",
+      "description": "Tell us about your project or use the interactive project calculator for an instant budget and timeline estimate."
+    }
+  },
+  "nav": {
+    "home": "Home",
+    "services": "Services",
+    "websites": "Website Building",
+    "automation": "Automation",
+    "work": "Work",
+    "about": "About",
+    "contact": "Contact",
+    "cta": "Start Your Project",
+    "openMenu": "Open main menu",
+    "closeMenu": "Close menu",
+    "switchLocale": "عربي",
+    "switchLocaleLabel": "Switch to Arabic",
+    "skipToContent": "Skip to main content"
+  },
+  "hero": {
+    "badge": "Digital Agency · Websites & Automation",
+    "titleTop": "We Craft",
+    "titleAccent": "Digital",
+    "titleBottom": "Experiences",
+    "subtitle": "Elyra is a digital agency specializing in beautifully designed websites, interactive 3D experiences, and intelligent n8n automation — where Apple's taste meets Google's brains.",
+    "ctaPrimary": "Start Your Project",
+    "ctaSecondary": "See Our Work",
+    "scroll": "Scroll to explore",
+    "canvasFallback": "Elegant gradient background"
+  },
+  "stats": {
+    "kicker": "Why Elyra",
+    "title": "Numbers We're Proud Of",
+    "projects": {
+      "value": 120,
+      "suffix": "+",
+      "label": "Projects Delivered"
+    },
+    "hours": {
+      "value": 4800,
+      "suffix": "",
+      "label": "Hours Saved Monthly for Clients"
+    },
+    "satisfaction": {
+      "value": 98,
+      "suffix": "%",
+      "label": "Client Satisfaction Rate"
+    },
+    "integrations": {
+      "value": 422,
+      "suffix": "+",
+      "label": "Ready Integrations via n8n"
+    }
+  },
+  "bento": {
+    "kicker": "What We Build",
+    "title": "Two Service Lines, a World of Possibilities",
+    "subtitle": "We build your digital presence from scratch, then automate everything after it — so you can focus on what truly matters.",
+    "websites": {
+      "title": "Stunning Websites",
+      "desc": "Company sites, stores and platforms designed to Apple standards: purity in form, depth in experience.",
+      "features": [
+        "100% Custom Design",
+        "90+ Lighthouse Performance",
+        "Bilingual AR/EN",
+        "Interactive 3D Experiences"
+      ],
+      "mini": {
+        "title": "Try the Interface Colors",
+        "hint": "Click any color to restyle the mini site"
+      }
+    },
+    "automation": {
+      "title": "n8n Automation Systems",
+      "desc": "Connect your tools and leave the routine to us: invoices that issue themselves, alerts that arrive instantly.",
+      "mini": {
+        "title": "Run the Flow",
+        "hint": "Click to watch the pulse cross the three nodes",
+        "done": "Done! That's automation at work"
+      }
+    },
+    "threeD": {
+      "title": "3D Experiences",
+      "desc": "Interactive WebGL scenes that tell your brand's story and keep visitors exploring.",
+      "mini": {
+        "hint": "Drag the cube to rotate it"
+      }
+    },
+    "ai": {
+      "title": "AI Agents",
+      "desc": "Intelligent assistants that answer your customers, organize your schedule, and extract insights from messy files.",
+      "mini": {
+        "prompt": "Summarize yesterday's meeting",
+        "response": "3 key decisions, 2 assigned tasks, and a deadline set for next Thursday. Summary sent to your team ✓",
+        "hint": "Click the question to try the agent"
+      }
+    },
+    "integrations": {
+      "title": "422+ Integrations",
+      "desc": "We connect your tools together, whatever they are — from spreadsheets to CRM systems.",
+      "mini": {
+        "hint": "Watch the apps orbit around"
+      }
+    }
+  },
+  "simulator": {
+    "kicker": "Automation... Live",
+    "title": "Watch n8n Work, Moment by Moment",
+    "subtitle": "A real simulation of a flow we build for clients: from the moment an order arrives until your team gets notified — all in under two seconds.",
+    "run": "Try It Now",
+    "replay": "Replay",
+    "running": "Flow is running...",
+    "completed": "Flow completed in {seconds} seconds",
+    "stepOf": "Step {current} of {total}",
+    "idle": "Ready to run — click the button to start the simulation",
+    "scrollHint": "Scroll horizontally to see the full scene",
+    "scenarios": {
+      "newOrder": {
+        "label": "New Project Request",
+        "steps": {
+          "receive": {
+            "title": "Order Received",
+            "desc": "A new request arrives from the website form to the secure intake endpoint.",
+            "ms": 85
+          },
+          "validate": {
+            "title": "Validate & Store",
+            "desc": "Instant data validation, then the order is saved to the database.",
+            "ms": 140
+          },
+          "crm": {
+            "title": "CRM Update",
+            "desc": "The client is automatically added to the CRM and the pipeline board updates.",
+            "ms": 230
+          },
+          "email": {
+            "title": "Welcome Email",
+            "desc": "A personalized welcome message is sent with the order summary and next steps.",
+            "ms": 310
+          },
+          "telegram": {
+            "title": "Telegram Alert",
+            "desc": "An instant Telegram notification reaches the team to reply within minutes.",
+            "ms": 95
+          }
+        }
+      },
+      "paymentReminder": {
+        "label": "Payment Reminder",
+        "steps": {
+          "invoice": {
+            "title": "Invoice Due",
+            "desc": "The system detects an invoice that reached its due date unpaid.",
+            "ms": 90
+          },
+          "schedule": {
+            "title": "Schedule Reminder",
+            "desc": "A courteous reminder is scheduled according to the follow-up policy.",
+            "ms": 120
+          },
+          "email": {
+            "title": "Reminder Email",
+            "desc": "An elegant reminder email is sent with a direct payment link.",
+            "ms": 260
+          },
+          "telegram": {
+            "title": "Internal Alert",
+            "desc": "An instant Telegram notification informs the finance team.",
+            "ms": 85
+          },
+          "update": {
+            "title": "Status Update",
+            "desc": "The reminder status is logged to prevent duplicates.",
+            "ms": 110
+          }
+        }
+      },
+      "weeklyReport": {
+        "label": "Weekly Report",
+        "steps": {
+          "trigger": {
+            "title": "Report Time",
+            "desc": "A weekly timer triggers the flow every Sunday at 9 AM.",
+            "ms": 70
+          },
+          "collect": {
+            "title": "Collect Data",
+            "desc": "Numbers are pulled automatically from the database and sales systems.",
+            "ms": 380
+          },
+          "analyze": {
+            "title": "Generate Insights",
+            "desc": "Growth is calculated and compared with last week, surfacing key changes.",
+            "ms": 290
+          },
+          "report": {
+            "title": "Send Report",
+            "desc": "An elegant email with an executive summary, readable in two minutes.",
+            "ms": 240
+          },
+          "notify": {
+            "title": "Team Notification",
+            "desc": "A Telegram message with the report's top three takeaways.",
+            "ms": 90
+          }
+        }
+      }
+    }
+  },
+  "workSection": {
+    "kicker": "Selected Work",
+    "title": "Before & After — The Difference We Make",
+    "subtitle": "Drag the divider and compare for yourself how digital experiences transform.",
+    "dragHint": "Drag to compare",
+    "before": "Before",
+    "after": "After",
+    "viewAll": "Browse All Work",
+    "project1": {
+      "title": "Lamsa Fashion Store",
+      "category": "E-commerce",
+      "desc": "From a dull template store to a luxury shopping experience that feels like a boutique.",
+      "metrics": ["+140% Conversion Rate", "×2.3 Loading Speed"]
+    },
+    "project2": {
+      "title": "Aqar Plus Platform",
+      "category": "Real Estate Platform",
+      "desc": "A cluttered listings board became a smooth discovery platform with interactive maps.",
+      "metrics": ["+85% Organic Visits", "60% Longer Sessions"]
+    }
+  },
+  "methodology": {
+    "kicker": "How We Work",
+    "title": "A Clear Journey, From Idea to Launch",
+    "subtitle": "A four-step methodology proven across 120+ projects — no surprises, no guesswork.",
+    "steps": {
+      "discover": {
+        "title": "Discovery",
+        "duration": "Week 1",
+        "desc": "A deep listening session: we understand your goals, audience and competitors, then scope the work precisely."
+      },
+      "design": {
+        "title": "Design",
+        "duration": "Weeks 2–3",
+        "desc": "We craft the identity and full experience before writing a single line of code — you see your site before it's built."
+      },
+      "build": {
+        "title": "Build",
+        "duration": "Weeks 3–6",
+        "desc": "Weekly review cycles: experience progress early with a transparent, step-by-step process."
+      },
+      "launch": {
+        "title": "Launch & Support",
+        "duration": "Ongoing",
+        "desc": "A safe launch with performance monitoring, then continuous improvement — we don't leave after opening day."
+      }
+    }
+  },
+  "testimonials": {
+    "kicker": "Testimonials",
+    "title": "Trust We Cherish",
+    "subtitle": "What clients say, from the first discovery session to long after launch.",
+    "items": {
+      "first": {
+        "quote": "I asked for a website and received a complete digital brand. The team never asks \"what do you want?\" but \"what should your customer feel?\" — that changed everything.",
+        "name": "Reem Al-Halabi",
+        "role": "Founder, Lamsa Store"
+      },
+      "second": {
+        "quote": "The automation system Elyra built saves my team over 60 hours every month. Invoices issue themselves and alerts arrive before we even ask about them.",
+        "name": "Khaled Al-Najjar",
+        "role": "Operations Manager, Ufuq Co."
+      },
+      "third": {
+        "quote": "Rare professionalism: precise deadlines, delivery ahead of schedule, and design details I never asked for but can no longer imagine the site without.",
+        "name": "Lina Murad",
+        "role": "Marketing Director, Aqar Plus"
+      }
+    }
+  },
+  "calculator": {
+    "kicker": "Project Calculator",
+    "title": "How Much Does Your Project Cost? Find Out in a Minute",
+    "subtitle": "Customize your project step by step and get an instant budget and timeline estimate.",
+    "step": "Step {current} of {total}",
+    "steps": {
+      "service": "Service Type",
+      "features": "Features & Scale",
+      "result": "Your Result"
+    },
+    "services": {
+      "website": {
+        "title": "Luxury Website",
+        "desc": "A striking digital presence with an unforgettable experience"
+      },
+      "automation": {
+        "title": "Automation System",
+        "desc": "Connect your tools and automate daily routine with n8n"
+      },
+      "full": {
+        "title": "Full Ecosystem",
+        "desc": "Website + automation + AI agents in one system",
+        "popular": "Most Requested"
+      }
+    },
+    "pages": "Number of Pages",
+    "pagesValue": "{count} pages",
+    "languages": "Languages",
+    "languagesOptions": {
+      "single": "Arabic only",
+      "bilingual": "Arabic + English"
+    },
+    "threeD": "3D Experience",
+    "threeDOptions": {
+      "yes": "Yes, add the wow factor",
+      "no": "No, simplicity is enough"
+    },
+    "integrations": "Required Integrations",
+    "integrationsOptions": {
+      "crm": "CRM",
+      "invoicing": "Invoicing",
+      "email": "Automated Email",
+      "telegram": "Telegram",
+      "sheets": "Spreadsheets",
+      "ai": "AI Agent"
+    },
+    "automationLevel": "Automation Level",
+    "automationLevelOptions": {
+      "essential": "Essential — alerts and simple connections",
+      "advanced": "Advanced — smart workflows and AI agents"
+    },
+    "result": {
+      "budget": "Estimated Budget",
+      "duration": "Timeline",
+      "weeks": "From {min} to {max} weeks",
+      "breakdownTitle": "Estimate Breakdown",
+      "disclaimer": "This estimate is indicative and will be refined for free after the discovery session.",
+      "base": "Base Service",
+      "pages": "Extra Pages",
+      "bilingual": "Bilingual",
+      "threeD": "3D Experience",
+      "integrations": "Integrations",
+      "advanced": "Advanced Automation"
+    },
+    "form": {
+      "title": "Where Should We Send the Details?",
+      "name": "Full Name",
+      "email": "Email Address",
+      "whatsapp": "WhatsApp Number (optional)",
+      "submit": "Send Project Request",
+      "sending": "Sending...",
+      "successTitle": "We've Received Your Request!",
+      "successDesc": "Our team will contact you within 24 business hours with the final estimate details.",
+      "successRestart": "Calculate Another Project"
+    },
+    "errors": {
+      "name": "Name is required (at least 2 characters)",
+      "email": "Please enter a valid email address"
+    },
+    "back": "Back",
+    "next": "Next",
+    "calculate": "Calculate Estimate"
+  },
+  "footer": {
+    "tagline": "We craft digital experiences that resemble the future — stunning websites and automation systems that work while you sleep.",
+    "availability": "Available for New Projects",
+    "localTime": "Your Local Time",
+    "quickLinks": "Quick Links",
+    "servicesTitle": "Our Services",
+    "connectTitle": "Connect With Us",
+    "rights": "© {year} Elyra. All rights reserved.",
+    "madeWith": "Crafted with passion and a lot of coffee",
+    "social": {
+      "telegram": "Telegram",
+      "instagram": "Instagram",
+      "linkedin": "LinkedIn",
+      "github": "GitHub"
+    },
+    "websitesLink": "Professional Website Building",
+    "automationLink": "n8n Automation Systems"
+  },
+  "pages": {
+    "websites": {
+      "hero": {
+        "kicker": "Services · Website Building",
+        "title": "Websites Built",
+        "titleAccent": "to Dazzle",
+        "subtitle": "From the elegant company site to the feature-rich platform — we design and build websites with Apple's purity standards and Google's performance.",
+        "cta": "Calculate Your Website Budget"
+      },
+      "types": {
+        "kicker": "Three Types",
+        "title": "The Same Level of Detail Madness",
+        "landing": {
+          "title": "Company Website",
+          "desc": "An elegant presence that tells your story and converts visitors into clients.",
+          "features": ["Fully Polished Pages", "Search Engine Optimization", "Blazing Fast Loading", "Easy Admin Panel"]
+        },
+        "store": {
+          "title": "E-commerce Store",
+          "desc": "A store that sells with beauty as much as with ease.",
+          "features": ["Cart & Secure Checkout", "Smart Inventory Management", "Mobile-first Experience", "Live Sales Reports"]
+        },
+        "platform": {
+          "title": "Platform / SaaS",
+          "desc": "Your digital product, from idea to real users.",
+          "features": ["Secure Accounts & Auth", "Live Dashboards & Data", "Subscription System", "Full Scalability"]
+        }
+      },
+      "threeD": {
+        "kicker": "3D Capabilities",
+        "title": "Interaction Users Can Feel",
+        "subtitle": "Live WebGL scenes embedded in your pages — telling the story and leaving a mark. Move your mouse or drag the scene to try it.",
+        "hint": "Move mouse to interact · Drag to rotate",
+        "fallback": "The 3D preview is not available on this device"
+      },
+      "journey": {
+        "kicker": "Extended Journey",
+        "title": "Your Journey With Us, in Detail",
+        "steps": {
+          "s1": { "title": "Discovery Session", "desc": "One hour focused on your goals and audience, defining what success looks like." },
+          "s2": { "title": "Identity & Prototype", "desc": "A clear art direction and an interactive prototype before any final design." },
+          "s3": { "title": "Final Design", "desc": "Complete screens with a full design system you approve in look and feel." },
+          "s4": { "title": "Development & Review", "desc": "Weekly visible progress — you try it every Friday and steer instantly." },
+          "s5": { "title": "Testing & Launch", "desc": "Performance, accessibility and device testing, then a safe, calm launch." },
+          "s6": { "title": "Support & Growth", "desc": "Continuous monitoring and periodic improvements — your site grows with your business." }
+        }
+      },
+      "cta": {
+        "title": "Ready for a Website Worthy of Your Brand?",
+        "subtitle": "Start with the project calculator for an instant estimate — no commitment.",
+        "button": "Calculate Your Project Budget"
+      }
+    },
+    "automation": {
+      "hero": {
+        "kicker": "Services · Automation",
+        "title": "Systems That Work",
+        "titleAccent": "While You Sleep",
+        "subtitle": "We build n8n automation systems that connect your tools and handle the routine: invoices that issue themselves, alerts that arrive instantly, and customers who never wait for anyone.",
+        "cta": "Design Your System Now"
+      },
+      "integrations": {
+        "kicker": "Your Stack, Connected",
+        "title": "We Connect All Your Tools Together",
+        "note": "422+ ready apps via n8n — if your tool exists, we know it.",
+        "items": {
+          "crm": { "title": "CRM Systems", "desc": "Client and sales tracking without manual entry" },
+          "invoicing": { "title": "Invoicing & Accounting", "desc": "Automatic invoices, notifications and reviews" },
+          "email": { "title": "Automated Email", "desc": "Personal messages sent at the perfect moment" },
+          "telegram": { "title": "Instant Alerts", "desc": "Telegram notifications for your team, moment by moment" },
+          "sheets": { "title": "Spreadsheets", "desc": "Your data keeping itself in sync across systems" },
+          "ai": { "title": "Intelligent Agents", "desc": "AI assistants that reply, classify and extract" },
+          "payments": { "title": "Payment Gateways", "desc": "Automatic settlement, collection and tracking" },
+          "databases": { "title": "Databases", "desc": "A unified, reliable data layer" }
+        }
+      },
+      "runsOnN8n": {
+        "kicker": "A Fact, Not a Promise",
+        "title": "This Very Website Runs on n8n",
+        "desc": "Every request from the project calculator or contact form instantly travels through an HMAC-signed webhook to n8n: it's registered in the agency's CRM, you receive a welcome email, and our team gets a Telegram alert — all within seconds. The automation we sell is the same automation running this site.",
+        "flow": {
+          "request": "Request from Calculator",
+          "webhook": "HMAC-SHA256 Signed Webhook",
+          "actions": "CRM + Email + Telegram"
+        },
+        "badge": "Try the calculator and watch the flow"
+      },
+      "simulator": {
+        "kicker": "Extended Simulator",
+        "title": "Pick a Scenario and Watch It Run",
+        "subtitle": "Three real flows we build for clients — click a scenario and watch it work step by step."
+      },
+      "cta": {
+        "title": "Your Routine Deserves Better Automation",
+        "subtitle": "Calculate your automation system's cost in under a minute.",
+        "button": "Design Your Automation System"
+      }
+    },
+    "work": {
+      "hero": {
+        "kicker": "Our Work",
+        "title": "Results That Speak",
+        "titleAccent": "in Numbers",
+        "subtitle": "Selected website and automation projects — drag the divider on each card to see the transformation."
+      },
+      "filters": {
+        "all": "All",
+        "websites": "Websites",
+        "automation": "Automation"
+      },
+      "projects": {
+        "p1": {
+          "title": "Lamsa Fashion Store",
+          "category": "Websites",
+          "type": "E-commerce",
+          "desc": "From a slow, dull template to a luxury shopping experience that feels like a boutique visit.",
+          "metrics": ["+140% Conversion Rate", "×2.3 Loading Speed", "−45% Cart Abandonment"]
+        },
+        "p2": {
+          "title": "Aqar Plus Platform",
+          "category": "Websites",
+          "type": "Real Estate Platform",
+          "desc": "A cluttered listings board became a smooth discovery platform with maps and smart filters.",
+          "metrics": ["+85% Organic Visits", "60% Longer Sessions"]
+        },
+        "p3": {
+          "title": "Bayt Al-Sham Restaurant",
+          "category": "Websites",
+          "type": "Website + Booking",
+          "desc": "A paper menu and phone-only bookings became a complete digital experience with instant reservations.",
+          "metrics": ["70% of Bookings Online", "+35% Pickup Orders"]
+        },
+        "p4": {
+          "title": "Smart Invoices System",
+          "category": "Automation",
+          "type": "Automated Invoicing",
+          "desc": "From manual issuance consuming a full day to a fully self-driven invoicing system.",
+          "metrics": ["−90% Issuance Time", "Zero Late Invoices for 8 Months"]
+        },
+        "p5": {
+          "title": "Sales Team CRM",
+          "category": "Automation",
+          "type": "Integrations & Follow-up",
+          "desc": "Every new client is registered, tracked and followed up automatically across three channels.",
+          "metrics": ["×3 Faster Client Response", "−12 Work Hours Weekly"]
+        },
+        "p6": {
+          "title": "Smart Support Agent",
+          "category": "Automation",
+          "type": "AI Agent",
+          "desc": "An intelligent assistant answering FAQs and escalating complex cases to the human team.",
+          "metrics": ["−70% Support Tickets", "Instant Replies to 82% of Inquiries"]
+        }
+      },
+      "cta": {
+        "title": "Your Project Is Next",
+        "subtitle": "Tell us your idea — the first session is always free.",
+        "button": "Start the Conversation"
+      }
+    },
+    "about": {
+      "hero": {
+        "kicker": "About Us",
+        "title": "The Story",
+        "titleAccent": "of Elyra",
+        "subtitle": "A digitally small agency with an enormous obsession for detail."
+      },
+      "story": {
+        "kicker": "The Beginning",
+        "title": "Why We Exist",
+        "p1": "Elyra started with a question that bothered us for a long time: why do people have to choose between a beautiful site that runs slowly, and a fast site that looks dull? Between a powerful system that intimidates its users, and an easy tool that lets its owners down?",
+        "p2": "We decided not to choose. We design with beauty that stops the scrolling, engineer with precision that respects every millisecond, and automate whatever can be automated to give humans their time back — this is Elyra's covenant with every client.",
+        "p3": "Today, after more than 120 projects spanning websites, platforms and automation systems, we're still the same team: small, obsessed, and asking every single time — is this more beautiful than what came before?"
+      },
+      "values": {
+        "kicker": "Our Values",
+        "title": "Three Values We Never Compromise",
+        "beauty": {
+          "title": "Beauty First",
+          "desc": "Beauty isn't decoration — it's respect for a visitor giving you two seconds of their life. Every pixel needs a reason."
+        },
+        "precision": {
+          "title": "Precision as Engineering",
+          "desc": "Deadlines that are honored, code that is tested, performance that is measured. Precision isn't a slogan; it's a daily operating system."
+        },
+        "humanAutomation": {
+          "title": "Automation That Serves People",
+          "desc": "We automate routine to free time for creativity — not to replace humans, but to return them to what they do best."
+        }
+      },
+      "team": {
+        "kicker": "The Team",
+        "title": "The Minds Behind Elyra",
+        "members": {
+          "m1": { "name": "Ahmad Al-Rifai", "role": "Founder · Systems Engineer" },
+          "m2": { "name": "Sara Qabbani", "role": "Design Director" },
+          "m3": { "name": "Mohammad Issa", "role": "n8n Automation Engineer" },
+          "m4": { "name": "Laila Haddad", "role": "UX Strategist" }
+        }
+      },
+      "numbers": {
+        "kicker": "Agency Numbers",
+        "title": "Short, but It Speaks",
+        "years": { "value": 5, "suffix": "", "label": "Years of Combined Experience" },
+        "projects": { "value": 120, "suffix": "+", "label": "Projects Delivered" },
+        "sectors": { "value": 14, "suffix": "", "label": "Industries Served" },
+        "satisfaction": { "value": 98, "suffix": "%", "label": "Client Satisfaction" }
+      },
+      "cta": {
+        "title": "Like What You're Reading?",
+        "subtitle": "Have a project that resembles you? Let's build something worthy of you.",
+        "button": "Get in Touch"
+      }
+    },
+    "contact": {
+      "hero": {
+        "kicker": "Contact",
+        "title": "Let's Start",
+        "titleAccent": "the Conversation",
+        "subtitle": "Tell us about your project or use the interactive calculator — we usually reply within two hours on business days."
+      },
+      "channels": {
+        "kicker": "Direct Channels",
+        "title": "Talk to Us However You Prefer",
+        "email": { "title": "Email", "value": "hello@elyra.agency" },
+        "whatsapp": { "title": "WhatsApp", "value": "+963 991 000 000" },
+        "telegram": { "title": "Telegram", "value": "@elyra_agency" },
+        "responseNote": "We usually reply within two hours on business days"
+      },
+      "form": {
+        "kicker": "The Classic Way",
+        "title": "Send a Message",
+        "name": "Name",
+        "email": "Email Address",
+        "message": "Your Message",
+        "messagePlaceholder": "Tell us about your project, goals, and any important deadlines...",
+        "send": "Send Message",
+        "sending": "Sending...",
+        "successTitle": "Your Message Arrived!",
+        "successDesc": "We'll get back to you within one business day at most.",
+        "errors": {
+          "name": "Name is required (at least 2 characters)",
+          "email": "Please enter a valid email address",
+          "message": "Message is required (at least 10 characters)"
+        }
+      },
+      "calculator": {
+        "kicker": "The Fast Lane",
+        "title": "Or Calculate Your Project Instantly"
+      }
+    }
+  },
+  "common": {
+    "back": "Back",
+    "next": "Next",
+    "close": "Close",
+    "viewAll": "View All",
+    "getStarted": "Get Started",
+    "explore": "Explore",
+    "backToHome": "Back to Home",
+    "loading": "Loading...",
+    "errorTitle": "An Unexpected Error Occurred",
+    "errorDesc": "We apologize — something went wrong. Try again or come back later.",
+    "retry": "Try Again",
+    "notFoundTitle": "Page Not Found",
+    "notFoundDesc": "Looks like you've reached an old or incorrect link — no worries, the road home is short.",
+    "reduceMotionNote": "Animations reduced in respect for your device settings"
+  }
+}

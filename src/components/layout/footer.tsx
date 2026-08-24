@@ -1,0 +1,186 @@
+'use client'
+
+import { useTranslations } from 'next-intl'
+import { Link } from '@/i18n/navigation'
+import { Logo } from '@/components/brand/logo'
+import { LiveClock } from './live-clock'
+import { Mail, MessageCircle, Send, Github, Linkedin, Instagram } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+export function Footer({ className }: { className?: string }) {
+  const t = useTranslations()
+  const year = new Date().getFullYear()
+
+  return (
+    <footer
+      className={cn(
+        'bg-elyra-dark text-elyra-on-dark',
+        'border-t border-white/10',
+        'pb-[env(safe-area-inset-bottom)]',
+        'mt-auto',
+        className
+      )}
+    >
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="grid gap-12 lg:grid-cols-12">
+          {/* Brand block */}
+          <div className="lg:col-span-5">
+            <Logo variant="on-dark" />
+            <p className="mt-4 max-w-md text-sm leading-relaxed text-white/70">
+              {t('footer.tagline')}
+            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-4">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm">
+                <span className="relative flex size-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-g-green opacity-75" />
+                  <span className="relative inline-flex size-2 rounded-full bg-g-green" />
+                </span>
+                <span className="text-white/80">{t('footer.availability')}</span>
+              </span>
+              <LiveClock variant="on-dark" />
+            </div>
+          </div>
+
+          {/* Quick links */}
+          <nav className="lg:col-span-3" aria-label={t('footer.quickLinks')}>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-white/50">
+              {t('footer.quickLinks')}
+            </h2>
+            <ul className="mt-4 space-y-2 text-sm">
+              <li>
+                <Link href="/" className="text-white/80 transition-colors hover:text-white">
+                  {t('nav.home')}
+                </Link>
+              </li>
+              <li>
+                <Link href="/work" className="text-white/80 transition-colors hover:text-white">
+                  {t('nav.work')}
+                </Link>
+              </li>
+              <li>
+                <Link href="/about" className="text-white/80 transition-colors hover:text-white">
+                  {t('nav.about')}
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="text-white/80 transition-colors hover:text-white">
+                  {t('nav.contact')}
+                </Link>
+              </li>
+            </ul>
+          </nav>
+
+          {/* Services */}
+          <nav className="lg:col-span-2" aria-label={t('footer.servicesTitle')}>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-white/50">
+              {t('footer.servicesTitle')}
+            </h2>
+            <ul className="mt-4 space-y-2 text-sm">
+              <li>
+                <Link href="/services/websites" className="text-white/80 transition-colors hover:text-white">
+                  {t('footer.websitesLink')}
+                </Link>
+              </li>
+              <li>
+                <Link href="/services/automation" className="text-white/80 transition-colors hover:text-white">
+                  {t('footer.automationLink')}
+                </Link>
+              </li>
+            </ul>
+          </nav>
+
+          {/* Connect */}
+          <div className="lg:col-span-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-white/50">
+              {t('footer.connectTitle')}
+            </h2>
+            <ul className="mt-4 space-y-2 text-sm">
+              <li>
+                <a
+                  href="mailto:hello@elyra.agency"
+                  className="inline-flex items-center gap-2 text-white/80 transition-colors hover:text-white"
+                >
+                  <Mail className="size-4" aria-hidden="true" />
+                  hello@elyra.agency
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://t.me/elyra_agency"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-white/80 transition-colors hover:text-white"
+                >
+                  <Send className="size-4" aria-hidden="true" />
+                  Telegram
+                </a>
+              </li>
+            </ul>
+            <ul className="mt-4 flex gap-3">
+              <li>
+                <a
+                  href="https://t.me/elyra_agency"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={t('footer.social.telegram')}
+                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
+                >
+                  <Send className="size-4" aria-hidden="true" />
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://wa.me/963991000000"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="WhatsApp"
+                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
+                >
+                  <MessageCircle className="size-4" aria-hidden="true" />
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://instagram.com/elyra.agency"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={t('footer.social.instagram')}
+                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
+                >
+                  <Instagram className="size-4" aria-hidden="true" />
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://linkedin.com/company/elyra-agency"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={t('footer.social.linkedin')}
+                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
+                >
+                  <Linkedin className="size-4" aria-hidden="true" />
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://github.com/elyra-agency"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={t('footer.social.github')}
+                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
+                >
+                  <Github className="size-4" aria-hidden="true" />
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 text-sm text-white/50 sm:flex-row">
+          <p>{t('footer.rights', { year })}</p>
+          <p>{t('footer.madeWith')}</p>
+        </div>
+      </div>
+    </footer>
+  )
+}
