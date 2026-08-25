@@ -18,6 +18,7 @@ const CapabilityScene = dynamic(
 
 export function ThreeDSection() {
   const t = useTranslations('pages.websites.threeD')
+  const tc = useTranslations('common') // WS-2: cursor context label
   const reduced = usePrefersReducedMotion()
   const ref = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState(true)
@@ -59,6 +60,8 @@ export function ThreeDSection() {
         <Reveal className="mt-12">
           <div
             ref={ref}
+            data-cursor="rotate"
+            data-cursor-label={tc('cursor.rotate')}
             className="relative aspect-[16/10] w-full overflow-hidden rounded-3xl border border-white/10 sm:aspect-[16/8]"
             aria-label={t('hint')}
           >

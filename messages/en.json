@@ -871,6 +871,11 @@
     "sound": {
       "enable": "Enable sound effects",
       "disable": "Mute sound effects"
+    },
+    "cursor": {
+      "rotate": "Drag to rotate 360°",
+      "preview": "Live preview",
+      "drag": "Drag to compare"
     }
   },
   "apiErrors": {

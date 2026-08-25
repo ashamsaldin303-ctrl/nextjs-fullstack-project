@@ -9,7 +9,6 @@ import { Footer } from '@/components/layout/footer'
 import { Toaster } from '@/components/ui/sonner'
 import { MagneticCursor } from '@/components/sensory/magnetic-cursor'
 import { FilmGrain } from '@/components/sensory/film-grain'
-import { SoundToggle } from '@/components/sensory/sound-toggle'
 import '../globals.css'
 
 const inter = Inter({
@@ -110,9 +109,6 @@ export default async function LocaleLayout({
             {children}
           </main>
           <Footer />
-          {/* Phase 2 — sound toggle lives INSIDE the intl provider (uses
-              useTranslations). Grain + cursor are context-free. */}
-          <SoundToggle />
         </NextIntlClientProvider>
         {/* Phase 2 — Sensory Polish Layer (app-wide, single instance each) */}
         <FilmGrain />

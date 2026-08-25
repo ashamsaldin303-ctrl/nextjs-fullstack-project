@@ -119,6 +119,7 @@ export function BeforeAfter({
   label = 'Project',
 }: BeforeAfterProps) {
   const t = useTranslations('workSection')
+  const tc = useTranslations('common') // WS-2: cursor context label
   const reduced = usePrefersReducedMotion()
   const isRtl = useIsRtl()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -175,6 +176,8 @@ export function BeforeAfter({
   return (
     <div
       ref={containerRef}
+      data-cursor="drag"
+      data-cursor-label={tc('cursor.drag')}
       className={cn(
         'relative aspect-[16/10] w-full select-none overflow-hidden rounded-2xl border border-border bg-card touch-none',
         className

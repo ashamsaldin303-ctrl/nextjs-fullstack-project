@@ -39,11 +39,13 @@ const PRESS_SCALE = 0.82
 export function MagneticCursor() {
   const dotRef = useRef<HTMLDivElement>(null)
   const ringRef = useRef<HTMLDivElement>(null)
+  const chipRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const dot = dotRef.current
     const ring = ringRef.current
-    if (!dot || !ring) return
+    const chip = chipRef.current
+    if (!dot || !ring || !chip) return
 
     // --- Activation guards (prompt §3.1–§3.4) ---------------------------
     const finePointer = window.matchMedia('(pointer: fine)')
@@ -69,13 +71,18 @@ export function MagneticCursor() {
     let pressed = false
     let visible = false
 
-    type Magnet = { el: Element; x: number; y: number }
+    type Magnet = { el: Element; x: number; y: number; label: string }
     let magnets: Magnet[] = []
 
     const refreshMagnets = () => {
-      magnets = Array.from(document.querySelectorAll('[data-cursor="magnet"]')).map((el) => {
+      magnets = Array.from(document.querySelectorAll('[data-cursor]')).map((el) => {
         const r = el.getBoundingClientRect()
-        return { el, x: r.left + r.width / 2, y: r.top + r.height / 2 }
+        return {
+          el,
+          x: r.left + r.width / 2,
+          y: r.top + r.height / 2,
+          label: el.getAttribute('data-cursor-label') || '',
+        }
       })
     }
 
@@ -160,6 +167,15 @@ export function MagneticCursor() {
       dot.style.transform = `translate3d(${mouse.x - DOT_SIZE / 2}px, ${mouse.y - DOT_SIZE / 2}px, 0)`
       ring.style.transform = `translate3d(${ringPos.x - RING_SIZE / 2}px, ${ringPos.y - RING_SIZE / 2}px, 0) scale(${ringScale.toFixed(3)})`
 
+      // WS-2: contextual text chip — follows the ring with an offset.
+      if (magnet && magnet.label) {
+        chip.textContent = magnet.label
+        chip.style.transform = `translate3d(${ringPos.x + 20}px, ${ringPos.y + 8}px, 0)`
+        chip.style.opacity = '1'
+      } else {
+        chip.style.opacity = '0'
+      }
+
       rafId = requestAnimationFrame(tick)
     }
 
@@ -214,6 +230,12 @@ export function MagneticCursor() {
         ref={ringRef}
         aria-hidden="true"
         className="elyra-cursor elyra-cursor-ring"
+      />
+      {/* WS-2: contextual text chip */}
+      <div
+        ref={chipRef}
+        aria-hidden="true"
+        className="elyra-cursor elyra-cursor-chip"
       />
     </>
   )

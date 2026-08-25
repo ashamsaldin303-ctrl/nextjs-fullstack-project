@@ -6,7 +6,6 @@ import { ArrowRight } from 'lucide-react'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { Reveal } from '@/components/shared/reveal'
 import { BeforeAfter } from './before-after'
-
 const PROJECTS = [
   { key: 'project1' as const, variant: 'site-new' as const, accent: '#0071E3', metrics: ['metric1', 'metric2'] },
   { key: 'project2' as const, variant: 'dashboard-new' as const, accent: '#34A853', metrics: ['metric1', 'metric2'] },
@@ -14,6 +13,7 @@ const PROJECTS = [
 
 export function FeaturedWork() {
   const t = useTranslations('workSection')
+  const tc = useTranslations('common')
 
   return (
     <section className="bg-background py-20 sm:py-28" aria-labelledby="work-title">
@@ -29,7 +29,7 @@ export function FeaturedWork() {
             const metrics = t.raw(`${p.key}.metrics`) as string[]
             return (
               <Reveal key={p.key} delay={i * 0.1}>
-                <article className="group">
+                <article className="group" data-cursor="preview" data-cursor-label={tc('cursor.preview')}>
                   <BeforeAfter
                     variant={p.variant}
                     accent={p.accent}

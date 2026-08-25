@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose 
 import { Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useIsRtl } from '@/lib/use-rtl'
+import { SoundToggle } from '@/components/sensory/sound-toggle'
 
 function navItems(t: ReturnType<typeof useTranslations>) {
   return [
@@ -78,6 +79,10 @@ export function Navbar() {
 
         <div className="flex items-center gap-2">
           <LanguageSwitcher variant="on-dark" className="hidden sm:inline-flex" />
+          {/* WS-2: sound toggle moved to navbar — one mount, no fixed overlap.
+              Visible on all screens (mobile too — it's small and fits next
+              to the hamburger). */}
+          <SoundToggle />
           <Link
             href="/contact"
             data-cursor="magnet"

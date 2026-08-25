@@ -33,6 +33,7 @@ type Filter = 'all' | Category
 
 export function WorkGrid() {
   const t = useTranslations('pages.work')
+  const tc = useTranslations('common') // WS-2: cursor context label
   const [filter, setFilter] = useState<Filter>('all')
 
   const visible = useMemo(
@@ -89,6 +90,8 @@ export function WorkGrid() {
               <article
                 key={p.key}
                 className="reveal reveal-visible"
+                data-cursor="preview"
+                data-cursor-label={tc('cursor.preview')}
                 style={{ transitionDelay: `${i * 0.04}s` }}
               >
                 <Reveal>
