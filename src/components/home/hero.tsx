@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { ArrowRight, Play } from 'lucide-react'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
+import { HeroConsole } from './hero-console'
 
 const HeroCanvas = dynamic(
   () => import('./hero-canvas').then((m) => m.HeroCanvas),
@@ -153,6 +154,9 @@ export function Hero() {
             {t('ctaSecondary')}
           </Link>
         </div>
+
+        {/* WS-1: interactive command console — pure HTML/CSS, protects LCP */}
+        <HeroConsole />
 
         <div className="hero-scroll-hint absolute bottom-8 left-1/2 -translate-x-1/2 text-xs text-white/50">
           <span className="flex flex-col items-center gap-1">

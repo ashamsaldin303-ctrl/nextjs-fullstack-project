@@ -49,7 +49,19 @@
     "ctaPrimary": "ابدأ مشروعك",
     "ctaSecondary": "شاهد أعمالنا",
     "scroll": "مرّر للاستكشاف",
-    "canvasFallback": "خلفية متدرجة أنيقة"
+    "canvasFallback": "خلفية متدرجة أنيقة",
+    "console": {
+      "placeholder": "صف مشروعك بكلمة واحدة…",
+      "enterHint": "اضغط Enter للبناء",
+      "custom": "منظومة مخصصة",
+      "customDesc": "سنتواصل معك لنصممها معك",
+      "presets": {
+        "store": "متجر ذكي + n8n",
+        "booking": "منصة حجوزات",
+        "ai": "وكيل AI للعملاء",
+        "dashboard": "لوحة تحكم تحليلية"
+      }
+    }
   },
   "stats": {
     "kicker": "لماذا إيليرا",

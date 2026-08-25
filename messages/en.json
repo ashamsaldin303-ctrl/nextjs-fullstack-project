@@ -49,7 +49,19 @@
     "ctaPrimary": "Start Your Project",
     "ctaSecondary": "See Our Work",
     "scroll": "Scroll to explore",
-    "canvasFallback": "Elegant gradient background"
+    "canvasFallback": "Elegant gradient background",
+    "console": {
+      "placeholder": "Describe your project in one word…",
+      "enterHint": "Press Enter to build",
+      "custom": "Custom system",
+      "customDesc": "We'll reach out to design it with you",
+      "presets": {
+        "store": "Smart Store + n8n",
+        "booking": "Booking Platform",
+        "ai": "AI Customer Agent",
+        "dashboard": "Analytics Dashboard"
+      }
+    }
   },
   "stats": {
     "kicker": "Why Elyra",
