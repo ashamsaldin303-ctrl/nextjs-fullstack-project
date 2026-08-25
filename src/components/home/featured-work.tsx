@@ -6,6 +6,7 @@ import { ArrowRight } from 'lucide-react'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { Reveal } from '@/components/shared/reveal'
 import { BeforeAfter } from './before-after'
+import { DeconstructedCard } from './deconstructed-card'
 const PROJECTS = [
   { key: 'project1' as const, variant: 'site-new' as const, accent: '#0071E3', metrics: ['metric1', 'metric2'] },
   { key: 'project2' as const, variant: 'dashboard-new' as const, accent: '#34A853', metrics: ['metric1', 'metric2'] },
@@ -27,6 +28,14 @@ export function FeaturedWork() {
         <div className="mt-14 grid gap-8 md:grid-cols-2">
           {PROJECTS.map((p, i) => {
             const metrics = t.raw(`${p.key}.metrics`) as string[]
+            // WS-5: first project gets the deconstructed 3D card
+            if (i === 0) {
+              return (
+                <Reveal key={p.key} delay={0}>
+                  <DeconstructedCard projectKey={p.key} />
+                </Reveal>
+              )
+            }
             return (
               <Reveal key={p.key} delay={i * 0.1}>
                 <article className="group" data-cursor="preview" data-cursor-label={tc('cursor.preview')}>
