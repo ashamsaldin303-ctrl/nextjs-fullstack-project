@@ -48,7 +48,7 @@ export default async function AboutPage() {
 
       {/* Story */}
       <section className="bg-background py-20 sm:py-28" aria-labelledby="story-title">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+        <div className="elyra-container max-w-3xl">
           <Reveal>
             <span className="kicker">{t('story.kicker')}</span>
             <h2 id="story-title" className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{t('story.title')}</h2>
@@ -63,7 +63,7 @@ export default async function AboutPage() {
 
       {/* Values */}
       <section className="bg-elyra-dark py-20 text-elyra-on-dark sm:py-28" aria-labelledby="values-title">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="elyra-container max-w-container">
           <SectionHeading kicker={t('values.kicker')} title={t('values.title')} variant="on-dark" />
           <div className="mt-14 grid gap-6 md:grid-cols-3">
             {VALUES.map(({ key, icon: Icon }, i) => (
@@ -83,7 +83,7 @@ export default async function AboutPage() {
 
       {/* Team */}
       <section className="bg-background py-20 sm:py-28" aria-labelledby="team-title">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="elyra-container max-w-container">
           <SectionHeading kicker={t('team.kicker')} title={t('team.title')} />
           <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {TEAM.map((m, i) => {
@@ -110,7 +110,7 @@ export default async function AboutPage() {
 
       {/* Agency numbers */}
       <section className="bg-background pb-20 sm:pb-28" aria-labelledby="numbers-title">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <div className="elyra-container max-w-5xl">
           <Reveal className="text-center">
             <span className="kicker">{t('numbers.kicker')}</span>
             <h2 id="numbers-title" className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{t('numbers.title')}</h2>

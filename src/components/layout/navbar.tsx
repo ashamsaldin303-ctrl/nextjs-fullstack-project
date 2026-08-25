@@ -119,13 +119,21 @@ export function Navbar() {
                         <SheetClose asChild>
                           <Link
                             href={item.href}
+                            data-cursor="magnet"
                             className={cn(
-                              'flex min-h-11 items-center rounded-xl px-4 text-base text-white/80 transition-colors hover:bg-white/5 hover:text-white',
+                              'group relative flex min-h-11 items-center overflow-hidden rounded-xl px-4 text-base text-white/80 transition-colors hover:bg-white/5 hover:text-white',
                               active && 'bg-white/10 text-white'
                             )}
                             aria-current={active ? 'page' : undefined}
                           >
                             {item.label}
+                            {/* WS-0 §3.5: active indicator — primary bottom bar */}
+                            {active ? (
+                              <span
+                                className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary"
+                                aria-hidden="true"
+                              />
+                            ) : null}
                           </Link>
                         </SheetClose>
                       </li>

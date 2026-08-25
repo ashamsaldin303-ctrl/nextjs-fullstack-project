@@ -17,7 +17,7 @@ export function FeaturedWork() {
 
   return (
     <section className="bg-background py-20 sm:py-28" aria-labelledby="work-title">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="elyra-container max-w-container">
         <SectionHeading
           kicker={t('kicker')}
           title={t('title')}

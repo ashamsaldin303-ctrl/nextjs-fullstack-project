@@ -38,7 +38,7 @@ export default async function WebsitesPage() {
       <PageHero namespace="pages.websites.hero" />
 
       <section className="bg-background py-20 sm:py-28" aria-labelledby="types-title">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="elyra-container max-w-container">
           <SectionHeading kicker={t('types.kicker')} title={t('types.title')} />
           <div className="mt-14 grid gap-6 md:grid-cols-3">
             {TYPES.map(({ key, icon: Icon }, i) => (
@@ -70,7 +70,7 @@ export default async function WebsitesPage() {
       <ServiceProse namespace="pages.websites.prose" />
 
       <section className="bg-background py-20 sm:py-28" aria-labelledby="journey-title">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <div className="elyra-container max-w-5xl">
           <SectionHeading kicker={t('journey.kicker')} title={t('journey.title')} />
           <ol className="mt-14 space-y-4">
             {JOURNEY.map((s, i) => (

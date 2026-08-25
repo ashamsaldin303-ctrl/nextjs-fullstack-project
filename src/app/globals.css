@@ -32,6 +32,8 @@
 
   --color-elyra-dark: var(--elyra-dark);
   --color-elyra-on-dark: var(--elyra-on-dark);
+  --color-elyra-muted-on-dark: var(--elyra-muted-on-dark);
+  --color-background-deep: var(--background-deep);
   --color-g-blue: var(--g-blue);
   --color-g-red: var(--g-red);
   --color-g-yellow: var(--g-yellow);
@@ -52,6 +54,13 @@
   /* Brand palette (spec) */
   --elyra-dark: #0F172A;
   --elyra-on-dark: #F1F5F9;
+  /* Phase 4 WS-0 §3.2: WCAG-AA secondary text on dark — ≥4.5:1 on both
+     #0F172A (7.9:1) and the new #08080A deep (8.3:1). Replaces the
+     slate-500-ish opacity that failed AA for small captions. */
+  --elyra-muted-on-dark: #A3AEC2;
+  /* Phase 4 WS-3: immersive deep dark for hero-console / simulator /
+     testimonials only — #0F172A stays for regular dark bands. */
+  --background-deep: #08080A;
   --g-blue: #4285F4;
   --g-red: #EA4335;
   --g-yellow: #FBBC05;
@@ -323,6 +332,124 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* =========================================================================
+   Phase 4 — WS-0: Unified container system + Arabic typography +
+   card depth tokens + WS-3 dark tokens + spotlight
+   ========================================================================= */
+
+/* --- Unified responsive container (§3.1) ---------------------------------
+   One definition replaces every hand-rolled `mx-auto max-w-7xl px-4 sm:px-6
+   lg:px-8`. On wide screens the content breathes instead of staying
+   cramped at 80rem — the #1 complaint in the visual review.
+   Max-width is a SEPARATE class (.max-w-container) so Tailwind's own
+   max-w-* utilities can override it without specificity battles. */
+.elyra-container {
+  margin-inline: auto;
+  width: 100%;
+  padding-inline: 24px;
+}
+@media (min-width: 768px) {
+  .elyra-container { padding-inline: 40px; }
+}
+@media (min-width: 1280px) {
+  .elyra-container { padding-inline: 64px; }
+}
+.max-w-container {
+  max-width: 1152px;
+}
+@media (min-width: 1280px) {
+  .max-w-container { max-width: 1280px; }
+}
+@media (min-width: 1536px) {
+  .max-w-container { max-width: 1440px; }
+}
+@media (min-width: 1920px) {
+  .max-w-container { max-width: 1568px; }
+}
+
+/* --- Arabic typography precision (§3.3) ---------------------------------
+   Arabic text needs looser line-height, zero letter-spacing, and a max
+   line length for readability. Cairo headings 700-900 at 1.25. */
+:lang(ar) {
+  --ar-lh: 1.8;
+  --ar-lh-heading: 1.25;
+  --ar-max-prose: 42rem;
+}
+:lang(ar) p,
+:lang(ar) li,
+:lang(ar) blockquote {
+  line-height: var(--ar-lh);
+  letter-spacing: 0;
+}
+:lang(ar) h1, :lang(ar) h2, :lang(ar) h3, :lang(ar) h4 {
+  line-height: var(--ar-lh-heading);
+  letter-spacing: 0;
+}
+/* Constrain prose blocks for Arabic readability (applied where the
+   utility class .prose-ar-max is used — opt-in, not global). */
+:lang(ar) .prose-ar-max {
+  max-width: var(--ar-max-prose);
+}
+
+/* --- Card depth tokens (§3.4) --------------------------------------------
+   Transparent white 8-10% border over dark + multi-layer shadow + 1px
+   top highlight — reusable across all dark cards. Zero a11y impact. */
+.card-deep {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,   /* top highlight */
+    0 4px 12px -2px rgba(0, 0, 0, 0.4),
+    0 16px 32px -8px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* --- Phase 4 WS-3: Dark deep section + Blueprint spotlight ---------------
+   Immersive sections (hero console, simulator, testimonials) use the new
+   #08080A deep instead of #0F172A. A mouse-following radial spotlight
+   reveals a faint CSS grid (4-6% opacity) beneath — pure CSS, transform
+   only, disabled on touch and reduced-motion. */
+.bg-elyra-deep {
+  background-color: var(--background-deep);
+}
+.elyra-spotlight {
+  position: relative;
+}
+.elyra-spotlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: var(--mx, 50%) var(--my, 50%);
+  mask-image: radial-gradient(700px circle at var(--mx, 50%) var(--my, 50%), black 0%, transparent 70%);
+  -webkit-mask-image: radial-gradient(700px circle at var(--mx, 50%) var(--my, 50%), black 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.elyra-spotlight > * {
+  position: relative;
+  z-index: 1;
+}
+@media (hover: none), (pointer: coarse) {
+  .elyra-spotlight::before {
+    /* Touch: static faint grid, no cursor tracking */
+    mask-image: none;
+    -webkit-mask-image: none;
+    opacity: 0.4;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .elyra-spotlight::before {
+    mask-image: none;
+    -webkit-mask-image: none;
+    opacity: 0.3;
+  }
 }
 
 /* =========================================================================

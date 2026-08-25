@@ -36,7 +36,7 @@ export function Footer({ className }: { className?: string }) {
         className
       )}
     >
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+      <div className="elyra-container max-w-container py-16">
         <div className="grid gap-12 lg:grid-cols-12">
           {/* Brand block */}
           <div className="lg:col-span-5">

@@ -17,7 +17,7 @@ export function ServiceProse({ namespace }: { namespace: string }) {
 
   return (
     <section className="bg-background py-20 sm:py-24" aria-labelledby="prose-title">
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+      <div className="elyra-container max-w-5xl">
         <SectionHeading kicker={t('kicker')} title={t('title')} kinetic={false} titleId="prose-title" />
         <div className="mt-12 grid gap-6 md:grid-cols-2">
           <Reveal>

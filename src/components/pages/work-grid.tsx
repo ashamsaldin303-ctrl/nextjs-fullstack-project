@@ -48,7 +48,7 @@ export function WorkGrid() {
 
   return (
     <section className="bg-background py-20 sm:py-28" aria-labelledby="work-grid-title">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="elyra-container max-w-container">
         {/* sr-only h2: fixes the broken aria-labelledby reference AND the
             h1→h3 heading-order jump flagged by Lighthouse. */}
         <h2 id="work-grid-title" className="sr-only">{t('gridTitle')}</h2>

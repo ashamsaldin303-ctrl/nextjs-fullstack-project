@@ -37,7 +37,7 @@ export default async function ContactPage() {
 
       {/* Channels + classic form */}
       <section className="bg-background py-20 sm:py-28" aria-labelledby="channels-title">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="elyra-container max-w-container">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
             {/* Channels */}
             <div>
@@ -96,7 +96,7 @@ export default async function ContactPage() {
 
       {/* Calculator as the fast lane */}
       <section className="bg-elyra-dark py-6 text-elyra-on-dark" aria-labelledby="calc-cta">
-        <div className="mx-auto max-w-5xl px-4 text-center sm:px-6 lg:px-8">
+        <div className="elyra-container max-w-5xl text-center">
           <Reveal>
             <span className="kicker kicker-on-dark">{t('calculator.kicker')}</span>
             <h2 id="calc-cta" className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">

@@ -45,7 +45,7 @@ export default async function AutomationPage() {
 
       {/* Integrations grid */}
       <section className="bg-background py-20 sm:py-28" aria-labelledby="int-title">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="elyra-container max-w-container">
           <SectionHeading
             kicker={t('integrations.kicker')}
             title={t('integrations.title')}
@@ -69,7 +69,7 @@ export default async function AutomationPage() {
 
       {/* "This site runs on n8n" */}
       <section className="bg-elyra-dark py-20 text-elyra-on-dark sm:py-28" aria-labelledby="n8n-title">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <div className="elyra-container max-w-5xl">
           <SectionHeading
             kicker={t('runsOnN8n.kicker')}
             title={t('runsOnN8n.title')}

@@ -180,7 +180,7 @@ export function AutomationSimulator({
 
   return (
     <section className="bg-elyra-dark py-20 text-elyra-on-dark sm:py-28" aria-labelledby="sim-title">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="elyra-container max-w-container">
         <SectionHeading
           kicker={t('kicker')}
           title={t('title')}

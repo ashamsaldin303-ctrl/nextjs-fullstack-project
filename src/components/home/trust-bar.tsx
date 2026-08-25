@@ -87,7 +87,7 @@ export function TrustBar() {
       className="bg-background py-20 sm:py-24"
       aria-labelledby="stats-title"
     >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="elyra-container max-w-container">
         <Reveal className="mx-auto mb-12 max-w-2xl text-center">
           <span className="kicker">{t('kicker')}</span>
           <h2 id="stats-title" className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">

@@ -38,7 +38,7 @@ export function CTA({
         className
       )}
     >
-      <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+      <div className="elyra-container max-w-4xl text-center">
         <Reveal>
           <h2
             className={cn(

@@ -37,7 +37,7 @@ export function PageHero({ namespace, ctaHref = '/contact', className }: PageHer
         style={{ background: 'radial-gradient(60% 60% at 50% 0%, rgba(0,113,227,0.18), transparent 70%)' }}
         aria-hidden="true"
       />
-      <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+      <div className="elyra-container max-w-4xl text-center">
         <span className="kicker kicker-on-dark hero-enter hero-enter-1">
           {t('kicker')}
         </span>
