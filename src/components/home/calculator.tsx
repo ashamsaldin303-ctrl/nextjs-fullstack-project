@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { playSuccess } from '@/lib/sound'
 import { toast } from 'sonner'
+import { RingGauge } from './ring-gauge'
 import {
   computeEstimate, formatMoney,
   type CalculatorInput, type ServiceType, type IntegrationKey,
@@ -426,6 +427,23 @@ export function Calculator() {
                     <div className="grid gap-8 lg:grid-cols-2">
                       <div>
                         <div className="rounded-2xl border border-border bg-gradient-to-br from-primary/5 to-transparent p-6">
+                          {/* WS-4: animated SVG ring gauges */}
+                          <div className="mb-6 flex items-center justify-center gap-12">
+                            <RingGauge
+                              fraction={Math.min(1, result.max / 20000)}
+                              formatValue={(n) => formatMoney(Math.round(n), locale)}
+                              label={t('result.budget')}
+                              color="#0071E3"
+                              isRtl={locale === 'ar'}
+                            />
+                            <RingGauge
+                              fraction={Math.min(1, result.weeksMax / 12)}
+                              formatValue={(n) => `${Math.round(n)}`}
+                              label={t('result.duration')}
+                              color="#34A853"
+                              isRtl={locale === 'ar'}
+                            />
+                          </div>
                           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                             {t('result.budget')}
                           </p>
