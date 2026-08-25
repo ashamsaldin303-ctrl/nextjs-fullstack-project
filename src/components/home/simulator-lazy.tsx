@@ -26,7 +26,7 @@ const LazySimulator = dynamic(
     // Placeholder mirrors the real section rhythm: dark background +
     // py-20/28 + min-height — keeps the scrollbar/CLS stable pre-load.
     loading: () => (
-      <section className="bg-elyra-dark py-20 text-elyra-on-dark sm:py-28" aria-hidden="true">
+      <section className="bg-elyra-deep py-20 text-elyra-on-dark sm:py-28" aria-hidden="true">
         <div className="mx-auto min-h-[420px] max-w-7xl px-4 sm:px-6 lg:px-8" />
       </section>
     ),
@@ -62,7 +62,7 @@ export function SimulatorLazy(props: { scenario?: 'newOrder' | 'paymentReminder'
       {near ? <LazySimulator {...props} /> : (
         /* Same-shaped spacer pre-observation (avoids a load-in jump when
            the observer fires before the dynamic chunk's loading state). */
-        <section className="bg-elyra-dark py-20 text-elyra-on-dark sm:py-28" aria-hidden="true">
+        <section className="bg-elyra-deep py-20 text-elyra-on-dark sm:py-28" aria-hidden="true">
           <div className="mx-auto min-h-[420px] max-w-7xl px-4 sm:px-6 lg:px-8" />
         </section>
       )}

@@ -13,7 +13,7 @@ export function Testimonials() {
   const t = useTranslations('testimonials')
 
   return (
-    <section className="bg-elyra-dark py-20 text-elyra-on-dark sm:py-28" aria-labelledby="testi-title">
+    <section className="elyra-spotlight bg-elyra-deep py-20 text-elyra-on-dark sm:py-28" aria-labelledby="testi-title">
       <div className="elyra-container max-w-container">
         <SectionHeading
           kicker={t('kicker')}

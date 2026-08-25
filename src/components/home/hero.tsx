@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
@@ -54,6 +54,15 @@ export function Hero() {
     }
   }, [])
 
+  // WS-3: spotlight Blueprint grid — pointer tracking sets --mx/--my.
+  const onHeroPointerMove = useCallback((e: React.PointerEvent<HTMLElement>) => {
+    const el = heroRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    el.style.setProperty('--mx', `${e.clientX - rect.left}px`)
+    el.style.setProperty('--my', `${e.clientY - rect.top}px`)
+  }, [])
+
   // Defer the Three.js chunk until after LCP (idle or first interaction).
   useEffect(() => {
     if (reduced) return
@@ -86,7 +95,8 @@ export function Hero() {
   return (
     <section
       ref={heroRef}
-      className="relative min-h-[100svh] overflow-hidden bg-elyra-dark text-elyra-on-dark"
+      onPointerMove={onHeroPointerMove}
+      className="elyra-spotlight relative min-h-[100svh] overflow-hidden bg-elyra-deep text-elyra-on-dark"
       aria-labelledby="hero-title"
     >
       {/* Background */}

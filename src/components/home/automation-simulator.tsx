@@ -179,7 +179,7 @@ export function AutomationSimulator({
   const activeStepMs = activeStep ? Number(t.raw(`scenarios.${scenario}.steps.${activeStep.id}.ms`)) : 0
 
   return (
-    <section className="bg-elyra-dark py-20 text-elyra-on-dark sm:py-28" aria-labelledby="sim-title">
+    <section className="bg-elyra-deep py-20 text-elyra-on-dark sm:py-28" aria-labelledby="sim-title">
       <div className="elyra-container max-w-container">
         <SectionHeading
           kicker={t('kicker')}
