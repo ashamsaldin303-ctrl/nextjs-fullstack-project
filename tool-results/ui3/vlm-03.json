@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "1) Node-graph stage with 5 icon boxes + small uppercase English labels (WEBHOOK etc) above them + dotted grid texture? **Yes**\n2) Three stat chips row? **Yes**\n3) Dark monospace terminal log with timestamped lines? **Yes**\n4) JSON code panel with blue keys/green values? **Yes**\n5) Any overlapping, clipped or misaligned text? **No**\n6) Polish 1-10: **9**",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1787752506,
+  "id": "20260826215504da4d7e610d7f435e",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "20260826215504da4d7e610d7f435e",
+  "usage": {
+    "completion_tokens": 96,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 3018,
+    "prompt_tokens_details": {
+      "cached_tokens": 2
+    },
+    "total_tokens": 3114
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "**1) Stats/Trust Bar (Screenshot 1):**\nRendered correctly. Displays 4 stats with large blue numbers (+422, 98%, 4,800, +120). Each has a label below. While the specific \"tinted chip with icon\" and \"gradient accent bar\" details are subtle or simplified in this view, the layout is clean, properly aligned in RTL, and shows no overlap or breakage.\n\n**2) Testimonials:**\nNot fully visible. Screenshot 1 shows a section header (\"What our clients say\") and two service cards (\"Local SEO\", \"Global SEO\"), but the actual testimonial cards with quotes, stars, and avatars described in the prompt are not present in the provided images.\n\n**3) Methodology (Screenshot 3):**\nRendered correctly. Shows a horizontal process flow with 5 steps (Inquiry to Webhook), each featuring an icon inside a circle, a label, and a connecting line. It includes \"ghost\" style elements and technical metadata (duration, fields). The layout is intact without overlap. Note: The prompt requested a *vertical* progress rail, but the screenshot displays a *horizontal* timeline.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1787754564,
+  "id": "20260826222918d571fc7fd347481b",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "20260826222918d571fc7fd347481b",
+  "usage": {
+    "completion_tokens": 245,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 5141,
+    "prompt_tokens_details": {
+      "cached_tokens": 2
+    },
+    "total_tokens": 5386
+  }
+}

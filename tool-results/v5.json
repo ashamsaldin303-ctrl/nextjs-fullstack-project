@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "**Verification Results:**\n\n1.  **Node-Flow Stage:** **Yes.** The image displays a horizontal node-flow stage containing **5 nodes** (Webhook, Validate, CRM, Email, TG). Each node features a distinct icon and a small **English type badge** (WEBHOOK, VALIDATE, CRM, EMAIL, TG) above it.\n2.  **Stats Row:** **No.** There is no visible stats row showing steps/total or status chips below the stage in this view.\n3.  **Live Log Terminal:** **No.** The 'سجل التنفيذ المباشر' (Direct Execution Log) terminal panel is not present.\n4.  **JSON Payload Panel:** **No.** The 'الحمولة الواردة' (Incoming Payload) JSON panel is not visible.\n5.  **Run Button:** **No.** There is no run button visible on the screen.\n6.  **Layout Breakage:** **No.** The layout is clean with no overlapping elements or breakage.\n\n**Conclusion:** This appears to be the **introductory/hero section** of the Live Automation page, showcasing the workflow concept, rather than the full interactive simulator interface.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1787752864,
+  "id": "20260826220101535c35d1b9e74b12",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "20260826220101535c35d1b9e74b12",
+  "usage": {
+    "completion_tokens": 248,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1202,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 1450
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "**Panel 1:**\n*   **Header:** Build Error\n*   **Content:** Parsing ecmascript source code failed\n\n**Panel 2 (Code Snippet):**\n*   **Header:** ./src/components/home/before-after.tsx (328:13)\n*   **Content:** Parsing ecmascript source code failed\n    326 | </span>\n\n**No**, there is no dark JSON code panel with blue keys and green string values in this image. The visible code panel displays JSX/TypeScript syntax on a light background.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1787751737,
+  "id": "20260826214215278e152e931e489b",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "20260826214215278e152e931e489b",
+  "usage": {
+    "completion_tokens": 115,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1510,
+    "prompt_tokens_details": {
+      "cached_tokens": 2
+    },
+    "total_tokens": 1625
+  }
+}

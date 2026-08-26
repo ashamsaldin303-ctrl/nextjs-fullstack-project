@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "**Methodology Section (Img 1 & 2):**\nThe section correctly renders the four large step cards: **الاستكشاف**, **التصميم**, **البناء**, and **الإطلاق والعمـل**. Each card includes the required icon chip, title, duration pill, and a large ghost number (01–04) on the left. The **thin vertical progress line with blue dots** is accurately positioned on the **right side** of the container, consistent with RTL layout. There are no overlaps; spacing between cards is uniform.\n\n**Testimonials Section (Img 3):**\nThis section displays **4 dark cards** on a grid background. Each card features:\n*   A blue quote icon at the top.\n*   **5 yellow stars** for rating.\n*   Arabic testimonial text.\n*   An avatar circle containing an initial letter (**ع, ي, خ, ج**) in blue.\n*   Name and company details below.\n\nAll specified elements are present and clearly visible without any missing components or layout issues.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1787754590,
+  "id": "202608262229460808e2f72372401b",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "202608262229460808e2f72372401b",
+  "usage": {
+    "completion_tokens": 220,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 5120,
+    "prompt_tokens_details": {
+      "cached_tokens": 2
+    },
+    "total_tokens": 5340
+  }
+}

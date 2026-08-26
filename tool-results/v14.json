@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "Based on the image provided:\n\n1.  **Yes**, the site mockups display English content, specifically for the **Lamsa Fashion Store** project. The mockup shows product names like \"**Cashmere Scarf**\" and prices in dollars (**$118**).\n2.  **Yes**, the \"Before\" side of the comparison shows a dated English site design. It features a yellow banner with text like \"*** SPECIAL OFFER! UP TO 70% OFF ***\", a visitor counter (\"You are visitor # 001284\"), and an **IE6 note** at the bottom (\"Best viewed in IE6 | 1024x768\").\n3.  **Yes**, the layout is **LTR (Left-to-Right)** and correct. There are no Arabic remnants in the mockups; all text is in English.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1787753185,
+  "id": "2026082622062241d6968a47d04574",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "2026082622062241d6968a47d04574",
+  "usage": {
+    "completion_tokens": 171,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1755,
+    "prompt_tokens_details": {
+      "cached_tokens": 3
+    },
+    "total_tokens": 1926
+  }
+}

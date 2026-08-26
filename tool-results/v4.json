@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "Yes, the verification confirms all points:\n\n1.  **Icons & Labels:** The 3 nodes clearly display icons with the Arabic labels: **استلام الطلب** (Receive Order), **تحقق وتسجيل** (Verify & Record), and **إشعار الفريق** (Team Notification).\n2.  **Completed State:** All nodes feature green checkmarks, and the connecting lines are solid blue, indicating a successful run.\n3.  **Summary Line:** A completion summary is present below the flow stating **\"تم توفير 12 دقيقة من العمل اليدوي\"** (Saved 12 minutes of manual work).\n4.  **Layout:** The card layout is clean, well-organized, and free of any overlapping elements.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1787752853,
+  "id": "20260826220050e76e1bf7e9fb4dac",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "20260826220050e76e1bf7e9fb4dac",
+  "usage": {
+    "completion_tokens": 155,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1170,
+    "prompt_tokens_details": {
+      "cached_tokens": 2
+    },
+    "total_tokens": 1325
+  }
+}

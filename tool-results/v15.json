@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "**Verification Results:**\n\n1.  **Layout:** Yes, it displays a **static vertical stack** of cards (dark browser frame, blue systems card, green metrics card) with the title and description below. There is **no 3D scroll animation** visible.\n2.  **Readability:** The layout is clean with **no overlap**, and the Arabic text is fully readable.\n3.  **Responsiveness:** There is **no horizontal overflow** or broken layout; the content fits perfectly within the 390px mobile width.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1787753214,
+  "id": "202608262206444c582503c2814501",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "202608262206444c582503c2814501",
+  "usage": {
+    "completion_tokens": 111,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 478,
+    "prompt_tokens_details": {
+      "cached_tokens": 2
+    },
+    "total_tokens": 589
+  }
+}

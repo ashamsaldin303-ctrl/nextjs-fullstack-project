@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "The image displays the **header** of the \"Elyra\" website, not the footer. It features a dark navigation bar with a logo, menu items (Services, Portfolio, About, etc.), a CTA button, and language settings. The main body is currently blank white space. There is **no footer visible** in this screenshot to verify columns, social icons, or copyright information. The header itself appears professional and properly aligned for an RTL (Right-to-Left) Arabic layout.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1787754519,
+  "id": "2026082622283779efe5ee380b4558",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "2026082622283779efe5ee380b4558",
+  "usage": {
+    "completion_tokens": 101,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1763,
+    "prompt_tokens_details": {
+      "cached_tokens": 3
+    },
+    "total_tokens": 1864
+  }
+}

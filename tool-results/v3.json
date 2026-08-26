@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "The mockup successfully implements the **GREEN** accent swatch across all specified elements: the announcement bar, CTA button (\"أضف للسلة\"), kicker chip (\"-20%\"), discount badges, and product image tints are all green-themed.\n\nThe mockup is **rich and complete**, featuring:\n*   **Navbar:** Brand logo, navigation links (Home, Products, etc.), search bar, and a cart icon with a green badge.\n*   **Hero Section:** Includes a green \"New 2025\" chip, main title, subtitle, and a prominent green CTA button.\n*   **Product Cards:** Three cards displaying images with green overlays, product names, current prices, strikethrough old prices, and \"Add\" buttons.\n*   **Footer & Extras:** Includes a viewers line (\"122 person viewing\") and footer text.\n\nThere is **no clipped or overlapping text**; all typography remains legible despite the compact bento layout. The design effectively demonstrates the selected color theme.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1787752838,
+  "id": "20260826220035d3a06f0100ec4471",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "20260826220035d3a06f0100ec4471",
+  "usage": {
+    "completion_tokens": 206,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1209,
+    "prompt_tokens_details": {
+      "cached_tokens": 2
+    },
+    "total_tokens": 1415
+  }
+}

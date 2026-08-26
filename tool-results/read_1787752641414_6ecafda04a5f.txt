@@ -1,0 +1,937 @@
+     1→'use client'
+     2→
+     3→import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+     4→import { useTranslations } from 'next-intl'
+     5→import {
+     6→  Globe, Workflow, Boxes, Bot, Sparkles,
+     7→  Check, Play, RotateCw,
+     8→  ShoppingCart, ShoppingBag, Search, Lock,
+     9→  Inbox, Database, Send, Clock, RefreshCw,
+    10→} from 'lucide-react'
+    11→import { cn } from '@/lib/utils'
+    12→import { SectionHeading } from '@/components/shared/section-heading'
+    13→import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
+    14→
+    15→/** Bento card with cursor-following radial glow (works in RTL & LTR). */
+    16→function GlowCard({
+    17→  children,
+    18→  className,
+    19→}: {
+    20→  children: React.ReactNode
+    21→  className?: string
+    22→}) {
+    23→  const ref = useRef<HTMLDivElement>(null)
+    24→  // FIX(2-c/4): rAF-coalesced — the rect read + --mx/--my writes happen
+    25→  // ONCE per frame using the latest event, not once per pointermove.
+    26→  // With no new events the callback never reschedules (idle at zero cost).
+    27→  const latestPointer = useRef<React.PointerEvent<HTMLDivElement> | null>(null)
+    28→  const glowRaf = useRef(0)
+    29→  const onMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    30→    latestPointer.current = e
+    31→    if (glowRaf.current) return
+    32→    glowRaf.current = requestAnimationFrame(() => {
+    33→      glowRaf.current = 0
+    34→      const el = ref.current
+    35→      const ev = latestPointer.current
+    36→      if (!el || !ev) return
+    37→      const rect = el.getBoundingClientRect()
+    38→      el.style.setProperty('--mx', `${ev.clientX - rect.left}px`)
+    39→      el.style.setProperty('--my', `${ev.clientY - rect.top}px`)
+    40→    })
+    41→  }, [])
+    42→  useEffect(
+    43→    () => () => {
+    44→      if (glowRaf.current) cancelAnimationFrame(glowRaf.current)
+    45→    },
+    46→    []
+    47→  )
+    48→
+    49→  return (
+    50→    <div
+    51→      ref={ref}
+    52→      onPointerMove={onMove}
+    53→      className={cn(
+    54→        'glow-cursor group relative overflow-hidden rounded-3xl border border-border bg-card p-6 sm:p-8',
+    55→        className
+    56→      )}
+    57→    >
+    58→      {children}
+    59→    </div>
+    60→  )
+    61→}
+    62→
+    63→/* =========================================================================
+    64→   Mini interactive 1 — websites theme playground (mini e-commerce site)
+    65→   ========================================================================= */
+    66→
+    67→const SITE_PALETTE = ['#0071E3', '#34A853', '#EA4335', '#FBBC05'] as const
+    68→
+    69→/* Contrast-safe accent derivations (module scope, pure & deterministic —
+    70→   identical on server & client, so no hydration risk).
+    71→   The mini-site CTA / badges render WHITE text on the accent and several
+    72→   strings render as accent-colored TEXT on the dark browser panel — neither
+    73→   pair passes WCAG AA for every swatch (amber being the worst offender:
+    74→   white on #FBBC05 is ~1.7:1). Instead of a blanket dark overlay, each fixed
+    75→   palette entry is mixed toward black (white-text surfaces) or toward white
+    76→   (accent text) in 2% steps until the pair clears 4.54:1 (AA + margin). */
+    77→
+    78→function hexToRgb(hex: string): [number, number, number] {
+    79→  const n = parseInt(hex.slice(1), 16)
+    80→  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+    81→}
+    82→function rgbToHex(r: number, g: number, b: number): string {
+    83→  return `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}`
+    84→}
+    85→function relLuminance([r, g, b]: [number, number, number]): number {
+    86→  const lin = (v: number) => {
+    87→    const s = v / 255
+    88→    return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
+    89→  }
+    90→  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+    91→}
+    92→function contrastRatio(a: number, b: number): number {
+    93→  const hi = Math.max(a, b)
+    94→  const lo = Math.min(a, b)
+    95→  return (hi + 0.05) / (lo + 0.05)
+    96→}
+    97→function mixToward(hex: string, towardWhite: boolean, f: number): string {
+    98→  const [r, g, b] = hexToRgb(hex)
+    99→  const ch = (c: number) => Math.round(towardWhite ? c + (255 - c) * f : c * (1 - f))
+   100→  return rgbToHex(ch(r), ch(g), ch(b))
+   101→}
+   102→/** Darken the accent until WHITE text on it clears AA — used for the CTA,
+   103→ *  cart badge and discount badges (keeps #0071E3 untouched: 4.70:1 already). */
+   104→function ctaSafe(hex: string): string {
+   105→  for (let f = 0; f <= 0.9; f += 0.02) {
+   106→    const c = mixToward(hex, false, f)
+   107→    if (contrastRatio(relLuminance(hexToRgb(c)), 1) >= 4.54) return c
+   108→  }
+   109→  return mixToward(hex, false, 0.9)
+   110→}
+   111→/** Lighten the accent until it reads AA as TEXT on the dark panel. The
+   112→ *  worst-case backdrop is the panel tinted 20% with the accent itself
+   113→ *  (chips / addToCart tint) — bg-elyra-dark/95 over a white card ≈ #1B2335. */
+   114→function panelTextSafe(hex: string): string {
+   115→  const [pr, pg, pb] = hexToRgb('#1B2335')
+   116→  const [ar, ag, ab] = hexToRgb(hex)
+   117→  const tinted = relLuminance([
+   118→    Math.round(pr * 0.8 + ar * 0.2),
+   119→    Math.round(pg * 0.8 + ag * 0.2),
+   120→    Math.round(pb * 0.8 + ab * 0.2),
+   121→  ])
+   122→  for (let f = 0; f <= 0.9; f += 0.02) {
+   123→    const c = mixToward(hex, true, f)
+   124→    if (contrastRatio(relLuminance(hexToRgb(c)), tinted) >= 4.54) return c
+   125→  }
+   126→  return mixToward(hex, true, 0.9)
+   127→}
+   128→const SITE_CTA = SITE_PALETTE.map(ctaSafe)
+   129→const SITE_PANEL_TEXT = SITE_PALETTE.map(panelTextSafe)
+   130→
+   131→/** "349$" / "$349" → 19 (%). Returns 0 when there is no discount. */
+   132→function discountPct(price: string, old: string): number {
+   133→  const digits = (s: string) => Number(s.replace(/[^\d]/g, ''))
+   134→  const p = digits(price)
+   135→  const o = digits(old)
+   136→  return o > p && p > 0 ? Math.round((1 - p / o) * 100) : 0
+   137→}
+   138→
+   139→function MiniSite() {
+   140→  const t = useTranslations('bento.websites.mini')
+   141→  const [swatch, setSwatch] = useState(0)
+   142→  const accent = SITE_PALETTE[swatch] ?? '#0071E3'
+   143→  const nav = t.raw('nav') as string[]
+   144→  const paletteNames = t.raw('palette') as string[]
+   145→  const products = t.raw('products') as { name: string; price: string; old: string }[]
+   146→  // Accent-derived CSS vars: every element below restyles through these, so a
+   147→  // swatch click animates atomically via transition-colors on each consumer.
+   148→  const vars = {
+   149→    '--accent': accent,
+   150→    '--accent-cta': SITE_CTA[swatch] ?? accent,
+   151→    '--accent-text': SITE_PANEL_TEXT[swatch] ?? accent,
+   152→  } as CSSProperties
+   153→
+   154→  return (
+   155→    <div className="mt-6">
+   156→      <p className="text-xs text-muted-foreground">{t('title')}</p>
+   157→      <p className="mt-1 text-[11px] text-muted-foreground">{t('hint')}</p>
+   158→
+   159→      {/* The mini browser is an illustration (decorative mock storefront) —
+   160→          aria-hidden keeps its ~25 mock strings out of the SR tree; the
+   161→          interactive control is the swatch row + its real caption below. */}
+   162→      <div
+   163→        aria-hidden="true"
+   164→        className="mt-4 select-none overflow-hidden rounded-xl border border-border bg-elyra-dark/95 text-elyra-on-dark"
+   165→        style={vars}
+   166→      >
+   167→        {/* Browser chrome: traffic lights + URL bar */}
+   168→        <div className="flex items-center gap-2 border-b border-white/10 px-2.5 py-1.5">
+   169→          <div className="flex shrink-0 items-center gap-1.5">
+   170→            <span className="size-2 rounded-full bg-g-red/90" />
+   171→            <span className="size-2 rounded-full bg-g-yellow/90" />
+   172→            <span className="size-2 rounded-full bg-g-green/90" />
+   173→          </div>
+   174→          <div className="flex min-w-0 flex-1 items-center gap-1 rounded-full bg-white/10 px-2 py-0.5">
+   175→            <Lock className="size-2.5 shrink-0 text-g-green" />
+   176→            <span dir="ltr" className="truncate text-[9px] text-white/70">lamsa-store.com</span>
+   177→          </div>
+   178→        </div>
+   179→
+   180→        {/* Announcement strip (doubles as the live line): accent tint +
+   181→            accent text + pulsing viewer dot */}
+   182→        <div className="flex items-center justify-center gap-1.5 border-b border-white/5 bg-[color:color-mix(in_srgb,var(--accent)_13%,transparent)] px-2 py-1 transition-colors duration-300">
+   183→          <span className="relative flex size-1.5 shrink-0">
+   184→            <span className="absolute inline-flex size-full animate-ping rounded-full bg-g-green/60" />
+   185→            <span className="relative inline-flex size-1.5 rounded-full bg-g-green" />
+   186→          </span>
+   187→          <span className="truncate text-[9px] font-bold text-[color:var(--accent-text)] transition-colors duration-300">
+   188→            {t('viewers')}
+   189→          </span>
+   190→        </div>
+   191→
+   192→        {/* Navbar: brand + links + search pill + cart */}
+   193→        <div className="flex items-center gap-2.5 border-b border-white/5 px-3 py-2">
+   194→          <span className="flex shrink-0 items-center gap-1.5">
+   195→            <span className="size-2 rounded-full bg-[color:var(--accent)] transition-colors duration-300" />
+   196→            <span className="text-[11px] font-extrabold text-white">{t('brand')}</span>
+   197→          </span>
+   198→          <nav className="hidden items-center gap-2.5 min-[440px]:flex">
+   199→            {nav.map((item) => (
+   200→              <span
+   201→                key={item}
+   202→                className="cursor-pointer text-[10px] text-white/70 transition-colors duration-300 hover:text-[color:var(--accent-text)]"
+   203→              >
+   204→                {item}
+   205→              </span>
+   206→            ))}
+   207→          </nav>
+   208→          <span className="ms-auto hidden items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 min-[400px]:flex">
+   209→            <Search className="size-2.5 shrink-0 text-white/50" />
+   210→            <span className="max-w-20 truncate text-[9px] text-white/55">{t('search')}</span>
+   211→          </span>
+   212→          <span className="relative shrink-0 text-white/80">
+   213→            <ShoppingCart className="size-3.5" />
+   214→            <span className="absolute -end-1.5 -top-1.5 flex size-4 items-center justify-center rounded-full bg-[color:var(--accent-cta)] text-[9px] font-bold leading-none text-white transition-colors duration-300">
+   215→              2
+   216→            </span>
+   217→          </span>
+   218→        </div>
+   219→
+   220→        {/* Hero: kicker chip + title + sub + CTA/link + product image block */}
+   221→        <div className="flex gap-3 px-3 pb-2.5 pt-2.5">
+   222→          <div className="min-w-0 flex-1">
+   223→            <span className="inline-flex rounded-full bg-[color:color-mix(in_srgb,var(--accent)_18%,transparent)] px-2 py-0.5 text-[9px] font-bold text-[color:var(--accent-text)] transition-colors duration-300">
+   224→              {t('kicker')}
+   225→            </span>
+   226→            <p className="mt-1.5 text-[13px] font-extrabold leading-snug text-white">{t('heroTitle')}</p>
+   227→            <p className="mt-1 text-[10px] leading-snug text-white/70">{t('heroSub')}</p>
+   228→            <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+   229→              <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--accent-cta)] px-2.5 py-1 text-[10px] font-bold text-white transition-colors duration-300">
+   230→                <ShoppingBag className="size-3" />
+   231→                {t('heroCta')}
+   232→              </span>
+   233→              <span className="cursor-pointer text-[10px] text-white/80 underline decoration-[color:var(--accent)] decoration-2 underline-offset-2 transition-colors duration-300 hover:text-[color:var(--accent-text)]">
+   234→                {t('heroLink')}
+   235→              </span>
+   236→            </div>
+   237→          </div>
+   238→          <div className="relative h-[5.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-lg bg-[color:color-mix(in_srgb,var(--accent)_24%,transparent)] transition-colors duration-300 sm:h-24 sm:w-20">
+   239→            <div
+   240→              className="absolute inset-0"
+   241→              style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.16), rgba(0,0,0,0.3))' }}
+   242→            />
+   243→            {/* CSS product silhouette — concentric rounded shapes */}
+   244→            <span className="absolute left-1/2 top-1/2 size-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/25" />
+   245→            <span className="absolute left-1/2 top-1/2 size-6 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/35 bg-white/10" />
+   246→            <span className="absolute left-1/2 top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/50" />
+   247→          </div>
+   248→        </div>
+   249→
+   250→        {/* Product row */}
+   251→        <div className="grid grid-cols-3 gap-2 px-3 pb-3">
+   252→          {products.map((p, idx) => {
+   253→            const off = discountPct(p.price, p.old)
+   254→            return (
+   255→              <div key={p.name} className="min-w-0">
+   256→                <div className="relative h-12 overflow-hidden rounded-md bg-[color:color-mix(in_srgb,var(--accent)_20%,transparent)] transition-colors duration-300">
+   257→                  <div
+   258→                    className="absolute inset-0"
+   259→                    style={{ background: 'linear-gradient(150deg, rgba(255,255,255,0.13), rgba(0,0,0,0.24))' }}
+   260→                  />
+   261→                  <span
+   262→                    className={cn(
+   263→                      'absolute left-1/2 top-1/2 size-7 -translate-x-1/2 -translate-y-1/2 border border-white/25',
+   264→                      idx === 1 ? 'rounded-lg bg-white/10' : 'rounded-full'
+   265→                    )}
+   266→                  />
+   267→                  <span
+   268→                    className={cn(
+   269→                      'absolute left-1/2 top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 bg-white/40',
+   270→                      idx === 1 ? 'rounded-sm' : 'rounded-full'
+   271→                    )}
+   272→                  />
+   273→                  {off > 0 ? (
+   274→                    <span
+   275→                      dir="ltr"
+   276→                      className="absolute start-1 top-1 rounded bg-[color:var(--accent-cta)] px-1 text-[9px] font-bold leading-4 text-white transition-colors duration-300"
+   277→                    >
+   278→                      −{off}%
+   279→                    </span>
+   280→                  ) : null}
+   281→                </div>
+   282→                <p className="mt-1 truncate text-[9px] text-white/75">{p.name}</p>
+   283→                <p className="flex items-baseline gap-1">
+   284→                  <span className="text-[10px] font-extrabold text-white">{p.price}</span>
+   285→                  {p.old ? <span className="text-[9px] text-white/50 line-through">{p.old}</span> : null}
+   286→                </p>
+   287→                {/* spans, not buttons: the whole storefront is aria-hidden,
+   288→                    so nothing inside may be focusable */}
+   289→                <span className="mt-1 block w-full cursor-pointer rounded-md border border-[color:color-mix(in_srgb,var(--accent)_45%,transparent)] bg-[color:color-mix(in_srgb,var(--accent)_10%,transparent)] py-0.5 text-center text-[9px] font-bold text-[color:var(--accent-text)] transition-colors duration-300 hover:border-transparent hover:bg-[color:var(--accent-cta)] hover:text-white">
+   290→                  {t('addToCart')}
+   291→                </span>
+   292→              </div>
+   293→            )
+   294→          })}
+   295→        </div>
+   296→
+   297→        {/* Footer strip */}
+   298→        <div className="border-t border-white/10 py-1.5 text-center text-[9px] text-white/55">{t('footer')}</div>
+   299→      </div>
+   300→
+   301→      {/* Swatches — decorative pointer toy (FIX 2-c/12: hidden from the a11y
+   302→          tree + tab order), but the caption is REAL text and always visible. */}
+   303→      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+   304→        <div className="flex gap-2">
+   305→          {SITE_PALETTE.map((c, i) => (
+   306→            <button
+   307→              key={c}
+   308→              type="button"
+   309→              aria-hidden="true"
+   310→              tabIndex={-1}
+   311→              onClick={() => setSwatch(i)}
+   312→              className={cn(
+   313→                'size-6 rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+   314→                swatch === i && 'ring-2 ring-ring ring-offset-2'
+   315→              )}
+   316→              style={{ background: c }}
+   317→            />
+   318→          ))}
+   319→        </div>
+   320→        <p className="text-[10px] text-muted-foreground">
+   321→          {t('activeLabel')}:{' '}
+   322→          <span className="font-semibold text-foreground/80">{paletteNames[swatch] ?? ''}</span>
+   323→        </p>
+   324→      </div>
+   325→    </div>
+   326→  )
+   327→}
+   328→
+   329→/* =========================================================================
+   330→   Mini interactive 2 — automation flow (3 nodes + animated connectors)
+   331→   ========================================================================= */
+   332→
+   333→const FLOW_ICONS = [Inbox, Database, Send] as const
+   334→
+   335→function MiniFlow() {
+   336→  const t = useTranslations('bento.automation.mini')
+   337→  const nodes = t.raw('nodes') as string[]
+   338→  const reduced = usePrefersReducedMotion()
+   339→  const [state, setState] = useState<'idle' | 'running' | 'done'>('idle')
+   340→  // `step` = index of the node currently processing (3 = all processed).
+   341→  // `runId` remounts the traveling dots so their one-shot CSS animation
+   342→  // replays on every run.
+   343→  const [step, setStep] = useState(0)
+   344→  const [runId, setRunId] = useState(0)
+   345→  // FIX(2-c/5): keep every scheduled timeout cancellable — cleared before
+   346→  // re-arming and on unmount so a late `done` can never fire on a dead card.
+   347→  const timers = useRef<number[]>([])
+   348→  const clearTimers = () => {
+   349→    timers.current.forEach((id) => window.clearTimeout(id))
+   350→    timers.current = []
+   351→  }
+   352→  useEffect(() => () => clearTimers(), [])
+   353→
+   354→  const run = () => {
+   355→    if (state === 'running') return
+   356→    clearTimers()
+   357→    setRunId((n) => n + 1)
+   358→    setState('running')
+   359→    setStep(0)
+   360→    const stepMs = reduced ? 400 : 700
+   361→    timers.current = [
+   362→      window.setTimeout(() => setStep(1), stepMs),
+   363→      window.setTimeout(() => setStep(2), stepMs * 2),
+   364→      window.setTimeout(() => {
+   365→        setStep(3)
+   366→        setState('done')
+   367→      }, stepMs * 3),
+   368→    ]
+   369→  }
+   370→
+   371→  const nodeStatus = (i: number): 'idle' | 'active' | 'done' => {
+   372→    if (state === 'done' || step > i) return 'done'
+   373→    if (state === 'running' && step === i) return 'active'
+   374→    return 'idle'
+   375→  }
+   376→  const swept = (i: number) => state === 'done' || step > i
+   377→
+   378→  return (
+   379→    <div className="mt-6">
+   380→      <p className="text-xs text-muted-foreground">{t('title')}</p>
+   381→      <p className="mt-1 text-[11px] text-muted-foreground">{t('hint')}</p>
+   382→      <div className="mt-4 rounded-xl border border-border bg-elyra-dark/95 p-3.5 text-elyra-on-dark">
+   383→        <div className="flex items-start">
+   384→          {nodes.map((label, i) => {
+   385→            const status = nodeStatus(i)
+   386→            const Icon = FLOW_ICONS[i] ?? Inbox
+   387→            return (
+   388→              <Fragment key={label}>
+   389→                <div className="flex w-16 shrink-0 flex-col items-center gap-1.5">
+   390→                  <div
+   391→                    className={cn(
+   392→                      'relative flex size-9 items-center justify-center rounded-full border-2 transition-colors duration-300',
+   393→                      status === 'active' && 'border-primary bg-primary/25',
+   394→                      status === 'done' && 'border-g-green/70 bg-g-green/15',
+   395→                      status === 'idle' && 'border-white/15 bg-white/5'
+   396→                    )}
+   397→                  >
+   398→                    <Icon
+   399→                      className={cn(
+   400→                        'size-4 transition-colors duration-300',
+   401→                        status === 'active' && 'text-white',
+   402→                        status === 'done' && 'text-g-green',
+   403→                        status === 'idle' && 'text-white/50'
+   404→                      )}
+   405→                    />
+   406→                    {status === 'done' ? (
+   407→                      <span className="absolute -end-1 -top-1 flex size-3.5 items-center justify-center rounded-full bg-g-green text-elyra-dark">
+   408→                        <Check className="size-2.5" />
+   409→                      </span>
+   410→                    ) : status === 'active' ? (
+   411→                      // Pulse via pure CSS (.elyra-pulse) — Phase 3 §4.3;
+   412→                      // reduced-motion gets a static shadow instead.
+   413→                      <span
+   414→                        className={cn('absolute inset-0 rounded-full', !reduced && 'elyra-pulse')}
+   415→                        style={reduced ? { boxShadow: '0 0 0 4px rgba(0,113,227,0.35)' } : undefined}
+   416→                      />
+   417→                    ) : null}
+   418→                  </div>
+   419→                  <span
+   420→                    className={cn(
+   421→                      'text-center text-[9px] leading-tight transition-colors duration-300',
+   422→                      status === 'active' && 'text-white',
+   423→                      status === 'done' && 'text-white/80',
+   424→                      status === 'idle' && 'text-white/70'
+   425→                    )}
+   426→                  >
+   427→                    {label}
+   428→                  </span>
+   429→                </div>
+   430→                {i < 2 ? (
+   431→                  <div className="relative mx-0.5 mt-[17px] h-0.5 flex-1 rounded-full bg-white/10">
+   432→                    {/* progress sweep */}
+   433→                    <span
+   434→                      className={cn(
+   435→                        'absolute inset-0 rounded-full bg-primary transition-transform duration-500 ease-out',
+   436→                        swept(i) ? 'scale-x-100' : 'scale-x-0'
+   437→                      )}
+   438→                      style={{ transformOrigin: 'start', transitionDelay: swept(i) ? '80ms' : '0ms' }}
+   439→                    />
+   440→                    {/* traveling pulse dot along the swept connector */}
+   441→                    {swept(i) && !reduced ? (
+   442→                      <span
+   443→                        key={`dot-${runId}-${i}`}
+   444→                        className="absolute top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_6px_rgba(0,113,227,0.9)]"
+   445→                        style={{ animation: 'elyra-flow-dot 550ms ease-in-out 80ms forwards' }}
+   446→                      />
+   447→                    ) : null}
+   448→                  </div>
+   449→                ) : null}
+   450→              </Fragment>
+   451→            )
+   452→          })}
+   453→        </div>
+   454→        {state === 'done' ? (
+   455→          <div className="mt-3 flex items-center justify-center gap-2 text-[10px]">
+   456→            <span className="inline-flex items-center gap-1 font-bold text-g-green">
+   457→              <Check className="size-3" /> {t('runs')}
+   458→            </span>
+   459→            <span className="h-3 w-px bg-white/15" />
+   460→            <span className="inline-flex items-center gap-1 text-elyra-muted-on-dark">
+   461→              <Clock className="size-3" /> {t('saved')}
+   462→            </span>
+   463→          </div>
+   464→        ) : null}
+   465→      </div>
+   466→      <button
+   467→        type="button"
+   468→        data-cursor="magnet"
+   469→        onClick={run}
+   470→        className="mt-3 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+   471→      >
+   472→        {state === 'done' ? <RotateCw className="size-3.5" aria-hidden="true" /> : <Play className="size-3.5" aria-hidden="true" />}
+   473→        {state === 'done' ? t('done') : t('title')}
+   474→      </button>
+   475→      <style>{`@keyframes elyra-flow-dot { from { inset-inline-start: 0% } to { inset-inline-start: calc(100% - 6px) } }`}</style>
+   476→    </div>
+   477→  )
+   478→}
+   479→
+   480→/* =========================================================================
+   481→   Mini interactive 3 — draggable 3D cube (CSS 3D) with idle auto-rotation
+   482→   ========================================================================= */
+   483→
+   484→const CUBE_FACES: ReadonlyArray<{
+   485→  tr: string
+   486→  grad: string
+   487→  icon: typeof Globe | null
+   488→  glyph?: string
+   489→  dark?: boolean
+   490→}> = [
+   491→  { tr: 'translateZ(28px)', grad: 'linear-gradient(135deg, #2F80ED, #0053B8)', icon: null, glyph: 'E' },
+   492→  { tr: 'rotateY(180deg) translateZ(28px)', grad: 'linear-gradient(135deg, #74AEFF, #3B6FD4)', icon: Globe },
+   493→  { tr: 'rotateY(90deg) translateZ(28px)', grad: 'linear-gradient(135deg, #4CBF6E, #1E8F41)', icon: Boxes },
+   494→  { tr: 'rotateY(-90deg) translateZ(28px)', grad: 'linear-gradient(135deg, #F0655A, #C22F23)', icon: Sparkles },
+   495→  { tr: 'rotateX(90deg) translateZ(28px)', grad: 'linear-gradient(135deg, #FFD44D, #E9A61D)', icon: Bot, dark: true },
+   496→  { tr: 'rotateX(-90deg) translateZ(28px)', grad: 'linear-gradient(135deg, #F4F7FB, #C4D0E2)', icon: null, glyph: '◆', dark: true },
+   497→]
+   498→
+   499→function MiniCube() {
+   500→  const t = useTranslations('bento.threeD.mini')
+   501→  // Reduced motion: skip the CSS easing between drag rotations AND disable
+   502→  // the idle auto-rotation entirely (user-driven drags still work).
+   503→  const reduced = usePrefersReducedMotion()
+   504→  const [rot, setRot] = useState({ x: -18, y: 28 })
+   505→  const [dragging, setDragging] = useState(false)
+   506→  const [spinning, setSpinning] = useState(false)
+   507→  const start = useRef({ x: 0, y: 0, rx: 0, ry: 0 })
+   508→  const idleTimer = useRef(0)
+   509→
+   510→  const stopSpin = useCallback(() => {
+   511→    setSpinning(false) // the spin-loop effect cleans its own rAF on flip
+   512→  }, [])
+   513→  // Idle auto-rotation: armed on mount and after every drag; fires ~2.5s
+   514→  // after the last interaction. Disabled entirely for reduced-motion users.
+   515→  const armIdle = useCallback(() => {
+   516→    if (idleTimer.current) window.clearTimeout(idleTimer.current)
+   517→    if (reduced) return
+   518→    idleTimer.current = window.setTimeout(() => {
+   519→      idleTimer.current = 0
+   520→      setSpinning(true)
+   521→    }, 2500)
+   522→  }, [reduced])
+   523→
+   524→  // Reduced-motion flip mid-spin: the loop effect below early-returns + its
+   525→  // cleanup cancels the rAF, and armIdle() refuses to re-arm, so nothing
+   526→  // autonomous keeps running — no setState needed here (lint: no cascading
+   527→  // renders from effect bodies).
+   528→  useEffect(() => {
+   529→    if (reduced) return
+   530→    armIdle()
+   531→    return () => {
+   532→      if (idleTimer.current) {
+   533→        window.clearTimeout(idleTimer.current)
+   534→        idleTimer.current = 0
+   535→      }
+   536→    }
+   537→  }, [reduced, armIdle])
+   538→
+   539→  // The spin loop — time-based (display-rate independent), clamped against
+   540→  // tab-visibility spikes, fully self-cleaning.
+   541→  useEffect(() => {
+   542→    if (!spinning || reduced) return
+   543→    let raf = 0
+   544→    let last = performance.now()
+   545→    const tick = (now: number) => {
+   546→      const dt = Math.min(now - last, 100)
+   547→      last = now
+   548→      setRot((r) => ({ x: r.x, y: (r.y + dt * 0.012) % 360 })) // ~12°/s
+   549→      raf = requestAnimationFrame(tick)
+   550→    }
+   551→    raf = requestAnimationFrame(tick)
+   552→    return () => {
+   553→      if (raf) cancelAnimationFrame(raf)
+   554→    }
+   555→  }, [spinning, reduced])
+   556→
+   557→  const onDown = (e: React.PointerEvent) => {
+   558→    stopSpin()
+   559→    if (idleTimer.current) {
+   560→      window.clearTimeout(idleTimer.current)
+   561→      idleTimer.current = 0
+   562→    }
+   563→    start.current = { x: e.clientX, y: e.clientY, rx: rot.x, ry: rot.y }
+   564→    setDragging(true)
+   565→    ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
+   566→  }
+   567→  const onMove = (e: React.PointerEvent) => {
+   568→    if (!dragging) return
+   569→    const dx = e.clientX - start.current.x
+   570→    const dy = e.clientY - start.current.y
+   571→    setRot({ x: start.current.rx - dy * 0.5, y: start.current.ry + dx * 0.5 })
+   572→  }
+   573→  const onUp = () => {
+   574→    setDragging(false)
+   575→    armIdle()
+   576→  }
+   577→
+   578→  // Cheap floor-shadow approximation: an ellipse that squashes/shifts with
+   579→  // the cube's yaw so the ground reads as reacting to the rotation.
+   580→  const ryRad = (rot.y * Math.PI) / 180
+   581→  const shadowScale = 0.7 + 0.3 * Math.abs(Math.cos(ryRad))
+   582→  const shadowShift = Math.sin(ryRad) * 7
+   583→
+   584→  return (
+   585→    <div className="mt-6">
+   586→      <p className="text-[11px] text-muted-foreground">
+   587→        {t('hint')} · {t('idle')}
+   588→      </p>
+   589→      <div
+   590→        className="relative mt-3 flex h-36 items-center justify-center overflow-hidden rounded-xl border border-border bg-elyra-dark/95 touch-none select-none"
+   591→        style={{ perspective: '600px' }}
+   592→      >
+   593→        {/* faint accent point-glow behind the cube (depth) */}
+   594→        <div
+   595→          aria-hidden="true"
+   596→          className="absolute inset-0"
+   597→          style={{ background: 'radial-gradient(130px 90px at 50% 44%, rgba(0,113,227,0.28), transparent 70%)' }}
+   598→        />
+   599→        {/* soft elliptical floor shadow */}
+   600→        <div
+   601→          aria-hidden="true"
+   602→          className="absolute bottom-5 left-1/2 h-2.5 w-16 rounded-[50%] bg-black/70 blur-[5px] transition-transform duration-300"
+   603→          style={{ transform: `translateX(calc(-50% + ${shadowShift}px)) scaleX(${shadowScale})` }}
+   604→        />
+   605→        <div
+   606→          onPointerDown={onDown}
+   607→          onPointerMove={onMove}
+   608→          onPointerUp={onUp}
+   609→          onPointerCancel={onUp}
+   610→          className="size-14 cursor-grab touch-none active:cursor-grabbing"
+   611→          style={{
+   612→            transformStyle: 'preserve-3d',
+   613→            transform: `rotateX(${rot.x}deg) rotateY(${rot.y}deg)`,
+   614→            transition: dragging || spinning || reduced ? 'none' : 'transform 0.2s ease-out',
+   615→            willChange: 'transform',
+   616→          }}
+   617→          role="img"
+   618→          aria-label={`${t('hint')} — ${t('idle')}`}
+   619→        >
+   620→          {CUBE_FACES.map((f, i) => {
+   621→            const Icon = f.icon
+   622→            return (
+   623→              <div
+   624→                key={i}
+   625→                className="absolute inset-0 flex items-center justify-center rounded-[3px]"
+   626→                style={{
+   627→                  transform: f.tr,
+   628→                  background: f.grad,
+   629→                  backfaceVisibility: 'hidden',
+   630→                  // 1px inner border highlight so edges catch the light
+   631→                  boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.22), inset 0 1px 0 rgba(255,255,255,0.35)',
+   632→                }}
+   633→              >
+   634→                {Icon ? (
+   635→                  <Icon
+   636→                    className={cn('size-4', f.dark ? 'text-elyra-dark/80' : 'text-white/85')}
+   637→                    aria-hidden="true"
+   638→                  />
+   639→                ) : (
+   640→                  <span
+   641→                    className={cn(
+   642→                      f.glyph === 'E' ? 'text-base font-black tracking-wide text-white' : 'text-[10px] text-elyra-dark/70'
+   643→                    )}
+   644→                    aria-hidden="true"
+   645→                  >
+   646→                    {f.glyph}
+   647→                  </span>
+   648→                )}
+   649→              </div>
+   650→            )
+   651→          })}
+   652→        </div>
+   653→      </div>
+   654→    </div>
+   655→  )
+   656→}
+   657→
+   658→/* =========================================================================
+   659→   Mini interactive 4 — AI prompt-response (6 cycling answers)
+   660→   ========================================================================= */
+   661→
+   662→function MiniAgent() {
+   663→  const t = useTranslations('bento.ai.mini')
+   664→  // Typewriter is a JS-driven (setInterval) animation — the global CSS
+   665→  // reduced-motion override can't stop it, so we honor the hook directly:
+   666→  // reduced-motion users get the full response instantly (audit P1-6).
+   667→  const reduced = usePrefersReducedMotion()
+   668→  // Six distinct localized answers — every click advances the index (cycling,
+   669→  // so the same answer is never shown twice in a row). `shown` counts clicks.
+   670→  const responses = t.raw('responses') as string[]
+   671→  const [shown, setShown] = useState(-1)
+   672→  const [phase, setPhase] = useState<'idle' | 'thinking' | 'typing'>('idle')
+   673→  const [chars, setChars] = useState(0)
+   674→  const len = Math.max(responses.length, 1)
+   675→  const current = shown >= 0 ? responses[shown % len] ?? '' : ''
+   676→  const complete = phase === 'typing' && current.length > 0 && chars >= current.length
+   677→  // FIX(2-c/5): hold the typewriter interval + thinking timeout in refs —
+   678→  // cleared before re-arming (a second click mid-type must not race the
+   679→  // first) and on unmount.
+   680→  const typer = useRef(0)
+   681→  const thinker = useRef(0)
+   682→  useEffect(
+   683→    () => () => {
+   684→      if (typer.current) window.clearInterval(typer.current)
+   685→      if (thinker.current) window.clearTimeout(thinker.current)
+   686→    },
+   687→    []
+   688→  )
+   689→
+   690→  const ask = () => {
+   691→    if (typer.current) {
+   692→      window.clearInterval(typer.current)
+   693→      typer.current = 0
+   694→    }
+   695→    if (thinker.current) {
+   696→      window.clearTimeout(thinker.current)
+   697→      thinker.current = 0
+   698→    }
+   699→    const next = shown + 1
+   700→    const text = responses[next % len] ?? ''
+   701→    setShown(next)
+   702→    setChars(0)
+   703→    if (reduced) {
+   704→      setPhase('typing')
+   705→      setChars(text.length)
+   706→      return
+   707→    }
+   708→    setPhase('thinking')
+   709→    thinker.current = window.setTimeout(() => {
+   710→      thinker.current = 0
+   711→      setPhase('typing')
+   712→      let i = 0
+   713→      typer.current = window.setInterval(() => {
+   714→        i += 2
+   715→        setChars(i)
+   716→        if (i >= text.length) {
+   717→          window.clearInterval(typer.current)
+   718→          typer.current = 0
+   719→        }
+   720→      }, 25)
+   721→    }, 450)
+   722→  }
+   723→
+   724→  return (
+   725→    <div className="mt-6">
+   726→      <p className="text-[11px] text-muted-foreground">{t('hint')}</p>
+   727→      <div className="mt-3 space-y-2 rounded-xl border border-border bg-elyra-dark/95 p-3 text-elyra-on-dark">
+   728→        <button
+   729→          type="button"
+   730→          data-cursor="magnet"
+   731→          onClick={ask}
+   732→          className="flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-start text-xs text-white/80 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+   733→        >
+   734→          <Bot className="mt-0.5 size-3.5 shrink-0 text-primary" aria-hidden="true" />
+   735→          <span>{t('prompt')}</span>
+   736→        </button>
+   737→        {/* stable min-height keeps the card from jumping between the
+   738→            thinking / typing / completed states */}
+   739→        <div className={shown >= 0 ? 'min-h-[3rem]' : undefined}>
+   740→          {phase === 'thinking' ? (
+   741→            <div className="flex items-center gap-1.5 rounded-lg bg-white/5 px-2 py-2 text-xs">
+   742→              <Bot className="size-3.5 shrink-0 text-primary" aria-hidden="true" />
+   743→              <span className="flex items-center gap-1 py-0.5" aria-hidden="true">
+   744→                <span className="size-1 animate-bounce rounded-full bg-white/60" />
+   745→                <span className="size-1 animate-bounce rounded-full bg-white/60 [animation-delay:150ms]" />
+   746→                <span className="size-1 animate-bounce rounded-full bg-white/60 [animation-delay:300ms]" />
+   747→              </span>
+   748→            </div>
+   749→          ) : current ? (
+   750→            <div className="relative rounded-lg bg-white/5 px-2 py-1.5">
+   751→              <span
+   752→                aria-hidden="true"
+   753→                className="absolute -end-1 -top-2 rounded-md bg-g-blue/20 px-1 py-px text-[9px] font-bold text-g-blue ring-1 ring-g-blue/30"
+   754→              >
+   755→                AI
+   756→              </span>
+   757→              <div className="flex items-start gap-2 text-xs text-white/90">
+   758→                <Sparkles className="mt-0.5 size-3.5 shrink-0 text-g-yellow" aria-hidden="true" />
+   759→                <span>
+   760→                  {current.slice(0, chars)}
+   761→                  {phase === 'typing' && chars < current.length ? (
+   762→                    <span className="animate-pulse">▌</span>
+   763→                  ) : null}
+   764→                </span>
+   765→              </div>
+   766→              {complete ? (
+   767→                <div className="mt-1 flex items-center gap-1 ps-5 text-[10px] text-white/50">
+   768→                  <RefreshCw className="size-2.5" aria-hidden="true" />
+   769→                  {t('retryHint')}
+   770→                </div>
+   771→              ) : null}
+   772→            </div>
+   773→          ) : null}
+   774→        </div>
+   775→        {/* one clean SR announcement per COMPLETED answer — keeps the
+   776→            typewriter's per-frame mutations out of the live region */}
+   777→        <span className="sr-only" aria-live="polite">
+   778→          {complete ? current : ''}
+   779→        </span>
+   780→      </div>
+   781→    </div>
+   782→  )
+   783→}
+   784→
+   785→/* ---------- Mini interactive: orbiting integration initials ---------- */
+   786→// Orbit positions are static, so they're computed once at module scope.
+   787→// Offsets are pre-combined and rounded to 4 decimals and formatted to match
+   788→// the CSSOM canonical calc() form exactly — React 19's dev-mode hydration
+   789→// diff reads normalized CSSOM style values, so raw strings like
+   790→// `calc(50% + -24.00000000000002px - 14px)` would falsely "mismatch" against
+   791→// the browser-simplified `calc(50% - 38px)`.
+   792→const ORBIT_ITEMS = ['CRM', 'n8n', 'AI', 'SH', 'TG', '@'].map((label, i, arr) => {
+   793→  const angle = (i / arr.length) * Math.PI * 2
+   794→  const radius = 48
+   795→  const x = Math.round((Math.cos(angle) * radius - 14) * 1e4) / 1e4
+   796→  const y = Math.round((Math.sin(angle) * radius - 14) * 1e4) / 1e4
+   797→  return {
+   798→    label,
+   799→    left: `calc(50% ${x >= 0 ? `+ ${x}` : `- ${Math.abs(x)}`}px)`,
+   800→    top: `calc(50% ${y >= 0 ? `+ ${y}` : `- ${Math.abs(y)}`}px)`,
+   801→  }
+   802→})
+   803→
+   804→function MiniOrbit() {
+   805→  const t = useTranslations('bento.integrations.mini')
+   806→  return (
+   807→    <div className="mt-6">
+   808→      <p className="text-[11px] text-muted-foreground">{t('hint')}</p>
+   809→      <div className="relative mt-3 flex h-32 items-center justify-center overflow-hidden rounded-xl border border-border bg-elyra-dark/95">
+   810→        <div className="absolute size-2.5 rounded-full bg-primary" />
+   811→        <div
+   812→          className="absolute inset-0"
+   813→          style={{ animation: 'elyra-orbit 14s linear infinite' }}
+   814→        >
+   815→          {ORBIT_ITEMS.map((item) => (
+   816→            <span
+   817→              key={item.label}
+   818→              className="absolute flex size-7 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[9px] font-bold text-white"
+   819→              style={{ left: item.left, top: item.top }}
+   820→            >
+   821→              {item.label}
+   822→            </span>
+   823→          ))}
+   824→        </div>
+   825→      </div>
+   826→      <style>{`@keyframes elyra-orbit { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
+   827→    </div>
+   828→  )
+   829→}
+   830→
+   831→/* ---------- Bento section ---------- */
+   832→export function ServicesBento() {
+   833→  const t = useTranslations('bento')
+   834→
+   835→  return (
+   836→    <section className="bg-background py-20 sm:py-28" aria-labelledby="bento-title">
+   837→      <div className="elyra-container max-w-container">
+   838→        <SectionHeading
+   839→          kicker={t('kicker')}
+   840→          title={t('title')}
+   841→          subtitle={t('subtitle')}
+   842→          titleId="bento-title"
+   843→        />
+   844→
+   845→        <div className="mt-14 grid gap-4 lg:grid-cols-3 lg:grid-rows-2">
+   846→          {/* Big websites card — FIX(2-c/12): the icon eyebrow used to repeat
+   847→              the identical i18n string as the h3 below (catalog has no distinct
+   848→              per-card kicker key) — icon-only row preserves the rhythm. */}
+   849→          <GlowCard className="lg:col-span-2 lg:row-span-2">
+   850→            <div className="flex items-center gap-2 text-primary">
+   851→              <Globe className="size-5" aria-hidden="true" />
+   852→            </div>
+   853→            <h3 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
+   854→              {t('websites.title')}
+   855→            </h3>
+   856→            <p className="mt-2 max-w-md text-sm text-muted-foreground sm:text-base">
+   857→              {t('websites.desc')}
+   858→            </p>
+   859→            <ul className="mt-5 flex flex-wrap gap-2">
+   860→              {(t.raw('websites.features') as string[]).map((f) => (
+   861→                <li
+   862→                  key={f}
+   863→                  className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-foreground/80"
+   864→                >
+   865→                  <Check className="size-3 text-g-green" aria-hidden="true" />
+   866→                  {f}
+   867→                </li>
+   868→              ))}
+   869→            </ul>
+   870→            <MiniSite />
+   871→          </GlowCard>
+   872→
+   873→          {/* Automation */}
+   874→          <GlowCard>
+   875→            <div className="flex items-center gap-2 text-primary">
+   876→              <Workflow className="size-5" aria-hidden="true" />
+   877→            </div>
+   878→            <h3 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">
+   879→              {t('automation.title')}
+   880→            </h3>
+   881→            <p className="mt-2 text-sm text-muted-foreground">
+   882→              {t('automation.desc')}
+   883→            </p>
+   884→            <MiniFlow />
+   885→          </GlowCard>
+   886→
+   887→          {/* 3D */}
+   888→          <GlowCard>
+   889→            <div className="flex items-center gap-2 text-primary">
+   890→              <Boxes className="size-5" aria-hidden="true" />
+   891→            </div>
+   892→            <h3 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">
+   893→              {t('threeD.title')}
+   894→            </h3>
+   895→            <p className="mt-2 text-sm text-muted-foreground">
+   896→              {t('threeD.desc')}
+   897→            </p>
+   898→            <MiniCube />
+   899→          </GlowCard>
+   900→
+   901→          {/* AI — wide */}
+   902→          <GlowCard className="lg:col-span-2">
+   903→            <div className="flex items-center gap-2 text-primary">
+   904→              <Bot className="size-5" aria-hidden="true" />
+   905→            </div>
+   906→            <div className="grid gap-6 sm:grid-cols-2 sm:items-center">
+   907→              <div>
+   908→                <h3 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">
+   909→                  {t('ai.title')}
+   910→                </h3>
+   911→                <p className="mt-2 text-sm text-muted-foreground">
+   912→                  {t('ai.desc')}
+   913→                </p>
+   914→              </div>
+   915→              <MiniAgent />
+   916→            </div>
+   917→          </GlowCard>
+   918→
+   919→          {/* Integrations */}
+   920→          <GlowCard className="lg:col-span-1">
+   921→            <div className="flex items-center gap-2 text-primary">
+   922→              <Sparkles className="size-5" aria-hidden="true" />
+   923→            </div>
+   924→            <h3 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">
+   925→              {t('integrations.title')}
+   926→            </h3>
+   927→            <p className="mt-2 text-sm text-muted-foreground">
+   928→              {t('integrations.desc')}
+   929→            </p>
+   930→            <MiniOrbit />
+   931→          </GlowCard>
+   932→        </div>
+   933→      </div>
+   934→    </section>
+   935→  )
+   936→}
+   937→

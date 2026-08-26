@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "The image displays a landing page for \"Elyra,\" a SaaS product named \"فواتير سمارت\" (Smart Invoices), presented in Arabic (RTL). The layout features a top navigation bar with links like \"Home,\" \"Features,\" and a prominent blue \"Start Free Trial\" button.\n\nThe central focus is on two side-by-side comparison cards, each contained within a laptop-style frame:\n\n1.  **Left Card (\"Before\" - Old Way):** Labeled **\"استبدل «إكسل» بالبيانجي\"** (Replace Excel with Binge). It shows a split view. The left half is a sleek, modern dark-themed dashboard featuring a sidebar, KPI cards (e.g., \"4200\"), a gradient area chart, and a data table. The right half displays the \"Old\" reality: a stark, gray spreadsheet grid resembling Excel, complete with a formula bar and a bright red warning banner at the bottom indicating an error or missing data.\n2.  **Right Card (\"After\" - New Way):** Labeled **\"نظام «مؤسسة سmart» SaaS** (Smart Institution System). This mirrors the layout of the first card but emphasizes the modern dashboard's capabilities, showing the dark UI with charts and stats clearly dominating the view next to the legacy grid.\n\nBelow each card is descriptive text highlighting benefits like error reduction and time savings. All text is legible and properly rendered within the viewport.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1787753141,
+  "id": "202608262205356c768d2e61ba40cd",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "202608262205356c768d2e61ba40cd",
+  "usage": {
+    "completion_tokens": 302,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1796,
+    "prompt_tokens_details": {
+      "cached_tokens": 2
+    },
+    "total_tokens": 2098
+  }
+}
