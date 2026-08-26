@@ -3,9 +3,9 @@ import { TrustBar } from '@/components/home/trust-bar'
 import { ServicesBento } from '@/components/home/bento'
 import { SimulatorLazy } from '@/components/home/simulator-lazy'
 import { FeaturedWork } from '@/components/home/featured-work'
-import { Methodology } from '@/components/home/methodology'
+import { MethodologyLazy } from '@/components/home/methodology-lazy'
 import { Testimonials } from '@/components/home/testimonials'
-import { Calculator } from '@/components/home/calculator'
+import { CalculatorLazy } from '@/components/home/calculator-lazy'
 import { HomeJsonLd } from '@/components/seo/home-json-ld'
 
 export default function HomePage() {
@@ -19,9 +19,14 @@ export default function HomePage() {
           cuts homepage TBT (was 690ms prod) without touching LCP. */}
       <SimulatorLazy />
       <FeaturedWork />
-      <Methodology />
+      {/* Phase 5 WS-8: Methodology + Calculator lazy-loaded too — both
+          use framer-motion, both sit well below the fold. Deferring
+          their chunks cuts the initial JS bundle on / by ~30KB
+          minified+gzipped (framer-motion + AnimatePresence + motion
+          runtime) without losing any functionality. */}
+      <MethodologyLazy />
       <Testimonials />
-      <Calculator />
+      <CalculatorLazy />
     </>
   )
 }

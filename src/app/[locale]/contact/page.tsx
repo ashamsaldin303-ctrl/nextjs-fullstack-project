@@ -4,7 +4,7 @@ import { Mail, MessageCircle, Send, Clock } from 'lucide-react'
 import { PageHero } from '@/components/shared/page-hero'
 import { Reveal } from '@/components/shared/reveal'
 import { ContactForm } from '@/components/pages/contact-form'
-import { Calculator } from '@/components/home/calculator'
+import { CalculatorLazy } from '@/components/home/calculator-lazy'
 import { buildPageMetadata } from '@/lib/seo'
 import { SITE_CONTACT, SITE_SOCIAL } from '@/lib/site-config'
 
@@ -99,9 +99,11 @@ export default async function ContactPage() {
           its own SectionHeading). Phase 5 P1-3: removed the redundant
           133px-tall dark divider band that VLM flagged as "awkward
           horizontal bar with no content" — it duplicated the calculator
-          kicker+title that the Calculator component shows anyway. */}
+          kicker+title that the Calculator component shows anyway.
+          Phase 5 WS-8: lazy-loaded to keep framer-motion out of the
+          initial bundle on /contact. */}
 
-      <Calculator />
+      <CalculatorLazy />
     </>
   )
 }

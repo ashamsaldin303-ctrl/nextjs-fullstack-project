@@ -151,7 +151,11 @@ const browser = await chromium.launch({ channel: 'chromium', headless: true })
   const sensory = await page.evaluate(() => ({
     grain: !!document.querySelector('.elyra-grain'),
     dot: !!document.querySelector('.elyra-cursor-dot'),
-    sound: !!document.querySelector('button.fixed.bottom-4.start-4'),
+    // Phase 4 moved the sound toggle from `fixed bottom-4 start-4` into
+    // the navbar — look for the navbar button via its aria-label text
+    // (sound.enable / sound.disable keys: 'تشغيل المؤثرات الصوتية' /
+    // 'Enable sound effects' / 'Mute sound effects').
+    sound: !!document.querySelector('header button[aria-label*="المؤثرات"], header button[aria-label*="sound"]'),
   }))
   ok('Phase 2 sensory layer intact after rework', sensory.grain && sensory.dot && sensory.sound)
   await ctx.close()
