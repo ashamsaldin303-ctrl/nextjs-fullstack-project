@@ -47,6 +47,20 @@ export function HeroConsole() {
     setSelected(id)
     setMounted(true)
     playSuccess() // WS-1 §4: "takeoff" sound via existing system
+    // Phase 5 P0-1 fix: ensure the dark scene container is visible —
+    // the hero is min-h-[100svh], so the console mounts below the fold
+    // on standard screens. Without this scroll, users click a preset
+    // but never see the WebGL scene (the original P0-1 symptom).
+    requestAnimationFrame(() => {
+      const container = document.getElementById('hero-console-scene')
+      if (container) {
+        const rect = container.getBoundingClientRect()
+        const inView = rect.top >= 0 && rect.top < window.innerHeight * 0.7
+        if (!inView) {
+          container.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }
+    })
   }, [])
 
   const on_submit = useCallback((e: React.FormEvent) => {
@@ -56,6 +70,16 @@ export function HeroConsole() {
     setSelected('custom')
     setMounted(true)
     playSuccess()
+    requestAnimationFrame(() => {
+      const container = document.getElementById('hero-console-scene')
+      if (container) {
+        const rect = container.getBoundingClientRect()
+        const inView = rect.top >= 0 && rect.top < window.innerHeight * 0.7
+        if (!inView) {
+          container.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }
+    })
   }, [input])
 
   // Detect mobile for SVG fallback (no WebGL on touch — §9.3)
@@ -114,7 +138,10 @@ export function HeroConsole() {
 
       {/* Scene layer — mounts ONLY after interaction */}
       {mounted && selected ? (
-        <div className="relative mt-6 min-h-[280px] overflow-hidden rounded-2xl border border-white/10 bg-elyra-deep">
+        <div
+          id="hero-console-scene"
+          className="relative mt-6 min-h-[280px] overflow-hidden rounded-2xl border border-white/10 bg-elyra-deep"
+        >
           {showSvg ? (
             <ConsoleSvgDiagram preset={selected} reduced={reduced} labels={{
               store: t('presets.store'),

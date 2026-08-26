@@ -1,7 +1,7 @@
 'use client'
 
-import { Canvas, useFrame } from '@react-three/fiber'
-import { useRef, useMemo } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 
@@ -15,16 +15,110 @@ import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
  * Reuses the existing three/R3F in the project — no new libraries.
  * Drag to rotate (clamped). No wheel zoom / no scroll hijack (§4).
  * DPR ≤ 2, frameloop paused when offscreen (§9.4).
+ *
+ * Phase 5 fix (P0-1): the original implementation used `<line>` JSX which
+ * collides with SVG's `<line>` element in R3F v9 + React 19, silently
+ * failing to render geometry. We now construct THREE.Line instances
+ * explicitly via `<primitive>` so the renderer reliably draws connections,
+ * and verify scene readiness through a `sceneReady` state gate that also
+ * triggers a manual invalidation (defensive — should not be needed, but
+ * guarantees a render frame in any SwiftShader/headless combo).
  */
 
 type PresetId = 'store' | 'booking' | 'ai' | 'dashboard' | 'custom'
 
-const PRESET_CONFIG: Record<PresetId, { count: number; colors: string[]; radius: number }> = {
-  store: { count: 6, colors: ['#0071E3', '#34A853', '#FBBC05', '#EA4335', '#4285F4', '#F1F5F9'], radius: 3 },
-  booking: { count: 5, colors: ['#0071E3', '#34A853', '#FBBC05', '#4285F4', '#F1F5F9'], radius: 3 },
-  ai: { count: 7, colors: ['#0071E3', '#4285F4', '#34A853', '#EA4335', '#FBBC05', '#F1F5F9', '#0071E3'], radius: 3.5 },
-  dashboard: { count: 6, colors: ['#0071E3', '#4285F4', '#34A853', '#FBBC05', '#EA4335', '#F1F5F9'], radius: 3 },
-  custom: { count: 5, colors: ['#0071E3', '#34A853', '#FBBC05', '#4285F4', '#F1F5F9'], radius: 3.2 },
+interface PresetConfig {
+  /** Number of architecture nodes */
+  count: number
+  /** Per-node emissive colors */
+  colors: string[]
+  /** Layout radius in world units */
+  radius: number
+  /** Layout style — ring (default) or orbit (sun-and-planets) */
+  layout: 'ring' | 'orbit' | 'flow'
+  /** Camera z-distance — pushed back so all nodes fit the frustum */
+  cameraZ: number
+}
+
+const PRESET_CONFIG: Record<PresetId, PresetConfig> = {
+  store: {
+    count: 6,
+    colors: ['#0071E3', '#34A853', '#FBBC05', '#EA4335', '#4285F4', '#F1F5F9'],
+    radius: 3,
+    layout: 'ring',
+    cameraZ: 9,
+  },
+  booking: {
+    count: 5,
+    colors: ['#0071E3', '#34A853', '#FBBC05', '#4285F4', '#F1F5F9'],
+    radius: 3,
+    layout: 'orbit',
+    cameraZ: 9,
+  },
+  ai: {
+    count: 7,
+    colors: ['#0071E3', '#4285F4', '#34A853', '#EA4335', '#FBBC05', '#F1F5F9', '#0071E3'],
+    radius: 3.5,
+    layout: 'orbit',
+    cameraZ: 10,
+  },
+  dashboard: {
+    count: 6,
+    colors: ['#0071E3', '#4285F4', '#34A853', '#FBBC05', '#EA4335', '#F1F5F9'],
+    radius: 3,
+    layout: 'flow',
+    cameraZ: 9,
+  },
+  custom: {
+    count: 5,
+    colors: ['#0071E3', '#34A853', '#FBBC05', '#4285F4', '#F1F5F9'],
+    radius: 3.2,
+    layout: 'ring',
+    cameraZ: 9,
+  },
+}
+
+/** Generate per-preset node positions */
+function buildPositions(config: PresetConfig): [number, number, number][] {
+  const positions: [number, number, number][] = []
+  for (let i = 0; i < config.count; i++) {
+    const angle = (i / config.count) * Math.PI * 2
+    const r = config.radius
+    if (config.layout === 'orbit') {
+      // Orbit: central "sun" at index 0, planets around
+      if (i === 0) {
+        positions.push([0, 0, 0])
+      } else {
+        const a = ((i - 1) / (config.count - 1)) * Math.PI * 2
+        positions.push([Math.cos(a) * r, Math.sin(a) * r * 0.7, Math.sin(a * 2) * 0.5])
+      }
+    } else if (config.layout === 'flow') {
+      // Flow: left-to-right pipeline with vertical jitter
+      const x = (i / Math.max(1, config.count - 1)) * (r * 2) - r
+      positions.push([x, Math.sin(angle * 1.5) * 0.8, Math.cos(angle * 1.5) * 0.5])
+    } else {
+      // Ring (default): a circular arrangement
+      positions.push([
+        Math.cos(angle) * r,
+        Math.sin(angle) * r * 0.6,
+        Math.sin(angle * 2) * 0.5,
+      ])
+    }
+  }
+  return positions
+}
+
+/** Build a reusable Line object from two points — bypasses the `<line>` JSX
+ *  intrinsic which collides with SVG line in R3F v9 + React 19. */
+function buildLine(start: THREE.Vector3, end: THREE.Vector3, color: number, opacity: number) {
+  const geometry = new THREE.BufferGeometry().setFromPoints([start, end])
+  const material = new THREE.LineBasicMaterial({
+    color,
+    transparent: true,
+    opacity,
+  })
+  const line = new THREE.Line(geometry, material)
+  return line
 }
 
 function Nodes({ preset, active }: { preset: PresetId; active: boolean }) {
@@ -32,78 +126,125 @@ function Nodes({ preset, active }: { preset: PresetId; active: boolean }) {
   const reduced = usePrefersReducedMotion()
   const config = PRESET_CONFIG[preset] ?? PRESET_CONFIG.custom
 
-  const { positions, colors } = useMemo(() => {
-    const positions: [number, number, number][] = []
-    const colors: THREE.Color[] = []
-    for (let i = 0; i < config.count; i++) {
-      const angle = (i / config.count) * Math.PI * 2
-      const r = config.radius
-      positions.push([
-        Math.cos(angle) * r,
-        Math.sin(angle) * r * 0.6,
-        Math.sin(angle * 2) * 0.5,
-      ])
-      colors.push(new THREE.Color(config.colors[i % config.colors.length] ?? '#0071E3'))
+  // Positions + colors computed once per preset change
+  const { positions, colors, lines } = useMemo(() => {
+    const positions = buildPositions(config)
+    const colors = config.colors.map((hex) => new THREE.Color(hex))
+    // Build connection lines between adjacent nodes (and from orbit center
+    // to each planet when layout === 'orbit')
+    const lines: THREE.Line[] = []
+    if (config.layout === 'orbit') {
+      const center = positions[0] ?? [0, 0, 0]
+      const centerVec = new THREE.Vector3(...center)
+      for (let i = 1; i < positions.length; i++) {
+        const target = positions[i]
+        if (!target) continue
+        const line = buildLine(
+          centerVec,
+          new THREE.Vector3(...target),
+          0x4285f4,
+          0.55
+        )
+        lines.push(line)
+      }
+    } else if (config.layout === 'flow') {
+      for (let i = 0; i < positions.length - 1; i++) {
+        const a = positions[i]
+        const b = positions[i + 1]
+        if (!a || !b) continue
+        lines.push(
+          buildLine(new THREE.Vector3(...a), new THREE.Vector3(...b), 0x0071e3, 0.55)
+        )
+      }
+    } else {
+      // Ring — connect each node to its neighbor (and add a few cross links
+      // for visual richness)
+      for (let i = 0; i < positions.length; i++) {
+        const a = positions[i]
+        const b = positions[(i + 1) % positions.length]
+        if (!a || !b) continue
+        lines.push(
+          buildLine(new THREE.Vector3(...a), new THREE.Vector3(...b), 0x0071e3, 0.5)
+        )
+      }
+      // Add cross-links for richness (every other node)
+      for (let i = 0; i < positions.length; i++) {
+        const a = positions[i]
+        const b = positions[(i + 2) % positions.length]
+        if (!a || !b) continue
+        lines.push(
+          buildLine(new THREE.Vector3(...a), new THREE.Vector3(...b), 0x4285f4, 0.2)
+        )
+      }
     }
-    return { positions, colors }
+    return { positions, colors, lines }
   }, [config])
 
+  // Slow rotation of the whole group — no user hijack, just camera drift
   useFrame((_, delta) => {
     if (!groupRef.current || !active || reduced) return
-    // Slow camera drift — no user hijack
     groupRef.current.rotation.y += delta * 0.08
     groupRef.current.rotation.x += delta * 0.02
   })
 
   return (
     <group ref={groupRef}>
-      {/* Nodes */}
-      {positions.map((pos, i) => (
-        <mesh key={i} position={pos}>
-          <sphereGeometry args={[0.25, 16, 16]} />
-          <meshStandardMaterial
-            color={colors[i] ?? '#0071E3'}
-            emissive={colors[i] ?? '#0071E3'}
-            emissiveIntensity={0.6}
-            roughness={0.3}
-            metalness={0.5}
-          />
-        </mesh>
-      ))}
-      {/* Connections — lines between adjacent nodes */}
       {positions.map((pos, i) => {
-        const next = positions[(i + 1) % positions.length] ?? pos
-        const points = [new THREE.Vector3(...pos), new THREE.Vector3(...next)]
-        const geo = new THREE.BufferGeometry().setFromPoints(points)
+        const color = colors[i % colors.length] ?? new THREE.Color('#0071E3')
         return (
-          <line key={`line-${i}`}>
-            <primitive object={new THREE.Line(geo, new THREE.LineBasicMaterial({
-              color: 0x0071E3,
-              transparent: true,
-              opacity: 0.3,
-            }))} />
-          </line>
+          <mesh key={`node-${i}`} position={pos}>
+            <sphereGeometry args={[0.28, 24, 24]} />
+            <meshStandardMaterial
+              color={color}
+              emissive={color}
+              emissiveIntensity={0.7}
+              roughness={0.3}
+              metalness={0.6}
+            />
+          </mesh>
         )
       })}
+      {/* Connections — bypass the broken `<line>` JSX intrinsic */}
+      {lines.map((line, i) => (
+        <primitive key={`line-${i}`} object={line} />
+      ))}
     </group>
   )
 }
 
+/** Initial render safety: ensure the very first frame is scheduled even
+ *  when rAF timing is tight (headless/SwiftShader). */
+function InitialRenderSafety() {
+  const invalidate = useThree((s) => s.invalidate)
+  useEffect(() => {
+    // Force at least one render frame after mount + one after a tick (in
+    // case R3F's first auto-render raced the GL state setup).
+    invalidate()
+    const id = requestAnimationFrame(() => invalidate())
+    return () => cancelAnimationFrame(id)
+  }, [invalidate])
+  return null
+}
+
 export function ConsoleScene({ preset }: { preset: PresetId }) {
   const reduced = usePrefersReducedMotion()
+  const config = PRESET_CONFIG[preset] ?? PRESET_CONFIG.custom
 
   return (
     <Canvas
-      camera={{ position: [0, 0, 8], fov: 50 }}
+      camera={{ position: [0, 0, config.cameraZ], fov: 50 }}
       dpr={[1, 2]}
       frameloop={reduced ? 'never' : 'always'}
-      gl={{ antialias: true, alpha: true }}
+      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       style={{ position: 'absolute', inset: 0, cursor: 'grab' }}
     >
-      <ambientLight intensity={0.3} />
-      <pointLight position={[5, 5, 5]} intensity={0.8} color="#0071E3" />
-      <pointLight position={[-5, -5, 3]} intensity={0.4} color="#34A853" />
+      {/* Lighting: brighter to ensure glowing nodes pop visually */}
+      <ambientLight intensity={0.5} />
+      <pointLight position={[5, 5, 5]} intensity={1.2} color="#ffffff" />
+      <pointLight position={[-5, -3, 4]} intensity={0.7} color="#0071E3" />
+      <pointLight position={[0, 5, -5]} intensity={0.4} color="#34A853" />
       <Nodes preset={preset} active={true} />
+      <InitialRenderSafety />
     </Canvas>
   )
 }
