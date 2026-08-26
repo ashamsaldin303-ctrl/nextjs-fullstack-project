@@ -59,7 +59,7 @@ const browser = await chromium.launch({ channel: 'chromium', headless: true })
     `pointerFine=${state.pointerFine}`)
   // Sound toggle still available on mobile
   const toggleVisible = await page.evaluate(() => {
-    const b = document.querySelector('button.fixed.bottom-4.start-4')
+    const b = document.querySelector('button[aria-label*="المؤثرات"], button[aria-label*="sound"]')
     return b ? getComputedStyle(b).display !== 'none' : false
   })
   ok('touch: sound toggle still visible on mobile', toggleVisible)
@@ -73,7 +73,7 @@ const browser = await chromium.launch({ channel: 'chromium', headless: true })
   await page.goto(BASE, { waitUntil: 'networkidle' })
   await page.waitForTimeout(1200)
   // Enable sound
-  await page.click('button.fixed.bottom-4.start-4')
+  await page.click('button[aria-label*="المؤثرات"]').catch(() => page.click('button[aria-label*="sound"]'))
   await page.waitForTimeout(300)
   // Click a magnet button — should produce a click tone
   await page.click('a[href="/work"][data-cursor="magnet"]')
@@ -96,7 +96,7 @@ const browser = await chromium.launch({ channel: 'chromium', headless: true })
     return {
       storage: localStorage.getItem('elyra:sound'),
       audioAPI: probe(),
-      pressed: document.querySelector('button.fixed.bottom-4.start-4')?.getAttribute('aria-pressed'),
+      pressed: document.querySelector('button[aria-label*="المؤثرات"], button[aria-label*="sound"]')?.getAttribute('aria-pressed'),
     }
   })
   ok('audio: enabled + navigated with sound active (no errors)',
@@ -115,7 +115,7 @@ const browser = await chromium.launch({ channel: 'chromium', headless: true })
   await page.goto(`${BASE}/en`, { waitUntil: 'networkidle' })
   await page.waitForTimeout(1200)
   const en = await page.evaluate(() => {
-    const b = document.querySelector('button.fixed.bottom-4.start-4')
+    const b = document.querySelector('button[aria-label*="المؤثرات"], button[aria-label*="sound"]')
     return { label: b?.getAttribute('aria-label'), pressed: b?.getAttribute('aria-pressed') }
   })
   ok('EN: sound toggle labels localized', en.label === 'Enable sound effects' && en.pressed === 'false',
@@ -127,7 +127,7 @@ const browser = await chromium.launch({ channel: 'chromium', headless: true })
   for (const r of routes) {
     await page.goto(`${BASE}${r}`, { waitUntil: 'networkidle' })
     await page.waitForTimeout(600)
-    const hasToggle = await page.evaluate(() => !!document.querySelector('button.fixed.bottom-4.start-4'))
+    const hasToggle = await page.evaluate(() => !!document.querySelector('button[aria-label*="المؤثرات"], button[aria-label*="sound"]'))
     const hasGrain = await page.evaluate(() => !!document.querySelector('.elyra-grain'))
     const hasCursor = await page.evaluate(() => !!document.querySelector('.elyra-cursor-dot'))
     routeStatus.push(`${r}:${hasToggle && hasGrain && hasCursor ? 'ok' : 'MISSING'}`)
@@ -143,7 +143,7 @@ const browser = await chromium.launch({ channel: 'chromium', headless: true })
     await page.goto(`${BASE}${r}`, { waitUntil: 'networkidle' })
     await page.waitForTimeout(600)
     const hasAll = await page.evaluate(() =>
-      !!document.querySelector('button.fixed.bottom-4.start-4') &&
+      !!document.querySelector('button[aria-label*="المؤثرات"], button[aria-label*="sound"]') &&
       !!document.querySelector('.elyra-grain') &&
       !!document.querySelector('.elyra-cursor-dot'))
     arStatus.push(`${r}:${hasAll ? 'ok' : 'MISSING'}`)

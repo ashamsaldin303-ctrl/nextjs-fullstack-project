@@ -143,17 +143,17 @@ ok('grain: fixed layer, 3.5% opacity, inert, SVG data-URI',
 
 // --- Sound toggle -------------------------------------------------------------
 const st0 = await page.evaluate(() => {
-  const b = document.querySelector('button.fixed.bottom-4.start-4')
+  const b = document.querySelector('button[aria-label*="المؤثرات"], button[aria-label*="sound"]')
   return { exists: !!b, pressed: b?.getAttribute('aria-pressed'), label: b?.getAttribute('aria-label'), storage: localStorage.getItem('elyra:sound') }
 })
 ok('sound: toggle exists, muted by default, no storage yet',
   st0.exists && st0.pressed === 'false' && st0.storage === null,
   `label="${st0.label}"`)
 
-await page.click('button.fixed.bottom-4.start-4')
+await page.click('button[aria-label*="المؤثرات"]').catch(() => page.click('button[aria-label*="sound"]'))
 await page.waitForTimeout(300)
 const st1 = await page.evaluate(() => {
-  const b = document.querySelector('button.fixed.bottom-4.start-4')
+  const b = document.querySelector('button[aria-label*="المؤثرات"], button[aria-label*="sound"]')
   return { pressed: b?.getAttribute('aria-pressed'), label: b?.getAttribute('aria-label'), storage: localStorage.getItem('elyra:sound') }
 })
 ok('sound: enabling persists to localStorage + aria flips',
@@ -164,7 +164,7 @@ ok('sound: enabling persists to localStorage + aria flips',
 await page.goto(`${BASE}/work`, { waitUntil: 'networkidle' })
 await page.waitForTimeout(1500)
 const st2 = await page.evaluate(() => {
-  const b = document.querySelector('button.fixed.bottom-4.start-4')
+  const b = document.querySelector('button[aria-label*="المؤثرات"], button[aria-label*="sound"]')
   return { pressed: b?.getAttribute('aria-pressed'), storage: localStorage.getItem('elyra:sound') }
 })
 ok('sound: preference survives navigation to /work', st2.pressed === 'true' && st2.storage === 'on')
@@ -172,13 +172,13 @@ ok('sound: preference survives navigation to /work', st2.pressed === 'true' && s
 // AudioContext actually created?
 const audioCtx = await page.evaluate(() => {
   // probe: our module creates the context lazily; check via a click sound trigger
-  const btn = document.querySelector('button.fixed.bottom-4.start-4')
+  const btn = document.querySelector('button[aria-label*="المؤثرات"], button[aria-label*="sound"]')
   return { hasToggle: !!btn }
 })
 ok('sound: delegation mounted on other pages', audioCtx.hasToggle)
 
 // Mute again
-await page.click('button.fixed.bottom-4.start-4')
+await page.click('button[aria-label*="المؤثرات"]').catch(() => page.click('button[aria-label*="sound"]'))
 await page.waitForTimeout(200)
 const st3 = await page.evaluate(() => localStorage.getItem('elyra:sound'))
 ok('sound: muting back works', st3 === 'off')
