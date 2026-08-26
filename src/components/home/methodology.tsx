@@ -96,7 +96,9 @@ export function Methodology() {
           subtitle={t('subtitle')}
           titleId="method-title"
         />
-        <div ref={containerRef} className="mt-14 space-y-4 sm:space-y-6">
+        {/* `relative` anchors the framer-motion scroll offsets (useScroll
+            warns when the container is statically positioned). */}
+        <div ref={containerRef} className="relative mt-14 space-y-4 sm:space-y-6">
           {STEPS.map((step, i) => (
             <MethodologyStep
               key={step.key}

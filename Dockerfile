@@ -54,12 +54,14 @@ COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 
 # SQLite storage directory (mount a volume here in production)
 RUN mkdir -p /app/db
-VOLUME /app/db
 
 # Non-root runtime (audit P2-6): oven/bun ships the `bun` user. Own
-# everything — including the db volume mount point — so SQLite writes work
-# without root.
+# everything — including the db directory — so SQLite writes work
+# without root. NOTE: this MUST run BEFORE the VOLUME declaration —
+# Docker discards build-time changes made to a path after VOLUME is
+# declared, which would leave the mount point root-owned (L2-A).
 RUN chown -R bun:bun /app
+VOLUME /app/db
 USER bun
 
 EXPOSE 3000

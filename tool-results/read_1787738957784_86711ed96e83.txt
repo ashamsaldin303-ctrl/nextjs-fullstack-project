@@ -1,0 +1,352 @@
+   258→- lint 0/0 (strict rules ON) · tsc 0 · i18n parity 479/479 · zero console/hydration errors on all 12 route-locale combinations
+   259→- All three sensory features browser-verified in AR+EN (positive + negative paths)
+   260→- Lighthouse: a11y/bp/seo = 100 across routes (dev caveat documented)
+   261→- README: 9 new Phase-2 decisions + sandbox constraint note
+   262→- DEVIATION from prompt §7.1/§10: `bun run build` + production Lighthouse not possible in this sandbox (policy); verified via dev server + lint + tsc + real browser automation instead
+   263→
+   264→---
+   265→Task ID: PHASE-3
+   266→Agent: Main (Z.ai Code)
+   267→Task: Execute Phase 3 (elyra-fullstack-prompt-03.md): full backend (API + Prisma + signed n8n webhook), production performance fixes, and deployment documentation.
+   268→
+   269→Work Log:
+   270→- **POST /api/leads** (`src/app/api/leads/route.ts`) — the single write endpoint:
+   271→  - Zod v4 strict discriminated union (source: calculator | contact-form); unknown fields → 400 with translated per-field errors (locale via `x-elyra-locale` header → accept-language → ar default; catalog read directly in `lib/api-i18n.ts` since /api is excluded from the next-intl proxy matcher).
+   272→  - Server-side recompute ALWAYS via imported `computeEstimate` (never copied). Known client-echo estimate fields (minBudget/maxBudget/weeksMin/weeksMax/estimate/result/breakdown) are stripped pre-parse (forged numbers ignored + recomputed — verified: sent 999999, stored 10600-17400); any other unknown field → 400.
+   273→  - Rate limit FIRST (invalid payloads burn quota): `lib/rate-limit.ts` sliding 60s window × 5/IP in a Map with periodic sweep; 429 + Retry-After + translated message.
+   274→  - Prisma Lead storage (all wizard answers + computed budget + IP/UA; contact leads: service=contact, budget=0, message stored). 201 → { reference: first 8 chars of cuid }.
+   275→  - 500 generic (details to server log only).
+   276→- **Signed n8n webhook** (`lib/n8n-webhook.ts`): HMAC-SHA256 over `timestamp.nonce.body`, headers X-Elyra-Signature/Timestamp/Nonce; secrets env-only (32+ chars enforced, else silent disable with one log line); 5s AbortController timeout; ONE retry on network failure only; fire-and-forget AFTER successful storage (lead 201 never blocked); silent failure. README carries the full n8n receiving recipe (timestamp ±5min + nonce TTL 10min + timingSafeEqual).
+   277→- **Client wiring**: calculator + contact-form POST to /api/leads with loading states, server-translated error toasts (field errors mapped into inline messages), data preserved on failure, reference displayed in success state (`successReference` key), playSuccess only on real 201.
+   278→- **i18n**: apiErrors namespace + form error/reference keys → parity 479→499 keys.
+   279→- **Performance (§4)**:
+   280→  - LCP: hero + PageHero above-fold content now server-rendered with CSS-only `hero-enter` keyframes (h1/subtitle zero delay; badge/CTAs 0.12/0.22s). The framer `opacity:0` inline fingerprint is GONE from server HTML (verified). Dev-compatible proof: DOM-insert→visible Δ = animation window (~430-970ms), CSS-driven.
+   281→  - Three.js deferral: HeroCanvas loads on requestIdleCallback (2.5s timeout) or first pointermove/keydown; CapabilityScene loads only when its section nears viewport (rootMargin 200px). Verified: three.js resources = 0 at load, >0 after idle.
+   282→  - Light Reveal: `reveal.tsx` rewritten with IntersectionObserver + CSS transitions (same API); KineticWords now pure CSS (`.kinetic-word` keyframes + per-word delay). framer-motion remains ONLY in calculator/simulator/methodology (complex interactions, all home-page) — /about, /work, /services/websites (+EN) no longer ship framer in initial JS. bento MiniFlow pulse + before-after hint + trust-bar counter (useInViewOnce hook) + work-grid filtering all converted to CSS/IO; `usePrefersReducedMotion` hook (useSyncExternalStore) replaces framer's useReducedMotion in converted components.
+   283→  - reduced-motion override extended with animation/transition-delay: 0s (stagger waits removed for reduced-motion users).
+   284→- **Docs & deploy (§5)**: Dockerfile (3-stage standalone, HOSTNAME=0.0.0.0, prisma engines copied explicitly, volume /app/db, NEXT_PUBLIC_SITE_URL build-arg) + .dockerignore; `.env.example` (all 4 vars documented with build-time SEO warning); README: HOSTNAME trap table + upstream link + Phase-3 decisions (#18-22) + API contract table + n8n recipe + updated commands/folders.
+   285→- **Scripts**: `verify-api.mjs` (13 checks: EN/AR 400s, unknown field, forged budget w/ Prisma assert, 201+reference+row, webhook disabled/delivery modes via WEBHOOK_EXPECT, 429 burst + Retry-After + 61s window reset, mock-n8n receiver proving valid/tampered/wrong-secret/stale-timestamp/replayed-nonce) — 13/13 in BOTH webhook scenarios; `verify-performance.mjs` (10 checks); `lighthouse-prod.sh` (build + standalone serve + 12-route table + JS size — for build-capable environments); `clean-leads.ts` (dry-run mode).
+   286→- **Verification**: lint 0/0 strict · tsc 0 · parity 499/499 · sensory suites still 16/16 + 8/8 · performance 10/10 (×3 runs) · E2E real-API calculator (AR: success + reference cmt7j81g + Prisma row w/ correct computed 4000-6000) + contact (EN: toast + row + form cleared) · test rows cleaned (DB now 0 leads).
+   287→- **DEVIATIONS from prompt**: (1) `bun run build` + production Lighthouse FORBIDDEN in this sandbox (explicit policy) — all fixes implemented + verified structurally in dev; `scripts/lighthouse-prod.sh` prepared; measurement documented as deferred. (2) Prompt suggested Serializable tx recompute — not needed: computeEstimate is pure and the SQLite write is single-row (no read-modify-write), so a transaction would add nothing; documented. (3) Webhook payload delivery is fire-and-forget (not awaited) to protect response latency; correct for the standalone server target. (4) One intermittent dev-only Radix useId hydration warning (aria-controls on the mobile-menu Sheet trigger) — observed once across ~25+ loads, dev-streaming artifact, not reproducible, cosmetic, and absent from prerendered production output.
+   288→
+   289→Stage Summary:
+   290→- Complete: backend (endpoint + rate limit + Prisma + signed webhook, both scenarios proven), LCP/Three.js/JS-size structural fixes, deployment kit (Dockerfile/.env.example/README), all verification scripts committed.
+   291→- lint 0/0 · tsc 0 · parity 499/499 · zero console errors · DB clean.
+   292→- Launch readiness: code-complete; owner must supply real site-config data, real n8n env, domain/hosting, and run lighthouse-prod.sh in a build-capable environment.
+   293→
+   294→---
+   295→Task ID: HOTFIX-01
+   296→Agent: Main (Z.ai Code)
+   297→Task: Close the 4 launch gaps from the independent Phase-3 verification report (elyra-phase3-verification.md), base commit dd1c3ce.
+   298→
+   299→Work Log:
+   300→- **H-1 (CLS during streaming)**: `src/app/[locale]/loading.tsx` fallback raised from `min-h-[60vh]` to `min-h-[100svh]` — the footer leaves the visible frame during React streaming, so its displacement is excluded from CLS (root cause of the 0.424 CLS on AR pages). Verified: compiled CSS contains `.min-h-[100svh]{min-height:100svh}` AND live measurement caught the streamed fallback at exactly viewport height (minH=800px = vh=800px @191ms into /about). Layout + spinner unchanged.
+   301→- **H-2 (.env.example missing from repo)**: root cause found — the `.env*` gitignore rule was silently swallowing the template (it was written in Phase 3 but never committed). Added `!.env.example` exception + recreated the file with the ABSOLUTE DATABASE_URL path (`file:/app/db/custom.db`) per H-3.
+   302→- **H-3 (relative DB path trap)**: README Deployment section now documents that `file:./db/custom.db` breaks every write with 500 on standalone (relative paths resolve from CWD ≠ bundle dir), with an environments table and a bare-metal example.
+   303→- **H-4 (homepage TBT 690ms)**: chose option A — new `SimulatorLazy` wrapper (`next/dynamic` ssr:false + IntersectionObserver rootMargin 400px + section-shaped placeholder for zero CLS). Wired into `/` and `/services/automation` (replacing direct AutomationSimulator). Verified structurally: at load event the simulator chunk is ABSENT (29 JS chunks, hasSimulatorChunk=false); after scrolling near the placeholder it loads (38 chunks, simulatorLoaded=true) and completes a full run (اكتمل التدفق ✓); scenario tabs on /services/automation load on scroll and switching works. README decision #23-26 added.
+   304→- **Regression suites**: sensory 16/16 + performance 10/10 (one dev-only timing flake on the Three.js check re-run clean), lint 0/0 strict, tsc 0, parity 499/499, zero console errors.
+   305→- **Production build**: still forbidden in this sandbox — CLS/TBT verification done structurally + with live measurements; `scripts/lighthouse-prod.sh` remains the designated measurement tool for a build-capable environment (documented).
+   306→
+   307→Stage Summary:
+   308→- All 4 hotfix items closed with structural proof (dev environment): H-1 measured live at 100svh, H-2 file tracked in git with gitignore exception, H-3 documented with table+example, H-4 simulator chunk provably out of the initial load set and functional after lazy load.
+   309→- Ready for the final production Lighthouse run in a build-capable environment (expected: CLS < 0.1 everywhere, homepage TBT well below 690ms).
+   310→
+   311→---
+   312→Task ID: PHASE-5
+   313→Agent: Main (Z.ai Code)
+   314→Task: Execute Phase 5 "Fix → Complete → Deepen" (elyra-fullstack-prompt-05.md) — close P0/P1 gaps from Phase 4 verification + complete deferred Kinetic Typography + deepen details (.card-light-deep + 3 new data-cursor contexts + production readiness).
+   315→
+   316→Work Log:
+   317→
+   318→- **WS-1 (P0-1)** — WebGL scene rendering invisible after preset click:
+   319→  - Root cause: `<line>` JSX intrinsic collides with SVG line in R3F v9 + React 19 → silent render failure (mask-image:none, 0 non-zero pixels in canvas).
+   320→  - Fix: rewrote ConsoleScene to construct THREE.Line instances via `<primitive>` (bypasses the JSX collision). Per-preset layout (ring/orbit/flow) so each architecture reads distinctly. Brightened lighting + pushed camera back per preset. Added InitialRenderSafety component that triggers an extra invalidation on mount.
+   321→  - Also added auto-scroll: the dark scene container lives below the fold on standard screens, so clicking a preset never actually revealed the canvas. Now `scrollIntoView({ block: 'center' })` on preset click/Enter.
+   322→  - Verified visually with VLM on 4 presets (store/booking/ai/dashboard) + custom free-text. Clarity 8/10 on the matched snapshot pattern (was 0/10).
+   323→
+   324→- **WS-2 (P0-2)** — Spotlight + Blueprint grid invisible:
+   325→  - Three root causes combined: (a) `radial-gradient(700px circle at ...)` reversed the canonical shape-then-size order → modern Chromium silently rejected mask-image → grid leaked across whole viewport; (b) grid alpha 4% was too low for VLM detection; (c) no default state — grid invisible until first mousemove.
+   326→  - Fix: canonical syntax `circle 400px at var(--mx,50%) var(--my,50%)`, alpha raised 4% → 22%, dim default (opacity 0.45) until first pointermove, then `.spotlight-active` class ramps to 1. Default position center 50% 50% so first-time visitors see a hint.
+   327→  - Verified with full Chromium (channel:'chromium' — agent-browser's headless defaults to (hover:none) which triggers the touch fallback): mask-image applies correctly, grid visible in a focused ~400px circular beam under the cursor. VLM 7/10 (was 0/10).
+   328→
+   329→- **WS-3 (P1-1)** — Mobile + desktop active link state:
+   330→  - Mobile menu: original 2px (h-0.5) primary bar at the bottom was lost in the rounded-xl container. Now: 4px (w-1) primary bar on the START side (RTL-correct via 'inset-y-2 start-0') + bg-primary/15 + ring-1 ring-primary/40 + text-primary + soft glow shadow.
+   331→  - Desktop navbar: original 20% opacity text shift was invisible. Now: primary underline that scales in (opacity 0→100% + scale-x 0→100%) on the active link, with a hover-only 50% half-bar on inactive links.
+   332→  - Verified: VLM 9/10 on both mobile + desktop, active link instantly identifiable (was 0.85/10).
+   333→
+   334→- **WS-4 (P1-2)** — Deconstructed card 3D layer separation:
+   335→  - Three root causes: (a) outer 'h-screen max-h-[800px]' (800px) was SHORTER than the inner 'h-screen' (100vh) → sticky never engaged (sticky duration = outer - viewport = negative); (b) card was the FIRST item in a md:grid-cols-2 grid → grid cell constrained 200vh outer down to ~240px (row's natural height); (c) layer Z values all-positive (0/+28/+56) → depth delta only 56px with perspective 1000 → too subtle for VLM detection.
+   336→  - Fix: outer 'h-[200vh]' gives 100vh of sticky scroll time. Pulled the DeconstructedCard OUT of the grid as a full-width block before the grid. Layer Z spread AROUND 0: back=-50/middle=0/front=+50 at p=1. Perspective 1000→1500. Distinct visual language per layer (browser frame / n8n nodes / metric slides) with colored borders + matching shadows.
+   337→  - Verified: sticky zone now engages at the card's natural position (y≈3900). Transforms progress linearly from translateZ(0px) at scroll start to translateZ(-49.7px) back / 0 middle / +49.7px front at end. VLM 7/10 (was 0.7/10).
+   338→
+   339→- **WS-5 (P1-3 + P1-4)** — Contact whitespace + calculator rings:
+   340→  - P1-3: removed the redundant 133px-tall dark CTA band between channels and calculator (it duplicated the calculator's kicker+title — the Calculator component already renders its own SectionHeading). Page height reduced 2770→2637px (-5%).
+   341→  - P1-4 bug 1: animated value was the wrong number. The original RingGauge animated displayValue from 0 to 'fraction' (a 0-1 number), then formatted that as money via formatValue(n). So a $15000 budget with fraction=0.75 showed as '$1'. Fix: split 'fraction' (ring fill, 0-1) from 'value' (count-up display, the actual money/weeks number). Calculator now passes BOTH: fraction=Math.min(1, result.max/20000) AND value=result.max.
+   342→  - P1-4 bug 2: animation never ran in React Strict Mode. The original useEffect set fromRef.current = to BEFORE the rAF actually fired. Strict Mode runs effect setup → cleanup → effect setup again. First setup updated fromRef but its cleanup cancelled the rAF before it could tick. Second setup saw from === to → early-returned → no animation at all → rings stayed at 0 forever. Fix: only commit fromRef.current = to INSIDE the tick callback when the animation completes. Added a 'cancelled' flag so the cleanup can signal the in-flight tick to bail without scheduling another rAF.
+   343→  - Verified: rings animate 0 → $6,000 / 6 weeks over 800ms. VLM 9/10 on the result step (was 0/10 — VLM said 'no rings visible').
+   344→
+   345→- **WS-6 (deferred)** — Kinetic typography (cursor-velocity → font weight):
+   346→  - New hook useCursorVelocity (src/lib/use-cursor-velocity.ts): tracks pointermove, computes velocity (px/ms) per frame, maps velocity → wght (0 speed → 600, saturation 2.5 px/ms → 800, idle after 200ms → 700), Lerp 0.18 toward target, writes --wght straight to the target element's style via ref (zero React re-renders per frame). Activation guards: pointer:fine + NOT reduced-motion + client mount.
+   347→  - New component KineticHeading (src/components/home/kinetic-heading.tsx): server-renders h1 with static wght 700 (LCP-safe, no flash), then hook attaches and writes --wght after hydration. Splits each title line into per-word inline-block spans (Arabic shaping benefits from per-word isolation — complex-contextual shaping doesn't bleed across the whole line). h1 binds font-variation-settings to var(--wght, 700).
+   348→  - Hero h1 wired to KineticHeading (range 600→800, was fixed wght 200 — too thin). Primary CTA also wired (narrower range 600→700) — feels responsive to cursor speed without competing with the h1.
+   349→  - Verified: initial wght 700, slow movement drops to ~637-660 (lighter), idle returns to ~698-700, fast zigzag rises to 730+ (heavier). Per-word spans confirmed in both AR + EN. VLM on fast-motion screenshot: 'bold/heavy (700-800+ weight), highly readable'.
+   350→
+   351→- **WS-7 (deepening)** — .card-light-deep + 3 new data-cursor contexts:
+   352→  - New .card-light-deep CSS class (counterpart to .card-deep): 4-6% black border over light + multi-layer shadow (2px+8px+20px offsets) + 1px white top-highlight inset + 0.6 white bg + 8px backdrop blur. Contrast-safe: depth adds WITHOUT darkening → text on white stays ≥ 4.5:1.
+   353→  - Three new data-cursor contexts (zoom/inspect/external): magnetic-cursor now resolves each context's chip label from the common.cursor.* i18n catalog (AR + EN). Elements with explicit data-cursor-label still override (back-compat preserved). Chip element gets dir='auto' so the chip text flips correctly in RTL/LTR.
+   354→  - Applied: footer social icons (5 elements) → external ('رابط خارجي' / 'External link'). Work page project cards (6 elements) → zoom. Automation simulator stage → inspect ('افحص العنصر' / 'Inspect element'). All chips verified to show the translated label at opacity 1 on hover.
+   355→  - Layout fix: MagneticCursor moved INSIDE NextIntlClientProvider so the new useTranslations('common.cursor') call resolves at runtime. Previously it was outside the provider → 'context not found' error.
+   356→  - i18n parity 511→515 keys (+4: cursor.zoom/inspect/external/magnet empty string for magnet).
+   357→
+   358→- **WS-8 (production readiness)** — Reduce initial JS via lazy-loading Calculator + Methodology:
+   359→  - New CalculatorLazy + MethodologyLazy wrappers (next/dynamic ssr:false + IO with rootMargin 400px + section-shaped placeholder for zero CLS). Both framer-motion-using components deferred until near viewport.
+   360→  - Result: framer-motion's ~30KB minified+gzipped chunk + calculator + methodology component chunks now load ONLY when the user scrolls toward them, not at initial page load. Verified via chunk tracing: 0 framer/calculator/methodology chunks at initial networkidle, 4 such chunks loaded after scroll (methodology_tsx ×2, calculator_tsx ×1, framer-motion ×1).
+   361→  - LCP-safe: both components well below the fold. All 6 routes (×AR/EN) still render. Zero console/page errors.
+   362→  - verify-performance.mjs updated: Phase 2 sensory-layer check looked for the old 'fixed bottom-4 start-4' sound toggle position (Phase 4 moved it to the navbar). Now looks for 'header button[aria-label*=المؤثرات/sound]'. Score 8/10 → 9/10 (remaining Three.js-at-load check is a pre-existing test timing artifact — requestIdleCallback fires within networkidle's window in playwright).
+   363→
+   364→- **WS-9 (P2)** — Raise secondary-text contrast on light:
+   365→  - Darkened --muted-foreground token from #6E6E73 → #56565C. Old: 5.04:1 on white (barely AA), 4.61:1 on #F5F5F7 (page bg) — VLM read as 'very light gray on white'. New: 7.12:1 on white, 6.51:1 on #F5F5F7 — solidly AA with comfortable margin.
+   366→  - Verified: rgb(86,86,92) on /services/automation integration cards + /work card descriptions. VLM 8/10 on automation, 9/10 on work (was 'borderline').
+   367→
+   368→Stage Summary:
+   369→- All 9 work streams (WS-1 through WS-9) closed.
+   370→- 9 commits (3ea700d → 6dbffc0), each a reviewable unit.
+   371→- lint 0/0 strict · tsc 0 errors · i18n parity 515/515 (was 511/511 — +4 for new cursor context labels).
+   372→- Zero console/page errors across all 12 routes (×AR/EN).
+   373→- All P0/P1 from Phase 4 verification resolved: WebGL scene visible (8/10), spotlight visible (7/10), mobile active state prominent (9/10), deconstructed card 3D-separated (7/10), contact whitespace fixed (no redundant band), calculator rings animate ($6,000 budget / 6 weeks — was 0).
+   374→- Deferred Phase 4 item completed: Kinetic Typography (cursor velocity → font weight 600→800).
+   375→- Deepening: .card-light-deep token + 3 new data-cursor contexts (zoom/inspect/external) with translated chip labels.
+   376→- Production readiness: lazy-loaded Calculator + Methodology → framer-motion's ~30KB chunk out of initial bundle on / and /contact.
+   377→- verify-performance.mjs score 9/10 (was 8/10).
+   378→- Production Lighthouse measurement deferred to scripts/lighthouse-prod.sh per the sandbox policy (bun run build forbidden). Structural JS-size reduction proven via chunk tracing.
+   379→- All Phase 1–4 features verified working: live simulator, calculator with full lead submission to API, magnetic cursor, audio toggle, before/after sliders, WebGL hero, hreflang, HMAC webhook, audio UX, film grain, console scene, spotlight, deconstructed card, calculator rings.
+   380→---
+   381→Task ID: L1-A
+   382→Agent: security-analyst (Group 1, Loop 1)
+   383→Task: Deep security analysis of API/lib/infra files
+   384→
+   385→Work Log:
+   386→- Read worklog tail (Phase 5 + Hotfix 01 context), then read ALL 19 assigned files line by line: api/leads/route.ts (322 lines, full), lib/n8n-webhook.ts, lib/rate-limit.ts, lib/db.ts, lib/api-i18n.ts, prisma/schema.prisma, src/proxy.ts, next.config.ts, i18n/routing|request|navigation.ts, .env.example, Dockerfile, Caddyfile, app/robots.ts, app/sitemap.ts, app/icon.tsx, package.json, eslint.config.mjs.
+   387→- Traced full data flow client → Zod → recompute → Prisma insert → HMAC webhook → response; verified client-side fetch blocks (calculator.tsx, contact-form.tsx) confirm client never sends estimate numbers.
+   388→- Git/data-leak investigation: db/custom.db IS tracked (`git ls-files`) and 5 commits carry it; strings-extracted Lead rows across history — currently SYNTHETIC test data only (burst0-7@test.dev, forged/valid-calc/contact@test.dev, whatsapp +963991000000, IPs ::1). No real PII yet, but tracking is a latent production leak. sqlite3 CLI unavailable in sandbox — inspected via `strings` on working copy + all 5 historical blobs.
+   389→- Secret scan: rg across src/Dockerfile/Caddyfile/.env.example — zero hardcoded secrets; secrets come only from env vars; .env untracked (git error on ls-files), .dockerignore excludes .env/.git/db/logs/tool-results.
+   390→- Verified security headers, CSP weaknesses, HSTS preload implications; verified rate-limit key derivation (XFF leftmost = spoofable when directly exposed per Dockerfile run example); verified no body-size cap before req.json(); verified HMAC scheme is sender-side (receiver recipe in README uses timingSafeEqual + length check + nonce TTL — documented, out of repo).
+   391→- Checked Prisma: no $queryRaw anywhere; singleton pattern OK; found `log: ['query']` unconditional → PII into prod logs.
+   392→- Checked Caddyfile: `:81` + `?XTransformPort=<port>` = arbitrary localhost port reverse proxy (sandbox preview mechanism — dangerous if shipped as prod infra).
+   393→- Checked supply chain: ~30 unused runtime deps incl. EOL next-auth v4, z-ai-web-dev-sdk, recharts, @dnd-kit, @tanstack, etc. (verified via import grep; ui/chart.tsx is dead code).
+   394→- Checked dangerouslySetInnerHTML sites: home-json-ld.tsx (static config only — safe), ui/chart.tsx (shadcn pattern, unused).
+   395→- Verified apiErrors catalogs AR/EN have all 11 field keys (parity) so fieldErrors never leaks raw key names.
+   396→
+   397→Stage Summary:
+   398→- Verdict: 0 P0 / 6 P1 / 10 P2.
+   399→- P1-1 rate-limit key trusts spoofable X-Forwarded-For (route.ts:99-104) — bypass + unbounded Map growth.
+   400→- P1-2 no request body size cap before req.json() (route.ts:217) — memory DoS on self-hosted Node.
+   401→- P1-3 db/custom.db tracked in git with Lead rows in history — latent PII leak; clean-leads.ts can't fix history.
+   402→- P1-4 Prisma `log:['query']` unconditional (db.ts:10) — lead PII into production stdout logs.
+   403→- P1-5 Caddyfile :81 XTransformPort = open proxy to any localhost port — sandbox-only, must not ship.
+   404→- P1-6 CSP ships 'unsafe-inline'+'unsafe-eval' + https: img/connect — negligible XSS containment.
+   405→- P2: webhook retry reuses nonce/signature; no Origin/Sec-Fetch-Site check (cross-site form spam); whatsapp unvalidated + integrations duplicates + array-index issues unmapped; deprecated z.string().email() in Zod 4.3.5; ~30 unused deps incl EOL next-auth v4; Dockerfile root user + no HEALTHCHECK; db:push --accept-data-loss footgun; tee pipeline breaks SIGTERM; HSTS preload premature; PII retention policy missing + SITE_URL fail-soft localhost default.
+   406→- Positives preserved: server-side estimate recompute + strict schemas, rate-limit-before-parse, generic errors (no stack traces), HMAC webhook with ts+nonce and 32-char min secret, parameterized Prisma only, no admin routes, .dockerignore/.gitignore hygiene, locale allowlisting everywhere.
+   407→
+   408→---
+   409→Task ID: L1-B
+   410→Agent: core-logic-analyst (Group 1, Loop 1)
+   411→Task: Deep analysis of lib/hooks/i18n/configs
+   412→
+   413→Work Log:
+   414→- Read worklog (Phase 5 + hotfix context), then read ALL 20 assigned files line-by-line: 6 lib modules (calculator, sound, seo, site-config, utils, api-i18n), 5 hooks (use-cursor-velocity, use-reduced-motion, use-rtl, use-toast, use-mobile), both i18n catalogs in full (919 lines each), parity script, and all 5 configs (+ next.config.ts, globals.css head, proxy.ts for cross-verification).
+   415→- Ran check-i18n-parity.js: PASS 515/515 keys.
+   416→- Wrote a throwaway deeper i18n auditor (placeholders, array lengths, identical AR/EN values): 0 placeholder mismatches, 0 array-length mismatches, 3 intentional identicals (CRM, email, telegram handle). Deleted after use.
+   417→- Brute-force verified calculator.ts across 2,592 input combinations (services × pages incl. 0/NaN/100 × languages × threeD × automationLevel × integration subsets): weeks always integers, weeksMax > weeksMin always, min<=max always, breakdown internally consistent pre-rounding. Verified formatMoney output for ar/en/unknown locales.
+   418→- Simulated use-cursor-velocity's exact rAF/lerp scheduling logic: PROVED the idle-return path runs exactly ONE 18% lerp step then freezes (e.g., wght stuck at 770.7 instead of returning to 700) — writeWght never re-schedules itself.
+   419→- Verified Tailwind 4 config chain: postcss = @tailwindcss/postcss only; globals.css uses @import "tailwindcss" + @theme inline + @custom-variant dark; NO @config directive anywhere → tailwind.config.ts is never loaded (and its content globs point at non-existent ./pages ./components ./app dirs).
+   420→- Dead-export/dead-code tracing via Grep across src/: routing re-export in seo.ts, BRAND_COLORS in site-config.ts, the entire shadcn toast system (use-toast.ts + toast.tsx + toaster.tsx — layout mounts sonner's Toaster instead), sidebar.tsx chain (+ use-mobile.ts, separator, skeleton, tooltip, toggle, toggle-group, dialog via command), ~36 unused ui components, and ~25 unused package.json deps (next-auth, uuid, z-ai-web-dev-sdk, @mdxeditor, @tanstack/*, @dnd-kit/*, recharts, date-fns, embla, vaul, cmdk, input-otp, react-syntax-highlighter, react-markdown, react-day-picker, react-resizable-panels, zustand, @reactuses/core, react-hook-form, tailwindcss-animate, radix-toast...; prisma CLI + @types/three misplaced in dependencies).
+   421→- Cross-checked live consumers: computeEstimate/formatMoney (calculator + api/leads route), sound engine (sound-toggle + 4 components + delegation), useCursorVelocity (kinetic-heading + hero CTA), useIsRtl (navbar/before-after/simulator), getApiT (api/leads), SITE_CONTACT/SITE_SOCIAL (footer/contact/json-ld), proxy.ts matcher confirmed excluding /api (validates api-i18n.ts design comment).
+   422→
+   423→Stage Summary:
+   424→- Verdict: 0 P0 / 3 P1 / 8 P2.
+   425→- [P1-1] use-cursor-velocity.ts:72-87,121-124 — lerp is not self-sustaining; after cursor stops, idle timeout fires ONE 18% step then --wght freezes mid-transition (sim: 770.7, spec: 700). Fix: writeWght should reschedule while |target-current| > epsilon (or run a persistent rAF loop while active).
+   426→- [P1-2] tailwind.config.ts — dead config under Tailwind 4 (never loaded, no @config; content globs don't match src/ layout; darkMode/plugins superseded by @theme inline + @custom-variant + tw-animate-css) + dead tailwindcss-animate dep. Trap: future edits there silently no-op. Fix: delete file + dep.
+   427→- [P1-3] calculator.ts:139-146 — breakdown lines are unrounded while headline min/max are round100'd → visible sum mismatch up to ±$50 (e.g. website/20pg/bilingual/3D/6-int: lines sum 10425, headline 10400). Fix: round each line (or present lines as exact sub-totals + rounding note).
+   428→- [P2-1] Dead code mass: shadcn toast trio, sidebar chain, ~36 unused ui components, BRAND_COLORS, seo.ts routing re-export, seo.ts no-op ternary (arPath).
+   429→- [P2-2] check-i18n-parity.js treats arrays as leaves and never checks {placeholder} sets — no guard against future array-length/ICU drift (clean today, verified manually).
+   430→- [P2-3] Arabic i18n quality: singular-only plurals ({count} صفحة, {seconds} ثانية), بصمة→"Bassam" mistranslation, "A digitally small agency" EN mistranslation, tanween orthography (محرفاً→محرفًا), mixed digit systems (secondsLabel Latin "0.86" vs Arabic-Indic stepOf).
+   431→- [P2-4] eslint leniencies: no-console/no-debugger/no-unreachable/ban-ts-comment/no-img-element all off.
+   432→- [P2-5] ~25 unused dependencies incl. next-auth (supply-chain/audit surface); prisma CLI + @types/three in dependencies; db:push --accept-data-loss footgun script.
+   433→- [P2-6] calculator robustness nits: weeksMax fallback branch provably dead + references unrounded weeksMin; clampPages allows 0 vs UI/API 1-20; saturationVelocity=0 theoretical div-by-zero.
+   434→- [P2-7] Type rigor: formatMoney/seo locale params typed `string` instead of 'ar'|'en'; missing return types (cn, useIsMobile, useCursorVelocity); use-mobile.ts lacks 'use client'.
+   435→- [P2-8] use-reduced-motion getSnapshot calls matchMedia per render (new MQL allocation); sound.ts relies on GC for stopped oscillator/gain nodes (no onended disconnect); CSP ships unsafe-eval/unsafe-inline for script-src in prod headers.
+   436→- Positives: calculator math brute-force clean (2592 combos), sound engine autoplay-policy-correct with clean lifecycles, parity 515/515 with zero placeholder/array drift, tsconfig strict+noUncheckedIndexedAccess, no any/non-null assertions in reviewed libs, react-hooks rules at error level.
+   437→
+   438→---
+   439→Task ID: L1-D
+   440→Agent: routes-layout-analyst (Group 1, Loop 1)
+   441→Task: Deep analysis of app routes, layout, shared components, CSS foundation
+   442→
+   443→Work Log:
+   444→- Read worklog tail (Phase 5 + hotfixes context), then read ALL 32 assigned files completely (routes, layout, error/loading/not-found, globals.css 590 lines, navbar/footer/clock/switcher, 7 shared components, logo, i18n trio, proxy, next.config).
+   445→- Supporting reads: lib/seo.ts, lib/site-config.ts, lib/use-rtl.ts, seo/home-json-ld.tsx, .env.example, messages/ar+en.json structure, ui/ spot-checks (button/input/sonner/toaster/sidebar/chart).
+   446→- ui/ modification detection: git diff initial→HEAD shows only sidebar.tsx touched (+7/−3: Math.random useMemo→useState purity fix + eslint-disable for vendored cookie write). No injected code; dangerouslySetInnerHTML only in stock chart.tsx + JSON-LD (static config input, safe).
+   447→- LIVE verification (dev server): rendered <title> on /, /en, /contact, /en/contact, /about; canonical+hreflang+OG tags on /contact, /en/contact, /en/services/websites; sitemap.xml hreflang output; robots.txt; /icon 200 image/png; html lang/dir per locale; viewport meta; security headers.
+   448→- LIVE 404 probing: /fr, /nonexistent, /en/nonexistent all render the DEFAULT Next.js English unstyled 404 (next-error-h1) — [locale]/not-found.tsx never renders (no root app/not-found.tsx, no [...rest] catch-all). Confirmed Arabic notFoundTitle string absent from payload.
+   449→- LIVE aria-labelledby audit: 6 sections reference non-existent ids (values/team on /about; types/journey on /services/websites; int/n8n on /services/automation) — SectionHeading supports titleId but callers don't pass it.
+   450→- Confirmed no OG/Twitter image anywhere (no images: in metadata, no opengraph-image.tsx/twitter-image.tsx/apple-icon.tsx files) despite twitter:card=summary_large_image.
+   451→- Confirmed title double-branding: all 10 subpage meta.title strings end "| Elyra/إيليرا" AND layout title template appends " — Elyra" → "Contact Us | Elyra — Elyra" (verified live).
+   452→- RTL hygiene grep: zero ml-/mr-/pl-/pr- in first-party components (only stock shadcn ui/); logical props used throughout. No viewport export anywhere. aria-live only in live-clock (minute-tick SR issue) + loading.
+   453→
+   454→Stage Summary:
+   455→- Verdict: 2 P0 / 3 P1 / 13 P2.
+   456→- P0-1 double-branded titles on all subpages (template + pre-branded strings, verified "Contact Us | Elyra — Elyra").
+   457→- P0-2 localized not-found.tsx unreachable: missing root not-found.tsx + [...rest] catch-all → default English 404 for every unknown URL in any locale.
+   458→- P1-1 no OG/Twitter image at all (summary_large_image card with no image, all 12 URLs).
+   459→- P1-2 six broken aria-labelledby references (SectionHeading titleId never passed by 3 pages).
+   460→- P1-3 LiveClock aria-live="polite" announces time every minute to screen-reader users site-wide.
+   461→- P2s: no viewport/themeColor export; no apple-touch-icon; skip link bypasses nav.skipToContent key; locale switch drops query string; .reveal invisible without JS; prod CSP keeps unsafe-inline+unsafe-eval; stale dark-mode comment + dead @custom-variant dark; no ::selection + minimal print styles; sitemap lastmod always build-time + deprecated robots host; JSON-LD SearchAction targets non-existent /work?q= search; typedRoutes not enabled; PageHero wght 200 vs home 700 inconsistency; error.tsx comment claims server-side log but console.error is client-only.
+   462→- Positives: hreflang/canonical machinery exemplary (verified live on 4 routes + sitemap), hydration discipline (useSyncExternalStore ×2, clock placeholder), 100svh streaming fallback, RTL logical-property hygiene, sticky footer + safe-area correct, ui/ stock, security headers live, per-locale OG locale tags.
+   463→---
+   464→Task ID: L1-C
+   465→Agent: components-analyst (Group 1, Loop 1)
+   466→Task: Deep analysis of home/sensory/3D/pages components
+   467→
+   468→Work Log:
+   469→- Read worklog tail; read all 26 target files line by line (19 home components, 3 sensory, capability-scene, contact-form, work-grid, home-json-ld).
+   470→- Cross-read supporting infrastructure to verify claims: use-reduced-motion.ts, use-cursor-velocity.ts, use-rtl.ts, sound.ts, reveal.tsx, section-heading.tsx, globals.css (reveal/cursor/orbit/grain/reduced-motion rules), page.tsx composition, site-config.ts, seo.ts, api/leads/route.ts, messages/{ar,en}.json cursor keys.
+   471→- Verified R3F v9.7.0 disposal semantics from installed dist source: removeChild → disposeOnIdle skips primitives ("Never dispose of primitives"); Canvas unmount → forceContextLoss after 500ms; primitive object-prop change → reconstruct (line 15475).
+   472→- Verified aria-labelledby target ids exist for only 3 of 10 labelled sections (grep for id= targets).
+   473→- Verified global prefers-reduced-motion override kills infinite CSS animations (covers MiniOrbit), and .elyra-cursor-active cursor:none is media-scoped to no-preference.
+   474→- Classified findings by severity; no code modified.
+   475→
+   476→Stage Summary:
+   477→- Verdict: 0 P0 / 4 P1 / 14 P2.
+   478→- P1-1: 7 sections have dangling aria-labelledby ids (bento/simulator/methodology/threeD/featured-work/testimonials/calculator) — SectionHeading accepts titleId but no caller passes it.
+   479→- P1-2: ConsoleScene frameloop='always' never pauses offscreen (no IO/active gating; contradicts its own §9.4 comment) — 60fps WebGL for rest of session after preset click.
+   480→- P1-3: testimonials.tsx:30 hardcoded English aria-label "5 out of 5 stars" — i18n bypass on AR pages.
+   481→- P1-4: unthrottled pointermove handlers doing getBoundingClientRect read + style write per event (hero spotlight, bento GlowCard, capability-scene R3F handler) — style recalc at input frequency; 5 concurrent pointer listeners in hero.
+   482→- P2s: timer cleanup gaps (MiniFlow/MiniAgent/hero-console rAFs); magnetic-cursor chip.textContent DOM write per frame + reduced-motion live-toggle leaves loop running; visibilitychange-vs-IO race can re-enable offscreen frameloop (hero + three-d-section); methodology-lazy placeholder bg-elyra-dark ≠ real bg-background + all 3 lazy placeholders undersized vs real content; console-scene line geometries leak per preset switch (R3F never disposes primitives); capability-scene TorusKnot geo/mat not disposed by R3F (relies on forceContextLoss) + no webglcontextlost handling anywhere; project1 rendered twice in featured-work; bento eyebrow+h3 render identical title string ×5 + MiniSite hex aria-labels; simulator "completed" string rendered 3×; tablist roles without tabpanels; JSON-LD SearchAction targets /work?q= with no search implementation; Reveal content stays opacity:0 without JS; i18n nits (en-US NumberFormat, 'Project' default label, slider aria min/max 0-100 vs clamp 2-98); no honeypot on lead forms (rate limit only) + HeroCanvasFallback dead export.
+   483→- Positive: reduced-motion uSES pattern is hydration-safe by construction; all IO/rAF/listener cleanup verified complete in hero, three-d-section, simulator, ring-gauge, magnetic-cursor, cursor-velocity, sound; before-after is fully keyboard-operable with RTL-correct logic; forms have zod + aria wiring + server-side field errors.
+   484→
+   485→---
+   486→Task ID: 2-a
+   487→Agent: security-fixer (Group 2, Loop 1)
+   488→Task: Implement L1-A security fixes (rate-limit gating, body cap, CSP, honeypot, etc.)
+   489→
+   490→Work Log:
+   491→- FIX 1 (P1-1) route.ts: clientIp() now env-gated — TRUST_PROXY !== 'true' (default) ignores X-Forwarded-For/x-real-ip entirely and keys the limiter on the literal 'anonymous' (fail-closed shared bucket); TRUST_PROXY=true keeps leftmost-XFF → x-real-ip → 'anonymous'. ipForRecord nulls the 'anonymous' sentinel. Doc comment explains when to set true.
+   492→- FIX 1 (P1-1) lib/rate-limit.ts: sweep() now hard-caps the hits Map — after pruning, if size > 5_000 it deletes the oldest 1_000 entries (Map insertion order) to bound memory under key-flooding.
+   493→- FIX 2 (P1-2) route.ts: pre-parse cheap header gates — content-length > 64 KiB → 413 {error:'too_large', message:t('tooLarge')}; content-type must contain application/json → else 415 (generic 'invalid' shape). Both before req.json().
+   494→- FIX 3 (P1-3): git rm --cached db/custom.db (file kept on disk, app unaffected); .gitignore gains db/*.db, db/*.db-wal, db/*.db-shm (!.env.example exception untouched). History NOT rewritten — 5 commits still carry the blob but it contains only synthetic test data (verified by L1-A audit via strings extraction); noted here as the permanent record.
+   495→- FIX 4 (P1-4) lib/db.ts: Prisma log is now env-conditional — production: ['error']; else ['query','error','warn'] (PII: lead names/emails/phones must not reach prod logs).
+   496→- FIX 5 (P1-5) Caddyfile: prepended 5-line "SANDBOX-ONLY FILE — NOT FOR PRODUCTION" quarantine comment; rest byte-identical (tabs preserved — first edit accidentally expanded tabs, caught via git diff and rebuilt from git blob + comment).
+   497→- FIX 6 (P1-6) next.config.ts: CSP restructured into contentSecurityPolicy() fn of NODE_ENV — dev keeps Turbopack HMR needs (unsafe-eval, https:/wss:); prod: default-src 'self', script-src 'self' 'unsafe-inline' (inline bootstrap scripts required by statically-prerendered Next pages; nonce CSP incompatible with static prerendering — justification in comment), style-src 'self' 'unsafe-inline', img-src 'self' data: blob:, font-src 'self' data:, connect-src 'self', worker-src 'self' blob:, object-src 'none', base-uri 'self', form-action 'self', frame-ancestors 'none'; NO upgrade-insecure-requests (sandbox is plain HTTP). HSTS: dropped 'preload' (kept max-age=63072000; includeSubDomains).
+   498→- FIX 7 (P2-1) lib/n8n-webhook.ts: retry now regenerates ts/nonce/HMAC per attempt (attemptDelivery() builds fresh headers inside the loop); 5s AbortController timeout per attempt, single retry, fire-and-forget semantics and all exported signatures preserved.
+   499→- FIX 8 (P2-2) route.ts: cross-site rejection — sec-fetch-site in {cross-site, same-site} → 403 t('crossOrigin'); Origin present but host ≠ request host (or malformed Origin, fail-closed) → 403; absent headers (curl/API clients) allowed.
+   500→- FIX 9 (P2-3/4) route.ts: whatsapp gains regex /^\+?[0-9 ()\-]{5,30}$/ (trim + length bounds kept); integrations rejects duplicates via .refine(); fieldErrors() maps by ROOT path segment so ['integrations', 0] issues surface on fields.integrations; z.string().email() → z.email() (Zod 4.3.5, tsc clean).
+   501→- FIX 10 (P2-6) Dockerfile: RUN chown -R bun:bun /app (covers db volume mount point) + USER bun (non-root); bun-based HEALTHCHECK (no curl dep) on http://127.0.0.1:3000/; multi-stage structure intact.
+   502→- FIX 11 (P2-8) package.json: start script de-piped from tee (SIGTERM now reaches the server directly; Docker captures stdout). dev script untouched.
+   503→- FIX 12 route.ts: companyWebsite: z.string().max(200).optional() added to both lead schemas; non-empty after trim → fake 201 with fresh 8-char reference (no DB write, no webhook); empty/absent → normal path, never persisted (create() data is field-explicit).
+   504→- FIX 13: .env.example gains TRUST_PROXY=false + 2-line comment; .env appended TRUST_PROXY=true (sandbox gateway overwrites XFF); prisma/schema.prisma comment block above Lead (ipAddress/userAgent = abuse tracing only; recommend ≤90-day retention before production).
+   505→- Verification: tsc — 10 errors ALL in other agents' concurrent files (5 [locale] pages + calculator.tsx, Locale-type tightening fallout), 0 in owned files; eslint 0 findings. Live curl smoke (dev :3000): 201+reference on valid ar lead; 413 on bogus AND real 69KB body; 415 on text/plain; 403 on sec-fetch-site cross-site/same-site + mismatched Origin, matching Origin passes; whatsapp/integrations-dup/array-index/bad-email/unknown-field all return translated field errors; honeypot → 201 with NO row (count 0→1 only for the real lead; empty-string honeypot stored normally); per-key rate limit proven (6th hit on one XFF key → 429, fresh key passes). CSP: dev header still contains unsafe-eval, HSTS preload gone (next dev auto-restarted on config change → also picked up TRUST_PROXY=true from .env; ipAddress '::1' stored proves proxy headers trusted). 2 synthetic test rows cleaned from db/custom.db after verification (count back to 0). git diff --stat confirms only owned files touched.
+   506→
+   507→Stage Summary:
+   508→- All 13 fixes implemented as specified; lint clean; tsc clean in owned files (10 pre-existing concurrent-agent errors noted above, none mine).
+   509→- Dev server auto-restarted itself when next.config.ts changed (Next 16 behavior) — .env TRUST_PROXY=true is therefore already live; no manual restart needed or performed.
+   510→- Coordination notes: apiErrors.tooLarge/crossOrigin keys already present in messages/{ar,en}.json (i18n agent) — consumed, verified live in Arabic responses. Honeypot input name contract = companyWebsite (schema side done; form side belongs to the components agent).
+   511→- Risk notes: prod CSP retains script-src 'unsafe-inline' by necessity (static prerendering); TRUST_PROXY=true in .env is sandbox-specific — production deploys behind a NON-Caddy TLS proxy must confirm it overwrites XFF, else set false.
+   512→---
+   513→Task ID: 2-b
+   514→Agent: i18n-core-fixer (Group 2, Loop 1)
+   515→Task: Fix i18n catalogs (P0 titles, new keys, quality) + core lib bugs (cursor velocity, calculator)
+   516→
+   517→Work Log:
+   518→- FIX 1 (P0): stripped brand suffix "| Elyra/إيليرا" from all 10 subpage meta titles (contact/about/work/services.websites/services.automation × ar/en) — layout template `%s — Elyra` now appends the brand exactly once. Home meta.title defaults untouched. Live-verified: /contact → "تواصل معنا — Elyra", /en/about → "About Us — Elyra", home unchanged.
+   519→- FIX 2 (P1): added `testimonials.rating` (ar: "تقييم ٥ من ٥ نجوم" / en: "Rated 5 out of 5 stars") — matches components agent's `t('rating')` conversion in testimonials.tsx (verified in their file).
+   520→- FIX 3: added `apiErrors.tooLarge` + `apiErrors.crossOrigin` (ar/en) — completes /api/leads 413/403 responses that already call t('tooLarge')/t('crossOrigin').
+   521→- FIX 4: `calculator.pagesValue` converted to ICU plural — ar: all 6 categories (zero {لا صفحات} one/two/few/many/other, verified against Intl.PluralRules('ar') 0-20), en: one/other. Verified renders via next-intl createTranslator for 0,1,2,3,6,10,11,20. DECISION: `simulator.completed` seconds key LEFT UNCHANGED — value is always a fixed non-integer decimal per scenario (0.86/0.67/1.07) → ICU plural would always select 'other'; conversion pointless.
+   522→- FIX 5: p6 AR «استوديو «بصمة» الإبداعي» → «استوديو «بسّام» الإبداعي» (guillemets kept, sibling-consistent: متجر «لمسة»…, أكاديمية «مسار»…); about.hero.subtitle EN "A digitally small agency…" → "A small digital agency…" (faithful to AR «صغيرة الحجم»); tanween orthography fixed ×4: مجدداً→مجدّدًا (calculator.form.errorNetwork, pages.contact.form.errorNetwork, apiErrors.serverError) + محرفاً→محرفًا (apiErrors.fields.whatsapp).
+   523→- FIX 6 (P1): use-cursor-velocity writeWght is now self-sustaining — re-schedules rAF while |target−current| > 0.5, snaps + stops (rafId=0) on convergence; idle timeout now eases back over ~25 frames (sim: 770.7→700 in 25 frames, 800→600 in 31). Cleanup resets rafId to 0 (stale handle would otherwise block StrictMode remounts); effect re-run resets target/current to idleWght. All guards preserved (pointer:fine, reduced-motion, dt<1, passive listener).
+   524→- FIX 7 (P1): calculator breakdown lines rounded to $100 grid FIRST, headline = sum of rounded lines (invariant comment added: "displayed lines always sum to the headline"). Audited example website/20pg/bilingual/3D/6-int: lines 2800+2700+1900+1500+1500 = 10400 = headline (was 10425 vs 10400); max 16200 exact. Brute-forced 8448 combos: 0 failures (sums always match, min≤max, weeksMax>weeksMin, weeks integer, lines on grid). clampPages → [1,20] (NaN→1) matching UI slider + API Zod. Dead branches removed (Math.max fallbacks on weeksMin/weeksMax) — ordering guarantee documented (raw weeksMax−weeksMin ≥ 2 by construction).
+   525→- FIX 8: formatMoney locale: 'ar' | 'en' (local `export type Locale` — lib stays decoupled from i18n infra); seo.ts PageMetadataInput.locale: Locale (type-only import from @/i18n/routing); cn(...): string; use-mobile.ts: 'use client' + : boolean (note: file lives at src/hooks/, not src/lib/).
+   526→- FIX 9: seo.ts module-level one-time prod warning when NEXT_PUBLIC_SITE_URL is unset.
+   527→- FIX 10: BRAND_COLORS deleted from site-config.ts (grep: zero importers outside docs/worklog).
+   528→- FIX 11: use-reduced-motion caches MQL in lazy module-level singleton (getMql()) — one allocation instead of one per render; subscribe/getSnapshot semantics + server snapshot false unchanged.
+   529→- FIX 12: sound.ts playTone sets osc.onended → gain.disconnect() + osc.disconnect() (explicit node teardown; double-disconnect harmless).
+   530→- FIX 13: tailwind.config.ts DELETED (verified: no @config in globals.css, no imports anywhere; Tailwind 4 CSS-first via @theme; never-loaded v3 leftover).
+   531→- FIX 14: check-i18n-parity.js extended — now also verifies per-key type match, array length equality, and ICU placeholder set equality ({name} + {name, plural/select heads}); exit 1 on any failure; self-tested with 5 injected failure classes (orphan key, type, array-length, 3 placeholder mismatches) — all caught.
+   532→
+   533→Stage Summary:
+   534→- Parity: PASS 518/518 keys (was 515; +testimonials.rating, +apiErrors.tooLarge, +apiErrors.crossOrigin). Placeholders verified on 477 string keys, arrays on 18 keys, 0 mismatches.
+   535→- tsc: 0 errors in owned files. 10 ANTICIPATED foreign-file errors from the Locale narrowing (coordination contract): 5 page files pass `locale: string` (from params) to buildPageMetadata — need `params: Promise<{ locale: 'ar'|'en' }>` or a narrowed pass; calculator.tsx:441/459/476 pass `useLocale()` (string) to formatMoney — needs cast/guard (e.g. `locale === 'en' ? 'en' : 'ar'` or `as Locale`).
+   536→- lint: 0 errors, 0 warnings.
+   537→- Arithmetic: audited example sums exactly (10400–16200); 8448-combo brute force clean; throwaway check deleted.
+   538→- git diff: only owned files touched by this agent (12 files incl. tailwind.config.ts deletion).
+   539→---
+   540→Task ID: 2-c
+   541→Agent: components-fixer (Group 2, Loop 1)
+   542→Task: Implement L1-C component fixes (a11y ids, frameloop pause, pointermove coalescing, honeypot, etc.)
+   543→
+   544→Work Log:
+   545→- FIX 1: passed titleId to SectionHeading in bento/simulator/methodology/threeD/featured-work/testimonials/calculator — all 7 dangling aria-labelledby ids now resolve (SSR-verified: h2 ids present in HTML).
+   546→- FIX 2: threaded active (IntersectionObserver + visibility) Hero → HeroConsole → ConsoleScene; frameloop={reduced || !active ? 'never' : 'always'} + Nodes active={!reduced && active}; default true keeps API back-compatible.
+   547→- FIX 3: testimonials stars row aria-label now t('rating') — key landed in both catalogs mid-session by i18n agent; verified live EN "Rated 5 out of 5 stars" / AR "تقييم ٥ من ٥ نجوم".
+   548→- FIX 4: rAF-coalesced hero spotlight + bento GlowCard pointermove (latest-event ref + single rAF, no reschedule when idle, unmount cancel); capability-scene R3F onPointerMove throttled to ~60Hz via performance.now() guard placed BEFORE the `last` delta update so drag accumulation stays correct.
+   549→- FIX 5: bento MiniFlow timeout + MiniAgent typewriter interval now ref-tracked (clear on unmount, re-arm, and reset — kills the double-interval race); hero-console scroll rAFs ref-tracked + deduped into one scrollSceneIntoView helper.
+   550→- FIX 6: magnetic-cursor chip.textContent write guarded by lastChipLabel; reduced-motion is now React state (usePrefersReducedMotion) in the engine effect deps — toggling fully tears down rAF loop/listeners/MutationObserver and re-initializes on opt-back-in; removed the now-redundant MQL listener.
+   551→- FIX 7: hero + three-d-section track intersectingRef (written by IO); visibilitychange computes !document.hidden && intersectingRef.current — offscreen sections can no longer be re-enabled by tab switches.
+   552→- FIX 8: methodology-lazy placeholder bg-elyra-dark → bg-background (real section is light); min-h raised: simulator 420→720, calculator 600→1000, methodology 500→900/sm:1100 (slightly-under estimates of real rendered heights; IO rootMargin 400px untouched).
+   553→- FIX 9: console-scene line disposal — effect keyed on the lines memo disposes the PREVIOUS set's geometry+material after React unmounts them (and the current set on unmount); R3F-safe (never disposes mounted objects).
+   554→- FIX 10: capability-scene Knot geo/mat disposed in effect cleanup (prop-passed resources aren't auto-disposed); ContextLossGuard component adds webglcontextlost listener on gl.domElement (preventDefault + warn) with cleanup.
+   555→- FIX 11: project1 removed from featured-work grid (kept in DeconstructedCard showcase) — duplication was real (same title/desc/metrics in both); grid becomes single centered max-w-2xl card; live-verified: 1 article, 1 slider.
+   556→- FIX 12: removed the 5 redundant bento icon-eyebrow spans (identical string to the h3 below; no distinct per-card kicker key in catalogs) — icons render alone, rhythm intact; color swatches aria-hidden + tabIndex=-1 (DOM-verified).
+   557→- FIX 13: simulator "completed" sentence now renders exactly once (h3 only); status row shows idle/running + stepOf — live-verified post-run: 1 occurrence of "اكتمل التدفق في".
+   558→- FIX 14: tablist/tab downgraded to aria-pressed toggle buttons in automation-simulator scenario picker + work-grid filters (SSR + live-verified: no role=tab anywhere on /en/work).
+   559→- FIX 15: SearchAction removed from home-json-ld (target /work?q= never existed) — verified absent in rendered HTML.
+   560→- FIX 16: trust-bar Counter formats via next-intl useFormatter().number() — the exact machinery the simulator's stepOf uses (site digit convention: counts follow locale, money stays Latin); live AR render "120+", "4,800" (this Chromium's CLDR maps ar→latn digits; consistent with simulator).
+   561→- FIX 17: BeforeAfter label prop now REQUIRED (both call sites already pass translated titles); slider aria-valuemin/max = 2/98 to match the actual clamp.
+   562→- FIX 18: honeypot input added to contact-form + calculator lead form (exact contract markup + ref); payload includes companyWebsite: honeypotRef.current?.value ?? '' — E2E verified: bot fill → 201 fake success, toast shown, ZERO DB rows (strings-check on prisma/custom.db); DOM-verified: tabIndex -1, aria-hidden, pointer-events none, 1×1px offscreen.
+   563→- FIX 19: HeroCanvasFallback dead export removed (grep: zero imports).
+   564→- ALSO: calculator.tsx locale narrowed to the lib agent's newly-tightened Locale union (useLocale() string → 'en'|'ar' via total narrowing, no `as` cast) after their formatMoney signature change introduced 5 tsc errors in my file.
+   565→
+   566→Stage Summary:
+   567→- All 19 fixes DONE (none partial/skipped).
+   568→- Verification: tsc — 0 errors in my owned files (5 remaining errors are FOREIGN: app/[locale]/{about,contact,services/*,work}/page.tsx pass `string` to the lib agent's tightened buildPageMetadata Locale param — outside my ownership); eslint — 0 findings project-wide; dev server 200s on /, /en, /en/contact, /en/work, /en/services/websites, /en/services/automation; live browser E2E: a11y ids, honeypot contract (bot discard + no DB write), simulator dedupe, featured-work dedupe, swatch attrs, WebGL canvas mount after preset click.
+   569→- Coordination notes: testimonials `rating` key already landed (renders correctly both locales); API honeypot contract live (client sends companyWebsite on both forms — JSON.stringify payloads, ref-read at submit); foreign tsc errors in app routes belong to the lib/routes agents (buildPageMetadata locale typing).
+   570→
+   571→---
+   572→Task ID: 2-d
+   573→Agent: routes-layout-fixer (Group 2, Loop 1) — completed work recovered by coordinator after context-timeout
+   574→Task: Fix P0 404 reachability, OG image, a11y ids, CSS hygiene, viewport/skip-link/query-preservation
+   575→
+   576→Work Log:
+   577→- FIX 1 (P0): created [locale]/[...rest]/page.tsx catch-all (notFound() → localized boundary inside layout) + root app/not-found.tsx (self-contained bilingual, html/body like global-error). Moved loading.tsx from [locale]/ to each page segment — [locale]-level Suspense fallback would flush a 200 shell before notFound() throws (soft-404). Verified: /nonexistent-xyz, /en/nonexistent, /fr → 404 + localized content; /ar/nonexistent → 307 (as-needed prefix strip) → 404.
+   578→- FIX 2 (P1): created [locale]/opengraph-image.tsx (ImageResponse 1200×630, English-only text — default font has no Arabic glyphs, documented). Verified PNG 200. Coordinator follow-up: subpages' buildPageMetadata openGraph object replaced the segment's file-convention image (shallow merge) → added explicit images to src/lib/seo.ts openGraph + twitter; verified og:image on all pages × both locales.
+   579→- FIX 3 (P1): titleId passed on about (values-title, team-title), websites (types-title, journey-title), automation (int-title, n8n-title).
+   580→- FIX 4 (P1): live-clock aria-live removed (minute announcements were SR noise).
+   581→- FIX 5 (P2): viewport export (themeColor #0F172A, colorScheme light).
+   582→- FIX 6 (P2): [locale]/apple-icon.tsx 180×180.
+   583→- FIX 7 (P2): skip link now uses nav.skipToContent catalog key.
+   584→- FIX 8 (P2): language-switcher preserves query string via window.location.search at click (no useSearchParams → no static bailout).
+   585→- FIX 9 (P2): .reveal no-JS safe — hidden state scoped under @media (scripting: enabled).
+   586→- FIX 10 (P2): globals.css — accurate dark-token comment, ::selection brand style, print block (hide navbar/cursor/grain/toaster).
+   587→- FIX 11 (P2): sitemap fixed LAST_MODIFIED constant; robots host directive removed.
+   588→- FIX 12 (P2): page-hero wght 200 → 700 (consistent with home KineticHeading baseline).
+   589→- FIX 13 (P2): error.tsx comment corrected (client-side log, not server).
+   590→- ALSO: fixed the 5 page-level tsc errors from buildPageMetadata Locale narrowing (params typing).
+   591→
+   592→Stage Summary:
+   593→- All 13 fixes done. tsc 0, lint 0. Live verification: 404s localized (4 URL shapes), OG image 200 PNG + wired on all pages, titles deduplicated.
+   594→
+   595→---
+   596→Task ID: 2-central
+   597→Agent: coordinator (central cleanup + integration)
+   598→
+   599→Work Log:
+   600→- Completed 2-d's unfinished steps after its context-timeout: live verification of 404s (all 4 URL shapes localized), OG image (PNG 1200×630, 200), worklog entry.
+   601→- Fixed OG image integration gap discovered during verification: buildPageMetadata's openGraph object replaced the segment's file-convention image (Next metadata merge is shallow) → explicit images added to openGraph + twitter in src/lib/seo.ts; og:image verified on all pages × both locales.
+   602→- Dead-code purge (L1-B P2-1 + L1-A P2-5): deleted 41 never-imported ui components (kept button/input/label/sheet/slider/sonner/textarea), deleted dead hooks use-toast.ts + use-mobile.ts, removed src/hooks dir.
+   603→- Dependency pruning: 49 packages removed (next-auth, z-ai-web-dev-sdk, uuid, @mdxeditor, @tanstack/*, @dnd-kit/*, recharts, date-fns, embla, input-otp, vaul, cmdk, react-syntax-highlighter, react-markdown, react-day-picker, react-resizable-panels, zustand, @reactuses/core, react-hook-form, @hookform/resolvers, tailwindcss-animate, 24 unused radix pkgs); prisma + @types/three moved to devDependencies; package renamed nextjs_tailwind_shadcn_ts → elyra@1.0.0; bun install lockfile updated.
+   604→- E2E verification after pruning: valid calculator lead → 201 + reference cmt9xjx8 + server-recomputed estimate (7500/11600, rounded-grid consistent); honeypot bot → fake 201, ZERO DB rows; TRUST_PROXY XFF key derivation live (198.51.100.77 stored); test rows cleaned (DB empty).
+   605→- Full gates: tsc 0 errors · eslint 0 findings · i18n parity 518/518 (placeholders on 477 keys + arrays on 18 keys verified) · all 7 routes ×2 locales HTTP 200 · dev.log clean.
+   606→
+   607→Stage Summary:
+   608→- Loop 1 complete: 2 P0 + 16 P1 + 39 P2 fixed across 4 fixer agents + central cleanup. 49 deps pruned, 43 dead files removed. All quality gates green.
+   609→

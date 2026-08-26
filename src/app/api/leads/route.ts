@@ -267,6 +267,16 @@ export async function POST(req: NextRequest) {
       { status: 413 }
     )
   }
+  // Chunked bodies carry no content-length — without this gate an
+  // attacker can stream an arbitrarily large body past the cap above
+  // (verification L2-A). The site's own fetch() clients always send
+  // content-length, so legitimate traffic is unaffected.
+  if (req.headers.get('transfer-encoding') !== null) {
+    return NextResponse.json(
+      { error: 'too_large', message: t('tooLarge') },
+      { status: 413 }
+    )
+  }
   const contentType = req.headers.get('content-type') ?? ''
   if (!contentType.toLowerCase().includes('application/json')) {
     return NextResponse.json(
@@ -335,12 +345,14 @@ export async function POST(req: NextRequest) {
   // companyWebsite means a bot filled the hidden field. Return the exact
   // 201 success shape (fresh reference) so bots can't tell the difference;
   // no DB write, no webhook. The field is likewise never persisted below.
+  // The fake reference mirrors the REAL reference shape — 'c' + base-36
+  // chars, like Prisma's cuid — so the discard path is not fingerprintable
+  // by reference alphabet (verification L2-A).
   const input = parsed.data
   if (input.companyWebsite !== undefined && input.companyWebsite.trim() !== '') {
-    return NextResponse.json(
-      { reference: crypto.randomBytes(6).toString('hex').slice(0, 8) },
-      { status: 201 }
-    )
+    let fakeReference = 'c'
+    for (let i = 0; i < 7; i++) fakeReference += crypto.randomInt(36).toString(36)
+    return NextResponse.json({ reference: fakeReference }, { status: 201 })
   }
 
   // 6) Persist (storage has priority over the webhook — §3.3).

@@ -357,7 +357,7 @@
       }
     },
     "pages": "عدد الصفحات",
-    "pagesValue": "{count, plural, zero {لا صفحات} one {# صفحة} two {# صفحتان} few {# صفحات} many {# صفحة} other {# صفحات}}",
+    "pagesValue": "{count, plural, zero {لا صفحات} one {صفحة واحدة} two {صفحتان} few {# صفحات} many {# صفحة} other {# صفحات}}",
     "languages": "اللغات",
     "languagesOptions": {
       "single": "عربية فقط",
