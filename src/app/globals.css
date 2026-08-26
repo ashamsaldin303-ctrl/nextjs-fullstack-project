@@ -82,7 +82,14 @@
   --secondary: #E8E8ED;
   --secondary-foreground: #1D1D1F;
   --muted: #ECECEF;
-  --muted-foreground: #6E6E73;
+  /* Phase 5 P2 (WS-9): muted-foreground darkened from #6E6E73 to #56565C
+     for stronger AA contrast on light surfaces. The old #6E6E73 hit
+     5.04:1 on white (barely AA) and 4.61:1 on the #F5F5F7 page background
+     — visually borderline, VLM read it as 'very light gray on white'.
+     The new #56565C scores 7.12:1 on white / 6.51:1 on #F5F5F7, solidly
+     AA with a comfortable margin. Text-secondary stays muted but
+     clearly readable. */
+  --muted-foreground: #56565C;
   --accent: #E8F2FF;
   --accent-foreground: #0071E3;
   --destructive: #DC2626;
