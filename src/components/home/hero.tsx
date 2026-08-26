@@ -6,7 +6,9 @@ import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { ArrowRight, Play } from 'lucide-react'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
+import { useCursorVelocity } from '@/lib/use-cursor-velocity'
 import { HeroConsole } from './hero-console'
+import { KineticHeading } from './kinetic-heading'
 
 const HeroCanvas = dynamic(
   () => import('./hero-canvas').then((m) => m.HeroCanvas),
@@ -33,8 +35,21 @@ export function Hero() {
   const reduced = usePrefersReducedMotion()
 
   const heroRef = useRef<HTMLElement>(null)
+  // Phase 5 WS-6: ref for the primary CTA — kinetic typography with a
+  // narrower wght range (600→700) so the button feels responsive to
+  // cursor speed without competing with the h1's wider 600→800 range.
+  const ctaPrimaryRef = useRef<HTMLAnchorElement>(null)
   const [active, setActive] = useState(true)
   const [load3D, setLoad3D] = useState(false)
+
+  // Phase 5 WS-6: apply kinetic typography to the primary CTA.
+  useCursorVelocity(ctaPrimaryRef, {
+    minWght: 600,
+    maxWght: 700,
+    idleWght: 700,
+    saturationVelocity: 3,
+    idleMs: 200,
+  })
 
   // Pause rendering when the hero scrolls offscreen or the tab is hidden.
   useEffect(() => {
@@ -129,15 +144,13 @@ export function Hero() {
           {t('badge')}
         </span>
 
-        <h1
+        <KineticHeading
           id="hero-title"
-          className="hero-enter mt-8 text-balance text-5xl font-bold leading-[1.05] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl"
-          style={{ fontVariationSettings: '"wght" 200' }}
-        >
-          <span className="block">{t('titleTop')}</span>
-          <span className="block text-primary">{t('titleAccent')}</span>
-          <span className="block">{t('titleBottom')}</span>
-        </h1>
+          titleTopKey="titleTop"
+          titleAccentKey="titleAccent"
+          titleBottomKey="titleBottom"
+          className="hero-enter mt-8"
+        />
 
         <p className="hero-enter mt-8 max-w-2xl text-base leading-relaxed text-white/70 sm:text-lg md:text-xl">
           {t('subtitle')}
@@ -145,9 +158,13 @@ export function Hero() {
 
         <div className="hero-enter hero-enter-2 mt-10 flex flex-col items-center gap-3 sm:flex-row">
           <Link
+            ref={ctaPrimaryRef}
             href="/contact"
             data-cursor="magnet"
             className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-6 text-base font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
+            // Phase 5 WS-6: bind CTA weight to --wght (default 700 when
+            // hook hasn't written — covers SSR + touch + reduced).
+            style={reduced ? undefined : { fontVariationSettings: '"wght" var(--wght, 700)' }}
           >
             {t('ctaPrimary')}
             <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" aria-hidden="true" />
