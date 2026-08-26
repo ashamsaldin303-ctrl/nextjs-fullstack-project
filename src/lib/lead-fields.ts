@@ -49,14 +49,24 @@ export const leadNameSchema = z
 export const leadEmailSchema = z.email().max(254)
 
 /** Loose human-typed phone pattern: optional leading +, digits, spaces,
- *  parens, dashes — 5–30 chars. Optional (calculator leads only). */
-export const leadWhatsappSchema = z
-  .string()
-  .trim()
-  .min(5)
-  .max(30)
-  .regex(/^\+?[0-9 ()\-]{5,30}$/)
-  .optional()
+ *  parens, dashes — 5–30 chars. Optional (calculator leads only).
+ *
+ *  Empty string is treated as ABSENT (closing-verification V-B-1):
+ *  zod's `.optional()` only exempts `undefined`, but the calculator's
+ *  form state initializes `whatsapp: ''` — without this preprocess an
+ *  untouched optional field would fail min(5) and block submission.
+ *  Applied at the shared-schema level so client AND server treat ''
+ *  identically (an API client sending "" gets the same leniency). */
+export const leadWhatsappSchema = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  z
+    .string()
+    .trim()
+    .min(5)
+    .max(30)
+    .regex(/^\+?[0-9 ()\-]{5,30}$/)
+    .optional()
+)
 
 /** Contact inquiry text: 10–5000 chars, no control/format characters. */
 export const leadMessageSchema = z

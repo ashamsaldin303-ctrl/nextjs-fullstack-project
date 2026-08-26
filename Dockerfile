@@ -52,7 +52,13 @@ WORKDIR /app
 ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     PORT=3000 \
-    NEXT_TELEMETRY_DISABLED=1
+    NEXT_TELEMETRY_DISABLED=1 \
+    # Self-default so a bare `docker run` (without -e DATABASE_URL) works:
+    # the standalone server loads no .env, and prisma's env("DATABASE_URL")
+    # has no literal fallback — without this, the container boots healthy
+    # but every lead insert 500s (closing verification V-A-1). An operator
+    # -e DATABASE_URL=... overrides this default.
+    DATABASE_URL=file:/app/db/custom.db
 
 # Standalone server + already-copied static assets & public dir
 COPY --from=build /app/.next/standalone ./
