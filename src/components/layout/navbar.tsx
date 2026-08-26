@@ -65,12 +65,26 @@ export function Navbar() {
                 <Link
                   href={item.href}
                   className={cn(
-                    'inline-flex h-9 items-center rounded-full px-3 text-sm font-medium text-white/80 transition-colors hover:text-white',
-                    active && 'text-white'
+                    'group relative inline-flex h-9 items-center rounded-full px-3 text-sm font-medium transition-colors',
+                    active
+                      ? 'text-white'
+                      : 'text-white/70 hover:text-white'
                   )}
                   aria-current={active ? 'page' : undefined}
                 >
                   {item.label}
+                  {/* Phase 5 P1-1: prominent active indicator — primary underline
+                      that scales in on hover/active. Was previously just a 20%
+                      text-opacity shift that VLM could not distinguish. */}
+                  <span
+                    className={cn(
+                      'pointer-events-none absolute inset-x-2 -bottom-0.5 h-0.5 rounded-full bg-primary transition-all',
+                      active
+                        ? 'opacity-100 scale-x-100'
+                        : 'opacity-0 scale-x-0 group-hover:opacity-50 group-hover:scale-x-75'
+                    )}
+                    aria-hidden="true"
+                  />
                 </Link>
               </li>
             )
@@ -126,16 +140,21 @@ export function Navbar() {
                             href={item.href}
                             data-cursor="magnet"
                             className={cn(
-                              'group relative flex min-h-11 items-center overflow-hidden rounded-xl px-4 text-base text-white/80 transition-colors hover:bg-white/5 hover:text-white',
-                              active && 'bg-white/10 text-white'
+                              'group relative flex min-h-12 items-center overflow-hidden rounded-xl px-4 py-3 text-base transition-colors',
+                              active
+                                ? 'bg-primary/15 text-primary ring-1 ring-primary/40'
+                                : 'text-white/80 hover:bg-white/5 hover:text-white'
                             )}
                             aria-current={active ? 'page' : undefined}
                           >
                             {item.label}
-                            {/* WS-0 §3.5: active indicator — primary bottom bar */}
+                            {/* Phase 5 P1-1: prominent active indicator — thick
+                                primary bar on the start side (RTL-correct via
+                                inset-inline-start) with a soft glow. Was h-0.5
+                                (2px) at bottom which VLM could not see. */}
                             {active ? (
                               <span
-                                className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary"
+                                className="pointer-events-none absolute inset-y-2 start-0 w-1 rounded-full bg-primary shadow-[0_0_12px_var(--color-primary)]"
                                 aria-hidden="true"
                               />
                             ) : null}
