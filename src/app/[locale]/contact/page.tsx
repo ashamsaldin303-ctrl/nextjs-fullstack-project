@@ -94,17 +94,12 @@ export default async function ContactPage() {
         </div>
       </section>
 
-      {/* Calculator as the fast lane */}
-      <section className="bg-elyra-dark py-6 text-elyra-on-dark" aria-labelledby="calc-cta">
-        <div className="elyra-container max-w-5xl text-center">
-          <Reveal>
-            <span className="kicker kicker-on-dark">{t('calculator.kicker')}</span>
-            <h2 id="calc-cta" className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              {t('calculator.title')}
-            </h2>
-          </Reveal>
-        </div>
-      </section>
+      {/* Calculator as the fast lane — directly embedded, no separate
+          dark CTA band needed (the Calculator component already renders
+          its own SectionHeading). Phase 5 P1-3: removed the redundant
+          133px-tall dark divider band that VLM flagged as "awkward
+          horizontal bar with no content" — it duplicated the calculator
+          kicker+title that the Calculator component shows anyway. */}
 
       <Calculator />
     </>

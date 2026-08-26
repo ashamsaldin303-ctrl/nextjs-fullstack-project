@@ -431,6 +431,7 @@ export function Calculator() {
                           <div className="mb-6 flex items-center justify-center gap-12">
                             <RingGauge
                               fraction={Math.min(1, result.max / 20000)}
+                              value={result.max}
                               formatValue={(n) => formatMoney(Math.round(n), locale)}
                               label={t('result.budget')}
                               color="#0071E3"
@@ -438,6 +439,7 @@ export function Calculator() {
                             />
                             <RingGauge
                               fraction={Math.min(1, result.weeksMax / 12)}
+                              value={result.weeksMax}
                               formatValue={(n) => `${Math.round(n)}`}
                               label={t('result.duration')}
                               color="#34A853"

@@ -14,6 +14,15 @@ import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
  *
  * Pure SVG — no Canvas, no WebGL. RTL reverses the rotation direction.
  * Reduced-motion: final values displayed instantly, no animation.
+ *
+ * Phase 5 P1-4 fix: the original implementation animated `displayValue`
+ * from 0 to `fraction` (a 0-1 number), then formatted that as money —
+ * so a $15000 budget showed as "$1" because fraction=0.75 rounded to 1.
+ * Now the component takes BOTH `fraction` (for the ring fill, 0-1) and
+ * `value` (for the count-up display, the actual money/weeks number).
+ * The ring fill animates proportionally to fraction; the displayed
+ * number counts up to `value`. They're coupled by design (a higher value
+ * also fills more of the ring) but formatted independently.
  */
 
 const RADIUS = 52
@@ -22,6 +31,8 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS
 interface RingGaugeProps {
   /** 0–1 fraction of the ring to fill. */
   fraction: number
+  /** The actual value to count up to (e.g., budget in dollars, or weeks). */
+  value: number
   /** Formatter for the count-up display value. */
   formatValue: (n: number) => string
   /** Label below the ring. */
@@ -32,37 +43,47 @@ interface RingGaugeProps {
   isRtl: boolean
 }
 
-export function RingGauge({ fraction, formatValue, label, color, isRtl }: RingGaugeProps) {
+export function RingGauge({ fraction, value, formatValue, label, color, isRtl }: RingGaugeProps) {
   const reduced = usePrefersReducedMotion()
-  const [displayValue, setDisplayValue] = useState(reduced ? fraction : 0)
+  // Count-up animates the VALUE (e.g. $15000), not the fraction — fixing
+  // the original bug where formatMoney(0.75) showed "$1".
+  const [displayValue, setDisplayValue] = useState(reduced ? value : 0)
   const fromRef = useRef(0)
 
-  // Count-up animation — fires on mount (viewport entry via the IO guard
-  // in the parent) and on every fraction change (calculator input changes).
-  // setDisplayValue is called inside a rAF callback (async, NOT synchronous
-  // in the effect body) so react-hooks/set-state-in-effect does not flag it.
   useEffect(() => {
     if (reduced) return
     const from = fromRef.current
-    const to = fraction
+    const to = value
     if (from === to) return
     const duration = 800
     const startTime = performance.now()
+    let cancelled = false
     let raf = 0
     const tick = (now: number) => {
+      if (cancelled) return
       const t = Math.min(1, (now - startTime) / duration)
       const eased = 1 - Math.pow(1 - t, 3)
       setDisplayValue(from + (to - from) * eased)
-      if (t < 1) raf = requestAnimationFrame(tick)
+      if (t < 1) {
+        raf = requestAnimationFrame(tick)
+      } else {
+        // Only commit fromRef when the animation completes successfully
+        // — protects against React Strict Mode's effect cleanup+rerun
+        // pattern, which otherwise updates fromRef before the rAF
+        // actually fires, then the second effect sees from === to and
+        // skips the animation entirely (Phase 5 P1-4 root cause).
+        fromRef.current = to
+      }
     }
     raf = requestAnimationFrame(tick)
-    fromRef.current = to
-    return () => cancelAnimationFrame(raf)
-  }, [fraction, reduced])
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(raf)
+    }
+  }, [value, reduced])
 
   // Ring fill — pure CSS transition on stroke-dashoffset (no rAF).
-  const effectiveFraction = reduced ? fraction : fraction
-  const dashOffset = CIRCUMFERENCE * (1 - effectiveFraction)
+  const dashOffset = CIRCUMFERENCE * (1 - Math.max(0, Math.min(1, fraction)))
   const rotation = isRtl ? -90 : 90
 
   return (
@@ -103,7 +124,7 @@ export function RingGauge({ fraction, formatValue, label, color, isRtl }: RingGa
         {/* Count-up number centered */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-xl font-bold tabular-nums text-foreground">
-            {formatValue(reduced ? fraction : displayValue)}
+            {formatValue(reduced ? value : displayValue)}
           </span>
         </div>
       </div>
