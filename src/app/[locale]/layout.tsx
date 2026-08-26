@@ -109,10 +109,13 @@ export default async function LocaleLayout({
             {children}
           </main>
           <Footer />
+          {/* Phase 2 — Sensory Polish Layer (app-wide, single instance each).
+              MagneticCursor lives INSIDE NextIntlClientProvider so the
+              Phase 5 WS-7 context chip can resolve translated labels
+              from common.cursor.* at runtime. */}
+          <FilmGrain />
+          <MagneticCursor />
         </NextIntlClientProvider>
-        {/* Phase 2 — Sensory Polish Layer (app-wide, single instance each) */}
-        <FilmGrain />
-        <MagneticCursor />
         <Toaster position="top-center" richColors closeButton />
       </body>
     </html>

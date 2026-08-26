@@ -211,8 +211,10 @@ export function AutomationSimulator({
           </div>
         ) : null}
 
-        {/* Stage */}
-        <div className="mt-10 overflow-x-auto scroll-dark no-scrollbar">
+        {/* Stage — Phase 5 WS-7: data-cursor="inspect" so the magnetic
+            cursor shows the localized 'Inspect element' chip over the
+            n8n nodes panel (technical context, not just a magnet snap). */}
+        <div className="mt-10 overflow-x-auto scroll-dark no-scrollbar" data-cursor="inspect">
           <div className="relative min-w-[680px]" style={{ height: '260px' }}>
             {/* SVG edges */}
             <svg

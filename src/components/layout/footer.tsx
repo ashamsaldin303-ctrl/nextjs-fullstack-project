@@ -138,6 +138,7 @@ export function Footer({ className }: { className?: string }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={t('footer.social.telegram')}
+                  data-cursor="external"
                   className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
                 >
                   <Send className="size-4" aria-hidden="true" />
@@ -149,6 +150,7 @@ export function Footer({ className }: { className?: string }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={t('footer.social.whatsapp')}
+                  data-cursor="external"
                   className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
                 >
                   <MessageCircle className="size-4" aria-hidden="true" />
@@ -160,6 +162,7 @@ export function Footer({ className }: { className?: string }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={t('footer.social.instagram')}
+                  data-cursor="external"
                   className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
                 >
                   <Instagram className="size-4" aria-hidden="true" />
@@ -171,6 +174,7 @@ export function Footer({ className }: { className?: string }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={t('footer.social.linkedin')}
+                  data-cursor="external"
                   className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
                 >
                   <Linkedin className="size-4" aria-hidden="true" />
@@ -182,6 +186,7 @@ export function Footer({ className }: { className?: string }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={t('footer.social.github')}
+                  data-cursor="external"
                   className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
                 >
                   <Github className="size-4" aria-hidden="true" />

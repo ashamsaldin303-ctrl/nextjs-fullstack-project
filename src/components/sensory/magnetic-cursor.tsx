@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import { useTranslations } from 'next-intl'
 
 /**
  * Magnetic Cursor — Phase 2 "Sensory Polish Layer" (prompt §3).
@@ -15,6 +16,11 @@ import { useEffect, useRef } from 'react'
  * When the pointer comes within MAGNET_RADIUS (~80px) of an element marked
  * `data-cursor="magnet"`, the ring scales up and snaps softly toward the
  * element's center (direction-agnostic — RTL/LTR neutral by design).
+ *
+ * Phase 5 WS-7: extended context chip. Elements with `data-cursor="zoom"`
+ * (or `inspect` / `external`) get a translated chip with the context's
+ * label unless they override via `data-cursor-label`. The default labels
+ * come from the common.cursor.* i18n catalog (AR/EN).
  *
  * Enabled ONLY when all of:
  *   · `matchMedia('(pointer: fine)')`  — never on touch devices;
@@ -36,10 +42,35 @@ const MAGNET_RADIUS = 80
 const MAGNET_SCALE = 1.5
 const PRESS_SCALE = 0.82
 
+// Phase 5 WS-7: the four pre-existing contexts + three new ones. Each
+// resolves to a translated chip label from common.cursor.*.
+type CursorContext = 'magnet' | 'rotate' | 'preview' | 'drag' | 'zoom' | 'inspect' | 'external'
+const ALL_CONTEXTS: ReadonlyArray<CursorContext> = ['magnet', 'rotate', 'preview', 'drag', 'zoom', 'inspect', 'external']
+
 export function MagneticCursor() {
   const dotRef = useRef<HTMLDivElement>(null)
   const ringRef = useRef<HTMLDivElement>(null)
   const chipRef = useRef<HTMLDivElement>(null)
+  const t = useTranslations('common.cursor')
+
+  // Resolve context labels ONCE per render — they don't change at runtime.
+  // Empty string for `magnet` keeps the chip hidden (no label for plain
+  // magnets — the ring scale-up is the only feedback). Wrapped in useMemo
+  // so the object identity is stable across renders (the useEffect deps
+  // array uses this object — without memo, every render creates a new
+  // object and re-triggers the effect).
+  const contextLabels = useMemo<Record<CursorContext, string>>(
+    () => ({
+      magnet: t('magnet'),
+      rotate: t('rotate'),
+      preview: t('preview'),
+      drag: t('drag'),
+      zoom: t('zoom'),
+      inspect: t('inspect'),
+      external: t('external'),
+    }),
+    [t],
+  )
 
   useEffect(() => {
     const dot = dotRef.current
@@ -77,11 +108,20 @@ export function MagneticCursor() {
     const refreshMagnets = () => {
       magnets = Array.from(document.querySelectorAll('[data-cursor]')).map((el) => {
         const r = el.getBoundingClientRect()
+        // Phase 5 WS-7: per-element label takes precedence; otherwise
+        // resolve the label from the context's catalog key. Elements
+        // with `data-cursor="magnet"` get an empty string (no chip).
+        const explicitLabel = el.getAttribute('data-cursor-label')
+        const context = el.getAttribute('data-cursor') as CursorContext | null
+        const label =
+          explicitLabel ??
+          (context && ALL_CONTEXTS.includes(context) ? contextLabels[context] : '') ??
+          ''
         return {
           el,
           x: r.left + r.width / 2,
           y: r.top + r.height / 2,
-          label: el.getAttribute('data-cursor-label') || '',
+          label,
         }
       })
     }
@@ -168,8 +208,12 @@ export function MagneticCursor() {
       ring.style.transform = `translate3d(${ringPos.x - RING_SIZE / 2}px, ${ringPos.y - RING_SIZE / 2}px, 0) scale(${ringScale.toFixed(3)})`
 
       // WS-2: contextual text chip — follows the ring with an offset.
+      // Phase 5 WS-7: now context-aware (zoom/inspect/external) when
+      // data-cursor-label isn't explicitly set.
       if (magnet && magnet.label) {
         chip.textContent = magnet.label
+        // RTL/LTR neutral offset — chip appears on the ring's right side
+        // in LTR, left in RTL (handled by dir=auto on the chip element).
         chip.style.transform = `translate3d(${ringPos.x + 20}px, ${ringPos.y + 8}px, 0)`
         chip.style.opacity = '1'
       } else {
@@ -215,7 +259,7 @@ export function MagneticCursor() {
       ring.classList.remove('elyra-cursor--visible')
       document.documentElement.classList.remove('elyra-cursor-active')
     }
-  }, [])
+  }, [contextLabels])
 
   return (
     <>
@@ -231,10 +275,11 @@ export function MagneticCursor() {
         aria-hidden="true"
         className="elyra-cursor elyra-cursor-ring"
       />
-      {/* WS-2: contextual text chip */}
+      {/* WS-2: contextual text chip — dir=auto so RTL/LTR flips */}
       <div
         ref={chipRef}
         aria-hidden="true"
+        dir="auto"
         className="elyra-cursor elyra-cursor-chip"
       />
     </>

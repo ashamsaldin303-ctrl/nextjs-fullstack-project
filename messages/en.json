@@ -890,7 +890,11 @@
     "cursor": {
       "rotate": "Drag to rotate 360°",
       "preview": "Live preview",
-      "drag": "Drag to compare"
+      "drag": "Drag to compare",
+      "zoom": "Magnified preview",
+      "inspect": "Inspect element",
+      "external": "External link",
+      "magnet": ""
     }
   },
   "apiErrors": {
