@@ -25,19 +25,20 @@ export function FeaturedWork() {
           subtitle={t('subtitle')}
         />
 
+        {/* WS-5: the first featured project is a full-width deconstructed
+            3D card — pulled out of the grid so it can take a proper
+            sticky zone (Phase 5 P1-2: the original layout squashed the
+            card into a 240px grid row, killing the sticky scroll effect
+            and the Z separation entirely). */}
+        <Reveal delay={0}>
+          <DeconstructedCard projectKey="project1" />
+        </Reveal>
+
         <div className="mt-14 grid gap-8 md:grid-cols-2">
-          {PROJECTS.map((p, i) => {
+          {PROJECTS.map((p) => {
             const metrics = t.raw(`${p.key}.metrics`) as string[]
-            // WS-5: first project gets the deconstructed 3D card
-            if (i === 0) {
-              return (
-                <Reveal key={p.key} delay={0}>
-                  <DeconstructedCard projectKey={p.key} />
-                </Reveal>
-              )
-            }
             return (
-              <Reveal key={p.key} delay={i * 0.1}>
+              <Reveal key={p.key} delay={0.1}>
                 <article className="group" data-cursor="preview" data-cursor-label={tc('cursor.preview')}>
                   <BeforeAfter
                     variant={p.variant}

@@ -250,6 +250,9 @@
     "before": "Before",
     "after": "After",
     "viewAll": "Browse All Work",
+    "deconstructed": {
+      "hint": "Drag to explore layers"
+    },
     "project1": {
       "title": "Lamsa Fashion Store",
       "category": "E-commerce",
