@@ -187,19 +187,20 @@ function Nodes({ preset, active }: { preset: PresetId; active: boolean }) {
     groupRef.current.rotation.x += delta * 0.02
   })
 
-  // FIX(2-c/9): R3F never disposes primitives (its removeChild →
-  // disposeOnIdle path explicitly skips them), so every preset switch
-  // would strand the previous lines' geometry + material GPU buffers.
-  // Track the mounted set in a ref; the effect cleanup disposes the
-  // PREVIOUS set — which React has already unmounted from the scene
-  // graph by the time cleanup runs — and the final cleanup (unmount)
-  // disposes the current set. Nothing still mounted is ever disposed.
-  const mountedLines = useRef<THREE.Line[]>([])
+  // FIX(2-c/9, board-R3): R3F never disposes primitives (its removeChild →
+  // disposeOnIdle path explicitly skips them), so the line geometry +
+  // material GPU buffers need explicit disposal. Dispose the `lines`
+  // closure value in the cleanup: on a preset switch React has already
+  // unmounted the OLD set by the time the cleanup runs, and on final
+  // unmount the finally-mounted set IS disposed. Under StrictMode the
+  // dev double-invoke briefly disposes still-mounted geometries which
+  // three.js transparently re-uploads next frame — the same accepted
+  // semantics as capability-scene's Knot disposal (consistency +
+  // correctness over the previous off-by-one, which freed each retired
+  // set one commit late and never the finally-mounted one).
   useEffect(() => {
-    const previous = mountedLines.current
-    mountedLines.current = lines
     return () => {
-      for (const line of previous) {
+      for (const line of lines) {
         line.geometry.dispose()
         const material = line.material
         if (Array.isArray(material)) material.forEach((m) => m.dispose())

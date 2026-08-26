@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
+import { useNearViewport } from '@/lib/use-near-viewport'
 
 /**
  * Lazy wrapper around the Calculator (Phase 5 WS-8).
@@ -48,28 +48,9 @@ const LazyCalculator = dynamic(
 )
 
 export function CalculatorLazy() {
-  const ref = useRef<HTMLDivElement>(null)
-  const [near, setNear] = useState(false)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    if (typeof IntersectionObserver === 'undefined') {
-      const id = window.requestAnimationFrame(() => setNear(true))
-      return () => window.cancelAnimationFrame(id)
-    }
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          setNear(true)
-          io.disconnect()
-        }
-      },
-      { rootMargin: '400px 0px' }
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
+  // Near-viewport gate (rootMargin 400px lead) — shared hook, formerly
+  // copy-pasted observer machinery (board-R2).
+  const { ref, near } = useNearViewport<HTMLDivElement>()
 
   return (
     <div ref={ref}>

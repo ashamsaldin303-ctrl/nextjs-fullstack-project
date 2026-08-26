@@ -66,7 +66,7 @@ function MiniSite() {
   return (
     <div className="mt-6">
       <p className="text-xs text-muted-foreground">{t('title')}</p>
-      <p className="mt-1 text-[11px] text-muted-foreground/70">{t('hint')}</p>
+      <p className="mt-1 text-[11px] text-muted-foreground">{t('hint')}</p>
       <div className="mt-4 overflow-hidden rounded-xl border border-border bg-elyra-dark/95 p-3 text-elyra-on-dark">
         <div className="flex items-center gap-1.5">
           <span className="size-2 rounded-full bg-g-red/80" />
@@ -138,7 +138,7 @@ function MiniFlow() {
   return (
     <div className="mt-6">
       <p className="text-xs text-muted-foreground">{t('title')}</p>
-      <p className="mt-1 text-[11px] text-muted-foreground/70">{t('hint')}</p>
+      <p className="mt-1 text-[11px] text-muted-foreground">{t('hint')}</p>
       <div className="mt-4 flex items-center gap-2 rounded-xl border border-border bg-elyra-dark/95 p-4 text-elyra-on-dark">
         {[0, 1, 2].map((i) => (
           <div key={i} className="flex flex-1 items-center gap-2">
@@ -225,7 +225,7 @@ function MiniCube() {
 
   return (
     <div className="mt-6">
-      <p className="text-[11px] text-muted-foreground/70">{t('hint')}</p>
+      <p className="text-[11px] text-muted-foreground">{t('hint')}</p>
       <div
         className="mt-3 flex h-32 items-center justify-center rounded-xl border border-border bg-elyra-dark/95 touch-none select-none"
         style={{ perspective: '600px' }}
@@ -309,7 +309,7 @@ function MiniAgent() {
 
   return (
     <div className="mt-6">
-      <p className="text-[11px] text-muted-foreground/70">{t('hint')}</p>
+      <p className="text-[11px] text-muted-foreground">{t('hint')}</p>
       <div className="mt-3 space-y-2 rounded-xl border border-border bg-elyra-dark/95 p-3 text-elyra-on-dark">
         <button
           type="button"
@@ -354,7 +354,7 @@ function MiniOrbit() {
   const t = useTranslations('bento.integrations.mini')
   return (
     <div className="mt-6">
-      <p className="text-[11px] text-muted-foreground/70">{t('hint')}</p>
+      <p className="text-[11px] text-muted-foreground">{t('hint')}</p>
       <div className="relative mt-3 flex h-32 items-center justify-center overflow-hidden rounded-xl border border-border bg-elyra-dark/95">
         <div className="absolute size-2.5 rounded-full bg-primary" />
         <div

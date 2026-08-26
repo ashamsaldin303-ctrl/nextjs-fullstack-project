@@ -9,6 +9,13 @@ import {
 } from '@/lib/calculator'
 import { rateLimit } from '@/lib/rate-limit'
 import {
+  leadNameSchema,
+  leadEmailSchema,
+  leadWhatsappSchema,
+  leadMessageSchema,
+  honeypotSchema,
+} from '@/lib/lead-fields'
+import {
   sendLeadWebhook,
   type LeadWebhookPayload,
 } from '@/lib/n8n-webhook'
@@ -25,7 +32,10 @@ import { getApiT } from '@/lib/api-i18n'
  *   415  Content-Type is not application/json (pre-parse).
  *   429  Rate limited (5 req/min/IP) — `Retry-After` header in seconds.
  *   500  Generic error, zero internal detail; details go to the server log.
- *   201  Stored. Body: { reference } — the first 8 chars of the lead cuid.
+ *   201  Stored. Body: { reference } — 'c' + 9 random base-36 chars:
+ *        cuid-shaped but collision-proof (final-board R1 — the previous
+ *        id.slice(0, 8) was 'c' + 7 base-36 TIMESTAMP digits, so two
+ *        leads created within the same ~36 ms bucket shared one).
  *        (Also the honeypot path: bot submissions get the same 201 shape
  *        but are silently discarded — see the POST handler.)
  *
@@ -73,24 +83,20 @@ const CLIENT_ECHO_FIELDS = new Set([
   'breakdown',
 ])
 
-/** Loose human-typed phone pattern: optional leading +, digits, spaces, parens, dashes. */
-const WHATSAPP_PATTERN = /^\+?[0-9 ()\-]{5,30}$/
-
+// Field rules live in the shared module @/lib/lead-fields — the single
+// source of truth for this API and both client forms (final-board
+// R2-MED-1 / R6-LOW-3: the calculator's whatsapp validation had drifted).
+// The name/message schemas additionally reject bidi & control characters
+// (final-board R1) — those refine issues carry the field path, so the
+// fieldErrors mapping below surfaces them on the right key.
 const baseFields = {
-  name: z.string().trim().min(2).max(100),
-  // Zod v4 idiom — z.string().email() is deprecated (audit P2-3).
-  email: z.email().max(254),
-  whatsapp: z
-    .string()
-    .trim()
-    .min(5)
-    .max(30)
-    .regex(WHATSAPP_PATTERN)
-    .optional(),
+  name: leadNameSchema,
+  email: leadEmailSchema,
+  whatsapp: leadWhatsappSchema,
   // Honeypot (audit P2-5): hidden `companyWebsite` input that real users
   // never fill but bots tend to complete. Validated, NEVER persisted — a
   // non-empty value short-circuits to a fake 201 in the POST handler.
-  companyWebsite: z.string().max(200).optional(),
+  companyWebsite: honeypotSchema,
 }
 
 const calculatorLeadSchema = z.strictObject({
@@ -114,7 +120,7 @@ const calculatorLeadSchema = z.strictObject({
 const contactLeadSchema = z.strictObject({
   ...baseFields,
   source: z.literal('contact-form'),
-  message: z.string().trim().min(10).max(5000),
+  message: leadMessageSchema,
 })
 
 const leadSchema = z.discriminatedUnion('source', [
@@ -151,6 +157,18 @@ function requestLocale(req: NextRequest): 'ar' | 'en' {
   const accept = req.headers.get('accept-language')
   if (accept?.toLowerCase().startsWith('en')) return 'en'
   return 'ar'
+}
+
+/**
+ * Random customer reference: 'c' + 9 base-36 chars — the same LOOK as a
+ * cuid prefix, but collision-proof (final-board R1: the previous
+ * `id.slice(0, 8)` was 'c' + 7 base-36 TIMESTAMP digits, so two leads
+ * created within the same ~36 ms bucket shared a reference — live-proven).
+ * Used for BOTH the real and the honeypot path so the two shapes stay
+ * indistinguishable.
+ */
+function randomReference(): string {
+  return 'c' + Array.from({ length: 9 }, () => crypto.randomInt(36).toString(36)).join('')
 }
 
 const KNOWN_FIELDS = new Set([
@@ -345,14 +363,12 @@ export async function POST(req: NextRequest) {
   // companyWebsite means a bot filled the hidden field. Return the exact
   // 201 success shape (fresh reference) so bots can't tell the difference;
   // no DB write, no webhook. The field is likewise never persisted below.
-  // The fake reference mirrors the REAL reference shape — 'c' + base-36
-  // chars, like Prisma's cuid — so the discard path is not fingerprintable
-  // by reference alphabet (verification L2-A).
+  // The fake reference comes from the SAME generator as the real one
+  // ('c' + base-36 chars, like Prisma's cuid) — so the discard path is not
+  // fingerprintable by reference alphabet or length (verification L2-A).
   const input = parsed.data
   if (input.companyWebsite !== undefined && input.companyWebsite.trim() !== '') {
-    let fakeReference = 'c'
-    for (let i = 0; i < 7; i++) fakeReference += crypto.randomInt(36).toString(36)
-    return NextResponse.json({ reference: fakeReference }, { status: 201 })
+    return NextResponse.json({ reference: randomReference() }, { status: 201 })
   }
 
   // 6) Persist (storage has priority over the webhook — §3.3).
@@ -361,11 +377,14 @@ export async function POST(req: NextRequest) {
   const ipForRecord = ip === 'anonymous' ? null : ip
 
   try {
-    const lead = await db.lead.create({
+    await db.lead.create({
       data: {
         name: input.name,
         email: input.email,
         whatsapp: input.whatsapp ?? null,
+        // Persisted since final-board R1/R6 — previously the inquiry text
+        // only rode the (optional) webhook and was silently lost.
+        message: stored.message,
         service: stored.service,
         pages: stored.pages,
         languages: stored.languages,
@@ -381,7 +400,9 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    const reference = lead.id.slice(0, 8)
+    // Collision-proof reference (final-board R1) — random, NOT derived
+    // from the row id (timestamp prefix collided within ~36 ms).
+    const reference = randomReference()
 
     // 7) Webhook — fire-and-forget, never blocks or fails the 201.
     const payload: LeadWebhookPayload = {

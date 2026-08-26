@@ -217,8 +217,17 @@ export function AutomationSimulator({
 
         {/* Stage — Phase 5 WS-7: data-cursor="inspect" so the magnetic
             cursor shows the localized 'Inspect element' chip over the
-            n8n nodes panel (technical context, not just a magnet snap). */}
-        <div className="mt-10 overflow-x-auto scroll-dark no-scrollbar" data-cursor="inspect">
+            n8n nodes panel (technical context, not just a magnet snap).
+            LOW-11: the min-w-[680px] stage overflows below ~712px, so the
+            wrapper is a labelled, focusable region (keyboard-scrollable
+            via arrows once focused) + a visible md:hidden hint. */}
+        <div
+          className="mt-10 overflow-x-auto scroll-dark no-scrollbar rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          data-cursor="inspect"
+          tabIndex={0}
+          role="region"
+          aria-label={t('scrollHint')}
+        >
           <div className="relative min-w-[680px]" style={{ height: '260px' }}>
             {/* SVG edges */}
             <svg
@@ -308,10 +317,21 @@ export function AutomationSimulator({
             })}
           </div>
         </div>
+        {/* LOW-11: visible horizontal-scroll hint — the stage only
+            overflows below ~712px (min-w-[680px] + container padding),
+            so it is hidden from md (768px) up. Key exists in both
+            catalogs (ar/en simulator.scrollHint). */}
+        <p className="mt-2 text-center text-xs text-white/55 md:hidden">
+          {t('scrollHint')}
+        </p>
 
         {/* Step card */}
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-md sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* MED-8: live region for status changes (idle/running/stepOf).
+              The per-frame ms counter below is deliberately OUTSIDE this
+              region — polite announcements happen on status/step change
+              only, not every animation frame. */}
+          <div className="flex flex-wrap items-center justify-between gap-3" aria-live="polite">
             {/* FIX(2-c/13): the completion sentence used to render 3×
                 (status row left + right + h3). The h3 below is now the
                 single completion announcement; the status row only
@@ -319,7 +339,7 @@ export function AutomationSimulator({
             <p className="text-sm text-white/60">
               {status === 'idle' ? t('idle') : status === 'running' ? t('running') : null}
             </p>
-            <p className="text-xs text-white/40">
+            <p className="text-xs text-white/60">
               {status === 'running' && activeStep
                 ? t('stepOf', { current: currentStep + 1, total: stepCount })
                 : null}
@@ -339,7 +359,9 @@ export function AutomationSimulator({
 
           {status === 'completed' ? (
             <div className="mt-4">
-              <h3 className="text-lg font-semibold text-white">{t('completed', { seconds: secondsLabel })}</h3>
+              {/* MED-8: the completion announcement point (see comment
+                  above) — polite, fires once when the flow finishes. */}
+              <h3 className="text-lg font-semibold text-white" aria-live="polite">{t('completed', { seconds: secondsLabel })}</h3>
               <p className="mt-1 text-sm text-white/70">{t('subtitle')}</p>
             </div>
           ) : null}
@@ -357,7 +379,7 @@ export function AutomationSimulator({
                       <Check className="size-3 text-g-green" aria-hidden="true" />
                       {t(`scenarios.${scenario}.steps.${step.id}.title`)}
                     </span>
-                    <span className="tabular-nums text-white/40">{ms}ms</span>
+                    <span className="tabular-nums text-white/60">{ms}ms</span>
                   </li>
                 )
               })}

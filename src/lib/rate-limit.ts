@@ -55,8 +55,3 @@ export function rateLimit(key: string, now = Date.now()): RateLimitResult {
   hits.set(key, windowHits)
   return { allowed: true, retryAfterSec: 0 }
 }
-
-/** Test hook — clears all tracked windows. */
-export function resetRateLimiter(): void {
-  hits.clear()
-}

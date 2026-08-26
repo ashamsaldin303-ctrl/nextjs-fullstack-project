@@ -11,11 +11,15 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { playSuccess } from '@/lib/sound'
+import { leadEmailSchema, leadMessageSchema, leadNameSchema } from '@/lib/lead-fields'
 
+// Shared lead-field schemas (R2-MED-1): the SAME rules the API enforces
+// (name 2–100, email via zod v4 z.email() ≤254, message 10–5000) — one
+// source of truth, no client/server rule drift.
 const schema = z.object({
-  name: z.string().trim().min(2),
-  email: z.string().email(),
-  message: z.string().trim().min(10),
+  name: leadNameSchema,
+  email: leadEmailSchema,
+  message: leadMessageSchema,
 })
 
 type FormValues = z.infer<typeof schema>
@@ -116,12 +120,14 @@ export function ContactForm() {
       />
       <div>
         <Label htmlFor="cf-name" className="text-sm">{t('name')}</Label>
-        <Input id="cf-name" autoComplete="name" className="mt-1.5" {...field('name')} />
+        {/* LOW-9: required communicated to AT (3.3.2) — attributes only;
+            validation stays in the zod schema (form is noValidate). */}
+        <Input id="cf-name" autoComplete="name" required aria-required="true" className="mt-1.5" {...field('name')} />
         {errors.name ? <p id="cf-name-err" role="alert" className="mt-1 text-xs text-destructive">{errors.name}</p> : null}
       </div>
       <div>
         <Label htmlFor="cf-email" className="text-sm">{t('email')}</Label>
-        <Input id="cf-email" type="email" autoComplete="email" className="mt-1.5" {...field('email')} />
+        <Input id="cf-email" type="email" autoComplete="email" required aria-required="true" className="mt-1.5" {...field('email')} />
         {errors.email ? <p id="cf-email-err" role="alert" className="mt-1 text-xs text-destructive">{errors.email}</p> : null}
       </div>
       <div>
@@ -130,6 +136,8 @@ export function ContactForm() {
           id="cf-message"
           rows={5}
           placeholder={t('messagePlaceholder')}
+          required
+          aria-required="true"
           className="mt-1.5"
           {...field('message')}
         />

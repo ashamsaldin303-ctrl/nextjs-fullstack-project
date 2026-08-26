@@ -69,7 +69,14 @@ export default async function ContactPage() {
                         </span>
                         <span className="flex-1">
                           <span className="block text-sm font-medium text-muted-foreground">{t(`channels.${key}.title`)}</span>
-                          <span className="block font-semibold">{t(`channels.${key}.value`)}</span>
+                          {/* MED-7: UAX#9 bidi isolation for the value —
+                              phone groups and the @handle reorder inside
+                              an RTL paragraph. The dir="ltr" sits on an
+                              INNER inline span so the outer block keeps
+                              the page-direction (start) alignment — a
+                              dir on the block itself would left-align
+                              the value under a right-aligned label. */}
+                          <span className="block font-semibold"><span dir="ltr">{t(`channels.${key}.value`)}</span></span>
                         </span>
                       </a>
                     </Reveal>

@@ -1,6 +1,6 @@
 // Elyra — Prisma schema (Phase 1)
 // The Lead model backs the project calculator + contact form submissions.
-// Phase 3 will wire POST /api/leads with server-side recompute (guide §2.9)
+// Phase 3 wires POST /api/leads with server-side recompute (guide §2.9)
 // and an HMAC-signed n8n webhook.
 
 generator client {
@@ -24,6 +24,7 @@ model Lead {
   name            String
   email           String
   whatsapp        String?
+  message         String?  // Contact-form inquiry text (calculator leads: null)
   service         String
   pages           Int
   languages       String

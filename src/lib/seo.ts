@@ -30,9 +30,8 @@ export async function buildPageMetadata({
 }: PageMetadataInput): Promise<Metadata> {
   const t = await getTranslations({ locale, namespace })
 
-  const arPath = path === '/' ? '/' : path
   const enPath = path === '/' ? '/en' : `/en${path}`
-  const canonical = locale === 'ar' ? arPath : enPath
+  const canonical = locale === 'ar' ? path : enPath
 
   // OG card image — served by the [locale]/opengraph-image.tsx file
   // convention. Metadata merging is SHALLOW: a page's own openGraph
@@ -42,11 +41,14 @@ export async function buildPageMetadata({
   // URL; /ar/opengraph-image would 307 to this canonical form).
   const ogImageUrl =
     locale === 'ar' ? `${SITE_URL}/opengraph-image` : `${SITE_URL}/en/opengraph-image`
+  // LOW-4 (R5): siteName is repeated here (not inherited) because the
+  // shallow merge above replaces the layout's whole openGraph object.
   const ogImage = {
     url: ogImageUrl,
     width: 1200,
     height: 630,
     alt: 'Elyra — Stunning Websites · n8n Automation · Digital Studio',
+    type: 'image/png',
   }
 
   return {
@@ -57,15 +59,16 @@ export async function buildPageMetadata({
       // P2-3: full hreflang set incl. x-default (points at the default
       // Arabic locale) — mirrors the sitemap alternates.
       languages: {
-        ar: arPath,
+        ar: path,
         en: enPath,
-        'x-default': arPath,
+        'x-default': path,
       },
     },
     openGraph: {
       title: t('title'),
       description: t('description'),
       url: `${SITE_URL}${canonical}`,
+      siteName: 'Elyra',
       locale: locale === 'ar' ? 'ar_AR' : 'en_US',
       type: 'website',
       images: [ogImage],

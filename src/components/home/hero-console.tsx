@@ -127,10 +127,12 @@ export function HeroConsole({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={t('placeholder')}
-            className="min-w-0 flex-1 bg-transparent text-base text-white placeholder:text-white/40 focus:outline-none"
+            className="min-w-0 flex-1 bg-transparent text-base text-white placeholder:text-white/60 focus:outline-none"
             aria-label={t('placeholder')}
           />
-          <span className="hidden shrink-0 text-xs text-white/40 sm:inline">
+          {/* MED-1: enterHint was white/40 (≈3.6:1 on the dark hero) —
+              white/60 keeps the hint secondary but AA-compliant. */}
+          <span className="hidden shrink-0 text-xs text-white/60 sm:inline">
             {t('enterHint')}
           </span>
         </div>
@@ -148,7 +150,10 @@ export function HeroConsole({
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all',
               selected === id
-                ? 'border-primary bg-primary/15 text-primary'
+                /* MED-2: brand primary #0071E3 on the dark hero is 3.8:1 —
+                   fails AA for the 14px label. g-blue (#4285F4) on the
+                   g-blue/15 tint over #08080A measures 4.85:1 ✓. */
+                ? 'border-g-blue bg-g-blue/15 text-g-blue'
                 : 'border-white/15 bg-white/5 text-white/70 hover:border-white/30 hover:text-white'
             )}
           >

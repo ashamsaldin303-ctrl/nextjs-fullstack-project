@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import * as SheetPrimitive from "@radix-ui/react-dialog"
-import { XIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -71,11 +70,14 @@ function SheetContent({
         )}
         {...props}
       >
+        {/* Local modification (LOW-10): stock shadcn ships a built-in
+            <SheetPrimitive.Close> here (absolute top-4 right-4, hardcoded
+            English sr-only "Close"). The only consumer (navbar mobile
+            sheet) renders its own localized SheetClose in the header, so
+            the built-in one duplicated the control and announced English
+            under a non-EN locale — removed. Consumers that need a close
+            button render <SheetClose> explicitly. */}
         {children}
-        <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
-          <XIcon className="size-4" />
-          <span className="sr-only">Close</span>
-        </SheetPrimitive.Close>
       </SheetPrimitive.Content>
     </SheetPortal>
   )

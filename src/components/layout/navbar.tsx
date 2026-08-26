@@ -142,7 +142,14 @@ export function Navbar() {
                             className={cn(
                               'group relative flex min-h-12 items-center overflow-hidden rounded-xl px-4 py-3 text-base transition-colors',
                               active
-                                ? 'bg-primary/15 text-primary ring-1 ring-primary/40'
+                                /* MED-2: g-blue family for the active pill.
+                                   Text goes full white — g-blue #4285F4 on
+                                   the g-blue/15 tint over #0F172A measures
+                                   only 4.13:1 (fails AA for 16px medium);
+                                   white on the same tint is ~14.7:1 ✓ and
+                                   mirrors the desktop active treatment
+                                   (white text + colored indicator). */
+                                ? 'bg-g-blue/15 text-white ring-1 ring-g-blue/40'
                                 : 'text-white/80 hover:bg-white/5 hover:text-white'
                             )}
                             aria-current={active ? 'page' : undefined}
@@ -154,7 +161,7 @@ export function Navbar() {
                                 (2px) at bottom which VLM could not see. */}
                             {active ? (
                               <span
-                                className="pointer-events-none absolute inset-y-2 start-0 w-1 rounded-full bg-primary shadow-[0_0_12px_var(--color-primary)]"
+                                className="pointer-events-none absolute inset-y-2 start-0 w-1 rounded-full bg-g-blue shadow-[0_0_12px_var(--color-g-blue)]"
                                 aria-hidden="true"
                               />
                             ) : null}

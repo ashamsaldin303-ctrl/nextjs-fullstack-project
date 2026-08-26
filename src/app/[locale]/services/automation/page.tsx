@@ -5,7 +5,7 @@ import { getTranslations } from 'next-intl/server'
 import { routing } from '@/i18n/routing'
 import { type LucideIcon } from 'lucide-react'
 import {
-  Users, FileText, Mail, Send, Table, Bot, CreditCard, Database,
+  Users, FileText, Mail, Send, Table, Bot, CreditCard, Database, ArrowRight,
 } from 'lucide-react'
 import { PageHero } from '@/components/shared/page-hero'
 import { CTA } from '@/components/shared/cta'
@@ -96,7 +96,13 @@ export default async function AutomationPage() {
                     {node.label}
                   </div>
                   {i < arr.length - 1 ? (
-                    <span className="hidden text-white/40 sm:inline" aria-hidden="true">→</span>
+                    /* MED-6: the raw → glyph never mirrors in RTL — the
+                       site-wide single-flip pattern (rtl:rotate-180) is
+                       used instead. Decorative: aria-hidden. */
+                    <ArrowRight
+                      className="hidden size-4 text-white/40 sm:block rtl:rotate-180"
+                      aria-hidden="true"
+                    />
                   ) : null}
                 </div>
               ))}

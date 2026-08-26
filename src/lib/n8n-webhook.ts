@@ -79,6 +79,15 @@ function isConfigured(): { url: string; secret: string } | null {
     )
     return null
   }
+  // Fail closed in production (final-board R1): a non-https URL would ship
+  // lead PII in cleartext — an operator typo, not an attack vector. Dev
+  // keeps http://localhost n8n instances working.
+  if (process.env.NODE_ENV === 'production' && !url.startsWith('https://')) {
+    console.warn(
+      '[elyra:n8n] webhook URL is not https:// — lead PII would be sent in cleartext; refusing to enable'
+    )
+    return null
+  }
   return { url, secret }
 }
 
@@ -109,6 +118,16 @@ async function deliver(
   }
 }
 
+/**
+ * OWASP CSV-injection neutralizer: a value whose TRIMMED form starts with
+ * =, +, - or @ would execute as a formula once the lead lands in
+ * Sheets/Excel via n8n — prefixing a single quote defuses it. Applied to
+ * the outbound webhook payload ONLY; the DB stores the raw value.
+ */
+function neutralizeCsvInjection(value: string): string {
+  return /^[=+\-@]/.test(value.trim()) ? `'${value}` : value
+}
+
 export async function sendLeadWebhook(
   payload: LeadWebhookPayload
 ): Promise<WebhookOutcome> {
@@ -119,7 +138,27 @@ export async function sendLeadWebhook(
     return 'disabled'
   }
 
-  const body = JSON.stringify(payload)
+  // Neutralize formula-trigger prefixes on the string fields destined for
+  // spreadsheet consumers (OWASP CSV injection — final-board R1). The
+  // signature below is computed over THIS sanitized body, so the receiver's
+  // HMAC verification stays consistent.
+  const sanitized: LeadWebhookPayload = {
+    ...payload,
+    lead: {
+      name: neutralizeCsvInjection(payload.lead.name),
+      email: neutralizeCsvInjection(payload.lead.email),
+      whatsapp:
+        payload.lead.whatsapp === null
+          ? null
+          : neutralizeCsvInjection(payload.lead.whatsapp),
+      message:
+        payload.lead.message === null
+          ? null
+          : neutralizeCsvInjection(payload.lead.message),
+    },
+  }
+
+  const body = JSON.stringify(sanitized)
 
   // Each attempt signs itself (audit P2-1): a retry must carry a fresh
   // timestamp/nonce/signature — reusing attempt-1 headers would trip the

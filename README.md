@@ -65,7 +65,7 @@
 
 16. **React Compiler مفعّل**: خيار المستوى الأعلى `reactCompiler: true` في Next.js 16 (تخرّج من `experimental`) مع `babel-plugin-react-compiler` — ونتيجة lint تبقى 0/0.
 
-17. **sitemap/metadata بـ hreflang كامل**: كل مسار يُصدر `<url>` واحداً مع `alternates.languages` (ar / en / x-default) — وتوصية next-intl الرسمية مُطبّقة في `sitemap.ts` و`seo.ts` و`layout.tsx`.
+17. **sitemap/metadata بـ hreflang كامل**: كل صيغة (لغة × مسار) تُصدر `<url>` خاصاً بها (12 مدخلاً — نمط Google للخرائط المترجمة)، وكل مدخل يحمل `alternates.languages` الكاملة (ar / en / x-default) — وتوصية next-intl الرسمية مُطبّقة في `sitemap.ts` و`seo.ts` و`layout.tsx`.
 
 ## قرارات المرحلة 3 (الظهر + الأداء + النشر)
 
@@ -95,7 +95,7 @@
 |---|---|
 | `bun run lint` | ✓ 0 أخطاء / 0 تحذيرات (قواعد React 19 الصارمة مفعّلة) |
 | `bunx tsc --noEmit` | ✓ 0 أخطاء (مع `noUncheckedIndexedAccess`) |
-| تكافؤ i18n (ar/en) | ✓ 499 مفتاحاً متطابقاً |
+| تكافؤ i18n (ar/en) | ✓ 518 مفتاحاً متطابقاً |
 | جميع المسارات (×2 لغة) | ✓ 200 OK |
 | تحقق في المتصفح | ✓ رسم + تفاعلات + RTL/LTR + responsive + sticky footer |
 | أخطاء console/hydration | ✓ صفر |
@@ -120,10 +120,13 @@
 |---|---|
 | `201` | خُزّن. الرد: `{ "reference": "cuid8" }` — أول 8 محارف من معرّف السجل |
 | `400` | فشل Zod — أخطاء الحقول مترجمة (اعتماداً على `x-elyra-locale`) |
+| `403` | طلب عابر للمواقع مرفوض — فشل تحقق Origin/`Sec-Fetch-Site` (حماية CSRF) |
+| `413` | جسم الطلب أكبر من 64 كيلوبايت (بوابة content-length قبل التحليل) |
+| `415` | نوع المحتوى ليس `application/json` (قبل التحليل) |
 | `429` | تجاوز 5 طلبات/دقيقة/IP — ترويسة `Retry-After` بالثواني |
 | `500` | خطأ عام بلا تفاصيل — التفاصيل لسجل الخادم فقط |
 
-مصدران للطلبات على النقطة نفسها: `source: "calculator"` (كل إجابات المعالج) و`source: "contact-form"` (نموذج التواصل مع `message`) — التمييز محفوظ داخل JSON عمود `integrations` (`{ source, items }`).
+مصدران للطلبات على النقطة نفسها: `source: "calculator"` (كل إجابات المعالج) و`source: "contact-form"` (نموذج التواصل مع `message`) — التمييز محفوظ داخل JSON عمود `integrations` (`{ source, items }`)، ورسالة التواصل تُخزَّن في عمود `message` مخصص وتُمرَّر إلى الويبهوك.
 
 ### سيناريو الويبهوك
 
@@ -258,7 +261,7 @@ src/
 │                          # seo, site-config, use-rtl, use-reduced-motion, db, utils
 ├── app/api/leads/route.ts # نقطة الكتابة الوحيدة (Zod + إعادة حساب + Prisma + 429)
 └── proxy.ts               # next-intl middleware (Next.js 16)
-messages/{ar,en}.json      # 499 مفتاحاً متطابقاً
+messages/{ar,en}.json      # 518 مفتاحاً متطابقاً
 ```
 
 ---

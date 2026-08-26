@@ -38,6 +38,14 @@ RUN bunx prisma generate
 # package.json build script = next build + copy static/public into standalone
 RUN bun run build
 
+# Initialize an empty SQLite DB with the Lead schema so a fresh named
+# volume seeds from the image (first lead insert would otherwise 500
+# with P2021 — final-board R6). Prisma CLI is available in this stage.
+# NOTE: the URL must be ABSOLUTE — the Prisma CLI resolves relative
+# SQLite paths against prisma/schema.prisma, not the CWD (verified live:
+# file:./db/custom.db would land at /app/prisma/db/custom.db).
+RUN mkdir -p db && DATABASE_URL="file:/app/db/custom.db" bunx prisma db push --skip-generate
+
 # --- Stage 3: runtime ---------------------------------------------------------
 FROM oven/bun:1 AS runtime
 WORKDIR /app
@@ -51,6 +59,12 @@ COPY --from=build /app/.next/standalone ./
 
 # Prisma engines can be missed by Next's output file tracing — copy explicitly.
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
+
+# Initialized SQLite DB (schema pushed in the build stage) — a fresh named
+# volume seeds its content from the image on first mount, so the first
+# lead insert can't 500 with P2021 (final-board R6). Runs BEFORE the
+# chown so the DB file ends up owned by bun.
+COPY --from=build /app/db ./db
 
 # SQLite storage directory (mount a volume here in production)
 RUN mkdir -p /app/db

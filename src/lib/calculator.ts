@@ -1,9 +1,11 @@
 /**
  * Elyra project calculator — pure estimation logic.
  *
- * IMPORTANT (guide §2.9): the server recomputes everything from these inputs
- * in a Serializable transaction. This module is shared between the client
- * (for live preview) and the future /api/leads route (Phase 3).
+ * IMPORTANT (guide §2.9): the server recomputes the estimate from these
+ * inputs — a pure synchronous recompute inside the /api/leads route
+ * handler (no transaction, no DB reads). This module is shared between
+ * the client (live preview) and the route (shipped in Phase 3), so both
+ * sides always produce identical numbers.
  */
 
 export type ServiceType = 'website' | 'automation' | 'full'

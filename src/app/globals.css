@@ -431,24 +431,6 @@
   -webkit-backdrop-filter: blur(12px);
 }
 
-/* --- Phase 5 WS-7: light card depth (counterpart to .card-deep) ---------
-   4-6% black border over light + multi-layer shadow + 1px top highlight.
-   Use on light sections (websites/about/contact-light cards) where the
-   base shadcn Card feels too flat. Contrast-safe: the border + shadow
-   add depth WITHOUT darkening the card background, so text contrast
-   on white remains ≥ 4.5:1 (no a11y regression — prompt §10). */
-.card-light-deep {
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.9) inset,    /* top highlight */
-    0 2px 6px -2px rgba(0, 0, 0, 0.08),
-    0 8px 24px -8px rgba(0, 0, 0, 0.06),
-    0 20px 40px -12px rgba(0, 0, 0, 0.04);
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
 /* --- Phase 4 WS-3: Dark deep section + Blueprint spotlight ---------------
    Immersive sections (hero console, simulator, testimonials) use the new
    #08080A deep instead of #0F172A. A mouse-following radial spotlight

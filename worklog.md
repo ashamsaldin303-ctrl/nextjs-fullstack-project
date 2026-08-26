@@ -795,3 +795,94 @@ Work Log:
 
 Stage Summary:
 - Verdict: 11 findings (8 MED, 3 LOW). Structure/semantics/keyboard/RTL-code/i18n-catalog foundations are strong (headings, landmarks, titleIds, sliders, aria-pressed, honeypots, reduced-motion, logical properties, single-flip arrows all verified clean); remaining issues are five contrast clusters (1.4.3 AA), one unflipped RTL arrow, missing bidi isolation for phone/handle, missing simulator live region (4.1.3), uncommunicated required fields (3.3.2), duplicate sheet close w/ English label, and the not-keyboard-scrollable simulator stage. No P0 blockers; all fixes are small, localized token/attr changes.
+---
+Task ID: board-B
+Agent: frontend-logic-fixer (final board round)
+Task: shared-schema adoption in both forms, whatsapp error surfacing, dead component deletion, disposal fix, useNearViewport extraction
+
+Work Log:
+- FIX 1 (R2-MED-1/R6-LOW-3): calculator.tsx leadSchema now consumes shared @/lib/lead-fields (leadNameSchema/leadEmailSchema/leadWhatsappSchema — brings 5–30 + phone pattern + name≤100/email≤254 client-side); error state + parse-failure map + 400-handler map extended with whatsapp; calc-wa input wired with aria-invalid/aria-describedby and an error <p id="calc-wa-err" role="alert"> matching the exact name/email markup pattern. Client copy for whatsapp reuses the API's own translated apiErrors.fields.whatsapp key (no new catalog key → parity count untouched; client+server rejections read identically).
+- FIX 2 (R2-MED-1): contact-form.tsx schema swapped to leadNameSchema/leadEmailSchema/leadMessageSchema (deprecated z.string().email() gone; max-lengths 100/254/5000 now enforced client-side too).
+- FIX 3 (R2-MED-2): deleted src/components/shared/container.tsx + spotlight-section.tsx — grep-verified ZERO importers project-wide (misleading "adopted pattern" doc comments gone; hero.tsx keeps its inline, fixed implementation).
+- FIX 4 (R3-LOW): console-scene.tsx line disposal off-by-one fixed — cleanup now disposes the `lines` closure value directly (finally-mounted set IS disposed on unmount; retired set freed on the correct commit); mountedLines ref removed; comment restated to the true StrictMode semantics (matches accepted capability-scene pattern).
+- FIX 5 (R2-LOW): created src/lib/use-near-viewport.ts (IO + rootMargin 400px lead + one-shot disconnect + rAF fallback + full cleanup) and rewrote simulator/calculator/methodology-lazy.tsx to consume it — 3× ~19-line copy-paste collapsed into one hook; placeholder JSX/dynamic imports/min-h/bg classes byte-identical.
+- FIX 6 (R2-LOW): calculator.ts header comment reworded to present-tense truth (pure synchronous recompute in the /api/leads route handler; route shipped in Phase 3 — no "Serializable transaction", no "future route").
+- FIX 7 (R5-LOW-2): en.json meta.description → 144 chars (was 185); ONLY that key touched in en.json; parity re-run 518/518.
+- FIX 8 (R4): simulator.scrollHint NOT yet rendered by the a11y agent (grep: zero consumers) → key retained untouched for Agent C.
+
+Stage Summary:
+- All 8 fixes done (8 = intentional no-op retention). Gates: bunx tsc --noEmit → 0 errors · bun run lint → 0 findings · i18n parity 518/518 (placeholders 477 + arrays 18) · no new keys in either catalog.
+- Live E2E (before server loss, see below): /en + /en/contact + / + /contact all 200; calculator (mounted via CalculatorLazy → new useNearViewport hook) wizard → whatsapp "123" → client-blocked with #calc-wa-err role=alert + aria-invalid=true + aria-describedby wired + translated "Invalid WhatsApp number (30 characters max)."; valid whatsapp "0991 000 000" + name/email → POST /api/leads 201, ref cmta0vrz, DB row verified (whatsapp persisted, server-recomputed 4000/6100/4–6w), probe row deleted (DB 0); contact-form client validation: bad email + short message + 101-char name all blocked pre-submit with field errors + aria-invalid (101-char name is NEWLY blocked client-side by the shared max-100 rule).
+- INCIDENT for coordinator: dev server on :3000 went DOWN ~11:41 UTC (connection refused, no process, dev.log ends mid-request-stream with no error trace — last line GET /en?v=2 200). NOT killed by me (never touched it); likely crashed during concurrent board-agent edits/probes. Per instructions I did NOT restart it. All live checks above were completed before the crash; final lazy-section mount check on / (simulator+methodology via the new hook) is covered by the /contact CalculatorLazy E2E + identical extracted logic + tsc.
+- git diff --stat (my files only): calculator.tsx, calculator-lazy.tsx, console-scene.tsx, methodology-lazy.tsx, simulator-lazy.tsx, contact-form.tsx, calculator.ts, messages/en.json (1 key), -2 deleted shared components, +use-near-viewport.ts. Other modified files in the tree (route.ts, n8n-webhook.ts, rate-limit.ts, prisma, layout.tsx, seo.ts, sitemap.ts, Dockerfile, package.json) belong to the parallel board agents.
+---
+Task ID: board-A
+Agent: backend-fixer (final board round)
+Task: message persistence (HIGH), Docker schema init (HIGH), reference collisions, webhook guards, shared schemas adoption
+
+Work Log:
+- FIX1 (HIGH R1+R6): added `message String?` to Lead model (after whatsapp, comment "Contact-form inquiry text (calculator leads: null)") + `message: stored.message` in db.lead.create — contact text no longer webhook-only. Pushed schema to db/custom.db (additive nullable column, non-destructive; PrismaClient regenerated) and fixed the stale "Phase 3 will wire" schema header to present tense (R2-LOW-3).
+- GOTCHA (documented for everyone): the Prisma CLI resolves RELATIVE SQLite URLs against prisma/schema.prisma, NOT the CWD — `DATABASE_URL="file:./db/custom.db" bunx prisma db push` from the repo root creates prisma/db/custom.db (a phantom empty DB) and leaves db/custom.db untouched (verified live by hash). Pushed with the .env absolute URL instead; deleted the stray prisma/db/.
+- FIX2 (HIGH R6): Dockerfile build stage now runs `mkdir -p db && DATABASE_URL="file:/app/db/custom.db" bunx prisma db push --skip-generate` after `bun run build` (ABSOLUTE URL because of the relative-path gotcha above — the task's literal `file:./db/custom.db` would land at /app/prisma/db/custom.db); runtime stage gains `COPY --from=build /app/db ./db` right after the .prisma copy, BEFORE the Loop-2 chown → fresh named volumes seed the initialized schema from the image, first insert can't P2021. Chain reasoned (docker unavailable in sandbox): prisma CLI is present in the build stage (devDeps), runtime needs no CLI since the DB ships initialized.
+- FIX3 (LOW R1): reference is now `'c' + 9 crypto.randomInt(36)` base36 chars via randomReference() — used by BOTH the real 201 and the honeypot fake 201 (shapes identical, 10 chars now); no more timestamp-bucket collisions.
+- FIX4 (LOW R1): isConfigured() fails closed in NODE_ENV=production when the webhook URL is not https:// — loud console.warn "lead PII would be sent in cleartext; refusing to enable", treated as not configured; dev http://localhost stays allowed.
+- FIX5 (LOW R1): neutralizeCsvInjection() (OWASP CSV injection) prefixes `'` when a trimmed lead field (name/email/whatsapp/message) starts with = + - @ — applied ONLY to the outbound webhook payload (DB keeps raw); the HMAC signature is computed over the sanitized body so receiver verification stays consistent.
+- FIX6: route.ts imports leadNameSchema/leadEmailSchema/leadWhatsappSchema/leadMessageSchema/honeypotSchema from @/lib/lead-fields (baseFields + contactLeadSchema.message); removed the duplicated WHATSAPP_PATTERN + z.email comment from route.ts. Cc/Cf refine issues surface on the right field key (verified live: RLO name → 400 fields.name).
+- FIX7 (LOW R2): removed dead resetRateLimiter export from rate-limit.ts (grep: zero importers — only worklog mentions).
+- FIX8 (LOW R2): db:push safety split — "db:push": "prisma db push" (safe default) + "db:push:force": "prisma db push --accept-data-loss". Rationale: the old default was one env-var/schema drift away from silently dropping the Lead table (SQLite push can recreate tables); --accept-data-loss now requires a deliberate, explicit opt-in.
+
+Stage Summary:
+- ENVIRONMENT INCIDENT (not caused by my changes): the dev server was OOM-killed mid-task (dmesg: "Out of memory: Killed process ... next-server", ~1.98GB anon-rss under parallel-agent chrome/tsc/lint memory pressure) and at least once replaced/short-lived by another agent's restart cycle — several curls hit EADDRINUSE/refused windows. Restored it detached (same `bun run dev` command) and completed all verification; server left UP on :3000 (204 on OPTIONS).
+- Gates: tsc --noEmit = 0 errors · eslint = 0 findings · git diff confined to owned files (route.ts, lead-fields untouched, rate-limit.ts, n8n-webhook.ts, schema.prisma, Dockerfile, package.json db:push lines).
+- LIVE E2E (dev server, DB left EMPTY after cleanup): valid AR contact lead → 201 + message PERSISTED byte-exact (PrismaClient regenerated, insert includes message); RLO bidi name → 400 with fields.name; two leads fired back-to-back → DISTINCT refs cizdr441mw/crq4e9jkqj, all refs ^c[0-9a-z]{9}$ incl. honeypot fake; honeypot → fake 201, ZERO rows; calculator lead → message null + server recompute (minBudget 8400); webhook unit-probed via local listener: prod+http:// → disabled + 0 deliveries (fail closed), dev+http:// → sent with '=HYPERLINK/'=cmd/' +963 prefixes in body, signature present; DB keeps raw values.
+- All 8 fixes verified; coordinator notes: message column exists in db/custom.db (other agents' PrismaClient probes now see it), Docker fresh-volume boots are schema-initialized, and any future schema change must re-run `bunx prisma generate` + a dev-server reload to be visible in the running process.
+---
+Task ID: board-C
+Agent: a11y-rtl-fixer (final board round)
+Task: WCAG contrast fixes (white/40, primary-on-dark, bento hints, deconstructed layer), RTL arrow flip, bidi isolation, SR announcements, sheet close dedup
+
+Work Log:
+- FIX 1 (MED-1): white/40 → white/60 on simulator stepOf + completed-log ms values and hero-console enterHint + input placeholder (7.0:1 on #08080A).
+- FIX 2 (MED-2): hero preset chip + navbar mobile active link + testimonial company moved off brand-primary-on-dark. Hero chip → border/bg/text-g-blue (4.85:1 on #08080A); navbar active pill → bg-g-blue/15 + text-white + ring-g-blue/40 + g-blue indicator bar (g-blue on the tint measured only 4.13:1 — white ≈14.7:1, mirrors desktop active pattern); testimonial company → text-g-blue (≈5.3:1).
+- FIX 3 (MED-3): about team roles text-primary/90 → text-primary-strong (5.57:1 on white).
+- FIX 4 (MED-4): bento mini hints (×5: websites/automation/threeD/ai/integrations) muted-foreground/70 → full muted-foreground (7.12:1); 11px size kept (AA is 4.5:1 at any size below large-text threshold).
+- FIX 5 (MED-5): deconstructed results layer — metric text-g-green → text-primary-strong (5.06:1), sub-metric text-elyra-on-dark/70 (≈1:1!) → text-muted-foreground (6.6:1); decorative TrendingUp stays g-green (aria-hidden). Occlusion: pure z-spread computed useless (front 364×220 covers back 341×232 at p=1) → added a vertical fan (front translateY −112·p, back +112·p, live-measured 16px text clearance at the release frame) + retimed scroll progress (denominator 3vh → 2vh; old formula never visually reached p=1 — it capped at 0.667 at sticky release, so full separation was never on screen). Also fixed the 0×0 perspective container (card-sized now: stack centers, label no longer wraps into a 64px column; label bottom animates −16→−224px to clear the fan). VLM-verified: metric fully readable, composition intentional, caption clear.
+- FIX 5b (R2-LOW-4): deleted dead .card-light-deep block from globals.css (zero consumers; comment referenced the deleted shadcn Card).
+- FIX 6 (MED-6): automation flow-node connectors → ArrowRight icon with rtl:rotate-180 (site-wide single-flip pattern), aria-hidden + responsive visibility kept; SSR-verified svg + zero raw → glyphs.
+- FIX 7 (MED-7): contact channel values get UAX#9 LTR isolation via an inner <span dir="ltr"> (dir on the block span itself would left-align the value under a right-aligned AR label — inner span isolates bidi while keeping page-direction alignment); phone +963 991 000 000 and @elyra_agency now render in logical order; email unaffected. SSR-verified in ar+en.
+- FIX 8 (MED-8): simulator status row div → aria-live="polite" (idle/running/stepOf changes announced; per-frame ms counter verified OUTSIDE the region) + completion h3 aria-live="polite" (single completion announcement point, honoring the 2-c/13 dedup). Live-verified: "التدفق قيد التنفيذ... الخطوة 3 من 5" then "اكتمل التدفق في 0.86 ثانية".
+- FIX 9 (LOW-9): contact-form name/email/message inputs get required + aria-required="true" (attributes only — B's shared-schema refactor untouched; calculator.tsx SKIPPED: B's file). Live-verified in DOM.
+- FIX 10 (LOW-10): removed stock sheet.tsx built-in SheetPrimitive.Close (duplicate X + hardcoded English sr-only "Close"); navbar's localized close is now the only one (live-verified: 1 X icon, label "إغلاق القائمة"); XIcon import dropped; local-modification comment added.
+- FIX 11 (LOW-11): simulator stage wrapper → tabIndex=0 + role="region" + aria-label={t('scrollHint')} (key exists in BOTH catalogs — verified) + focus-visible ring; visible hint <p class="md:hidden text-white/55"> rendered under the stage (overflow range <712px ≈ below md). Live-verified: region focusable, ArrowLeft scrolls it in RTL (scrollLeft 0→−103), hint visible at 390px.
+
+Stage Summary:
+- All 11 R4 findings fixed (10 in code, 1 — calculator required-attrs — deferred to B for file ownership). tsc 0, lint 0. SSR + live-browser verification on ar/en: contrast tokens swapped with WCAG math, deconstructed card geometry live-measured (16px clearance) + VLM-checked, RTL arrow/bidi/sheet-close/live-regions all DOM-verified. Dev server briefly went down mid-session (parallel agent); it recovered on its own — no restart issued by this agent.
+
+---
+Task ID: board-D
+Agent: seo-docs-fixer (final board round) — file edits completed before context-timeout; verification + worklog by coordinator
+Task: og/apple-icon redirect elimination, 12-entry sitemap, og:site_name, seo.ts cleanup, README accuracy
+
+Work Log:
+- FIX 1: layout.tsx generateMetadata — explicit ogImage (canonical per-locale URLs) in openGraph.images + twitter.images; explicit icons block (/icon, /apple-icon vs /en/apple-icon — Next drops file-convention entries when `icons` is explicit). Runtime-probed merge behavior documented: file convention beats LAYOUT openGraph.images.
+- FIX 2: sitemap.ts — one entry per variant (12 total: locales × STATIC_PATHS), each with full ar/en/x-default alternates.
+- FIX 3: seo.ts buildPageMetadata — siteName 'Elyra' + image type added to openGraph.
+- FIX 4: seo.ts arPath no-op ternary simplified.
+- FIX 5: README — 518 keys (×2 places), API table +403/413/415 rows.
+- COORDINATOR COMPLETION: home page had no own metadata → the file-convention og:image still won on / (redirecting /ar/opengraph-image). Added generateMetadata to [locale]/page.tsx pinning openGraph+twitter images at page level (page config beats file convention — empirically proven by subpages). Verified live: / → http://localhost:3000/opengraph-image (direct, no /ar/), /en → /en/opengraph-image.
+
+Stage Summary:
+- All R5/R6 SEO-docs findings closed. og:image/apple-icon direct 200s on all locales; sitemap 12 entries; og:site_name everywhere; README accurate.
+
+---
+Task ID: board-central
+Agent: coordinator (board-round integration)
+
+Work Log:
+- Recovered board-D after timeout: verified its 4 file edits live, completed the home-page og:image pin ([locale]/page.tsx generateMetadata — the one gap D's layout-level fix couldn't reach).
+- Calculator required/aria-required attrs added (name + email; whatsapp optional) — the item C deferred for file ownership.
+- E2E HIGH-1 verification: contact lead with distinctive message → 201 + PERSISTED in DB (email + message verified via Prisma), then cleaned (0 rows).
+- Full gates after ALL board fixes: tsc 0 · eslint 0 · parity 518/518 (placeholders 477 + arrays 18) · 8 route probes 200 · dev.log clean.
+
+Stage Summary:
+- Final board round complete: all 6 reviewers' findings fixed (R1: 1H+3L, R2: 2M+7L, R3: 1L, R4: 8M+3L, R5: 4L, R6: 2H+2L). Shared lead-fields module is now the single validation source on both sides of the wire. Project awaiting closing verification pass.

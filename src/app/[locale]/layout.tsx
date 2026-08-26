@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { hasLocale, NextIntlClientProvider } from 'next-intl'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { routing, getDir } from '@/i18n/routing'
+import { SITE_URL } from '@/lib/seo'
 import { Navbar } from '@/components/layout/navbar'
 import { Footer } from '@/components/layout/footer'
 import { Toaster } from '@/components/ui/sonner'
@@ -49,6 +50,32 @@ export async function generateMetadata({
   // (Lighthouse SEO: the EN homepage must not canonicalize to the AR one).
   const canonicalPath = locale === 'ar' ? '/' : '/en'
 
+  // LOW-1 (R5): pin the card images to the per-locale CANONICAL routes.
+  // The [locale]/opengraph-image.tsx convention emits locale-prefixed URLs
+  // (/ar/opengraph-image → 307 hop to the unprefixed canonical on the
+  // default locale — one redirect for every scraper). Mirrors the absolute
+  // SITE_URL pattern of buildPageMetadata in lib/seo.ts.
+  //
+  // VERIFIED MERGE BEHAVIOR (Next 16.1.3, runtime-probed): the file
+  // convention's og:image is re-injected at the page segment (whose own
+  // metadata is null on pages without generateMetadata), REPLACING any
+  // layout-declared openGraph.images — so og:image on those pages stays
+  // the file-convention URL (200-direct on /en, 307 on / for now).
+  // twitter has NO file-convention entry (no twitter-image.tsx exists), so
+  // the explicit twitter.images below DOES win and kills the og→twitter
+  // autofill that previously mirrored the redirecting URL. Lifting the
+  // og:image override requires page-level metadata (see worklog board-D).
+  const ogImage = {
+    url:
+      locale === 'ar'
+        ? `${SITE_URL}/opengraph-image`
+        : `${SITE_URL}/en/opengraph-image`,
+    width: 1200,
+    height: 630,
+    alt: 'Elyra — Stunning Websites & n8n Automation Systems',
+    type: 'image/png',
+  }
+
   return {
     title: {
       default: t('title'),
@@ -74,15 +101,29 @@ export async function generateMetadata({
       siteName: 'Elyra',
       locale: locale === 'ar' ? 'ar_AR' : 'en_US',
       type: 'website',
+      images: [ogImage],
     },
     twitter: {
       card: 'summary_large_image',
       title: t('title'),
       description: t('description'),
+      images: [ogImage],
     },
-    // Favicon is provided by the src/app/icon.tsx file convention — no
-    // manual `icons` override (an explicit `/icon` URL 404s because the
-    // convention route is content-hashed by Next).
+    // LOW-1 (R5): icons pinned to the per-locale canonical routes. The
+    // [locale]/apple-icon.tsx convention emits /ar/apple-icon on the
+    // default locale (307 hop). Declaring `icons` here takes over from
+    // BOTH file conventions (Next drops the icon.tsx + apple-icon.tsx
+    // entries entirely once `icons` is explicit), so the favicon is
+    // listed explicitly too — /icon, /apple-icon and /en/apple-icon all
+    // serve 200-direct (matcher exclusions, Phase-2 decision #12).
+    icons: {
+      icon: { url: '/icon', type: 'image/png', sizes: '32x32' },
+      apple: {
+        url: locale === 'ar' ? '/apple-icon' : '/en/apple-icon',
+        type: 'image/png',
+        sizes: '180x180',
+      },
+    },
   }
 }
 

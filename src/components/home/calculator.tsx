@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { SectionHeading } from '@/components/shared/section-heading'
+import { leadEmailSchema, leadNameSchema, leadWhatsappSchema } from '@/lib/lead-fields'
 import { playSuccess } from '@/lib/sound'
 import { toast } from 'sonner'
 import { RingGauge } from './ring-gauge'
@@ -35,10 +36,13 @@ const SERVICES: { id: ServiceType; icon: typeof Globe }[] = [
 
 const INTEGRATIONS: IntegrationKey[] = ['crm', 'invoicing', 'email', 'telegram', 'sheets', 'ai']
 
+// Shared lead-field schemas (R2-MED-1 / R6-LOW-3): the SAME rules the
+// API enforces — name 2–100, email ≤254, whatsapp 5–30 + phone pattern —
+// so a client-side rejection can never diverge from a server-side one.
 const leadSchema = z.object({
-  name: z.string().trim().min(2),
-  email: z.string().email(),
-  whatsapp: z.string().trim().optional(),
+  name: leadNameSchema,
+  email: leadEmailSchema,
+  whatsapp: leadWhatsappSchema,
 })
 
 type LeadForm = z.infer<typeof leadSchema>
@@ -54,6 +58,10 @@ const INITIAL_INPUT: CalculatorInput = {
 
 export function Calculator() {
   const t = useTranslations('calculator')
+  // Whatsapp has no local calculator.errors key — reuse the API's own
+  // translated field copy (apiErrors.fields.whatsapp) so client and
+  // server rejections read identically (same rule, same message).
+  const tApiFields = useTranslations('apiErrors.fields')
   // useLocale() returns a broad `string`; narrow to the routing union
   // (unknown values fall back to `ar`, the site default) so formatMoney's
   // tightened `Locale` param type-checks.
@@ -65,7 +73,7 @@ export function Calculator() {
   const [dir, setDir] = useState<1 | -1>(1)
   const [input, setInput] = useState<CalculatorInput>(INITIAL_INPUT)
   const [form, setForm] = useState<LeadForm>({ name: '', email: '', whatsapp: '' })
-  const [errors, setErrors] = useState<{ name?: string; email?: string }>({})
+  const [errors, setErrors] = useState<{ name?: string; email?: string; whatsapp?: string }>({})
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [reference, setReference] = useState<string | null>(null)
@@ -102,11 +110,12 @@ export function Calculator() {
     e.preventDefault()
     const parsed = leadSchema.safeParse(form)
     if (!parsed.success) {
-      const fe: { name?: string; email?: string } = {}
+      const fe: { name?: string; email?: string; whatsapp?: string } = {}
       for (const issue of parsed.error.issues) {
         const path = issue.path[0]
         if (path === 'name') fe.name = t('errors.name')
         if (path === 'email') fe.email = t('errors.email')
+        if (path === 'whatsapp') fe.whatsapp = tApiFields('whatsapp')
       }
       setErrors(fe)
       return
@@ -151,9 +160,10 @@ export function Calculator() {
         | { message?: string; fields?: Record<string, string> }
         | null
       if (res.status === 400 && data?.fields) {
-        const fe: { name?: string; email?: string } = {}
+        const fe: { name?: string; email?: string; whatsapp?: string } = {}
         if (data.fields.name) fe.name = data.fields.name
         if (data.fields.email) fe.email = data.fields.email
+        if (data.fields.whatsapp) fe.whatsapp = data.fields.whatsapp
         setErrors(fe)
       }
       toast.error(t('form.errorTitle'), {
@@ -509,6 +519,8 @@ export function Calculator() {
                               value={form.name}
                               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                               autoComplete="name"
+                              required
+                              aria-required="true"
                               aria-invalid={!!errors.name}
                               aria-describedby={errors.name ? 'calc-name-err' : undefined}
                               className="mt-1.5"
@@ -525,6 +537,8 @@ export function Calculator() {
                               value={form.email}
                               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                               autoComplete="email"
+                              required
+                              aria-required="true"
                               aria-invalid={!!errors.email}
                               aria-describedby={errors.email ? 'calc-email-err' : undefined}
                               className="mt-1.5"
@@ -541,8 +555,13 @@ export function Calculator() {
                               value={form.whatsapp ?? ''}
                               onChange={(e) => setForm((f) => ({ ...f, whatsapp: e.target.value }))}
                               autoComplete="tel"
+                              aria-invalid={!!errors.whatsapp}
+                              aria-describedby={errors.whatsapp ? 'calc-wa-err' : undefined}
                               className="mt-1.5"
                             />
+                            {errors.whatsapp ? (
+                              <p id="calc-wa-err" role="alert" className="mt-1 text-xs text-destructive">{errors.whatsapp}</p>
+                            ) : null}
                           </div>
                         </div>
                         <Button type="submit" data-cursor="magnet" disabled={submitting} className="mt-6 w-full gap-2">
