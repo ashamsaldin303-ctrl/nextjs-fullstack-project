@@ -410,8 +410,16 @@
 /* --- Phase 4 WS-3: Dark deep section + Blueprint spotlight ---------------
    Immersive sections (hero console, simulator, testimonials) use the new
    #08080A deep instead of #0F172A. A mouse-following radial spotlight
-   reveals a faint CSS grid (4-6% opacity) beneath — pure CSS, transform
-   only, disabled on touch and reduced-motion. */
+   reveals a faint CSS grid beneath — pure CSS, transform only, disabled
+   on touch and reduced-motion.
+
+   Phase 5 P0-2 fix: grid alpha raised from 4% to 12% (VLM could not
+   detect 4-6% on a dark background — the spotlight appeared invisible).
+   Spotlight reveal tightened from 800px → 300px diameter so the grid
+   is exposed only in a focused beam under the cursor (was a uniform
+   wash across the entire viewport). Default position is center, dim
+   (opacity 0.4) so first-time visitors see a hint; on first pointer
+   move, opacity ramps to 1 and the beam locks onto the cursor. */
 .bg-elyra-deep {
   background-color: var(--background-deep);
 }
@@ -423,14 +431,25 @@
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.30) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.30) 1px, transparent 1px);
   background-size: 48px 48px;
-  background-position: var(--mx, 50%) var(--my, 50%);
-  mask-image: radial-gradient(700px circle at var(--mx, 50%) var(--my, 50%), black 0%, transparent 70%);
-  -webkit-mask-image: radial-gradient(700px circle at var(--mx, 50%) var(--my, 50%), black 0%, transparent 70%);
+  /* Phase 5 P0-2: use canonical CSS syntax (shape THEN size) — the
+     original `300px circle` reversed them and silently failed in
+     modern Chromium, leaving maskImage:none → grid leaked across
+     the whole viewport (no spotlight effect). */
+  mask-image: radial-gradient(circle 400px at var(--mx, 50%) var(--my, 50%), black 0%, transparent 80%);
+  -webkit-mask-image: radial-gradient(circle 400px at var(--mx, 50%) var(--my, 50%), black 0%, transparent 80%);
   pointer-events: none;
   z-index: 0;
+  /* Dim default (centered) until first pointermove, then ramps to 1
+     via `.spotlight-active` — gives first-time visitors a subtle hint
+     that the grid exists without overwhelming the hero content. */
+  opacity: 0.55;
+  transition: opacity 0.4s ease;
+}
+.elyra-spotlight.spotlight-active::before {
+  opacity: 1;
 }
 .elyra-spotlight > * {
   position: relative;

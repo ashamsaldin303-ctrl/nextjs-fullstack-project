@@ -56,12 +56,19 @@ export function Hero() {
   }, [])
 
   // WS-3: spotlight Blueprint grid — pointer tracking sets --mx/--my.
+  // Phase 5 P0-2: also toggle `spotlight-active` on first move so the
+  // grid transitions from its dim default to full reveal opacity.
+  const spotlightActivated = useRef(false)
   const onHeroPointerMove = useCallback((e: React.PointerEvent<HTMLElement>) => {
     const el = heroRef.current
     if (!el) return
     const rect = el.getBoundingClientRect()
     el.style.setProperty('--mx', `${e.clientX - rect.left}px`)
     el.style.setProperty('--my', `${e.clientY - rect.top}px`)
+    if (!spotlightActivated.current) {
+      spotlightActivated.current = true
+      el.classList.add('spotlight-active')
+    }
   }, [])
 
   // Defer the Three.js chunk until after LCP (idle or first interaction).
