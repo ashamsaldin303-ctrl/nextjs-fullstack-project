@@ -19,6 +19,17 @@ function getClientYear(): number {
   return new Date().getFullYear()
 }
 
+/* UI-5: column headings carry a tiny primary accent tick (2×12px,
+   decorative) before the text — shared by all three footer columns. */
+function FooterHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-wider text-white/50">
+      <span aria-hidden="true" className="h-3 w-0.5 rounded-full bg-primary" />
+      {children}
+    </h2>
+  )
+}
+
 export function Footer({ className }: { className?: string }) {
   const t = useTranslations()
   // Hydration-safe year (guide §1.6 + audit P1-9): useSyncExternalStore keeps
@@ -30,12 +41,17 @@ export function Footer({ className }: { className?: string }) {
     <footer
       className={cn(
         'bg-elyra-dark text-elyra-on-dark',
-        'border-t border-white/10',
         'pb-[env(safe-area-inset-bottom)]',
         'mt-auto',
         className
       )}
     >
+      {/* UI-5: gradient hairline replaces the plain border-t — a 1px
+          primary glow fading out at both edges (symmetric, RTL-safe). */}
+      <div
+        aria-hidden="true"
+        className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent"
+      />
       <div className="elyra-container max-w-container py-16">
         <div className="grid gap-12 lg:grid-cols-12">
           {/* Brand block */}
@@ -58,9 +74,7 @@ export function Footer({ className }: { className?: string }) {
 
           {/* Quick links */}
           <nav className="lg:col-span-3" aria-label={t('footer.quickLinks')}>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-white/50">
-              {t('footer.quickLinks')}
-            </h2>
+            <FooterHeading>{t('footer.quickLinks')}</FooterHeading>
             <ul className="mt-4 space-y-2 text-sm">
               <li>
                 <Link href="/" className="text-white/80 transition-colors hover:text-white">
@@ -87,9 +101,7 @@ export function Footer({ className }: { className?: string }) {
 
           {/* Services */}
           <nav className="lg:col-span-2" aria-label={t('footer.servicesTitle')}>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-white/50">
-              {t('footer.servicesTitle')}
-            </h2>
+            <FooterHeading>{t('footer.servicesTitle')}</FooterHeading>
             <ul className="mt-4 space-y-2 text-sm">
               <li>
                 <Link href="/services/websites" className="text-white/80 transition-colors hover:text-white">
@@ -106,9 +118,7 @@ export function Footer({ className }: { className?: string }) {
 
           {/* Connect */}
           <div className="lg:col-span-2">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-white/50">
-              {t('footer.connectTitle')}
-            </h2>
+            <FooterHeading>{t('footer.connectTitle')}</FooterHeading>
             <ul className="mt-4 space-y-2 text-sm">
               <li>
                 <a
@@ -139,7 +149,7 @@ export function Footer({ className }: { className?: string }) {
                   rel="noopener noreferrer"
                   aria-label={t('footer.social.telegram')}
                   data-cursor="external"
-                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
+                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-g-blue/20 hover:text-white"
                 >
                   <Send className="size-4" aria-hidden="true" />
                 </a>
@@ -151,7 +161,7 @@ export function Footer({ className }: { className?: string }) {
                   rel="noopener noreferrer"
                   aria-label={t('footer.social.whatsapp')}
                   data-cursor="external"
-                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
+                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-g-green/20 hover:text-white"
                 >
                   <MessageCircle className="size-4" aria-hidden="true" />
                 </a>
@@ -163,7 +173,7 @@ export function Footer({ className }: { className?: string }) {
                   rel="noopener noreferrer"
                   aria-label={t('footer.social.instagram')}
                   data-cursor="external"
-                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
+                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-g-red/20 hover:text-white"
                 >
                   <Instagram className="size-4" aria-hidden="true" />
                 </a>
@@ -175,7 +185,7 @@ export function Footer({ className }: { className?: string }) {
                   rel="noopener noreferrer"
                   aria-label={t('footer.social.linkedin')}
                   data-cursor="external"
-                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
+                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-primary/20 hover:text-white"
                 >
                   <Linkedin className="size-4" aria-hidden="true" />
                 </a>

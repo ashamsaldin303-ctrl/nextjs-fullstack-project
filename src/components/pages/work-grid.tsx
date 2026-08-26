@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Wrench } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Reveal } from '@/components/shared/reveal'
-import { BeforeAfter } from '@/components/home/before-after'
+import { BeforeAfter, toMockContent } from '@/components/home/before-after'
 
 type Category = 'websites' | 'automation'
 
@@ -87,15 +87,25 @@ export function WorkGrid() {
           {visible.map((p, i) => {
             const metrics = t.raw(`projects.${p.key}.metrics`) as string[]
             const services = t.raw(`projects.${p.key}.services`) as string[]
+            // UI-4: per-project mock content for the realistic "after" scene
+            const mock = toMockContent(t.raw(`projects.${p.key}.mock`))
             return (
               <article
                 key={p.key}
-                className="reveal reveal-visible"
+                className="group reveal reveal-visible"
                 data-cursor="zoom"
                 style={{ transitionDelay: `${i * 0.04}s` }}
               >
                 <Reveal>
-                  <BeforeAfter variant={p.variant} accent={p.accent} label={t(`projects.${p.key}.title`)} />
+                  {/* subtle hover lift on the comparison mockup (UI-4) */}
+                  <div className="rounded-2xl transition-all duration-300 ease-out group-hover:-translate-y-1 group-hover:shadow-lg">
+                    <BeforeAfter
+                      variant={p.variant}
+                      accent={p.accent}
+                      label={t(`projects.${p.key}.title`)}
+                      mock={mock}
+                    />
+                  </div>
                   <div className="mt-5 flex items-center gap-3">
                     <span className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">
                       {t(`projects.${p.key}.type`)}

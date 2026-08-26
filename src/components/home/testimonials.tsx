@@ -15,6 +15,14 @@ export function Testimonials() {
   return (
     <section className="elyra-spotlight bg-elyra-deep py-20 text-elyra-on-dark sm:py-28" aria-labelledby="testi-title">
       <div className="elyra-container max-w-container">
+        {/* UI-5: very subtle radial accent behind the grid — the container
+            is a stacking context (elyra-spotlight forces position:relative
+            + z-index:1 on direct children), so -z-10 paints it above the
+            section background but below all in-flow content. Decorative. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-1/4 -z-10 mx-auto h-80 max-w-4xl rounded-full bg-primary/10 blur-3xl"
+        />
         <SectionHeading
           kicker={t('kicker')}
           title={t('title')}
@@ -26,8 +34,12 @@ export function Testimonials() {
         <div className="mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           {ITEMS.map((key, i) => (
             <Reveal key={key} delay={i * 0.08}>
-              <figure className="relative flex h-full flex-col rounded-3xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-md sm:p-7">
-                <Quote className="size-8 text-primary/40" aria-hidden="true" />
+              {/* UI-5: hover depth — border tint + gentle lift + shadow
+                  deepening. Purely decorative (transition-all is collapsed
+                  to ~0ms under prefers-reduced-motion by the global
+                  override in globals.css). */}
+              <figure className="group relative flex h-full flex-col rounded-3xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/30 hover:bg-white/[0.06] hover:shadow-[0_24px_48px_-20px_rgba(0,0,0,0.6)] sm:p-7">
+                <Quote className="size-8 text-primary/40 transition-colors duration-300 group-hover:text-primary/60" aria-hidden="true" />
                 {/* FIX(2-c/3): localized rating label (i18n contract: the
                     `rating` key is provided under the testimonials namespace
                     in both catalogs) — was a hardcoded English literal. */}

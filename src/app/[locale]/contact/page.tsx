@@ -28,10 +28,12 @@ export async function generateMetadata({
 }
 
 // Channel links read from the centralized site config (audit P1-14).
+// UI-5: chipClass gives each channel a static brand-tinted icon chip
+// (decorative — icons are aria-hidden; labels/values stay untouched).
 const CHANNELS = [
-  { key: 'email' as const, icon: Mail, href: `mailto:${SITE_CONTACT.email}`, external: false },
-  { key: 'whatsapp' as const, icon: MessageCircle, href: SITE_SOCIAL.whatsapp, external: true },
-  { key: 'telegram' as const, icon: Send, href: SITE_SOCIAL.telegram, external: true },
+  { key: 'email' as const, icon: Mail, href: `mailto:${SITE_CONTACT.email}`, external: false, chipClass: 'bg-primary/10 text-primary group-hover:bg-primary/15' },
+  { key: 'whatsapp' as const, icon: MessageCircle, href: SITE_SOCIAL.whatsapp, external: true, chipClass: 'bg-g-green/10 text-g-green group-hover:bg-g-green/15' },
+  { key: 'telegram' as const, icon: Send, href: SITE_SOCIAL.telegram, external: true, chipClass: 'bg-g-blue/10 text-g-blue group-hover:bg-g-blue/15' },
 ]
 
 export default async function ContactPage() {
@@ -54,7 +56,7 @@ export default async function ContactPage() {
                 </h2>
               </Reveal>
               <ul className="mt-8 space-y-3">
-                {CHANNELS.map(({ key, icon: Icon, href, external }, i) => (
+                {CHANNELS.map(({ key, icon: Icon, href, external, chipClass }, i) => (
                   /* li must be a direct child of ul — Reveal wraps the
                      CONTENT inside the li (Lighthouse a11y: list-item). */
                   <li key={key}>
@@ -62,9 +64,9 @@ export default async function ContactPage() {
                       <a
                         href={href}
                         {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                        className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
+                        className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"
                       >
-                        <span className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform group-hover:scale-110">
+                        <span className={`flex size-11 items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-110 ${chipClass}`}>
                           <Icon className="size-5" aria-hidden="true" />
                         </span>
                         <span className="flex-1">

@@ -101,8 +101,47 @@
         "Interactive 3D Experiences"
       ],
       "mini": {
-        "title": "Try the Interface Colors",
-        "hint": "Click any color to restyle the mini site"
+        "title": "Try the Site Identity",
+        "hint": "Click any color — buttons, links and cards restyle instantly",
+        "brand": "Lamsa",
+        "nav": [
+          "New In",
+          "Women",
+          "Accessories"
+        ],
+        "search": "Search for a piece…",
+        "kicker": "Autumn 2025 Collection",
+        "heroTitle": "Quiet elegance, precise details",
+        "heroSub": "Natural fabrics and lasting tailoring — pieces made to stay.",
+        "heroCta": "Shop the Collection",
+        "heroLink": "View the Lookbook",
+        "viewers": "122 people viewing now",
+        "addToCart": "Add",
+        "palette": [
+          "Cobalt",
+          "Emerald",
+          "Coral",
+          "Amber"
+        ],
+        "activeLabel": "Current identity",
+        "products": [
+          {
+            "name": "Wool Coat",
+            "price": "$349",
+            "old": "$429"
+          },
+          {
+            "name": "Leather Bag",
+            "price": "$289",
+            "old": "$359"
+          },
+          {
+            "name": "Cashmere Scarf",
+            "price": "$119",
+            "old": "$149"
+          }
+        ],
+        "footer": "© 2025 Lamsa — All rights reserved"
       }
     },
     "automation": {
@@ -111,14 +150,22 @@
       "mini": {
         "title": "Run the Flow",
         "hint": "Click to watch the pulse cross the three nodes",
-        "done": "Done! That's automation at work"
+        "done": "Done! That's automation at work",
+        "nodes": [
+          "Receive order",
+          "Validate & log",
+          "Notify team"
+        ],
+        "saved": "Saved 12 minutes of manual work",
+        "runs": "Run successful"
       }
     },
     "threeD": {
       "title": "3D Experiences",
       "desc": "Interactive WebGL scenes that tell your brand's story and keep visitors exploring.",
       "mini": {
-        "hint": "Drag the cube to rotate it"
+        "hint": "Drag the cube to rotate it",
+        "idle": "or leave it — it spins on its own"
       }
     },
     "ai": {
@@ -126,8 +173,16 @@
       "desc": "Intelligent assistants that answer your customers, organize your schedule, and extract insights from messy files.",
       "mini": {
         "prompt": "Summarize yesterday's meeting",
-        "response": "3 key decisions, 2 assigned tasks, and a deadline set for next Thursday. Summary sent to your team ✓",
-        "hint": "Click the question to try the agent"
+        "hint": "Click the question to try the agent",
+        "retryHint": "Click again for a different answer",
+        "responses": [
+          "3 key decisions, 2 assigned tasks, and a deadline set for next Thursday. Summary sent to your team ✓",
+          "The gist: campaign launches on the 12th, next quarter’s budget is up 15%, and you own the deck ✓",
+          "One unresolved point: pricing — deferred to Thursday’s session. 3 action items dispatched to owners ✓",
+          "47-minute meeting, 5 participants. Highlights: response time cut to 4 hours and a designer to hire ✓",
+          "Logged 6 potential risks ranked by impact, each with a mitigation draft in the shared doc ✓",
+          "Client’s key note: loves the new direction but wants a darker variant — revised draft ready for approval ✓"
+        ]
       }
     },
     "integrations": {
@@ -240,6 +295,18 @@
           }
         }
       }
+    },
+    "logTitle": "Live Execution Log",
+    "payloadTitle": "Incoming Payload",
+    "stats": {
+      "total": "Total time",
+      "steps": "Steps",
+      "status": "Status"
+    },
+    "state": {
+      "idle": "Idle",
+      "running": "Running",
+      "completed": "Completed"
     }
   },
   "workSection": {
@@ -260,7 +327,31 @@
       "metrics": [
         "+140% Conversion Rate",
         "×2.3 Loading Speed"
-      ]
+      ],
+      "mock": {
+        "brand": "Lamsa",
+        "kicker": "Autumn 2025 Collection",
+        "title": "Quiet elegance, precise details",
+        "sub": "Natural fabrics and lasting tailoring — pieces made to stay.",
+        "cta": "Shop the Collection",
+        "cards": [
+          {
+            "name": "Wool Coat",
+            "price": "$349",
+            "old": "$429"
+          },
+          {
+            "name": "Leather Bag",
+            "price": "$289",
+            "old": "$359"
+          },
+          {
+            "name": "Cashmere Scarf",
+            "price": "$119",
+            "old": "$149"
+          }
+        ]
+      }
     },
     "project2": {
       "title": "Aqar Plus Platform",
@@ -269,7 +360,128 @@
       "metrics": [
         "+85% Organic Visits",
         "60% Longer Sessions"
-      ]
+      ],
+      "mock": {
+        "brand": "Aqar Plus"
+      }
+    },
+    "scenes": {
+      "site": {
+        "announce": "Free shipping over $200 • 30-day returns",
+        "nav": [
+          "New In",
+          "Browse",
+          "Trending"
+        ],
+        "search": "Search…",
+        "viewers": "122 people viewing now",
+        "addToCart": "Add",
+        "rating": "4.9",
+        "reviews": "312 reviews",
+        "footerLinks": [
+          "Support",
+          "Shipping",
+          "Returns",
+          "Contact"
+        ],
+        "footerNote": "All rights reserved"
+      },
+      "old": {
+        "announce": "*** SPECIAL OFFERS!!! UP TO 70% OFF — HURRY BEFORE IT ENDS ***",
+        "nav": [
+          "Home",
+          "Products",
+          "About Us",
+          "Contact",
+          "Links",
+          "Sitemap"
+        ],
+        "welcome": "Welcome to our humble website...",
+        "clickHere": "CLICK HERE!!!",
+        "counter": "Visitors: 004217",
+        "bestViewed": "Best viewed in Internet Explorer 6 at 800×600",
+        "construction": "Page under construction 🚧 coming soon!",
+        "items": [
+          "Product No. 1",
+          "Product No. 2",
+          "Product No. 3"
+        ]
+      },
+      "dash": {
+        "nav": [
+          "Overview",
+          "Operations",
+          "Customers",
+          "Reports",
+          "Settings"
+        ],
+        "welcome": "Good evening, Zeinab",
+        "search": "Search everything…",
+        "notifications": "3 new notifications",
+        "live": "LIVE",
+        "kpis": [
+          {
+            "label": "Monthly revenue",
+            "value": "$48,250",
+            "delta": "+18%"
+          },
+          {
+            "label": "Completed ops",
+            "value": "342",
+            "delta": "+9%"
+          },
+          {
+            "label": "Needs follow-up",
+            "value": "12",
+            "delta": "−41%"
+          },
+          {
+            "label": "New customers",
+            "value": "67",
+            "delta": "+23%"
+          }
+        ],
+        "chartTitle": "Performance — last 12 months",
+        "tableTitle": "Latest operations",
+        "tableHead": [
+          "Ref",
+          "Party",
+          "Amount",
+          "Status"
+        ],
+        "rows": [
+          {
+            "ref": "#OP-1043",
+            "party": "Al-Amal Co.",
+            "amount": "$1,240",
+            "status": "Completed"
+          },
+          {
+            "ref": "#OP-1042",
+            "party": "Al-Nour Est.",
+            "amount": "$890",
+            "status": "Pending"
+          },
+          {
+            "ref": "#OP-1041",
+            "party": "Lamsa Store",
+            "amount": "$2,150",
+            "status": "Completed"
+          }
+        ]
+      },
+      "oldDash": {
+        "file": "sales_v2_FINAL_really_final.xls",
+        "formula": "=SUM(B2:B14)",
+        "warning": "Warning: 3 rows contain errors — unsaved changes!",
+        "cols": [
+          "Date",
+          "Customer",
+          "Amount",
+          "Status"
+        ],
+        "status": "Pending?"
+      }
     }
   },
   "methodology": {
@@ -643,7 +855,31 @@
             "+140% Conversion Rate",
             "×2.3 Load Speed",
             "−45% Cart Abandonment"
-          ]
+          ],
+          "mock": {
+            "brand": "Lamsa",
+            "kicker": "Autumn 2025 Collection",
+            "title": "Quiet elegance, precise details",
+            "sub": "Natural fabrics and lasting tailoring — pieces made to stay.",
+            "cta": "Shop the Collection",
+            "cards": [
+              {
+                "name": "Wool Coat",
+                "price": "$349",
+                "old": "$429"
+              },
+              {
+                "name": "Leather Bag",
+                "price": "$289",
+                "old": "$359"
+              },
+              {
+                "name": "Cashmere Scarf",
+                "price": "$119",
+                "old": "$149"
+              }
+            ]
+          }
         },
         "p2": {
           "title": "Aqar Plus Platform",
@@ -659,7 +895,31 @@
           "metrics": [
             "+85% Organic Visits",
             "60% Longer Sessions"
-          ]
+          ],
+          "mock": {
+            "brand": "Aqar Plus",
+            "kicker": "Latest listings",
+            "title": "Find a home worthy of your life",
+            "sub": "Smart filters and live maps — from first click to house keys.",
+            "cta": "Explore Properties",
+            "cards": [
+              {
+                "name": "Apartment — Mezzeh",
+                "price": "$235,000",
+                "old": ""
+              },
+              {
+                "name": "Villa — Bloudan",
+                "price": "$540,000",
+                "old": ""
+              },
+              {
+                "name": "Office — Business",
+                "price": "$120,000",
+                "old": "$135,000"
+              }
+            ]
+          }
         },
         "p3": {
           "title": "Masar Academy",
@@ -676,7 +936,31 @@
             "4,200 Students in First Term",
             "+68% Course Completion",
             "−75% Manual Admin Work"
-          ]
+          ],
+          "mock": {
+            "brand": "Masar",
+            "kicker": "Enrollment open",
+            "title": "Learn a skill that changes your path",
+            "sub": "Live courses and certified credentials with personal follow-up.",
+            "cta": "Start Learning",
+            "cards": [
+              {
+                "name": "UI/UX Foundations",
+                "price": "$129",
+                "old": "$159"
+              },
+              {
+                "name": "Content Marketing",
+                "price": "$99",
+                "old": ""
+              },
+              {
+                "name": "Project Management",
+                "price": "$149",
+                "old": "$189"
+              }
+            ]
+          }
         },
         "p4": {
           "title": "Beit Al-Sham Restaurant",
@@ -692,7 +976,31 @@
           "metrics": [
             "70% of Bookings Online",
             "+35% Pickup Orders"
-          ]
+          ],
+          "mock": {
+            "brand": "Beit Al-Sham",
+            "kicker": "From the heart of Damascus",
+            "title": "Home taste, home generosity",
+            "sub": "Order now — arrives hot within 30 minutes.",
+            "cta": "Book a Table",
+            "cards": [
+              {
+                "name": "Shami Mansaf",
+                "price": "$12",
+                "old": "$15"
+              },
+              {
+                "name": "Fried Kibbeh",
+                "price": "$8",
+                "old": ""
+              },
+              {
+                "name": "Pistachio Baklava",
+                "price": "$6",
+                "old": ""
+              }
+            ]
+          }
         },
         "p5": {
           "title": "Smart Invoicing System",
@@ -708,7 +1016,10 @@
           "metrics": [
             "−90% Issuance Time",
             "Zero Overdue Invoices for 8 Months"
-          ]
+          ],
+          "mock": {
+            "brand": "Smart Invoices"
+          }
         },
         "p6": {
           "title": "Bassam Creative Studio",
@@ -724,7 +1035,10 @@
           "metrics": [
             "×2 Projects Delivered Monthly",
             "−14 Hours of Coordination Weekly"
-          ]
+          ],
+          "mock": {
+            "brand": "Bassam"
+          }
         }
       },
       "cta": {

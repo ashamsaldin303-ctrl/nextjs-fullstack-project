@@ -43,15 +43,33 @@ function MethodologyStep({
     <motion.article
       style={reduced ? undefined : { scale, opacity }}
       className={cn(
-        'relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-10',
+        'relative rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-10',
         'sticky top-24',
       )}
     >
+      {/* UI-5: timeline dot on the start-side rail. The oversized step
+          number's clip moved to an inner box (below) so this dot can hang
+          OUTSIDE the card, in the stack's start gutter, centered on the
+          rail. Aligns with the icon row: p-6 + 28px ≈ top-13 (mobile) /
+          p-10 + 28px ≈ top-17 (sm+). The ring punches it through the rail. */}
       <span
-        className="pointer-events-none absolute -end-4 -top-4 text-[120px] font-bold leading-none text-primary/5 sm:text-[160px]"
         aria-hidden="true"
+        className="absolute -start-6 top-13 size-2.5 rounded-full bg-primary ring-4 ring-background sm:-start-8 sm:top-17"
+      />
+      {/* Same corner-bleed clip the article's own overflow-hidden used to
+          provide — now scoped to a box with identical bounds/rounding so
+          the article can host the gutter dot without clipping it.
+          pointer-events-none keeps the inset-0 box inert (the original
+          number span carried it too). */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl"
       >
-        {String(index + 1).padStart(2, '0')}
+        <span
+          className="absolute -end-4 -top-4 text-[120px] font-bold leading-none text-primary/5 sm:text-[160px]"
+        >
+          {String(index + 1).padStart(2, '0')}
+        </span>
       </span>
       <div className="relative grid gap-6 sm:grid-cols-[auto_1fr_auto] sm:items-center">
         <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -97,18 +115,42 @@ export function Methodology() {
           titleId="method-title"
         />
         {/* `relative` anchors the framer-motion scroll offsets (useScroll
-            warns when the container is statically positioned). */}
-        <div ref={containerRef} className="relative mt-14 space-y-4 sm:space-y-6">
-          {STEPS.map((step, i) => (
-            <MethodologyStep
-              key={step.key}
-              step={step}
-              index={i}
-              total={STEPS.length}
-              progress={scrollYProgress}
-              reduced={reduced}
-            />
-          ))}
+            warns when the container is statically positioned). The ref'd
+            wrapper boxes the steps AND the rail, so their heights match
+            and scrollYProgress semantics are unchanged. */}
+        <div ref={containerRef} className="relative mt-14">
+          {/* UI-5: vertical progress rail on the START side (logical
+              inset — flips with RTL). Track is a hairline; the fill is a
+              scaleY transform on the same scrollYProgress the cards use
+              (no extra listeners). Reduced motion → static full line. */}
+          <div
+            aria-hidden="true"
+            className="absolute bottom-0 start-0 top-0 w-0.5 rounded-full bg-border"
+          >
+            {reduced ? (
+              <div className="h-full w-full origin-top rounded-full bg-gradient-to-b from-primary via-primary/70 to-primary/30" />
+            ) : (
+              <motion.div
+                className="h-full w-full origin-top rounded-full bg-gradient-to-b from-primary via-primary/70 to-primary/30"
+                style={{ scaleY: scrollYProgress }}
+              />
+            )}
+          </div>
+          {/* Start-side gutter hosts the rail + per-card dots; sticky
+              containment is preserved — the steps' direct parent box is
+              geometrically identical to the previous single stack. */}
+          <div className="space-y-4 ps-5 sm:space-y-6 sm:ps-7">
+            {STEPS.map((step, i) => (
+              <MethodologyStep
+                key={step.key}
+                step={step}
+                index={i}
+                total={STEPS.length}
+                progress={scrollYProgress}
+                reduced={reduced}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </section>

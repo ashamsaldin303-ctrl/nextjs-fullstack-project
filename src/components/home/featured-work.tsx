@@ -5,7 +5,7 @@ import { Link } from '@/i18n/navigation'
 import { ArrowRight } from 'lucide-react'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { Reveal } from '@/components/shared/reveal'
-import { BeforeAfter } from './before-after'
+import { BeforeAfter, toMockContent } from './before-after'
 import { DeconstructedCard } from './deconstructed-card'
 const PROJECTS = [
   { key: 'project1' as const, variant: 'site-new' as const, accent: '#0071E3', metrics: ['metric1', 'metric2'] },
@@ -46,14 +46,20 @@ export function FeaturedWork() {
         <div className="mx-auto mt-14 max-w-2xl">
           {GRID_PROJECTS.map((p) => {
             const metrics = t.raw(`${p.key}.metrics`) as string[]
+            // UI-4: per-project mock content for the realistic "after" scene
+            const mock = toMockContent(t.raw(`${p.key}.mock`))
             return (
               <Reveal key={p.key} delay={0.1}>
                 <article className="group" data-cursor="preview" data-cursor-label={tc('cursor.preview')}>
-                  <BeforeAfter
-                    variant={p.variant}
-                    accent={p.accent}
-                    label={t(`${p.key}.title`)}
-                  />
+                  {/* subtle hover lift on the comparison mockup (UI-4) */}
+                  <div className="rounded-2xl transition-all duration-300 ease-out group-hover:-translate-y-1 group-hover:shadow-lg">
+                    <BeforeAfter
+                      variant={p.variant}
+                      accent={p.accent}
+                      label={t(`${p.key}.title`)}
+                      mock={mock}
+                    />
+                  </div>
                   <div className="mt-5 flex items-center gap-3">
                     <span className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">
                       {t(`${p.key}.category`)}

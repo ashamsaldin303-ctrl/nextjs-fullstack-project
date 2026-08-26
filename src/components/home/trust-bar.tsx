@@ -2,8 +2,18 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
+import { Briefcase, Zap, Star, Blocks, type LucideIcon } from 'lucide-react'
 import { Reveal } from '@/components/shared/reveal'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
+
+/* UI-5: per-stat visual identity — one semantic icon per metric, rendered
+ * as a decorative (aria-hidden) tinted chip above the counter. */
+const STAT_ICONS: Record<'projects' | 'hours' | 'satisfaction' | 'integrations', LucideIcon> = {
+  projects: Briefcase,
+  hours: Zap,
+  satisfaction: Star,
+  integrations: Blocks,
+}
 
 interface CounterProps {
   value: number
@@ -100,25 +110,48 @@ export function TrustBar() {
           </h2>
         </Reveal>
 
+        {/* UI-5 note: the `gap-px bg-border` grid already yields hairline
+            dividers between stats on desktop (RTL-safe by construction —
+            no divide-x/reverse needed); cells below add the icon chip,
+            a gradient accent under each value, and a gentle hover lift
+            on the INNER dd (lifting the cell itself would expose the
+            border-colored grid gaps behind it). */}
         <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-3xl border border-border bg-border lg:grid-cols-4">
-          {items.map((item, i) => (
-            /* Reveal renders the div wrapper (valid dl child) — but that div
-               may only contain dt/dd, so the visible label lives inside dd. */
-            <Reveal
-              key={item.key}
-              delay={i * 0.08}
-              className="bg-background p-6 text-center sm:p-8"
-            >
-              <dt className="sr-only">{item.label}</dt>
-              <dd
-                className="text-4xl font-bold tracking-tight text-primary sm:text-5xl"
-                style={{ fontVariationSettings: '"wght" 700' }}
+          {items.map((item, i) => {
+            const Icon = STAT_ICONS[item.key]
+            return (
+              /* Reveal renders the div wrapper (valid dl child) — but that div
+                 may only contain dt/dd, so the visible label lives inside dd. */
+              <Reveal
+                key={item.key}
+                delay={i * 0.08}
+                className="bg-background p-6 text-center sm:p-8"
               >
-                <Counter value={Number(item.value)} suffix={item.suffix} />
-                <span className="mt-2 block text-sm font-normal tracking-normal text-muted-foreground">{item.label}</span>
-              </dd>
-            </Reveal>
-          ))}
+                <dt className="sr-only">{item.label}</dt>
+                <dd className="group transition-transform duration-300 hover:-translate-y-1">
+                  <span
+                    className="mx-auto flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-110"
+                    aria-hidden="true"
+                  >
+                    <Icon className="size-5" aria-hidden="true" />
+                  </span>
+                  <span
+                    className="mt-4 block text-4xl font-bold tracking-tight text-primary sm:text-5xl"
+                    style={{ fontVariationSettings: '"wght" 700' }}
+                  >
+                    <Counter value={Number(item.value)} suffix={item.suffix} />
+                  </span>
+                  {/* Subtle symmetric gradient accent under the value —
+                      direction-agnostic, safe for RTL. */}
+                  <span
+                    aria-hidden="true"
+                    className="mx-auto mt-4 block h-0.5 w-10 rounded-full bg-gradient-to-r from-transparent via-primary/60 to-transparent"
+                  />
+                  <span className="mt-3 block text-sm font-normal tracking-normal text-muted-foreground">{item.label}</span>
+                </dd>
+              </Reveal>
+            )
+          })}
         </dl>
       </div>
     </section>

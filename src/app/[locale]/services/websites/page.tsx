@@ -92,8 +92,10 @@ export default async function WebsitesPage() {
                  CONTENT inside the li instead (Lighthouse a11y: list-item). */
               <li key={s}>
                 <Reveal delay={i * 0.05}>
-                  <div className="flex gap-4 rounded-2xl border border-border bg-card p-5 sm:gap-6 sm:p-6">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                  {/* UI-5: hover depth on the journey rows — gentle lift +
+                      primary border tint; the number badge brightens. */}
+                  <div className="card-hover-lift group flex gap-4 rounded-2xl border border-border bg-card p-5 hover:border-primary/30 sm:gap-6 sm:p-6">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary transition-colors duration-300 group-hover:bg-primary/15">
                       {String(i + 1).padStart(2, '0')}
                     </div>
                     <div>

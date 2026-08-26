@@ -606,3 +606,29 @@
     background: #FFFFFF;
   }
 }
+
+/* =========================================================================
+   UI-5 — final polish pass (additive only; nothing above was modified)
+   ========================================================================= */
+
+/* Shared hover-lift for NON-interactive cards (about values/team, websites
+   journey rows). Transform + a primary-tinted soft glow that reads on both
+   light and dark surfaces, plus smooth border/bg easing for the Tailwind
+   hover:* tint classes those cards carry. Purely decorative:
+   - the global prefers-reduced-motion override above collapses the
+     transition to ~0ms (no motion for reduced users);
+   - the :hover rule only sets transform + box-shadow, so Tailwind's layered
+     hover:border-* / hover:bg-* utilities still apply unopposed. */
+.card-hover-lift {
+  transition:
+    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.35s ease,
+    background-color 0.35s ease;
+}
+.card-hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 4px 12px -4px rgba(0, 0, 0, 0.08),
+    0 16px 40px -16px rgba(0, 113, 227, 0.22);
+}
