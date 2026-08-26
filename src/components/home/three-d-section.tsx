@@ -22,6 +22,9 @@ export function ThreeDSection() {
   const reduced = usePrefersReducedMotion()
   const ref = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState(true)
+  // FIX(2-c/7): the IO writes this ref so the visibilitychange handler
+  // can never re-enable rendering while the section is offscreen.
+  const intersectingRef = useRef(true)
   // Phase 3 §4.2: the Three.js chunk only loads when the section actually
   // approaches the viewport — below-fold sections never pay the cost up front.
   const [nearViewport, setNearViewport] = useState(false)
@@ -32,14 +35,15 @@ export function ThreeDSection() {
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry) {
-          setActive(entry.isIntersecting)
+          intersectingRef.current = entry.isIntersecting
+          setActive(entry.isIntersecting && !document.hidden)
           if (entry.isIntersecting) setNearViewport(true)
         }
       },
       { rootMargin: '200px 0px', threshold: 0.1 }
     )
     io.observe(el)
-    const onVis = () => setActive(!document.hidden)
+    const onVis = () => setActive(!document.hidden && intersectingRef.current)
     document.addEventListener('visibilitychange', onVis)
     return () => {
       io.disconnect()
@@ -55,6 +59,7 @@ export function ThreeDSection() {
           title={t('title')}
           subtitle={t('subtitle')}
           variant="on-dark"
+          titleId="threeD-title"
         />
 
         <Reveal className="mt-12">

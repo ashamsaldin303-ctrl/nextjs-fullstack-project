@@ -20,6 +20,7 @@ export function Testimonials() {
           title={t('title')}
           subtitle={t('subtitle')}
           variant="on-dark"
+          titleId="testi-title"
         />
 
         <div className="mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -27,7 +28,10 @@ export function Testimonials() {
             <Reveal key={key} delay={i * 0.08}>
               <figure className="relative flex h-full flex-col rounded-3xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-md sm:p-7">
                 <Quote className="size-8 text-primary/40" aria-hidden="true" />
-                <div className="mt-4 flex gap-0.5" role="img" aria-label="5 out of 5 stars">
+                {/* FIX(2-c/3): localized rating label (i18n contract: the
+                    `rating` key is provided under the testimonials namespace
+                    in both catalogs) — was a hardcoded English literal. */}
+                <div className="mt-4 flex gap-0.5" role="img" aria-label={t('rating')}>
                   {[0, 1, 2, 3, 4].map((s) => (
                     <Star key={s} className="size-4 fill-g-yellow text-g-yellow" aria-hidden="true" />
                   ))}

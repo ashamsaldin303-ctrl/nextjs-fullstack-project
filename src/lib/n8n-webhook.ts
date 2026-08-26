@@ -119,25 +119,31 @@ export async function sendLeadWebhook(
     return 'disabled'
   }
 
-  const timestamp = Math.floor(Date.now() / 1000).toString()
-  const nonce = crypto.randomUUID()
   const body = JSON.stringify(payload)
-  const signature = crypto
-    .createHmac('sha256', config.secret)
-    .update(buildSignatureMaterial(timestamp, nonce, body))
-    .digest('hex')
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'X-Elyra-Signature': `sha256=${signature}`,
-    'X-Elyra-Timestamp': timestamp,
-    'X-Elyra-Nonce': nonce,
+  // Each attempt signs itself (audit P2-1): a retry must carry a fresh
+  // timestamp/nonce/signature — reusing attempt-1 headers would trip the
+  // receiver's ±5-min TTL and nonce replay protection.
+  const attemptDelivery = async (): Promise<boolean> => {
+    const timestamp = Math.floor(Date.now() / 1000).toString()
+    const nonce = crypto.randomUUID()
+    const signature = crypto
+      .createHmac('sha256', config.secret)
+      .update(buildSignatureMaterial(timestamp, nonce, body))
+      .digest('hex')
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Elyra-Signature': `sha256=${signature}`,
+      'X-Elyra-Timestamp': timestamp,
+      'X-Elyra-Nonce': nonce,
+    }
+    return deliver(config.url, config.secret, body, headers)
   }
 
   // One retry on network failure only (prompt §3.3).
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      if (await deliver(config.url, config.secret, body, headers)) return 'sent'
+      if (await attemptDelivery()) return 'sent'
       return 'failed'
     } catch (err) {
       if (attempt === 0) continue

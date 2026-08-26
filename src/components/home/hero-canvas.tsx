@@ -185,11 +185,3 @@ export function HeroCanvas({ active }: HeroCanvasProps) {
     </div>
   )
 }
-
-/**
- * Dynamically-loaded by the hero. Loading fallback is a dark gradient
- * (never null — guide §1.5).
- */
-export function HeroCanvasFallback() {
-  return <div className="hero-fallback absolute inset-0 -z-0" aria-hidden="true" />
-}

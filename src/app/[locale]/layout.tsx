@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter, Cairo } from 'next/font/google'
 import { notFound } from 'next/navigation'
 import { hasLocale, NextIntlClientProvider } from 'next-intl'
@@ -25,6 +25,17 @@ const cairo = Cairo({
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }))
+}
+
+// Viewport: explicit width/scale (Next would default these anyway) +
+// themeColor matching the dark hero surface (--elyra-dark #0F172A — every
+// page opens on a dark hero, so browser chrome blends with it). The site
+// is a light design with dark sections → colorScheme 'light'.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#0F172A',
+  colorScheme: 'light',
 }
 
 export async function generateMetadata({
@@ -88,6 +99,9 @@ export default async function LocaleLayout({
   }
   setRequestLocale(locale)
   const dir = getDir(locale)
+  // Skip-link copy from the catalog (nav.skipToContent) — no hardcoded
+  // strings that can drift from the messages files.
+  const t = await getTranslations('nav')
 
   return (
     <html
@@ -102,7 +116,7 @@ export default async function LocaleLayout({
             href="#main"
             className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:start-4 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
           >
-            {locale === 'ar' ? 'تخطَّ إلى المحتوى' : 'Skip to content'}
+            {t('skipToContent')}
           </a>
           <Navbar />
           <main id="main" className="flex-1">

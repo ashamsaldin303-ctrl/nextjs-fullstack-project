@@ -11,14 +11,29 @@ import { useSyncExternalStore } from 'react'
  * framer-motion behaves during SSR and keeps hydration deterministic.
  */
 
+/**
+ * Module-level MQL singleton — `window.matchMedia` allocates a fresh
+ * MediaQueryList on every call, and the old getSnapshot ran it on every
+ * render. One cached instance serves subscribe + getSnapshot for the whole
+ * app (the matches state is shared by all MQLs of the same query anyway).
+ */
+let mql: MediaQueryList | null = null
+
+function getMql(): MediaQueryList | null {
+  if (typeof window === 'undefined') return null
+  if (!mql) mql = window.matchMedia('(prefers-reduced-motion: reduce)')
+  return mql
+}
+
 function subscribe(onChange: () => void): () => void {
-  const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+  const mq = getMql()
+  if (!mq) return () => {}
   mq.addEventListener('change', onChange)
   return () => mq.removeEventListener('change', onChange)
 }
 
 function getSnapshot(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  return getMql()?.matches ?? false
 }
 
 function getServerSnapshot(): boolean {

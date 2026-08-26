@@ -107,10 +107,10 @@
   --font-app: var(--font-cairo);
 }
 
-/* Dark sections use explicit utility classes (bg-elyra-dark) — no .dark toggle.
-   We still keep .dark for shadcn components that internally reference it,
-   by scoping dark tokens under [data-theme="dark"] which we never set, leaving
-   the default light tokens as the operational palette. */
+/* Dark sections use explicit utility classes (bg-elyra-dark) — the site
+   ships light-only BY DESIGN; no .dark toggle and no dark token set
+   exists. The @custom-variant dark above is kept only so stock shadcn
+   dark: classes still compile — nothing sets the class at runtime. */
 
 @layer base {
   * {
@@ -134,6 +134,13 @@
 @layer base {
   :focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Brand selection — primary blue background with the white foreground
+     token; readable over both light and dark sections. */
+  ::selection {
+    background: var(--primary);
+    color: var(--primary-foreground);
   }
 }
 
@@ -238,13 +245,23 @@
    entrance (framer-motion-free, LCP-safe — prompt §4.1/§4.3)
    ========================================================================= */
 
-/* Lightweight Reveal (IntersectionObserver toggles .reveal-visible) */
+/* Lightweight Reveal (IntersectionObserver toggles .reveal-visible).
+
+   No-JS safe (audit P2): content is VISIBLE by default; the hidden
+   start state applies ONLY when scripting is enabled. Browsers without
+   scripting: support (or with JS off) keep everything visible — safe
+   degradation instead of permanently-invisible below-fold content. */
 .reveal {
-  opacity: 0;
-  transform: translateY(24px);
-  transition:
-    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  /* visible by default — no-JS users see everything */
+}
+@media (scripting: enabled) {
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition:
+      opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
 }
 .reveal-visible {
   opacity: 1;
@@ -514,12 +531,6 @@
   background-repeat: repeat;
 }
 
-@media print {
-  .elyra-grain {
-    display: none;
-  }
-}
-
 /* --- Magnetic Cursor (prompt §3) ----------------------------------------
    The two layers are positioned by JS (translate3d) inside a single rAF
    loop — never via these properties. `mix-blend-difference` keeps them
@@ -586,5 +597,30 @@
     .elyra-cursor-active * {
       cursor: none;
     }
+  }
+}
+
+/* =========================================================================
+   Print hygiene — paper wants content, not chrome
+   ========================================================================= */
+@media print {
+  /* Fixed chrome: navbar (incl. the sound toggle inside it), film grain,
+     magnetic-cursor layers, toast notifications. */
+  body > header,
+  .elyra-grain,
+  .elyra-cursor,
+  .elyra-cursor-chip,
+  [data-sonner-toaster] {
+    display: none !important;
+  }
+  /* Nothing may float over paginated output — demote any surviving
+     fixed/sticky positioning (open sheets, focused skip link) to normal
+     flow so print pages don't clip or overlap. */
+  .fixed,
+  .sticky {
+    position: static !important;
+  }
+  body {
+    background: #FFFFFF;
   }
 }

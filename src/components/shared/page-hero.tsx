@@ -44,7 +44,9 @@ export function PageHero({ namespace, ctaHref = '/contact', className }: PageHer
         <h1
           id="page-hero-title"
           className="hero-enter mt-6 text-balance text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl"
-          style={{ fontVariationSettings: '"wght" 200' }}
+          // wght 700 baseline — matches the home hero's KineticHeading
+          // (idle) default; 200 read as a different (thin) brand voice.
+          style={{ fontVariationSettings: '"wght" 700' }}
         >
           <span className="block">{t('title')}</span>
           {t.has('titleAccent') ? (

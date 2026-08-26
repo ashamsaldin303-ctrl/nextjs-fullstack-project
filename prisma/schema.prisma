@@ -12,6 +12,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// PRIVACY NOTE (audit P2-8): `ipAddress` / `userAgent` are collected for
+// abuse tracing only. Define a retention policy before real production use
+// (e.g., purge Lead rows older than 90 days) — see README "Deployment".
+//
 // Captured calculator estimates & contact inquiries (audit P1-3).
 // `integrations` is a JSON-serialized array of IntegrationKey values —
 // SQLite has no scalar list type, so we serialize (guide code-style rule).

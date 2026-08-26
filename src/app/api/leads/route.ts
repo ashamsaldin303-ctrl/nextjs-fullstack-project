@@ -1,3 +1,4 @@
+import crypto from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { db } from '@/lib/db'
@@ -19,9 +20,14 @@ import { getApiT } from '@/lib/api-i18n'
  * Contract:
  *   400  Zod validation failure — field errors translated via the
  *        `x-elyra-locale` header (falls back to accept-language, then ar).
+ *   403  Cross-site request (Sec-Fetch-Site / Origin mismatch).
+ *   413  Body larger than 64 KB (content-length gate, pre-parse).
+ *   415  Content-Type is not application/json (pre-parse).
  *   429  Rate limited (5 req/min/IP) — `Retry-After` header in seconds.
  *   500  Generic error, zero internal detail; details go to the server log.
  *   201  Stored. Body: { reference } — the first 8 chars of the lead cuid.
+ *        (Also the honeypot path: bot submissions get the same 201 shape
+ *        but are silently discarded — see the POST handler.)
  *
  * Security decisions (documented in README "Phase 3 decisions"):
  *   - The budget/duration are ALWAYS recomputed server-side from the wizard
@@ -39,6 +45,9 @@ export const runtime = 'nodejs'
 /* ------------------------------------------------------------------ */
 /* Validation                                                          */
 /* ------------------------------------------------------------------ */
+
+/** Hard cap on the request body — checked via content-length BEFORE parsing. */
+const MAX_BODY_BYTES = 64 * 1024
 
 const integrationKeySchema = z.enum([
   'crm',
@@ -64,10 +73,24 @@ const CLIENT_ECHO_FIELDS = new Set([
   'breakdown',
 ])
 
+/** Loose human-typed phone pattern: optional leading +, digits, spaces, parens, dashes. */
+const WHATSAPP_PATTERN = /^\+?[0-9 ()\-]{5,30}$/
+
 const baseFields = {
   name: z.string().trim().min(2).max(100),
-  email: z.string().email().max(254),
-  whatsapp: z.string().trim().min(5).max(30).optional(),
+  // Zod v4 idiom — z.string().email() is deprecated (audit P2-3).
+  email: z.email().max(254),
+  whatsapp: z
+    .string()
+    .trim()
+    .min(5)
+    .max(30)
+    .regex(WHATSAPP_PATTERN)
+    .optional(),
+  // Honeypot (audit P2-5): hidden `companyWebsite` input that real users
+  // never fill but bots tend to complete. Validated, NEVER persisted — a
+  // non-empty value short-circuits to a fake 201 in the POST handler.
+  companyWebsite: z.string().max(200).optional(),
 }
 
 const calculatorLeadSchema = z.strictObject({
@@ -77,7 +100,14 @@ const calculatorLeadSchema = z.strictObject({
   pages: z.number().int().min(1).max(20),
   languages: z.enum(['single', 'bilingual']),
   threeD: z.enum(['yes', 'no']),
-  integrations: z.array(integrationKeySchema).max(6),
+  integrations: z
+    .array(integrationKeySchema)
+    .max(6)
+    // Duplicate values are rejected (audit P2-3) — fieldErrors maps the
+    // issue onto the `integrations` field key below.
+    .refine((items) => new Set(items).size === items.length, {
+      message: 'duplicate integrations are not allowed',
+    }),
   automationLevel: z.enum(['essential', 'advanced']),
 })
 
@@ -96,11 +126,23 @@ const leadSchema = z.discriminatedUnion('source', [
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Rate-limit key derivation (audit P1-1).
+ *
+ * X-Forwarded-For / X-Real-IP are trivially spoofable by any client that
+ * reaches the app directly — trusting them unconditionally lets an attacker
+ * rotate the header for a fresh bucket per request. They are honored ONLY
+ * when TRUST_PROXY=true, i.e. behind a trusted reverse proxy that
+ * OVERWRITES these headers with the real client address (the included
+ * Caddyfile does). Otherwise fail closed: all callers share the single
+ * 'anonymous' bucket.
+ */
 function clientIp(req: NextRequest): string {
+  if (process.env.TRUST_PROXY !== 'true') return 'anonymous'
   const xff = req.headers.get('x-forwarded-for')
   const first = xff?.split(',')[0]?.trim()
   if (first) return first
-  return req.headers.get('x-real-ip') ?? 'unknown'
+  return req.headers.get('x-real-ip') ?? 'anonymous'
 }
 
 function requestLocale(req: NextRequest): 'ar' | 'en' {
@@ -123,9 +165,12 @@ function fieldErrors(
 ): Record<string, string> {
   const out: Record<string, string> = {}
   for (const issue of issues) {
-    const field = issue.path.join('.')
-    if (KNOWN_FIELDS.has(field)) {
-      out[field] = t(`fields.${field}`)
+    // Root path segment: an issue at ['integrations', 0] belongs to the
+    // `integrations` field — array-index paths must surface on the owning
+    // field instead of vanishing into the generic error with an empty map.
+    const root = issue.path[0]
+    if (typeof root === 'string' && KNOWN_FIELDS.has(root)) {
+      out[root] = t(`fields.${root}`)
     } else if (issue.code === 'unrecognized_keys') {
       const keys = (issue as { keys?: string[] }).keys ?? []
       for (const k of keys) out[k] = t('unknownField')
@@ -211,7 +256,52 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // 2) Parse — strip known client-echo estimate fields, reject unknowns.
+  // 2) Cheap header gates BEFORE any body parsing (audit P1-2) — never
+  // allocate a parser for oversized or non-JSON requests.
+  const contentLengthHeader = req.headers.get('content-length')
+  const contentLength =
+    contentLengthHeader === null ? 0 : Number(contentLengthHeader)
+  if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
+    return NextResponse.json(
+      { error: 'too_large', message: t('tooLarge') },
+      { status: 413 }
+    )
+  }
+  const contentType = req.headers.get('content-type') ?? ''
+  if (!contentType.toLowerCase().includes('application/json')) {
+    return NextResponse.json(
+      { error: 'invalid', message: t('invalid'), fields: {} },
+      { status: 415 }
+    )
+  }
+
+  // 3) Cross-site request rejection (audit P2-2): browsers always attach
+  // Sec-Fetch-Site / Origin to cross-site POSTs — this blocks cross-site
+  // form-post spam while header-less clients (curl, API tools) pass.
+  const secFetchSite = req.headers.get('sec-fetch-site')
+  if (secFetchSite === 'cross-site' || secFetchSite === 'same-site') {
+    return NextResponse.json(
+      { error: 'cross_origin', message: t('crossOrigin') },
+      { status: 403 }
+    )
+  }
+  const origin = req.headers.get('origin')
+  if (origin) {
+    let sameHost = false
+    try {
+      sameHost = new URL(origin).host === req.headers.get('host')
+    } catch {
+      // Malformed Origin — fail closed (treated as cross-site).
+    }
+    if (!sameHost) {
+      return NextResponse.json(
+        { error: 'cross_origin', message: t('crossOrigin') },
+        { status: 403 }
+      )
+    }
+  }
+
+  // 4) Parse — strip known client-echo estimate fields, reject unknowns.
   let raw: unknown
   try {
     raw = await req.json()
@@ -241,11 +331,22 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // 3) Persist (storage has priority over the webhook — §3.3).
+  // 5) honeypot: silently discard bot submissions — a non-empty
+  // companyWebsite means a bot filled the hidden field. Return the exact
+  // 201 success shape (fresh reference) so bots can't tell the difference;
+  // no DB write, no webhook. The field is likewise never persisted below.
   const input = parsed.data
+  if (input.companyWebsite !== undefined && input.companyWebsite.trim() !== '') {
+    return NextResponse.json(
+      { reference: crypto.randomBytes(6).toString('hex').slice(0, 8) },
+      { status: 201 }
+    )
+  }
+
+  // 6) Persist (storage has priority over the webhook — §3.3).
   const stored = toStoredLead(input)
   const userAgent = req.headers.get('user-agent')
-  const ipForRecord = ip === 'unknown' ? null : ip
+  const ipForRecord = ip === 'anonymous' ? null : ip
 
   try {
     const lead = await db.lead.create({
@@ -270,7 +371,7 @@ export async function POST(req: NextRequest) {
 
     const reference = lead.id.slice(0, 8)
 
-    // 4) Webhook — fire-and-forget, never blocks or fails the 201.
+    // 7) Webhook — fire-and-forget, never blocks or fails the 201.
     const payload: LeadWebhookPayload = {
       event: 'lead.created',
       reference,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { z } from 'zod'
@@ -22,7 +22,7 @@ import { RingGauge } from './ring-gauge'
 import {
   computeEstimate, formatMoney,
   type CalculatorInput, type ServiceType, type IntegrationKey,
-  type AutomationLevel, type LanguageOption, type ThreeDOption,
+  type AutomationLevel, type LanguageOption, type ThreeDOption, type Locale,
 } from '@/lib/calculator'
 
 type Step = 0 | 1 | 2
@@ -54,7 +54,11 @@ const INITIAL_INPUT: CalculatorInput = {
 
 export function Calculator() {
   const t = useTranslations('calculator')
-  const locale = useLocale()
+  // useLocale() returns a broad `string`; narrow to the routing union
+  // (unknown values fall back to `ar`, the site default) so formatMoney's
+  // tightened `Locale` param type-checks.
+  const localeRaw = useLocale()
+  const locale: Locale = localeRaw === 'en' ? 'en' : 'ar'
   const reduced = useReducedMotion()
 
   const [step, setStep] = useState<Step>(0)
@@ -65,6 +69,10 @@ export function Calculator() {
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [reference, setReference] = useState<string | null>(null)
+  // FIX(2-c/18): honeypot trap — bots autofill hidden "companyWebsite"
+  // fields; humans never see it. The value rides along in the JSON body
+  // and the API silently discards bot submissions with a fake success.
+  const honeypotRef = useRef<HTMLInputElement>(null)
 
   const result = useMemo(() => computeEstimate(input), [input])
 
@@ -117,6 +125,7 @@ export function Calculator() {
         },
         body: JSON.stringify({
           source: 'calculator',
+          companyWebsite: honeypotRef.current?.value ?? '',
           name: parsed.data.name,
           email: parsed.data.email,
           whatsapp: parsed.data.whatsapp || undefined,
@@ -173,6 +182,7 @@ export function Calculator() {
           kicker={t('kicker')}
           title={t('title')}
           subtitle={t('subtitle')}
+          titleId="calc-title"
         />
 
         {/* Progress */}
@@ -481,6 +491,16 @@ export function Calculator() {
 
                       <form onSubmit={onSubmit} className="rounded-2xl border border-border p-6" noValidate>
                         <h3 className="text-lg font-semibold">{t('form.title')}</h3>
+                        {/* Honeypot — bots fill it, humans never see it (API silently discards) */}
+                        <input
+                          ref={honeypotRef}
+                          type="text"
+                          name="companyWebsite"
+                          tabIndex={-1}
+                          autoComplete="off"
+                          aria-hidden="true"
+                          className="pointer-events-none absolute -left-[9999px] h-px w-px overflow-hidden"
+                        />
                         <div className="mt-4 space-y-4">
                           <div>
                             <Label htmlFor="calc-name" className="text-sm">{t('form.name')}</Label>

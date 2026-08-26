@@ -1,5 +1,8 @@
 import type { Metadata } from 'next'
+import { hasLocale } from 'next-intl'
+import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
+import { routing } from '@/i18n/routing'
 import { Sparkles, Target, Bot } from 'lucide-react'
 import { PageHero } from '@/components/shared/page-hero'
 import { CTA } from '@/components/shared/cta'
@@ -32,6 +35,9 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>
 }): Promise<Metadata> {
   const { locale } = await params
+  // Narrow string → Locale for buildPageMetadata (validity is already
+  // guaranteed by the proxy for every reachable route).
+  if (!hasLocale(routing.locales, locale)) notFound()
   return buildPageMetadata({
     locale,
     namespace: 'meta.about',
@@ -64,7 +70,12 @@ export default async function AboutPage() {
       {/* Values */}
       <section className="bg-elyra-dark py-20 text-elyra-on-dark sm:py-28" aria-labelledby="values-title">
         <div className="elyra-container max-w-container">
-          <SectionHeading kicker={t('values.kicker')} title={t('values.title')} variant="on-dark" />
+          <SectionHeading
+            kicker={t('values.kicker')}
+            title={t('values.title')}
+            variant="on-dark"
+            titleId="values-title"
+          />
           <div className="mt-14 grid gap-6 md:grid-cols-3">
             {VALUES.map(({ key, icon: Icon }, i) => (
               <Reveal key={key} delay={i * 0.1}>
@@ -84,7 +95,11 @@ export default async function AboutPage() {
       {/* Team */}
       <section className="bg-background py-20 sm:py-28" aria-labelledby="team-title">
         <div className="elyra-container max-w-container">
-          <SectionHeading kicker={t('team.kicker')} title={t('team.title')} />
+          <SectionHeading
+            kicker={t('team.kicker')}
+            title={t('team.title')}
+            titleId="team-title"
+          />
           <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {TEAM.map((m, i) => {
               const name = t(`team.members.${m}.name`)

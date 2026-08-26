@@ -4,23 +4,23 @@
     "title": "Elyra — Stunning Websites & n8n Automation Systems",
     "description": "Elyra is a digital agency crafting beautifully designed websites, interactive 3D experiences, and intelligent n8n automation systems. Try our project calculator for an instant estimate.",
     "websites": {
-      "title": "Professional Website Building | Elyra",
+      "title": "Professional Website Building",
       "description": "Company sites, e-commerce stores and SaaS platforms with Apple-level beauty and outstanding performance, plus interactive 3D experiences."
     },
     "automation": {
-      "title": "n8n Automation Systems | Elyra",
+      "title": "n8n Automation Systems",
       "description": "Connect your tools and automate your operations: CRM integrations, invoicing, instant alerts and AI agents — through 422+ ready integrations."
     },
     "work": {
-      "title": "Our Work | Elyra",
+      "title": "Our Work",
       "description": "Selected website and automation projects we have built — results that speak in numbers."
     },
     "about": {
-      "title": "About Us | Elyra",
+      "title": "About Us",
       "description": "Discover Elyra's story, team and values: beauty, precision, and automation that serves people."
     },
     "contact": {
-      "title": "Contact Us | Elyra",
+      "title": "Contact Us",
       "description": "Tell us about your project or use the interactive project calculator for an instant budget and timeline estimate."
     }
   },
@@ -303,6 +303,7 @@
     "kicker": "Testimonials",
     "title": "Trust We Cherish",
     "subtitle": "What clients say, from the first discovery session to long after launch.",
+    "rating": "Rated 5 out of 5 stars",
     "items": {
       "first": {
         "quote": "I asked for a website and received a complete digital brand. Within three months of launch, conversion was up 140% and cart abandonment dropped by nearly half. The team never asks \"what do you want?\" — they ask \"what should your customer feel?\" That changed everything.",
@@ -356,7 +357,7 @@
       }
     },
     "pages": "Number of Pages",
-    "pagesValue": "{count} pages",
+    "pagesValue": "{count, plural, one {# page} other {# pages}}",
     "languages": "Languages",
     "languagesOptions": {
       "single": "Arabic only",
@@ -738,7 +739,7 @@
         "kicker": "About Us",
         "title": "The Story",
         "titleAccent": "of Elyra",
-        "subtitle": "A digitally small agency with an enormous obsession for detail."
+        "subtitle": "A small digital agency with an enormous obsession for detail."
       },
       "story": {
         "kicker": "The Beginning",
@@ -914,6 +915,8 @@
     },
     "unknownField": "Unknown field.",
     "rateLimited": "Too many attempts — please wait a minute and try again.",
+    "tooLarge": "Request body too large.",
+    "crossOrigin": "Untrusted request origin.",
     "serverError": "An internal error occurred. Please try again shortly."
   }
 }

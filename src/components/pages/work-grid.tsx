@@ -52,18 +52,20 @@ export function WorkGrid() {
         {/* sr-only h2: fixes the broken aria-labelledby reference AND the
             h1→h3 heading-order jump flagged by Lighthouse. */}
         <h2 id="work-grid-title" className="sr-only">{t('gridTitle')}</h2>
-        {/* Tabs are self-describing (visible text labels) — no redundant
-            aria-label repeating the section title (audit P1-5). */}
-        <div className="flex flex-wrap justify-center gap-2" role="tablist">
+        {/* FIX(2-c/14): plain toggle-button group — the previous
+            role="tablist"/"tab" markup had no tabpanels, no aria-controls
+            and no roving tabindex (an incomplete tabs pattern). These are
+            filters with visible text labels, so aria-pressed buttons are
+            the correct semantics. */}
+        <div className="flex flex-wrap justify-center gap-2">
           {filters.map((f) => {
             const active = filter === f.id
             return (
               <button
                 key={f.id}
                 type="button"
-                role="tab"
                 data-cursor="magnet"
-                aria-selected={active}
+                aria-pressed={active}
                 onClick={() => setFilter(f.id)}
                 className={cn(
                   'inline-flex h-10 items-center rounded-full px-5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',

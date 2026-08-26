@@ -12,6 +12,11 @@ const PROJECTS = [
   { key: 'project2' as const, variant: 'dashboard-new' as const, accent: '#34A853', metrics: ['metric1', 'metric2'] },
 ]
 
+// FIX(2-c/11): project1 gets the full deconstructed showcase above, so
+// the grid below renders only the remaining projects — otherwise the same
+// title/desc/metrics content appears twice in one section.
+const GRID_PROJECTS = PROJECTS.filter((p) => p.key !== 'project1')
+
 export function FeaturedWork() {
   const t = useTranslations('workSection')
   const tc = useTranslations('common')
@@ -23,6 +28,7 @@ export function FeaturedWork() {
           kicker={t('kicker')}
           title={t('title')}
           subtitle={t('subtitle')}
+          titleId="work-title"
         />
 
         {/* WS-5: the first featured project is a full-width deconstructed
@@ -34,8 +40,11 @@ export function FeaturedWork() {
           <DeconstructedCard projectKey="project1" />
         </Reveal>
 
-        <div className="mt-14 grid gap-8 md:grid-cols-2">
-          {PROJECTS.map((p) => {
+        {/* With a single remaining project the grid becomes one centered
+            card — reads as an intentional "next project" teaser instead of
+            a half-empty 2-col grid. */}
+        <div className="mx-auto mt-14 max-w-2xl">
+          {GRID_PROJECTS.map((p) => {
             const metrics = t.raw(`${p.key}.metrics`) as string[]
             return (
               <Reveal key={p.key} delay={0.1}>

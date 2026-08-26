@@ -26,6 +26,10 @@ function Knot({ dragging }: { dragging: boolean }) {
   const group = useRef<THREE.Group>(null)
   const last = useRef({ x: 0, y: 0 })
   const mouse = useRef({ tx: 0, ty: 0 })
+  // FIX(2-c/4): R3F pointer events can't be rAF-coalesced (they fire inside
+  // the render loop's event pass), so throttle to ~60Hz with a timestamp
+  // guard — early return when the last processed event was <16ms ago.
+  const lastPointerTs = useRef(0)
   const { viewport } = useThree()
 
   const geo = useMemo(() => new THREE.TorusKnotGeometry(1, 0.32, 220, 32), [])
@@ -39,6 +43,15 @@ function Knot({ dragging }: { dragging: boolean }) {
       }),
     []
   )
+
+  // FIX(2-c/10): R3F does not dispose prop-passed geometry/material (only
+  // JSX-declared ones) — free the GPU buffers explicitly on unmount.
+  useEffect(() => {
+    return () => {
+      geo.dispose()
+      mat.dispose()
+    }
+  }, [geo, mat])
 
   useFrame((state, delta) => {
     if (!group.current) return
@@ -63,6 +76,12 @@ function Knot({ dragging }: { dragging: boolean }) {
           ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
         }}
         onPointerMove={(e) => {
+          // FIX(2-c/4): ~60Hz throttle — skips the rect read + drag delta
+          // math for sub-frame events. Early return BEFORE updating
+          // `last` keeps drag deltas accumulation-correct.
+          const now = performance.now()
+          if (now - lastPointerTs.current < 16) return
+          lastPointerTs.current = now
           // mutate group.current.rotation directly — Three.js Object3D, allowed
           if (group.current && dragging) {
             const dx = e.clientX - last.current.x
@@ -95,6 +114,23 @@ function Knot({ dragging }: { dragging: boolean }) {
       </group>
     </>
   )
+}
+
+/** FIX(2-c/10): context-loss guard — `preventDefault()` marks the event
+ *  as handled so the browser keeps the canvas alive for a possible restore
+ *  (and stops the default console error spam); we log once for diagnostics. */
+function ContextLossGuard() {
+  const gl = useThree((s) => s.gl)
+  useEffect(() => {
+    const canvas = gl.domElement
+    const onLost = (e: Event) => {
+      e.preventDefault()
+      console.warn('[CapabilityScene] WebGL context lost')
+    }
+    canvas.addEventListener('webglcontextlost', onLost)
+    return () => canvas.removeEventListener('webglcontextlost', onLost)
+  }, [gl])
+  return null
 }
 
 export function CapabilityScene({ active }: { active: boolean }) {
@@ -141,6 +177,7 @@ export function CapabilityScene({ active }: { active: boolean }) {
           <pointLight key={i} color={l.color} position={l.pos} intensity={28} distance={12} />
         ))}
         <Knot dragging={dragging} />
+        <ContextLossGuard />
       </Canvas>
     </div>
   )

@@ -54,3 +54,9 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# database (SQLite) — never track lead data (audit P1-3); history contains
+# only synthetic test data, but future rows would be real PII.
+db/*.db
+db/*.db-wal
+db/*.db-shm

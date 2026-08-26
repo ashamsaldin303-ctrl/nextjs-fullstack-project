@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import { Reveal } from '@/components/shared/reveal'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 
@@ -46,6 +46,11 @@ function Counter({ value, suffix, durationMs = 1600 }: CounterProps) {
   const inView = useInViewOnce(ref)
   const reduced = usePrefersReducedMotion()
   const [display, setDisplay] = useState(0)
+  // FIX(2-c/16): counts are formatted through next-intl's formatter — the
+  // exact machinery the simulator's `stepOf` message uses — so AR pages
+  // get Arabic-Indic digits ("١٢٠") instead of hardcoded en-US. Money
+  // elsewhere stays Latin per the site's digit convention.
+  const format = useFormatter()
 
   useEffect(() => {
     if (!inView || reduced) return
@@ -63,7 +68,7 @@ function Counter({ value, suffix, durationMs = 1600 }: CounterProps) {
 
   // Reduced-motion users see the final value immediately (derived, no setState).
   const shown = reduced ? (inView ? value : 0) : display
-  const formatted = new Intl.NumberFormat('en-US').format(shown)
+  const formatted = format.number(shown)
 
   return (
     <span ref={ref} className="tabular-nums">

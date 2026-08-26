@@ -108,15 +108,16 @@ interface BeforeAfterProps {
   variant: SceneVariant
   accent?: string
   className?: string
-  /** aria label prefix */
-  label?: string
+  /** aria label prefix — REQUIRED (FIX 2-c/17): every call site passes a
+   *  localized project title; no untranslated default literal. */
+  label: string
 }
 
 export function BeforeAfter({
   variant,
   accent = '#0071E3',
   className,
-  label = 'Project',
+  label,
 }: BeforeAfterProps) {
   const t = useTranslations('workSection')
   const tc = useTranslations('common') // WS-2: cursor context label
@@ -217,12 +218,14 @@ export function BeforeAfter({
         </div>
       </div>
 
-      {/* accessible slider control (invisible but focusable) */}
+      {/* accessible slider control (invisible but focusable) — bounds
+          match the actual clamp range (FIX 2-c/17: was 0–100 while the
+          pointer/keyboard logic clamps to 2–98). */}
       <div
         role="slider"
         tabIndex={0}
-        aria-valuemin={0}
-        aria-valuemax={100}
+        aria-valuemin={2}
+        aria-valuemax={98}
         aria-valuenow={Math.round(pos)}
         aria-label={`${label}: ${t('dragHint')}`}
         aria-valuetext={`${Math.round(pos)}%`}

@@ -14,7 +14,9 @@ export default function Error({
 }) {
   const t = useTranslations('common')
   useEffect(() => {
-    // Server-side structured log (guide §4.11) — never expose to the user.
+    // Client-side log (browser console only) — this is a client boundary,
+    // so nothing reaches the server here. Wiring this into a server-side
+    // capture (e.g. a reporting endpoint) is future work.
     console.error('[elyra:error]', error.message, error.digest)
   }, [error])
 

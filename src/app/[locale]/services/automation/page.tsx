@@ -1,5 +1,8 @@
 import type { Metadata } from 'next'
+import { hasLocale } from 'next-intl'
+import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
+import { routing } from '@/i18n/routing'
 import { type LucideIcon } from 'lucide-react'
 import {
   Users, FileText, Mail, Send, Table, Bot, CreditCard, Database,
@@ -29,6 +32,9 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>
 }): Promise<Metadata> {
   const { locale } = await params
+  // Narrow string → Locale for buildPageMetadata (validity is already
+  // guaranteed by the proxy for every reachable route).
+  if (!hasLocale(routing.locales, locale)) notFound()
   return buildPageMetadata({
     locale,
     namespace: 'meta.automation',
@@ -50,6 +56,7 @@ export default async function AutomationPage() {
             kicker={t('integrations.kicker')}
             title={t('integrations.title')}
             subtitle={t('integrations.note')}
+            titleId="int-title"
           />
           <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {INTEGRATIONS.map(({ key, icon: Icon }, i) => (
@@ -75,6 +82,7 @@ export default async function AutomationPage() {
             title={t('runsOnN8n.title')}
             subtitle={t('runsOnN8n.desc')}
             variant="on-dark"
+            titleId="n8n-title"
           />
           <Reveal className="mt-12">
             <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">

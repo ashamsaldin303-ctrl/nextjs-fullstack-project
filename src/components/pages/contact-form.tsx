@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { z } from 'zod'
 import { toast } from 'sonner'
@@ -26,6 +26,10 @@ export function ContactForm() {
   const [values, setValues] = useState<FormValues>({ name: '', email: '', message: '' })
   const [errors, setErrors] = useState<{ name?: string; email?: string; message?: string }>({})
   const [submitting, setSubmitting] = useState(false)
+  // FIX(2-c/18): honeypot trap — bots autofill hidden "companyWebsite"
+  // fields; humans never see it. The value rides along in the JSON body
+  // and the API silently discards bot submissions with a fake success.
+  const honeypotRef = useRef<HTMLInputElement>(null)
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,6 +58,7 @@ export function ContactForm() {
         },
         body: JSON.stringify({
           source: 'contact-form',
+          companyWebsite: honeypotRef.current?.value ?? '',
           name: parsed.data.name,
           email: parsed.data.email,
           message: parsed.data.message,
@@ -99,6 +104,16 @@ export function ContactForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
+      {/* Honeypot — bots fill it, humans never see it (API silently discards) */}
+      <input
+        ref={honeypotRef}
+        type="text"
+        name="companyWebsite"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-[9999px] h-px w-px overflow-hidden"
+      />
       <div>
         <Label htmlFor="cf-name" className="text-sm">{t('name')}</Label>
         <Input id="cf-name" autoComplete="name" className="mt-1.5" {...field('name')} />

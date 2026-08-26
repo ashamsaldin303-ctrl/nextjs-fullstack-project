@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   Globe, Workflow, Boxes, Bot, Sparkles,
@@ -19,13 +19,30 @@ function GlowCard({
   className?: string
 }) {
   const ref = useRef<HTMLDivElement>(null)
+  // FIX(2-c/4): rAF-coalesced — the rect read + --mx/--my writes happen
+  // ONCE per frame using the latest event, not once per pointermove.
+  // With no new events the callback never reschedules (idle at zero cost).
+  const latestPointer = useRef<React.PointerEvent<HTMLDivElement> | null>(null)
+  const glowRaf = useRef(0)
   const onMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    const el = ref.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    el.style.setProperty('--mx', `${e.clientX - rect.left}px`)
-    el.style.setProperty('--my', `${e.clientY - rect.top}px`)
+    latestPointer.current = e
+    if (glowRaf.current) return
+    glowRaf.current = requestAnimationFrame(() => {
+      glowRaf.current = 0
+      const el = ref.current
+      const ev = latestPointer.current
+      if (!el || !ev) return
+      const rect = el.getBoundingClientRect()
+      el.style.setProperty('--mx', `${ev.clientX - rect.left}px`)
+      el.style.setProperty('--my', `${ev.clientY - rect.top}px`)
+    })
   }, [])
+  useEffect(
+    () => () => {
+      if (glowRaf.current) cancelAnimationFrame(glowRaf.current)
+    },
+    []
+  )
 
   return (
     <div
@@ -70,11 +87,15 @@ function MiniSite() {
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {SITE_PALETTE.map((c) => (
+          // FIX(2-c/12): swatches are a decorative pointer toy — raw hex
+          // aria-labels announce noise, so they are hidden from the a11y
+          // tree and removed from tab order (selection still shows its
+          // ring visually).
           <button
             key={c}
             type="button"
-            aria-label={c}
-            aria-pressed={accent === c}
+            aria-hidden="true"
+            tabIndex={-1}
             onClick={() => setAccent(c)}
             className={cn(
               'size-6 rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
@@ -93,12 +114,25 @@ function MiniFlow() {
   const t = useTranslations('bento.automation.mini')
   const reduced = usePrefersReducedMotion()
   const [state, setState] = useState<'idle' | 'running' | 'done'>('idle')
+  // FIX(2-c/5): keep the completion timeout cancellable — cleared before
+  // re-arming and on unmount so a late `done` can never fire on a dead card.
+  const timer = useRef(0)
+  useEffect(
+    () => () => {
+      if (timer.current) window.clearTimeout(timer.current)
+    },
+    []
+  )
 
   const run = () => {
     if (state === 'running') return
+    if (timer.current) window.clearTimeout(timer.current)
     setState('running')
     const total = reduced ? 1200 : 2100
-    window.setTimeout(() => setState('done'), total)
+    timer.current = window.setTimeout(() => {
+      timer.current = 0
+      setState('done')
+    }, total)
   }
 
   return (
@@ -235,9 +269,23 @@ function MiniAgent() {
   const [typed, setTyped] = useState(false)
   const [chars, setChars] = useState(0)
   const response = t('response')
+  // FIX(2-c/5): hold the typewriter interval in a ref — cleared on reset
+  // (prevents a second interval racing the first when re-triggered
+  // mid-type) and on unmount.
+  const typer = useRef(0)
+  useEffect(
+    () => () => {
+      if (typer.current) window.clearInterval(typer.current)
+    },
+    []
+  )
 
   const ask = () => {
     if (typed) {
+      if (typer.current) {
+        window.clearInterval(typer.current)
+        typer.current = 0
+      }
       setTyped(false)
       setChars(0)
       return
@@ -247,11 +295,15 @@ function MiniAgent() {
       setChars(response.length)
       return
     }
+    if (typer.current) window.clearInterval(typer.current)
     let i = 0
-    const id = window.setInterval(() => {
+    typer.current = window.setInterval(() => {
       i += 2
       setChars(i)
-      if (i >= response.length) window.clearInterval(id)
+      if (i >= response.length) {
+        window.clearInterval(typer.current)
+        typer.current = 0
+      }
     }, 25)
   }
 
@@ -336,14 +388,16 @@ export function ServicesBento() {
           kicker={t('kicker')}
           title={t('title')}
           subtitle={t('subtitle')}
+          titleId="bento-title"
         />
 
         <div className="mt-14 grid gap-4 lg:grid-cols-3 lg:grid-rows-2">
-          {/* Big websites card */}
+          {/* Big websites card — FIX(2-c/12): the icon eyebrow used to repeat
+              the identical i18n string as the h3 below (catalog has no distinct
+              per-card kicker key) — icon-only row preserves the rhythm. */}
           <GlowCard className="lg:col-span-2 lg:row-span-2">
             <div className="flex items-center gap-2 text-primary">
               <Globe className="size-5" aria-hidden="true" />
-              <span className="text-sm font-medium">{t('websites.title')}</span>
             </div>
             <h3 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
               {t('websites.title')}
@@ -369,7 +423,6 @@ export function ServicesBento() {
           <GlowCard>
             <div className="flex items-center gap-2 text-primary">
               <Workflow className="size-5" aria-hidden="true" />
-              <span className="text-sm font-medium">{t('automation.title')}</span>
             </div>
             <h3 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">
               {t('automation.title')}
@@ -384,7 +437,6 @@ export function ServicesBento() {
           <GlowCard>
             <div className="flex items-center gap-2 text-primary">
               <Boxes className="size-5" aria-hidden="true" />
-              <span className="text-sm font-medium">{t('threeD.title')}</span>
             </div>
             <h3 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">
               {t('threeD.title')}
@@ -399,7 +451,6 @@ export function ServicesBento() {
           <GlowCard className="lg:col-span-2">
             <div className="flex items-center gap-2 text-primary">
               <Bot className="size-5" aria-hidden="true" />
-              <span className="text-sm font-medium">{t('ai.title')}</span>
             </div>
             <div className="grid gap-6 sm:grid-cols-2 sm:items-center">
               <div>
@@ -418,7 +469,6 @@ export function ServicesBento() {
           <GlowCard className="lg:col-span-1">
             <div className="flex items-center gap-2 text-primary">
               <Sparkles className="size-5" aria-hidden="true" />
-              <span className="text-sm font-medium">{t('integrations.title')}</span>
             </div>
             <h3 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">
               {t('integrations.title')}

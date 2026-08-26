@@ -46,11 +46,9 @@ export function HomeJsonLd() {
               name: 'Elyra',
               publisher: { '@id': `${SITE_URL}/#organization` },
               inLanguage: ['ar', 'en'],
-              potentialAction: {
-                '@type': 'SearchAction',
-                target: `${SITE_URL}/work?q={search_term_string}`,
-                'query-input': 'required name=search_term_string',
-              },
+              // FIX(2-c/15): SearchAction removed — it advertised a
+              // /work?q={search_term_string} search endpoint that doesn't
+              // exist anywhere in the app (no search implementation).
             },
           ],
         }),

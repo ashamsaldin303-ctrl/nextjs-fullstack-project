@@ -1,5 +1,8 @@
 import type { Metadata } from 'next'
+import { hasLocale } from 'next-intl'
+import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
+import { routing } from '@/i18n/routing'
 import { Check, Globe, ShoppingCart, LayoutDashboard } from 'lucide-react'
 import { PageHero } from '@/components/shared/page-hero'
 import { CTA } from '@/components/shared/cta'
@@ -23,6 +26,9 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>
 }): Promise<Metadata> {
   const { locale } = await params
+  // Narrow string → Locale for buildPageMetadata (validity is already
+  // guaranteed by the proxy for every reachable route).
+  if (!hasLocale(routing.locales, locale)) notFound()
   return buildPageMetadata({
     locale,
     namespace: 'meta.websites',
@@ -39,7 +45,11 @@ export default async function WebsitesPage() {
 
       <section className="bg-background py-20 sm:py-28" aria-labelledby="types-title">
         <div className="elyra-container max-w-container">
-          <SectionHeading kicker={t('types.kicker')} title={t('types.title')} />
+          <SectionHeading
+            kicker={t('types.kicker')}
+            title={t('types.title')}
+            titleId="types-title"
+          />
           <div className="mt-14 grid gap-6 md:grid-cols-3">
             {TYPES.map(({ key, icon: Icon }, i) => (
               <Reveal key={key} delay={i * 0.1}>
@@ -71,7 +81,11 @@ export default async function WebsitesPage() {
 
       <section className="bg-background py-20 sm:py-28" aria-labelledby="journey-title">
         <div className="elyra-container max-w-5xl">
-          <SectionHeading kicker={t('journey.kicker')} title={t('journey.title')} />
+          <SectionHeading
+            kicker={t('journey.kicker')}
+            title={t('journey.title')}
+            titleId="journey-title"
+          />
           <ol className="mt-14 space-y-4">
             {JOURNEY.map((s, i) => (
               /* li must be a direct child of ol — Reveal (a div) wraps the

@@ -56,5 +56,17 @@ COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 RUN mkdir -p /app/db
 VOLUME /app/db
 
+# Non-root runtime (audit P2-6): oven/bun ships the `bun` user. Own
+# everything — including the db volume mount point — so SQLite writes work
+# without root.
+RUN chown -R bun:bun /app
+USER bun
+
 EXPOSE 3000
+
+# Liveness probe without a curl dependency (audit P2-6): the standalone
+# server listens on 127.0.0.1:3000 (HOSTNAME=0.0.0.0 in standalone mode).
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD bun -e "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
 CMD ["bun", "server.js"]

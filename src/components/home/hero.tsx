@@ -41,6 +41,9 @@ export function Hero() {
   const ctaPrimaryRef = useRef<HTMLAnchorElement>(null)
   const [active, setActive] = useState(true)
   const [load3D, setLoad3D] = useState(false)
+  // FIX(2-c/7): both visibility signals — the IO writes this ref so the
+  // visibilitychange handler can never re-enable an offscreen section.
+  const intersectingRef = useRef(true)
 
   // Phase 5 WS-6: apply kinetic typography to the primary CTA.
   useCursorVelocity(ctaPrimaryRef, {
@@ -57,12 +60,15 @@ export function Hero() {
     if (!el) return
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (entry) setActive(entry.isIntersecting)
+        if (entry) {
+          intersectingRef.current = entry.isIntersecting
+          setActive(entry.isIntersecting && !document.hidden)
+        }
       },
       { threshold: 0.05 }
     )
     io.observe(el)
-    const onVisibility = () => setActive(!document.hidden)
+    const onVisibility = () => setActive(!document.hidden && intersectingRef.current)
     document.addEventListener('visibilitychange', onVisibility)
     return () => {
       io.disconnect()
@@ -73,17 +79,32 @@ export function Hero() {
   // WS-3: spotlight Blueprint grid — pointer tracking sets --mx/--my.
   // Phase 5 P0-2: also toggle `spotlight-active` on first move so the
   // grid transitions from its dim default to full reveal opacity.
+  // FIX(2-c/4): rAF-coalesced — store the latest event and perform the
+  // rect read + CSS custom property write ONCE per frame instead of per
+  // pointermove (input events can fire far above display frequency). No
+  // new events → the callback never reschedules, so the loop goes idle.
   const spotlightActivated = useRef(false)
+  const latestPointer = useRef<React.PointerEvent<HTMLElement> | null>(null)
+  const spotlightRaf = useRef(0)
   const onHeroPointerMove = useCallback((e: React.PointerEvent<HTMLElement>) => {
-    const el = heroRef.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    el.style.setProperty('--mx', `${e.clientX - rect.left}px`)
-    el.style.setProperty('--my', `${e.clientY - rect.top}px`)
-    if (!spotlightActivated.current) {
-      spotlightActivated.current = true
-      el.classList.add('spotlight-active')
-    }
+    latestPointer.current = e
+    if (spotlightRaf.current) return
+    spotlightRaf.current = requestAnimationFrame(() => {
+      spotlightRaf.current = 0
+      const el = heroRef.current
+      const ev = latestPointer.current
+      if (!el || !ev) return
+      const rect = el.getBoundingClientRect()
+      el.style.setProperty('--mx', `${ev.clientX - rect.left}px`)
+      el.style.setProperty('--my', `${ev.clientY - rect.top}px`)
+      if (!spotlightActivated.current) {
+        spotlightActivated.current = true
+        el.classList.add('spotlight-active')
+      }
+    })
+  }, [])
+  useEffect(() => () => {
+    if (spotlightRaf.current) cancelAnimationFrame(spotlightRaf.current)
   }, [])
 
   // Defer the Three.js chunk until after LCP (idle or first interaction).
@@ -179,8 +200,10 @@ export function Hero() {
           </Link>
         </div>
 
-        {/* WS-1: interactive command console — pure HTML/CSS, protects LCP */}
-        <HeroConsole />
+        {/* WS-1: interactive command console — pure HTML/CSS, protects LCP.
+            FIX(2-c/2): `active` pauses the WebGL frameloop while the hero
+            is offscreen or the tab is hidden. */}
+        <HeroConsole active={active} />
 
         <div className="hero-scroll-hint absolute bottom-8 left-1/2 -translate-x-1/2 text-xs text-white/50">
           <span className="flex flex-col items-center gap-1">

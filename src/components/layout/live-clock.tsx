@@ -44,7 +44,9 @@ export function LiveClock({ variant = 'on-dark' }: { variant?: 'on-dark' | 'on-l
   return (
     <span
       className="inline-flex items-center gap-2 text-sm"
-      aria-live="polite"
+      // No aria-live/role on purpose (audit P1-3): a clock that announces
+      // every minute is noise for screen-reader users. The visible text
+      // stays readable; the `title` tooltip carries the context.
       title={t('localTime')}
     >
       <Clock className={onLight ? 'size-4 text-foreground/60' : 'size-4 text-white/60'} aria-hidden="true" />

@@ -431,166 +431,168 @@
    431→                          <div className="mb-6 flex items-center justify-center gap-12">
    432→                            <RingGauge
    433→                              fraction={Math.min(1, result.max / 20000)}
-   434→                              formatValue={(n) => formatMoney(Math.round(n), locale)}
-   435→                              label={t('result.budget')}
-   436→                              color="#0071E3"
-   437→                              isRtl={locale === 'ar'}
-   438→                            />
-   439→                            <RingGauge
-   440→                              fraction={Math.min(1, result.weeksMax / 12)}
-   441→                              formatValue={(n) => `${Math.round(n)}`}
-   442→                              label={t('result.duration')}
-   443→                              color="#34A853"
-   444→                              isRtl={locale === 'ar'}
-   445→                            />
-   446→                          </div>
-   447→                          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-   448→                            {t('result.budget')}
-   449→                          </p>
-   450→                          <p className="mt-2 text-3xl font-bold tracking-tight text-primary sm:text-4xl">
-   451→                            {formatMoney(result.min, locale)} – {formatMoney(result.max, locale)}
-   452→                          </p>
-   453→                          <p className="mt-4 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-   454→                            {t('result.duration')}
-   455→                          </p>
-   456→                          <p className="mt-1 text-xl font-semibold">
-   457→                            {t('result.weeks', { min: result.weeksMin, max: result.weeksMax })}
-   458→                          </p>
-   459→                        </div>
-   460→
-   461→                        <div className="mt-4">
-   462→                          <p className="text-sm font-semibold">{t('result.breakdownTitle')}</p>
-   463→                          <ul className="mt-2 space-y-1.5 text-sm">
-   464→                            {result.breakdown.map((line) => (
-   465→                              <li key={line.labelKey} className="flex items-center justify-between gap-2">
-   466→                                <span className="text-muted-foreground">{breakdownLabels[line.labelKey as keyof typeof breakdownLabels]}</span>
-   467→                                <span className="tabular-nums">
-   468→                                  {formatMoney(line.min, locale)} – {formatMoney(line.max, locale)}
-   469→                                </span>
-   470→                              </li>
-   471→                            ))}
-   472→                          </ul>
-   473→                        </div>
-   474→                        <p className="mt-4 flex items-start gap-1.5 text-xs text-muted-foreground">
-   475→                          <AlertCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-   476→                          {t('result.disclaimer')}
-   477→                        </p>
-   478→                      </div>
-   479→
-   480→                      <form onSubmit={onSubmit} className="rounded-2xl border border-border p-6" noValidate>
-   481→                        <h3 className="text-lg font-semibold">{t('form.title')}</h3>
-   482→                        <div className="mt-4 space-y-4">
-   483→                          <div>
-   484→                            <Label htmlFor="calc-name" className="text-sm">{t('form.name')}</Label>
-   485→                            <Input
-   486→                              id="calc-name"
-   487→                              value={form.name}
-   488→                              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-   489→                              autoComplete="name"
-   490→                              aria-invalid={!!errors.name}
-   491→                              aria-describedby={errors.name ? 'calc-name-err' : undefined}
-   492→                              className="mt-1.5"
-   493→                            />
-   494→                            {errors.name ? (
-   495→                              <p id="calc-name-err" role="alert" className="mt-1 text-xs text-destructive">{errors.name}</p>
-   496→                            ) : null}
-   497→                          </div>
-   498→                          <div>
-   499→                            <Label htmlFor="calc-email" className="text-sm">{t('form.email')}</Label>
-   500→                            <Input
-   501→                              id="calc-email"
-   502→                              type="email"
-   503→                              value={form.email}
-   504→                              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-   505→                              autoComplete="email"
-   506→                              aria-invalid={!!errors.email}
-   507→                              aria-describedby={errors.email ? 'calc-email-err' : undefined}
-   508→                              className="mt-1.5"
-   509→                            />
-   510→                            {errors.email ? (
-   511→                              <p id="calc-email-err" role="alert" className="mt-1 text-xs text-destructive">{errors.email}</p>
-   512→                            ) : null}
-   513→                          </div>
-   514→                          <div>
-   515→                            <Label htmlFor="calc-wa" className="text-sm">{t('form.whatsapp')}</Label>
-   516→                            <Input
-   517→                              id="calc-wa"
-   518→                              type="tel"
-   519→                              value={form.whatsapp ?? ''}
-   520→                              onChange={(e) => setForm((f) => ({ ...f, whatsapp: e.target.value }))}
-   521→                              autoComplete="tel"
-   522→                              className="mt-1.5"
-   523→                            />
-   524→                          </div>
-   525→                        </div>
-   526→                        <Button type="submit" data-cursor="magnet" disabled={submitting} className="mt-6 w-full gap-2">
-   527→                          {submitting ? (
-   528→                            <>
-   529→                              <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true" />
-   530→                              {t('form.sending')}
-   531→                            </>
-   532→                          ) : (
-   533→                            <>
-   534→                              <Send className="size-4" aria-hidden="true" />
-   535→                              {t('form.submit')}
-   536→                            </>
-   537→                          )}
-   538→                        </Button>
-   539→                      </form>
-   540→                    </div>
-   541→                  )}
-   542→                </div>
-   543→              ) : null}
-   544→            </motion.div>
-   545→          </AnimatePresence>
-   546→
-   547→          {/* Controls */}
-   548→          {!done && step < 2 ? (
-   549→            <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
-   550→              <button
-   551→                type="button"
-   552→                data-cursor="magnet"
-   553→                onClick={goBack}
-   554→                disabled={step === 0}
-   555→                className={cn(
-   556→                  'inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors',
-   557→                  step === 0 ? 'cursor-not-allowed opacity-40' : 'hover:bg-foreground/5'
-   558→                )}
-   559→              >
-   560→                {/* Single-flip arrows: ArrowLeft flips to point right ("back") in RTL */}
-   561→                <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
-   562→                {t('back')}
-   563→              </button>
-   564→              <button
-   565→                type="button"
-   566→                data-cursor="magnet"
-   567→                onClick={goNext}
-   568→                className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform hover:scale-105"
-   569→              >
-   570→                {step === 1 ? t('calculate') : t('next')}
-   571→                {/* ArrowRight flips to point left ("forward") in RTL */}
-   572→                <ArrowRight className="size-4 rtl:rotate-180" aria-hidden="true" />
-   573→              </button>
-   574→            </div>
-   575→          ) : null}
-   576→          {!done && step === 2 ? (
-   577→            <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
-   578→              <button
-   579→                type="button"
-   580→                onClick={goBack}
-   581→                className="inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors hover:bg-foreground/5"
-   582→              >
-   583→                <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
-   584→                {t('back')}
-   585→              </button>
-   586→              <span className="text-sm text-muted-foreground">
-   587→                {t('result.disclaimer')}
-   588→              </span>
-   589→            </div>
-   590→          ) : null}
-   591→        </div>
-   592→      </div>
-   593→    </section>
-   594→  )
-   595→}
-   596→
+   434→                              value={result.max}
+   435→                              formatValue={(n) => formatMoney(Math.round(n), locale)}
+   436→                              label={t('result.budget')}
+   437→                              color="#0071E3"
+   438→                              isRtl={locale === 'ar'}
+   439→                            />
+   440→                            <RingGauge
+   441→                              fraction={Math.min(1, result.weeksMax / 12)}
+   442→                              value={result.weeksMax}
+   443→                              formatValue={(n) => `${Math.round(n)}`}
+   444→                              label={t('result.duration')}
+   445→                              color="#34A853"
+   446→                              isRtl={locale === 'ar'}
+   447→                            />
+   448→                          </div>
+   449→                          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+   450→                            {t('result.budget')}
+   451→                          </p>
+   452→                          <p className="mt-2 text-3xl font-bold tracking-tight text-primary sm:text-4xl">
+   453→                            {formatMoney(result.min, locale)} – {formatMoney(result.max, locale)}
+   454→                          </p>
+   455→                          <p className="mt-4 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+   456→                            {t('result.duration')}
+   457→                          </p>
+   458→                          <p className="mt-1 text-xl font-semibold">
+   459→                            {t('result.weeks', { min: result.weeksMin, max: result.weeksMax })}
+   460→                          </p>
+   461→                        </div>
+   462→
+   463→                        <div className="mt-4">
+   464→                          <p className="text-sm font-semibold">{t('result.breakdownTitle')}</p>
+   465→                          <ul className="mt-2 space-y-1.5 text-sm">
+   466→                            {result.breakdown.map((line) => (
+   467→                              <li key={line.labelKey} className="flex items-center justify-between gap-2">
+   468→                                <span className="text-muted-foreground">{breakdownLabels[line.labelKey as keyof typeof breakdownLabels]}</span>
+   469→                                <span className="tabular-nums">
+   470→                                  {formatMoney(line.min, locale)} – {formatMoney(line.max, locale)}
+   471→                                </span>
+   472→                              </li>
+   473→                            ))}
+   474→                          </ul>
+   475→                        </div>
+   476→                        <p className="mt-4 flex items-start gap-1.5 text-xs text-muted-foreground">
+   477→                          <AlertCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+   478→                          {t('result.disclaimer')}
+   479→                        </p>
+   480→                      </div>
+   481→
+   482→                      <form onSubmit={onSubmit} className="rounded-2xl border border-border p-6" noValidate>
+   483→                        <h3 className="text-lg font-semibold">{t('form.title')}</h3>
+   484→                        <div className="mt-4 space-y-4">
+   485→                          <div>
+   486→                            <Label htmlFor="calc-name" className="text-sm">{t('form.name')}</Label>
+   487→                            <Input
+   488→                              id="calc-name"
+   489→                              value={form.name}
+   490→                              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+   491→                              autoComplete="name"
+   492→                              aria-invalid={!!errors.name}
+   493→                              aria-describedby={errors.name ? 'calc-name-err' : undefined}
+   494→                              className="mt-1.5"
+   495→                            />
+   496→                            {errors.name ? (
+   497→                              <p id="calc-name-err" role="alert" className="mt-1 text-xs text-destructive">{errors.name}</p>
+   498→                            ) : null}
+   499→                          </div>
+   500→                          <div>
+   501→                            <Label htmlFor="calc-email" className="text-sm">{t('form.email')}</Label>
+   502→                            <Input
+   503→                              id="calc-email"
+   504→                              type="email"
+   505→                              value={form.email}
+   506→                              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+   507→                              autoComplete="email"
+   508→                              aria-invalid={!!errors.email}
+   509→                              aria-describedby={errors.email ? 'calc-email-err' : undefined}
+   510→                              className="mt-1.5"
+   511→                            />
+   512→                            {errors.email ? (
+   513→                              <p id="calc-email-err" role="alert" className="mt-1 text-xs text-destructive">{errors.email}</p>
+   514→                            ) : null}
+   515→                          </div>
+   516→                          <div>
+   517→                            <Label htmlFor="calc-wa" className="text-sm">{t('form.whatsapp')}</Label>
+   518→                            <Input
+   519→                              id="calc-wa"
+   520→                              type="tel"
+   521→                              value={form.whatsapp ?? ''}
+   522→                              onChange={(e) => setForm((f) => ({ ...f, whatsapp: e.target.value }))}
+   523→                              autoComplete="tel"
+   524→                              className="mt-1.5"
+   525→                            />
+   526→                          </div>
+   527→                        </div>
+   528→                        <Button type="submit" data-cursor="magnet" disabled={submitting} className="mt-6 w-full gap-2">
+   529→                          {submitting ? (
+   530→                            <>
+   531→                              <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true" />
+   532→                              {t('form.sending')}
+   533→                            </>
+   534→                          ) : (
+   535→                            <>
+   536→                              <Send className="size-4" aria-hidden="true" />
+   537→                              {t('form.submit')}
+   538→                            </>
+   539→                          )}
+   540→                        </Button>
+   541→                      </form>
+   542→                    </div>
+   543→                  )}
+   544→                </div>
+   545→              ) : null}
+   546→            </motion.div>
+   547→          </AnimatePresence>
+   548→
+   549→          {/* Controls */}
+   550→          {!done && step < 2 ? (
+   551→            <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
+   552→              <button
+   553→                type="button"
+   554→                data-cursor="magnet"
+   555→                onClick={goBack}
+   556→                disabled={step === 0}
+   557→                className={cn(
+   558→                  'inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors',
+   559→                  step === 0 ? 'cursor-not-allowed opacity-40' : 'hover:bg-foreground/5'
+   560→                )}
+   561→              >
+   562→                {/* Single-flip arrows: ArrowLeft flips to point right ("back") in RTL */}
+   563→                <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
+   564→                {t('back')}
+   565→              </button>
+   566→              <button
+   567→                type="button"
+   568→                data-cursor="magnet"
+   569→                onClick={goNext}
+   570→                className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform hover:scale-105"
+   571→              >
+   572→                {step === 1 ? t('calculate') : t('next')}
+   573→                {/* ArrowRight flips to point left ("forward") in RTL */}
+   574→                <ArrowRight className="size-4 rtl:rotate-180" aria-hidden="true" />
+   575→              </button>
+   576→            </div>
+   577→          ) : null}
+   578→          {!done && step === 2 ? (
+   579→            <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
+   580→              <button
+   581→                type="button"
+   582→                onClick={goBack}
+   583→                className="inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors hover:bg-foreground/5"
+   584→              >
+   585→                <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
+   586→                {t('back')}
+   587→              </button>
+   588→              <span className="text-sm text-muted-foreground">
+   589→                {t('result.disclaimer')}
+   590→              </span>
+   591→            </div>
+   592→          ) : null}
+   593→        </div>
+   594→      </div>
+   595→    </section>
+   596→  )
+   597→}
+   598→

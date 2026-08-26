@@ -23,20 +23,3 @@ export const SITE_SOCIAL = {
   linkedin: 'https://linkedin.com/company/elyra-agency',
   github: 'https://github.com/elyra-agency',
 } as const
-
-/**
- * Brand palette mirrored from globals.css :root for programmatic consumers
- * (JSON-LD, OG images, icons). Keep in sync with the CSS custom properties
- * (audit P2-1 — see globals.css "Elyra Design Tokens").
- */
-export const BRAND_COLORS = {
-  primary: '#0071E3',
-  /** WCAG-strong deep shade (small text on light surfaces). */
-  primaryStrong: '#0066CC',
-  dark: '#0F172A',
-  onDark: '#F1F5F9',
-  gBlue: '#4285F4',
-  gRed: '#EA4335',
-  gYellow: '#FBBC05',
-  gGreen: '#34A853',
-} as const

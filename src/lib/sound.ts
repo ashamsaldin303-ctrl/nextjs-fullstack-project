@@ -132,6 +132,13 @@ function playTone({ freq, endFreq, duration, type, peak, delay = 0 }: ToneOption
 
     osc.connect(gain)
     gain.connect(master)
+    // Explicit node teardown (audit P2): onended fires when the oscillator
+    // finishes (natural stop() included) — disconnect both nodes so stopped
+    // tones don't linger until GC. Double-disconnect is a no-op.
+    osc.onended = () => {
+      gain.disconnect()
+      osc.disconnect()
+    }
     osc.start(t0)
     osc.stop(t0 + duration + 0.02)
   } catch {

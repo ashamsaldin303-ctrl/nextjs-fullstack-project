@@ -23,10 +23,10 @@ const LazyMethodology = dynamic(
     ssr: false,
     loading: () => (
       <section
-        className="bg-elyra-dark py-20 text-elyra-on-dark sm:py-28"
+        className="bg-background py-20 sm:py-28"
         aria-hidden="true"
       >
-        <div className="elyra-container mx-auto min-h-[500px] max-w-container" />
+        <div className="elyra-container mx-auto min-h-[900px] max-w-container sm:min-h-[1100px]" />
       </section>
     ),
   }
@@ -60,10 +60,10 @@ export function MethodologyLazy() {
     <div ref={ref}>
       {near ? <LazyMethodology /> : (
         <section
-          className="bg-elyra-dark py-20 text-elyra-on-dark sm:py-28"
+          className="bg-background py-20 sm:py-28"
           aria-hidden="true"
         >
-          <div className="elyra-container mx-auto min-h-[500px] max-w-container" />
+          <div className="elyra-container mx-auto min-h-[900px] max-w-container sm:min-h-[1100px]" />
         </section>
       )}
     </div>

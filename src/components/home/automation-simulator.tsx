@@ -186,17 +186,21 @@ export function AutomationSimulator({
           title={t('title')}
           subtitle={t('subtitle')}
           variant="on-dark"
+          titleId="sim-title"
         />
 
         {showScenarioPicker ? (
-          <div className="mt-8 flex flex-wrap justify-center gap-2" role="tablist" aria-label={t('title')}>
+          // FIX(2-c/14): plain toggle-button group — the previous
+          // role="tablist"/"tab" markup had no tabpanels, no aria-controls
+          // and no roving tabindex, which is an incomplete (broken) tabs
+          // pattern. These are scenario switches, not tabs.
+          <div className="mt-8 flex flex-wrap justify-center gap-2">
             {(['newOrder', 'paymentReminder', 'weeklyReport'] as ScenarioId[]).map((s) => (
               <button
                 key={s}
                 type="button"
-                role="tab"
                 data-cursor="magnet"
-                aria-selected={scenario === s}
+                aria-pressed={scenario === s}
                 onClick={() => setScenario(s)}
                 className={cn(
                   'inline-flex h-10 items-center rounded-full px-4 text-sm font-medium transition-colors',
@@ -308,15 +312,17 @@ export function AutomationSimulator({
         {/* Step card */}
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-md sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* FIX(2-c/13): the completion sentence used to render 3×
+                (status row left + right + h3). The h3 below is now the
+                single completion announcement; the status row only
+                carries idle/running + step progress. */}
             <p className="text-sm text-white/60">
-              {status === 'idle' ? t('idle') : status === 'running' ? t('running') : t('completed', { seconds: secondsLabel })}
+              {status === 'idle' ? t('idle') : status === 'running' ? t('running') : null}
             </p>
             <p className="text-xs text-white/40">
               {status === 'running' && activeStep
                 ? t('stepOf', { current: currentStep + 1, total: stepCount })
-                : status === 'completed'
-                  ? t('completed', { seconds: secondsLabel })
-                  : ''}
+                : null}
             </p>
           </div>
 

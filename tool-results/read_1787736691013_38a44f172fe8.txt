@@ -1,0 +1,598 @@
+     1→     1→'use client'
+     2→     2→
+     3→     3→import { useMemo, useState } from 'react'
+     4→     4→import { useLocale, useTranslations } from 'next-intl'
+     5→     5→import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+     6→     6→import { z } from 'zod'
+     7→     7→import {
+     8→     8→  Globe, Workflow, Boxes, Check, ArrowLeft, ArrowRight,
+     9→     9→  Send, RotateCw, AlertCircle,
+    10→    10→} from 'lucide-react'
+    11→    11→import {
+    12→    12→  Slider,
+    13→    13→} from '@/components/ui/slider'
+    14→    14→import { Input } from '@/components/ui/input'
+    15→    15→import { Label } from '@/components/ui/label'
+    16→    16→import { Button } from '@/components/ui/button'
+    17→    17→import { cn } from '@/lib/utils'
+    18→    18→import { SectionHeading } from '@/components/shared/section-heading'
+    19→    19→import { playSuccess } from '@/lib/sound'
+    20→    20→import { toast } from 'sonner'
+    21→    21→import { RingGauge } from './ring-gauge'
+    22→    22→import {
+    23→    23→  computeEstimate, formatMoney,
+    24→    24→  type CalculatorInput, type ServiceType, type IntegrationKey,
+    25→    25→  type AutomationLevel, type LanguageOption, type ThreeDOption,
+    26→    26→} from '@/lib/calculator'
+    27→    27→
+    28→    28→type Step = 0 | 1 | 2
+    29→    29→
+    30→    30→const SERVICES: { id: ServiceType; icon: typeof Globe }[] = [
+    31→    31→  { id: 'website', icon: Globe },
+    32→    32→  { id: 'automation', icon: Workflow },
+    33→    33→  { id: 'full', icon: Boxes },
+    34→    34→]
+    35→    35→
+    36→    36→const INTEGRATIONS: IntegrationKey[] = ['crm', 'invoicing', 'email', 'telegram', 'sheets', 'ai']
+    37→    37→
+    38→    38→const leadSchema = z.object({
+    39→    39→  name: z.string().trim().min(2),
+    40→    40→  email: z.string().email(),
+    41→    41→  whatsapp: z.string().trim().optional(),
+    42→    42→})
+    43→    43→
+    44→    44→type LeadForm = z.infer<typeof leadSchema>
+    45→    45→
+    46→    46→const INITIAL_INPUT: CalculatorInput = {
+    47→    47→  service: 'website',
+    48→    48→  pages: 6,
+    49→    49→  languages: 'bilingual',
+    50→    50→  threeD: 'no',
+    51→    51→  integrations: [],
+    52→    52→  automationLevel: 'essential',
+    53→    53→}
+    54→    54→
+    55→    55→export function Calculator() {
+    56→    56→  const t = useTranslations('calculator')
+    57→    57→  const locale = useLocale()
+    58→    58→  const reduced = useReducedMotion()
+    59→    59→
+    60→    60→  const [step, setStep] = useState<Step>(0)
+    61→    61→  const [dir, setDir] = useState<1 | -1>(1)
+    62→    62→  const [input, setInput] = useState<CalculatorInput>(INITIAL_INPUT)
+    63→    63→  const [form, setForm] = useState<LeadForm>({ name: '', email: '', whatsapp: '' })
+    64→    64→  const [errors, setErrors] = useState<{ name?: string; email?: string }>({})
+    65→    65→  const [submitting, setSubmitting] = useState(false)
+    66→    66→  const [done, setDone] = useState(false)
+    67→    67→  const [reference, setReference] = useState<string | null>(null)
+    68→    68→
+    69→    69→  const result = useMemo(() => computeEstimate(input), [input])
+    70→    70→
+    71→    71→  // Breakdown line labels — resolved once for type-safety (guide §4.6).
+    72→    72→  const breakdownLabels = {
+    73→    73→    base: t('result.base'),
+    74→    74→    pages: t('result.pages'),
+    75→    75→    bilingual: t('result.bilingual'),
+    76→    76→    threeD: t('result.threeD'),
+    77→    77→    integrations: t('result.integrations'),
+    78→    78→    advanced: t('result.advanced'),
+    79→    79→  } as const
+    80→    80→
+    81→    81→  const goNext = () => { setDir(1); setStep((s) => Math.min(2, s + 1) as Step) }
+    82→    82→  const goBack = () => { setDir(-1); setStep((s) => Math.max(0, s - 1) as Step) }
+    83→    83→
+    84→    84→  const toggleIntegration = (key: IntegrationKey) => {
+    85→    85→    setInput((p) => ({
+    86→    86→      ...p,
+    87→    87→      integrations: p.integrations.includes(key)
+    88→    88→        ? p.integrations.filter((k) => k !== key)
+    89→    89→        : [...p.integrations, key],
+    90→    90→    }))
+    91→    91→  }
+    92→    92→
+    93→    93→  const onSubmit = async (e: React.FormEvent) => {
+    94→    94→    e.preventDefault()
+    95→    95→    const parsed = leadSchema.safeParse(form)
+    96→    96→    if (!parsed.success) {
+    97→    97→      const fe: { name?: string; email?: string } = {}
+    98→    98→      for (const issue of parsed.error.issues) {
+    99→    99→        const path = issue.path[0]
+   100→   100→        if (path === 'name') fe.name = t('errors.name')
+   101→   101→        if (path === 'email') fe.email = t('errors.email')
+   102→   102→      }
+   103→   103→      setErrors(fe)
+   104→   104→      return
+   105→   105→    }
+   106→   106→    setErrors({})
+   107→   107→    setSubmitting(true)
+   108→   108→    // Phase 3: real storage — the server recomputes the estimate from the
+   109→   109→    // wizard options and returns a reference (guide §2.9). Client numbers
+   110→   110→    // are never sent: only the option set travels.
+   111→   111→    try {
+   112→   112→      const res = await fetch('/api/leads', {
+   113→   113→        method: 'POST',
+   114→   114→        headers: {
+   115→   115→          'Content-Type': 'application/json',
+   116→   116→          'x-elyra-locale': locale,
+   117→   117→        },
+   118→   118→        body: JSON.stringify({
+   119→   119→          source: 'calculator',
+   120→   120→          name: parsed.data.name,
+   121→   121→          email: parsed.data.email,
+   122→   122→          whatsapp: parsed.data.whatsapp || undefined,
+   123→   123→          service: input.service,
+   124→   124→          pages: input.pages,
+   125→   125→          languages: input.languages,
+   126→   126→          threeD: input.threeD,
+   127→   127→          integrations: input.integrations,
+   128→   128→          automationLevel: input.automationLevel,
+   129→   129→        }),
+   130→   130→      })
+   131→   131→
+   132→   132→      if (res.status === 201) {
+   133→   133→        const data = (await res.json()) as { reference?: string }
+   134→   134→        setReference(data.reference ?? null)
+   135→   135→        setDone(true)
+   136→   136→        playSuccess() // Phase 2 sensory feedback — fires on REAL success only
+   137→   137→        return
+   138→   138→      }
+   139→   139→
+   140→   140→      // Server rejected: surface translated server-side messages.
+   141→   141→      const data = (await res.json().catch(() => null)) as
+   142→   142→        | { message?: string; fields?: Record<string, string> }
+   143→   143→        | null
+   144→   144→      if (res.status === 400 && data?.fields) {
+   145→   145→        const fe: { name?: string; email?: string } = {}
+   146→   146→        if (data.fields.name) fe.name = data.fields.name
+   147→   147→        if (data.fields.email) fe.email = data.fields.email
+   148→   148→        setErrors(fe)
+   149→   149→      }
+   150→   150→      toast.error(t('form.errorTitle'), {
+   151→   151→        description: data?.message ?? t('form.errorNetwork'),
+   152→   152→      })
+   153→   153→    } catch {
+   154→   154→      // Network failure — data stays in the form for a retry.
+   155→   155→      toast.error(t('form.errorTitle'), { description: t('form.errorNetwork') })
+   156→   156→    } finally {
+   157→   157→      setSubmitting(false)
+   158→   158→    }
+   159→   159→  }
+   160→   160→
+   161→   161→  const slideVariants = reduced
+   162→   162→    ? undefined
+   163→   163→    : {
+   164→   164→        enter: (d: number) => ({ opacity: 0, x: d * 30 }),
+   165→   165→        center: { opacity: 1, x: 0 },
+   166→   166→        exit: (d: number) => ({ opacity: 0, x: -d * 30 }),
+   167→   167→      }
+   168→   168→
+   169→   169→  return (
+   170→   170→    <section id="calculator" className="bg-background py-20 sm:py-28" aria-labelledby="calc-title" aria-label={t('kicker')}>
+   171→   171→      <div className="elyra-container max-w-5xl">
+   172→   172→        <SectionHeading
+   173→   173→          kicker={t('kicker')}
+   174→   174→          title={t('title')}
+   175→   175→          subtitle={t('subtitle')}
+   176→   176→        />
+   177→   177→
+   178→   178→        {/* Progress */}
+   179→   179→        <div className="mt-10 flex items-center justify-between gap-4">
+   180→   180→          <p className="text-sm text-muted-foreground">
+   181→   181→            {t('step', { current: step + 1, total: 3 })}
+   182→   182→          </p>
+   183→   183→          <div className="flex flex-1 gap-2">
+   184→   184→            {[0, 1, 2].map((s) => (
+   185→   185→              <div
+   186→   186→                key={s}
+   187→   187→                className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"
+   188→   188→                aria-hidden="true"
+   189→   189→              >
+   190→   190→                <motion.div
+   191→   191→                  className="h-full rounded-full bg-primary"
+   192→   192→                  initial={false}
+   193→   193→                  animate={{ width: step >= s ? '100%' : '0%' }}
+   194→   194→                  transition={{ duration: 0.4 }}
+   195→   195→                />
+   196→   196→              </div>
+   197→   197→            ))}
+   198→   198→          </div>
+   199→   199→        </div>
+   200→   200→
+   201→   201→        <div className="relative mt-8 overflow-hidden rounded-3xl border border-border bg-card p-6 sm:p-10">
+   202→   202→          <AnimatePresence mode="wait" custom={dir}>
+   203→   203→            <motion.div
+   204→   204→              key={step}
+   205→   205→              custom={dir}
+   206→   206→              variants={slideVariants}
+   207→   207→              initial="enter"
+   208→   208→              animate="center"
+   209→   209→              exit="exit"
+   210→   210→              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+   211→   211→            >
+   212→   212→              {/* STEP 0 — Service type */}
+   213→   213→              {step === 0 ? (
+   214→   214→                <div>
+   215→   215→                  <h3 className="text-lg font-semibold">{t('steps.service')}</h3>
+   216→   216→                  <div className="mt-6 grid gap-4 sm:grid-cols-3">
+   217→   217→                    {SERVICES.map(({ id, icon: Icon }) => {
+   218→   218→                      const active = input.service === id
+   219→   219→                      const isFull = id === 'full'
+   220→   220→                      return (
+   221→   221→                        <button
+   222→   222→                          key={id}
+   223→   223→                          type="button"
+   224→   224→                          data-cursor="magnet"
+   225→   225→                          onClick={() => setInput((p) => ({ ...p, service: id }))}
+   226→   226→                          aria-pressed={active}
+   227→   227→                          className={cn(
+   228→   228→                            'group relative overflow-hidden rounded-2xl border p-5 text-start transition-all',
+   229→   229→                            active
+   230→   230→                              ? 'border-primary bg-primary/5 shadow-[0_0_0_1px_var(--color-primary)]'
+   231→   231→                              : 'border-border hover:border-primary/40 hover:bg-foreground/[0.02]'
+   232→   232→                          )}
+   233→   233→                        >
+   234→   234→                          {isFull ? (
+   235→   235→                            <span className="absolute end-3 top-3 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
+   236→   236→                              {t('services.full.popular')}
+   237→   237→                            </span>
+   238→   238→                          ) : null}
+   239→   239→                          <div className={cn(
+   240→   240→                            'flex size-11 items-center justify-center rounded-xl transition-colors',
+   241→   241→                            active ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'
+   242→   242→                          )}>
+   243→   243→                            <Icon className="size-5" aria-hidden="true" />
+   244→   244→                          </div>
+   245→   245→                          <p className="mt-3 font-semibold">{t(`services.${id}.title`)}</p>
+   246→   246→                          <p className="mt-1 text-sm text-muted-foreground">{t(`services.${id}.desc`)}</p>
+   247→   247→                          {active ? (
+   248→   248→                            <span className="absolute -end-2 -top-2 flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
+   249→   249→                              <Check className="size-3.5" aria-hidden="true" />
+   250→   250→                            </span>
+   251→   251→                          ) : null}
+   252→   252→                        </button>
+   253→   253→                      )
+   254→   254→                    })}
+   255→   255→                  </div>
+   256→   256→                </div>
+   257→   257→              ) : null}
+   258→   258→
+   259→   259→              {/* STEP 1 — Features */}
+   260→   260→              {step === 1 ? (
+   261→   261→                <div className="space-y-8">
+   262→   262→                  <div>
+   263→   263→                    <div className="flex items-center justify-between">
+   264→   264→                      <h3 className="text-lg font-semibold">{t('pages')}</h3>
+   265→   265→                      <span className="text-sm font-medium text-primary tabular-nums">
+   266→   266→                        {t('pagesValue', { count: input.pages })}
+   267→   267→                      </span>
+   268→   268→                    </div>
+   269→   269→                    <div className="mt-4 px-1">
+   270→   270→                      <Slider
+   271→   271→                        value={[input.pages]}
+   272→   272→                        onValueChange={(v) => setInput((p) => ({ ...p, pages: v[0] ?? p.pages }))}
+   273→   273→                        min={1}
+   274→   274→                        max={20}
+   275→   275→                        step={1}
+   276→   276→                        aria-label={t('pages')}
+   277→   277→                      />
+   278→   278→                      <div className="mt-2 flex justify-between text-xs text-muted-foreground">
+   279→   279→                        <span>1</span><span>20</span>
+   280→   280→                      </div>
+   281→   281→                    </div>
+   282→   282→                  </div>
+   283→   283→
+   284→   284→                  <div>
+   285→   285→                    <h3 className="text-lg font-semibold">{t('languages')}</h3>
+   286→   286→                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+   287→   287→                      {(['single', 'bilingual'] as LanguageOption[]).map((opt) => {
+   288→   288→                        const active = input.languages === opt
+   289→   289→                        return (
+   290→   290→                          <button
+   291→   291→                            key={opt}
+   292→   292→                            type="button"
+   293→   293→                            onClick={() => setInput((p) => ({ ...p, languages: opt }))}
+   294→   294→                            aria-pressed={active}
+   295→   295→                            className={cn(
+   296→   296→                              'rounded-xl border px-4 py-3 text-start transition-colors',
+   297→   297→                              active ? 'border-primary bg-primary/5' : 'border-border hover:bg-foreground/[0.02]'
+   298→   298→                            )}
+   299→   299→                          >
+   300→   300→                            <span className="flex items-center gap-2">
+   301→   301→                              <span className={cn('flex size-5 items-center justify-center rounded-full border', active ? 'border-primary bg-primary text-primary-foreground' : 'border-border')}>
+   302→   302→                                {active ? <Check className="size-3" aria-hidden="true" /> : null}
+   303→   303→                              </span>
+   304→   304→                              <span className="text-sm font-medium">{t(`languagesOptions.${opt}`)}</span>
+   305→   305→                            </span>
+   306→   306→                          </button>
+   307→   307→                        )
+   308→   308→                      })}
+   309→   309→                    </div>
+   310→   310→                  </div>
+   311→   311→
+   312→   312→                  <div>
+   313→   313→                    <h3 className="text-lg font-semibold">{t('threeD')}</h3>
+   314→   314→                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+   315→   315→                      {(['yes', 'no'] as ThreeDOption[]).map((opt) => {
+   316→   316→                        const active = input.threeD === opt
+   317→   317→                        const disabled = input.service === 'automation'
+   318→   318→                        return (
+   319→   319→                          <button
+   320→   320→                            key={opt}
+   321→   321→                            type="button"
+   322→   322→                            disabled={disabled}
+   323→   323→                            onClick={() => setInput((p) => ({ ...p, threeD: opt }))}
+   324→   324→                            aria-pressed={active}
+   325→   325→                            className={cn(
+   326→   326→                              'rounded-xl border px-4 py-3 text-start transition-colors',
+   327→   327→                              disabled && 'opacity-50',
+   328→   328→                              active ? 'border-primary bg-primary/5' : 'border-border hover:bg-foreground/[0.02]'
+   329→   329→                            )}
+   330→   330→                          >
+   331→   331→                            <span className="flex items-center gap-2">
+   332→   332→                              <span className={cn('flex size-5 items-center justify-center rounded-full border', active ? 'border-primary bg-primary text-primary-foreground' : 'border-border')}>
+   333→   333→                                {active ? <Check className="size-3" aria-hidden="true" /> : null}
+   334→   334→                              </span>
+   335→   335→                              <span className="text-sm font-medium">{t(`threeDOptions.${opt}`)}</span>
+   336→   336→                            </span>
+   337→   337→                          </button>
+   338→   338→                        )
+   339→   339→                      })}
+   340→   340→                    </div>
+   341→   341→                  </div>
+   342→   342→
+   343→   343→                  <div>
+   344→   344→                    <h3 className="text-lg font-semibold">{t('integrations')}</h3>
+   345→   345→                    <div className="mt-3 flex flex-wrap gap-2">
+   346→   346→                      {INTEGRATIONS.map((key) => {
+   347→   347→                        const active = input.integrations.includes(key)
+   348→   348→                        return (
+   349→   349→                          <button
+   350→   350→                            key={key}
+   351→   351→                            type="button"
+   352→   352→                            onClick={() => toggleIntegration(key)}
+   353→   353→                            aria-pressed={active}
+   354→   354→                            className={cn(
+   355→   355→                              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors',
+   356→   356→                              active ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-foreground/[0.02]'
+   357→   357→                            )}
+   358→   358→                          >
+   359→   359→                            <span className={cn('flex size-4 items-center justify-center rounded-full border', active ? 'border-primary bg-primary text-primary-foreground' : 'border-border')}>
+   360→   360→                              {active ? <Check className="size-2.5" aria-hidden="true" /> : null}
+   361→   361→                            </span>
+   362→   362→                            {t(`integrationsOptions.${key}`)}
+   363→   363→                          </button>
+   364→   364→                        )
+   365→   365→                      })}
+   366→   366→                    </div>
+   367→   367→                  </div>
+   368→   368→
+   369→   369→                  <div>
+   370→   370→                    <h3 className="text-lg font-semibold">{t('automationLevel')}</h3>
+   371→   371→                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+   372→   372→                      {(['essential', 'advanced'] as AutomationLevel[]).map((opt) => {
+   373→   373→                        const active = input.automationLevel === opt
+   374→   374→                        const disabled = input.service === 'website'
+   375→   375→                        return (
+   376→   376→                          <button
+   377→   377→                            key={opt}
+   378→   378→                            type="button"
+   379→   379→                            disabled={disabled}
+   380→   380→                            onClick={() => setInput((p) => ({ ...p, automationLevel: opt }))}
+   381→   381→                            aria-pressed={active}
+   382→   382→                            className={cn(
+   383→   383→                              'rounded-xl border px-4 py-3 text-start transition-colors',
+   384→   384→                              disabled && 'opacity-50',
+   385→   385→                              active ? 'border-primary bg-primary/5' : 'border-border hover:bg-foreground/[0.02]'
+   386→   386→                            )}
+   387→   387→                          >
+   388→   388→                            <span className="flex items-center gap-2">
+   389→   389→                              <span className={cn('flex size-5 items-center justify-center rounded-full border', active ? 'border-primary bg-primary text-primary-foreground' : 'border-border')}>
+   390→   390→                                {active ? <Check className="size-3" aria-hidden="true" /> : null}
+   391→   391→                              </span>
+   392→   392→                              <span className="text-sm font-medium">{t(`automationLevelOptions.${opt}`)}</span>
+   393→   393→                            </span>
+   394→   394→                          </button>
+   395→   395→                        )
+   396→   396→                      })}
+   397→   397→                    </div>
+   398→   398→                  </div>
+   399→   399→                </div>
+   400→   400→              ) : null}
+   401→   401→
+   402→   402→              {/* STEP 2 — Result */}
+   403→   403→              {step === 2 ? (
+   404→   404→                <div>
+   405→   405→                  {done ? (
+   406→   406→                    <div className="flex flex-col items-center py-8 text-center">
+   407→   407→                      <div className="flex size-16 items-center justify-center rounded-full bg-g-green/15 text-g-green">
+   408→   408→                        <Check className="size-8" aria-hidden="true" />
+   409→   409→                      </div>
+   410→   410→                      <h3 className="mt-5 text-2xl font-semibold">{t('form.successTitle')}</h3>
+   411→   411→                      <p className="mt-2 max-w-md text-muted-foreground">{t('form.successDesc')}</p>
+   412→   412→                      {reference ? (
+   413→   413→                        <p className="mt-3 rounded-full border border-g-green/30 bg-g-green/5 px-4 py-1.5 font-mono text-sm font-semibold tracking-wide text-g-green">
+   414→   414→                          {t('form.successReference', { reference })}
+   415→   415→                        </p>
+   416→   416→                      ) : null}
+   417→   417→                      <button
+   418→   418→                        type="button"
+   419→   419→                        onClick={() => { setDone(false); setReference(null); setStep(0); setInput(INITIAL_INPUT); setForm({ name: '', email: '', whatsapp: '' }) }}
+   420→   420→                        className="mt-6 inline-flex h-11 items-center gap-2 rounded-full border border-border px-5 text-sm font-medium hover:bg-foreground/5"
+   421→   421→                      >
+   422→   422→                        <RotateCw className="size-4" aria-hidden="true" />
+   423→   423→                        {t('form.successRestart')}
+   424→   424→                      </button>
+   425→   425→                    </div>
+   426→   426→                  ) : (
+   427→   427→                    <div className="grid gap-8 lg:grid-cols-2">
+   428→   428→                      <div>
+   429→   429→                        <div className="rounded-2xl border border-border bg-gradient-to-br from-primary/5 to-transparent p-6">
+   430→   430→                          {/* WS-4: animated SVG ring gauges */}
+   431→   431→                          <div className="mb-6 flex items-center justify-center gap-12">
+   432→   432→                            <RingGauge
+   433→   433→                              fraction={Math.min(1, result.max / 20000)}
+   434→   434→                              value={result.max}
+   435→   435→                              formatValue={(n) => formatMoney(Math.round(n), locale)}
+   436→   436→                              label={t('result.budget')}
+   437→   437→                              color="#0071E3"
+   438→   438→                              isRtl={locale === 'ar'}
+   439→   439→                            />
+   440→   440→                            <RingGauge
+   441→   441→                              fraction={Math.min(1, result.weeksMax / 12)}
+   442→   442→                              value={result.weeksMax}
+   443→   443→                              formatValue={(n) => `${Math.round(n)}`}
+   444→   444→                              label={t('result.duration')}
+   445→   445→                              color="#34A853"
+   446→   446→                              isRtl={locale === 'ar'}
+   447→   447→                            />
+   448→   448→                          </div>
+   449→   449→                          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+   450→   450→                            {t('result.budget')}
+   451→   451→                          </p>
+   452→   452→                          <p className="mt-2 text-3xl font-bold tracking-tight text-primary sm:text-4xl">
+   453→   453→                            {formatMoney(result.min, locale)} – {formatMoney(result.max, locale)}
+   454→   454→                          </p>
+   455→   455→                          <p className="mt-4 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+   456→   456→                            {t('result.duration')}
+   457→   457→                          </p>
+   458→   458→                          <p className="mt-1 text-xl font-semibold">
+   459→   459→                            {t('result.weeks', { min: result.weeksMin, max: result.weeksMax })}
+   460→   460→                          </p>
+   461→   461→                        </div>
+   462→   462→
+   463→   463→                        <div className="mt-4">
+   464→   464→                          <p className="text-sm font-semibold">{t('result.breakdownTitle')}</p>
+   465→   465→                          <ul className="mt-2 space-y-1.5 text-sm">
+   466→   466→                            {result.breakdown.map((line) => (
+   467→   467→                              <li key={line.labelKey} className="flex items-center justify-between gap-2">
+   468→   468→                                <span className="text-muted-foreground">{breakdownLabels[line.labelKey as keyof typeof breakdownLabels]}</span>
+   469→   469→                                <span className="tabular-nums">
+   470→   470→                                  {formatMoney(line.min, locale)} – {formatMoney(line.max, locale)}
+   471→   471→                                </span>
+   472→   472→                              </li>
+   473→   473→                            ))}
+   474→   474→                          </ul>
+   475→   475→                        </div>
+   476→   476→                        <p className="mt-4 flex items-start gap-1.5 text-xs text-muted-foreground">
+   477→   477→                          <AlertCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+   478→   478→                          {t('result.disclaimer')}
+   479→   479→                        </p>
+   480→   480→                      </div>
+   481→   481→
+   482→   482→                      <form onSubmit={onSubmit} className="rounded-2xl border border-border p-6" noValidate>
+   483→   483→                        <h3 className="text-lg font-semibold">{t('form.title')}</h3>
+   484→   484→                        <div className="mt-4 space-y-4">
+   485→   485→                          <div>
+   486→   486→                            <Label htmlFor="calc-name" className="text-sm">{t('form.name')}</Label>
+   487→   487→                            <Input
+   488→   488→                              id="calc-name"
+   489→   489→                              value={form.name}
+   490→   490→                              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+   491→   491→                              autoComplete="name"
+   492→   492→                              aria-invalid={!!errors.name}
+   493→   493→                              aria-describedby={errors.name ? 'calc-name-err' : undefined}
+   494→   494→                              className="mt-1.5"
+   495→   495→                            />
+   496→   496→                            {errors.name ? (
+   497→   497→                              <p id="calc-name-err" role="alert" className="mt-1 text-xs text-destructive">{errors.name}</p>
+   498→   498→                            ) : null}
+   499→   499→                          </div>
+   500→   500→                          <div>
+   501→   501→                            <Label htmlFor="calc-email" className="text-sm">{t('form.email')}</Label>
+   502→   502→                            <Input
+   503→   503→                              id="calc-email"
+   504→   504→                              type="email"
+   505→   505→                              value={form.email}
+   506→   506→                              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+   507→   507→                              autoComplete="email"
+   508→   508→                              aria-invalid={!!errors.email}
+   509→   509→                              aria-describedby={errors.email ? 'calc-email-err' : undefined}
+   510→   510→                              className="mt-1.5"
+   511→   511→                            />
+   512→   512→                            {errors.email ? (
+   513→   513→                              <p id="calc-email-err" role="alert" className="mt-1 text-xs text-destructive">{errors.email}</p>
+   514→   514→                            ) : null}
+   515→   515→                          </div>
+   516→   516→                          <div>
+   517→   517→                            <Label htmlFor="calc-wa" className="text-sm">{t('form.whatsapp')}</Label>
+   518→   518→                            <Input
+   519→   519→                              id="calc-wa"
+   520→   520→                              type="tel"
+   521→   521→                              value={form.whatsapp ?? ''}
+   522→   522→                              onChange={(e) => setForm((f) => ({ ...f, whatsapp: e.target.value }))}
+   523→   523→                              autoComplete="tel"
+   524→   524→                              className="mt-1.5"
+   525→   525→                            />
+   526→   526→                          </div>
+   527→   527→                        </div>
+   528→   528→                        <Button type="submit" data-cursor="magnet" disabled={submitting} className="mt-6 w-full gap-2">
+   529→   529→                          {submitting ? (
+   530→   530→                            <>
+   531→   531→                              <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true" />
+   532→   532→                              {t('form.sending')}
+   533→   533→                            </>
+   534→   534→                          ) : (
+   535→   535→                            <>
+   536→   536→                              <Send className="size-4" aria-hidden="true" />
+   537→   537→                              {t('form.submit')}
+   538→   538→                            </>
+   539→   539→                          )}
+   540→   540→                        </Button>
+   541→   541→                      </form>
+   542→   542→                    </div>
+   543→   543→                  )}
+   544→   544→                </div>
+   545→   545→              ) : null}
+   546→   546→            </motion.div>
+   547→   547→          </AnimatePresence>
+   548→   548→
+   549→   549→          {/* Controls */}
+   550→   550→          {!done && step < 2 ? (
+   551→   551→            <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
+   552→   552→              <button
+   553→   553→                type="button"
+   554→   554→                data-cursor="magnet"
+   555→   555→                onClick={goBack}
+   556→   556→                disabled={step === 0}
+   557→   557→                className={cn(
+   558→   558→                  'inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors',
+   559→   559→                  step === 0 ? 'cursor-not-allowed opacity-40' : 'hover:bg-foreground/5'
+   560→   560→                )}
+   561→   561→              >
+   562→   562→                {/* Single-flip arrows: ArrowLeft flips to point right ("back") in RTL */}
+   563→   563→                <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
+   564→   564→                {t('back')}
+   565→   565→              </button>
+   566→   566→              <button
+   567→   567→                type="button"
+   568→   568→                data-cursor="magnet"
+   569→   569→                onClick={goNext}
+   570→   570→                className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform hover:scale-105"
+   571→   571→              >
+   572→   572→                {step === 1 ? t('calculate') : t('next')}
+   573→   573→                {/* ArrowRight flips to point left ("forward") in RTL */}
+   574→   574→                <ArrowRight className="size-4 rtl:rotate-180" aria-hidden="true" />
+   575→   575→              </button>
+   576→   576→            </div>
+   577→   577→          ) : null}
+   578→   578→          {!done && step === 2 ? (
+   579→   579→            <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
+   580→   580→              <button
+   581→   581→                type="button"
+   582→   582→                onClick={goBack}
+   583→   583→                className="inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors hover:bg-foreground/5"
+   584→   584→              >
+   585→   585→                <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
+   586→   586→                {t('back')}
+   587→   587→              </button>
+   588→   588→              <span className="text-sm text-muted-foreground">
+   589→   589→                {t('result.disclaimer')}
+   590→   590→              </span>
+   591→   591→            </div>
+   592→   592→          ) : null}
+   593→   593→        </div>
+   594→   594→      </div>
+   595→   595→    </section>
+   596→   596→  )
+   597→   597→}
+   598→   598→

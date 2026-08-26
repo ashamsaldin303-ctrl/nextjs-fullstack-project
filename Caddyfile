@@ -1,3 +1,8 @@
+# ⚠️ SANDBOX-ONLY FILE — NOT FOR PRODUCTION
+# This config intentionally proxies to arbitrary localhost ports via ?XTransformPort
+# (an open-proxy/SSRF primitive by design, for the preview tooling). NEVER deploy
+# this publicly. In production terminate TLS at a real reverse proxy that
+# overwrites X-Forwarded-For (and set TRUST_PROXY=true in the app).
 :81 {
 	@transform_port_query {
 		query XTransformPort=*

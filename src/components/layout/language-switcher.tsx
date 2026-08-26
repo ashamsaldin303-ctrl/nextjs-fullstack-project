@@ -32,7 +32,17 @@ export function LanguageSwitcher({
       data-cursor="magnet"
       className={cn(base, colors, className)}
       aria-label={t('switchLocaleLabel')}
-      onClick={() => router.replace(pathname, { locale: target })}
+      onClick={() => {
+        // Preserve the active query string (e.g. calculator presets)
+        // WITHOUT useSearchParams — that hook forces client-render
+        // bailouts on otherwise-static pages. Reading
+        // window.location.search at click time is bailout-free and
+        // always current (audit P2).
+        const search = window.location.search
+        router.replace(search ? `${pathname}${search}` : pathname, {
+          locale: target,
+        })
+      }}
     >
       <Globe className="size-4" aria-hidden="true" />
       <span aria-hidden="true">{t('switchLocale')}</span>

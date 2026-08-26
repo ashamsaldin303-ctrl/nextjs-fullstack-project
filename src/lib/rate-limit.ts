@@ -23,6 +23,16 @@ function sweep(now: number): void {
     if (fresh.length === 0) hits.delete(key)
     else hits.set(key, fresh)
   }
+  // Hard cap against key-flooding (audit P1-1): a spoofed-header client
+  // can mint unlimited distinct keys, so bound the Map's memory growth.
+  // Map preserves insertion order — drop the oldest 1_000 entries past cap.
+  if (hits.size > 5_000) {
+    let toDelete = 1_000
+    for (const key of hits.keys()) {
+      if (toDelete-- <= 0) break
+      hits.delete(key)
+    }
+  }
 }
 
 export interface RateLimitResult {

@@ -18,6 +18,9 @@ export type IntegrationKey =
   | 'sheets'
   | 'ai'
 
+/** Supported presentation locales (kept local so this pure lib stays decoupled from i18n infra). */
+export type Locale = 'ar' | 'en'
+
 export interface CalculatorInput {
   service: ServiceType
   pages: number
@@ -55,9 +58,11 @@ const PER_INTEGRATION = { min: 250, max: 450 }
 const AUTOMATION_ADVANCED = { min: 900, max: 1500 }
 
 function clampPages(n: number): number {
-  if (!Number.isFinite(n)) return 0
+  // Mirrors the UI slider (min 1, max 20) and the API Zod schema — 0 is
+  // not a valid project size anywhere.
+  if (!Number.isFinite(n)) return 1
   const i = Math.round(n)
-  return Math.max(0, Math.min(i, 20))
+  return Math.max(1, Math.min(i, 20))
 }
 
 export function computeEstimate(input: CalculatorInput): CalcResult {
@@ -135,19 +140,34 @@ export function computeEstimate(input: CalculatorInput): CalcResult {
     })
   }
 
-  // Round to nearest hundred for a tidy estimate
+  // Round every breakdown line to the presentation grid (nearest $100)
+  // FIRST, then derive the headline totals as the sums of the rounded
+  // lines. INVARIANT: the displayed lines always sum to the headline —
+  // previously the headline was rounded independently of the raw lines,
+  // so the two could drift apart by up to ±$50 per line.
   const round100 = (n: number) => Math.round(n / 100) * 100
+  const roundedBreakdown = breakdown.map((line) => ({
+    ...line,
+    min: round100(line.min),
+    max: round100(line.max),
+  }))
+  const totalMin = roundedBreakdown.reduce((acc, line) => acc + line.min, 0)
+  const totalMax = roundedBreakdown.reduce((acc, line) => acc + line.max, 0)
 
+  // Ordering guarantee: BASE gives raw weeksMax − weeksMin ≥ 2 and every
+  // add-on contributes at least as much to max as to min, so rounding can
+  // shrink the gap by at most 1 → weeksMax ≥ weeksMin + 1 always holds.
+  // (The old Math.max fallbacks were provably dead — see loop-1 audit.)
   return {
-    min: round100(min),
-    max: round100(max),
-    weeksMin: Math.max(1, Math.round(weeksMin)),
-    weeksMax: Math.max(weeksMin + 1, Math.round(weeksMax)),
-    breakdown,
+    min: totalMin,
+    max: totalMax,
+    weeksMin: Math.round(weeksMin),
+    weeksMax: Math.round(weeksMax),
+    breakdown: roundedBreakdown,
   }
 }
 
-export function formatMoney(amount: number, locale: string): string {
+export function formatMoney(amount: number, locale: Locale): string {
   return new Intl.NumberFormat(locale === 'ar' ? 'ar' : 'en-US', {
     style: 'currency',
     currency: 'USD',

@@ -33,12 +33,15 @@ const LazyCalculator = dynamic(
     ssr: false,
     // Placeholder mirrors the calculator's outer rhythm: same bg +
     // vertical padding + min-height — keeps CLS at 0 pre-load.
+    // FIX(2-c/8): raised to an honest approximation — the tallest wizard
+    // step (features) renders ≈1200px (heading + progress + step card +
+    // controls); slightly under to avoid overshoot.
     loading: () => (
       <section
         className="bg-background py-20 sm:py-28"
         aria-hidden="true"
       >
-        <div className="elyra-container mx-auto min-h-[600px] max-w-5xl" />
+        <div className="elyra-container mx-auto min-h-[1000px] max-w-5xl" />
       </section>
     ),
   }
@@ -77,7 +80,7 @@ export function CalculatorLazy() {
           className="bg-background py-20 sm:py-28"
           aria-hidden="true"
         >
-          <div className="elyra-container mx-auto min-h-[600px] max-w-5xl" />
+          <div className="elyra-container mx-auto min-h-[1000px] max-w-5xl" />
         </section>
       )}
     </div>

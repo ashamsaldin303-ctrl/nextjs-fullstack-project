@@ -10,6 +10,10 @@ const STATIC_PATHS = [
   '/contact',
 ]
 
+// Fixed lastmod stamp — `new Date()` would stamp BUILD time on every
+// URL on every deploy, misinforming crawlers about real content change.
+const LAST_MODIFIED = new Date('2026-08-26')
+
 /**
  * P2-3 (audit + prompt §7.4): every path is emitted as ONE <url> entry
  * carrying full hreflang alternates (ar / en / x-default) per the
@@ -17,14 +21,12 @@ const STATIC_PATHS = [
  * English lives under /en; x-default points at the Arabic canonical.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date()
-
   return STATIC_PATHS.map((path) => {
     const arUrl = `${SITE_URL}${path === '' ? '/' : path}`
     const enUrl = `${SITE_URL}/en${path === '' ? '' : path}`
     return {
       url: arUrl,
-      lastModified: now,
+      lastModified: LAST_MODIFIED,
       changeFrequency: 'monthly',
       priority: path === '' ? 1 : path.startsWith('/services') ? 0.9 : 0.8,
       alternates: {

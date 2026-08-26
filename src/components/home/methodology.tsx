@@ -94,6 +94,7 @@ export function Methodology() {
           kicker={t('kicker')}
           title={t('title')}
           subtitle={t('subtitle')}
+          titleId="method-title"
         />
         <div ref={containerRef} className="mt-14 space-y-4 sm:space-y-6">
           {STEPS.map((step, i) => (

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
+import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 
 /**
  * Magnetic Cursor — Phase 2 "Sensory Polish Layer" (prompt §3).
@@ -52,6 +53,11 @@ export function MagneticCursor() {
   const ringRef = useRef<HTMLDivElement>(null)
   const chipRef = useRef<HTMLDivElement>(null)
   const t = useTranslations('common.cursor')
+  // FIX(2-c/6): reduced-motion as React state — the engine effect depends
+  // on it, so toggling the preference mid-session fully tears down the
+  // rAF loop, listeners and MutationObserver (and re-initializes if the
+  // user turns motion back on).
+  const reduced = usePrefersReducedMotion()
 
   // Resolve context labels ONCE per render — they don't change at runtime.
   // Empty string for `magnet` keeps the chip hidden (no label for plain
@@ -80,8 +86,7 @@ export function MagneticCursor() {
 
     // --- Activation guards (prompt §3.1–§3.4) ---------------------------
     const finePointer = window.matchMedia('(pointer: fine)')
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
-    if (!finePointer.matches || reducedMotion.matches) return
+    if (!finePointer.matches || reduced) return
 
     let disposed = false
     let rafId = 0
@@ -104,6 +109,10 @@ export function MagneticCursor() {
 
     type Magnet = { el: Element; x: number; y: number; label: string }
     let magnets: Magnet[] = []
+    // FIX(2-c/6): last chip label written to the DOM — skip the
+    // textContent write while hovering a labeled magnet (it ran EVERY
+    // frame before; the label only changes when the magnet does).
+    let lastChipLabel: string | null = null
 
     const refreshMagnets = () => {
       magnets = Array.from(document.querySelectorAll('[data-cursor]')).map((el) => {
@@ -211,7 +220,10 @@ export function MagneticCursor() {
       // Phase 5 WS-7: now context-aware (zoom/inspect/external) when
       // data-cursor-label isn't explicitly set.
       if (magnet && magnet.label) {
-        chip.textContent = magnet.label
+        if (magnet.label !== lastChipLabel) {
+          chip.textContent = magnet.label
+          lastChipLabel = magnet.label
+        }
         // RTL/LTR neutral offset — chip appears on the ring's right side
         // in LTR, left in RTL (handled by dir=auto on the chip element).
         chip.style.transform = `translate3d(${ringPos.x + 20}px, ${ringPos.y + 8}px, 0)`
@@ -234,12 +246,6 @@ export function MagneticCursor() {
 
     rafId = requestAnimationFrame(tick)
 
-    // Also react to reduced-motion being toggled while the page is open.
-    const onReducedChange = (e: MediaQueryListEvent) => {
-      if (e.matches) onLeave()
-    }
-    reducedMotion.addEventListener('change', onReducedChange)
-
     return () => {
       disposed = true
       cancelAnimationFrame(rafId)
@@ -254,12 +260,11 @@ export function MagneticCursor() {
       window.removeEventListener('resize', scheduleMagnetRefresh)
       document.documentElement.removeEventListener('mouseleave', onLeave)
       document.documentElement.removeEventListener('mouseenter', onEnter)
-      reducedMotion.removeEventListener('change', onReducedChange)
       dot.classList.remove('elyra-cursor--visible')
       ring.classList.remove('elyra-cursor--visible')
       document.documentElement.classList.remove('elyra-cursor-active')
     }
-  }, [contextLabels])
+  }, [contextLabels, reduced])
 
   return (
     <>

@@ -69,16 +69,33 @@ export function useCursorVelocity(
 
     let disposed = false
 
+    // Re-run (StrictMode, option change): start from a clean idle state so
+    // the lerp doesn't jump in from a stale weight left by the previous run.
+    targetWght.current = idleWght
+    currentWght.current = idleWght
+
     const writeWght = () => {
       if (disposed) return
       // Lerp current toward target for smooth transitions — no jumps
       // when the cursor stops suddenly.
       currentWght.current += (targetWght.current - currentWght.current) * 0.18
+      // Converged? Snap exactly to the target (sub-0.5 wght is invisible)
+      // and stop the loop — otherwise keep easing on the next frame.
+      // The loop must be self-sustaining: without the re-schedule below,
+      // the idle timer fired exactly ONE 18% step and --wght froze
+      // mid-transition (e.g. stuck at 770.7 instead of easing to 700).
+      if (Math.abs(targetWght.current - currentWght.current) <= 0.5) {
+        currentWght.current = targetWght.current
+      }
       // Round to 1 decimal — sub-pixel wght steps are perceptible
       // noise on variable fonts, but 0.1 granularity is invisible.
       const w = Math.round(currentWght.current * 10) / 10
       el.style.setProperty('--wght', w.toString())
-      rafId.current = 0
+      if (currentWght.current !== targetWght.current) {
+        rafId.current = requestAnimationFrame(writeWght)
+      } else {
+        rafId.current = 0
+      }
     }
 
     const scheduleWrite = () => {
@@ -135,6 +152,10 @@ export function useCursorVelocity(
       disposed = true
       window.removeEventListener('pointermove', onPointerMove)
       if (rafId.current) cancelAnimationFrame(rafId.current)
+      // Reset so a stale handle can never block the next effect run's
+      // scheduleWrite() (the loop is self-sustaining now — without this
+      // reset, StrictMode remounts would freeze at the old handle).
+      rafId.current = 0
       if (idleTimer.current !== null) window.clearTimeout(idleTimer.current)
       // Reset to idle on unmount so the element doesn't keep the last wght.
       el.style.setProperty('--wght', idleWght.toString())

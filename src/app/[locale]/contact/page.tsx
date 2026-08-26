@@ -1,5 +1,8 @@
 import type { Metadata } from 'next'
+import { hasLocale } from 'next-intl'
+import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
+import { routing } from '@/i18n/routing'
 import { Mail, MessageCircle, Send, Clock } from 'lucide-react'
 import { PageHero } from '@/components/shared/page-hero'
 import { Reveal } from '@/components/shared/reveal'
@@ -14,6 +17,9 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>
 }): Promise<Metadata> {
   const { locale } = await params
+  // Narrow string → Locale for buildPageMetadata (validity is already
+  // guaranteed by the proxy for every reachable route).
+  if (!hasLocale(routing.locales, locale)) notFound()
   return buildPageMetadata({
     locale,
     namespace: 'meta.contact',

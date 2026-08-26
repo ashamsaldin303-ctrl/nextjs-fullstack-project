@@ -187,6 +187,27 @@ function Nodes({ preset, active }: { preset: PresetId; active: boolean }) {
     groupRef.current.rotation.x += delta * 0.02
   })
 
+  // FIX(2-c/9): R3F never disposes primitives (its removeChild →
+  // disposeOnIdle path explicitly skips them), so every preset switch
+  // would strand the previous lines' geometry + material GPU buffers.
+  // Track the mounted set in a ref; the effect cleanup disposes the
+  // PREVIOUS set — which React has already unmounted from the scene
+  // graph by the time cleanup runs — and the final cleanup (unmount)
+  // disposes the current set. Nothing still mounted is ever disposed.
+  const mountedLines = useRef<THREE.Line[]>([])
+  useEffect(() => {
+    const previous = mountedLines.current
+    mountedLines.current = lines
+    return () => {
+      for (const line of previous) {
+        line.geometry.dispose()
+        const material = line.material
+        if (Array.isArray(material)) material.forEach((m) => m.dispose())
+        else material.dispose()
+      }
+    }
+  }, [lines])
+
   return (
     <group ref={groupRef}>
       {positions.map((pos, i) => {
@@ -226,7 +247,16 @@ function InitialRenderSafety() {
   return null
 }
 
-export function ConsoleScene({ preset }: { preset: PresetId }) {
+export function ConsoleScene({
+  preset,
+  /** While false the Canvas frameloop pauses entirely (§9.4) — the hero
+   *  threads its IntersectionObserver + visibility state here so the
+   *  scene never burns GPU frames while offscreen or the tab is hidden. */
+  active = true,
+}: {
+  preset: PresetId
+  active?: boolean
+}) {
   const reduced = usePrefersReducedMotion()
   const config = PRESET_CONFIG[preset] ?? PRESET_CONFIG.custom
 
@@ -234,7 +264,7 @@ export function ConsoleScene({ preset }: { preset: PresetId }) {
     <Canvas
       camera={{ position: [0, 0, config.cameraZ], fov: 50 }}
       dpr={[1, 2]}
-      frameloop={reduced ? 'never' : 'always'}
+      frameloop={reduced || !active ? 'never' : 'always'}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       style={{ position: 'absolute', inset: 0, cursor: 'grab' }}
     >
@@ -243,7 +273,7 @@ export function ConsoleScene({ preset }: { preset: PresetId }) {
       <pointLight position={[5, 5, 5]} intensity={1.2} color="#ffffff" />
       <pointLight position={[-5, -3, 4]} intensity={0.7} color="#0071E3" />
       <pointLight position={[0, 5, -5]} intensity={0.4} color="#34A853" />
-      <Nodes preset={preset} active={true} />
+      <Nodes preset={preset} active={!reduced && active} />
       <InitialRenderSafety />
     </Canvas>
   )

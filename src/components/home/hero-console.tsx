@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import { Search, Sparkles } from 'lucide-react'
@@ -36,22 +36,36 @@ const PRESETS: { id: PresetId; key: string }[] = [
  * Mobile (<768px): WebGL is forbidden (§9.3) — an SVG node diagram replaces
  * the scene. Reduced-motion: static SVG diagram + text description.
  */
-export function HeroConsole() {
+export function HeroConsole({
+  /** FIX(2-c/2): while false (hero offscreen / tab hidden) the WebGL
+   *  scene pauses its frameloop instead of rendering at 60fps forever. */
+  active = true,
+}: {
+  active?: boolean
+}) {
   const t = useTranslations('hero.console')
   const reduced = usePrefersReducedMotion()
   const [selected, setSelected] = useState<PresetId | null>(null)
   const [input, setInput] = useState('')
   const [mounted, setMounted] = useState(false)
 
-  const select = useCallback((id: PresetId) => {
-    setSelected(id)
-    setMounted(true)
-    playSuccess() // WS-1 §4: "takeoff" sound via existing system
-    // Phase 5 P0-1 fix: ensure the dark scene container is visible —
-    // the hero is min-h-[100svh], so the console mounts below the fold
-    // on standard screens. Without this scroll, users click a preset
-    // but never see the WebGL scene (the original P0-1 symptom).
-    requestAnimationFrame(() => {
+  // FIX(2-c/5): track the one-shot scroll rAF so it can be cancelled on
+  // unmount (a pending rAF firing after unmount is harmless, but leaving
+  // it scheduled is a leak under rapid mount/unmount).
+  const scrollRaf = useRef(0)
+  useEffect(
+    () => () => {
+      if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current)
+    },
+    []
+  )
+
+  // Shared helper for both entry paths (preset chip + free-text submit):
+  // after mounting the scene, scroll it into view if it landed offscreen.
+  const scrollSceneIntoView = useCallback(() => {
+    if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current)
+    scrollRaf.current = requestAnimationFrame(() => {
+      scrollRaf.current = 0
       const container = document.getElementById('hero-console-scene')
       if (container) {
         const rect = container.getBoundingClientRect()
@@ -63,24 +77,32 @@ export function HeroConsole() {
     })
   }, [])
 
-  const on_submit = useCallback((e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim()) return
-    // Free text that doesn't match a preset → "custom" scene
-    setSelected('custom')
-    setMounted(true)
-    playSuccess()
-    requestAnimationFrame(() => {
-      const container = document.getElementById('hero-console-scene')
-      if (container) {
-        const rect = container.getBoundingClientRect()
-        const inView = rect.top >= 0 && rect.top < window.innerHeight * 0.7
-        if (!inView) {
-          container.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        }
-      }
-    })
-  }, [input])
+  const select = useCallback(
+    (id: PresetId) => {
+      setSelected(id)
+      setMounted(true)
+      playSuccess() // WS-1 §4: "takeoff" sound via existing system
+      // Phase 5 P0-1 fix: ensure the dark scene container is visible —
+      // the hero is min-h-[100svh], so the console mounts below the fold
+      // on standard screens. Without this scroll, users click a preset
+      // but never see the WebGL scene (the original P0-1 symptom).
+      scrollSceneIntoView()
+    },
+    [scrollSceneIntoView]
+  )
+
+  const on_submit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault()
+      if (!input.trim()) return
+      // Free text that doesn't match a preset → "custom" scene
+      setSelected('custom')
+      setMounted(true)
+      playSuccess()
+      scrollSceneIntoView()
+    },
+    [input, scrollSceneIntoView]
+  )
 
   // Detect mobile for SVG fallback (no WebGL on touch — §9.3)
   const [isMobile, setIsMobile] = useState(false)
@@ -152,7 +174,7 @@ export function HeroConsole() {
             }} customDesc={t('customDesc')} />
           ) : (
             <>
-              <ConsoleScene preset={selected} />
+              <ConsoleScene preset={selected} active={active} />
               <div
                 className="pointer-events-none absolute bottom-3 start-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs text-white/80 backdrop-blur-sm"
                 data-cursor="rotate"
