@@ -3,12 +3,15 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 
 /**
  * Interactive 3D capability scene for /services/websites.
  * A metallic TorusKnot lit by 4 brand-colored point lights (amber/gold/
  * green/warm-white — palette law: no blue), with
  * mouse parallax + drag-to-rotate. Dark stage, DPR capped at 2.
+ * Batch 3 item 14: PMREM/RoomEnvironment image-based lighting so the
+ * 0.85-metalness knot has real reflections (envMapIntensity 1).
  *
  * Refactor note: React 19's react-hooks/immutability rule disallows mutating
  * plain useRef objects inside useFrame. We mutate only the attached group ref
@@ -117,6 +120,34 @@ function Knot({ dragging }: { dragging: boolean }) {
   )
 }
 
+/** Batch 3 item 14 — image-based lighting for the metallic knot.
+ * PMREMGenerator + RoomEnvironment ship with three itself (no new
+ * dependency); the prefiltered radiance map is applied via
+ * scene.environment so every MeshStandardMaterial in the scene (knot +
+ * satellites, envMapIntensity 1) gets ambient reflections. The room
+ * scene, render target and generator are all disposed on unmount. */
+function RoomEnv() {
+  const gl = useThree((s) => s.gl)
+  const scene = useThree((s) => s.scene)
+  useEffect(() => {
+    const pmrem = new THREE.PMREMGenerator(gl)
+    const room = new RoomEnvironment()
+    const target = pmrem.fromScene(room, 0.04)
+    // scene.environment is the canonical three.js IBL wiring (Object3D
+    // property, written once per mount) — same R3F mutation exemption as
+    // the per-frame uniform updates in hero-canvas.
+    // eslint-disable-next-line react-compiler/react-compiler, react-hooks/immutability
+    scene.environment = target.texture
+    room.dispose()
+    return () => {
+      scene.environment = null
+      target.dispose()
+      pmrem.dispose()
+    }
+  }, [gl, scene])
+  return null
+}
+
 /** FIX(2-c/10): context-loss guard — `preventDefault()` marks the event
  *  as handled so the browser keeps the canvas alive for a possible restore
  *  (and stops the default console error spam); we log once for diagnostics. */
@@ -177,6 +208,7 @@ export function CapabilityScene({ active }: { active: boolean }) {
         {LIGHTS.map((l, i) => (
           <pointLight key={i} color={l.color} position={l.pos} intensity={28} distance={12} />
         ))}
+        <RoomEnv />
         <Knot dragging={dragging} />
         <ContextLossGuard />
       </Canvas>

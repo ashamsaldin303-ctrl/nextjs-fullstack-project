@@ -9,6 +9,7 @@ import {
   Inbox, Database, Send, Clock, RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useRouter } from '@/i18n/navigation'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 
@@ -662,6 +663,9 @@ function MiniCube() {
 
 function MiniAgent() {
   const t = useTranslations('bento.ai.mini')
+  // Batch 2 item 8: locale-aware router (@/i18n/navigation) — the convert
+  // CTA hands the visitor's idea to the prefilled contact form.
+  const router = useRouter()
   // Typewriter is a JS-driven (setInterval) animation — the global CSS
   // reduced-motion override can't stop it, so we honor the hook directly:
   // reduced-motion users get the full response instantly (audit P1-6).
@@ -672,6 +676,8 @@ function MiniAgent() {
   const [shown, setShown] = useState(-1)
   const [phase, setPhase] = useState<'idle' | 'thinking' | 'typing'>('idle')
   const [chars, setChars] = useState(0)
+  // Batch 2 item 8: free-text idea field below the cycling answer.
+  const [idea, setIdea] = useState('')
   const len = Math.max(responses.length, 1)
   const current = shown >= 0 ? responses[shown % len] ?? '' : ''
   const complete = phase === 'typing' && current.length > 0 && chars >= current.length
@@ -720,6 +726,17 @@ function MiniAgent() {
         }
       }, 25)
     }, 450)
+  }
+
+  /** Batch 2 item 8: convert the intent into a request — the typed idea
+   *  when present, otherwise the currently shown answer. URL contract:
+   *  /contact?service=agent&idea=<urlencoded> (same locale-correct
+   *  router.push pattern as hero-console's goToContact). */
+  const convert = () => {
+    const text = idea.trim() || current
+    const params = new URLSearchParams({ service: 'agent' })
+    if (text) params.set('idea', text)
+    router.push(`/contact?${params.toString()}`)
   }
 
   return (
@@ -778,6 +795,37 @@ function MiniAgent() {
         <span className="sr-only" aria-live="polite">
           {complete ? current : ''}
         </span>
+        {/* Batch 2 item 8: idea input + convert CTA — Enter submits the
+            form (real <form> onSubmit, not a click-only button). Compact
+            and RTL-safe: flex + gap only, no directional utilities. */}
+        <form
+          className="flex items-center gap-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            convert()
+          }}
+        >
+          <label htmlFor="mini-agent-idea" className="sr-only">
+            {t('inputPlaceholder')}
+          </label>
+          <input
+            id="mini-agent-idea"
+            type="text"
+            value={idea}
+            onChange={(e) => setIdea(e.target.value)}
+            placeholder={t('inputPlaceholder')}
+            autoComplete="off"
+            className="h-9 min-w-0 flex-1 rounded-lg border border-white/10 bg-white/5 px-2.5 text-xs text-white transition-colors placeholder:text-white/40 focus:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          <button
+            type="submit"
+            data-cursor="magnet"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Send className="size-3.5" aria-hidden="true" />
+            {t('convertCta')}
+          </button>
+        </form>
       </div>
     </div>
   )

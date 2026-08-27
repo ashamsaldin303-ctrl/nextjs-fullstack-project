@@ -2,9 +2,10 @@
 
 import { useTranslations } from 'next-intl'
 import { motion, useScroll, useTransform, useReducedMotion, type MotionValue } from 'framer-motion'
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { Compass, PencilRuler, Hammer, Rocket, type LucideIcon } from 'lucide-react'
 import { SectionHeading } from '@/components/shared/section-heading'
+import { bindHeroScroll } from '@/lib/hero-scroll'
 import { cn } from '@/lib/utils'
 
 interface StepDef {
@@ -104,6 +105,10 @@ export function Methodology() {
     target: containerRef,
     offset: ['start 20%', 'end 60%'],
   })
+  // 4-I4 (Batch 3 item 15): one-way bridge — feed this section's scroll
+  // progress to the hero canvas camera dolly (bound in an effect so no
+  // module state is touched during render; unbinds on unmount).
+  useEffect(() => bindHeroScroll(scrollYProgress), [scrollYProgress])
 
   return (
     <section className="bg-background py-20 sm:py-28" aria-labelledby="method-title">

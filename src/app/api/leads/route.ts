@@ -30,7 +30,10 @@ import { getApiT } from '@/lib/api-i18n'
  *   403  Cross-site request (Sec-Fetch-Site / Origin mismatch).
  *   413  Body larger than 64 KB (content-length gate, pre-parse).
  *   415  Content-Type is not application/json (pre-parse).
- *   429  Rate limited (5 req/min/IP) — `Retry-After` header in seconds.
+ *   429  Rate limited — `Retry-After` header in seconds. Two tiers
+ *        (Batch 2 item 10): the lenient bucket (30 req/min/IP) meters
+ *        every request, while the strict bucket (5 req/min/IP) is
+ *        burned only by requests that reach a persisted write.
  *   500  Generic error, zero internal detail; details go to the server log.
  *   201  Stored. Body: { reference } — 'c' + 9 random base-36 chars:
  *        cuid-shaped but collision-proof (final-board R1 — the previous
@@ -259,9 +262,14 @@ export async function POST(req: NextRequest) {
   const locale = requestLocale(req)
   const t = getApiT(locale)
 
-  // 1) Rate limit FIRST — invalid payloads still burn the quota.
+  // 1) Rate limit FIRST — but only the LENIENT bucket (30/min/IP):
+  //    every request counts here (valid or not) because its only job
+  //    is blunting flood/abuse spam. Rejected payloads must NOT burn
+  //    the 5/min strict quota — a visitor making a few validation
+  //    mistakes used to lock themselves out of ever submitting
+  //    (verified in audit 1-b: 429 after a handful of 400s).
   const ip = clientIp(req)
-  const rl = rateLimit(ip)
+  const rl = rateLimit(ip, 'lenient')
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'rate_limited', message: t('rateLimited') },
@@ -371,7 +379,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ reference: randomReference() }, { status: 201 })
   }
 
-  // 6) Persist (storage has priority over the webhook — §3.3).
+  // 6) Strict quota (5/min/IP) — checked (and burned) immediately
+  //    before the write, so ONLY requests that actually reach a
+  //    persisted lead consume it. Everything above (413/415/403/400
+  //    and the honeypot discard) stays on the lenient bucket alone.
+  const strict = rateLimit(ip, 'strict')
+  if (!strict.allowed) {
+    return NextResponse.json(
+      { error: 'rate_limited', message: t('rateLimited') },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(strict.retryAfterSec),
+        },
+      }
+    )
+  }
+
+  // 7) Persist (storage has priority over the webhook — §3.3).
   const stored = toStoredLead(input)
   const userAgent = req.headers.get('user-agent')
   const ipForRecord = ip === 'anonymous' ? null : ip
@@ -404,7 +429,7 @@ export async function POST(req: NextRequest) {
     // from the row id (timestamp prefix collided within ~36 ms).
     const reference = randomReference()
 
-    // 7) Webhook — fire-and-forget, never blocks or fails the 201.
+    // 8) Webhook — fire-and-forget, never blocks or fails the 201.
     const payload: LeadWebhookPayload = {
       event: 'lead.created',
       reference,

@@ -1,17 +1,35 @@
 /**
  * In-memory sliding-window rate limiter (Phase 3, prompt §3.1).
  *
- * 5 requests / 60s / key (client IP). Pure in-memory with a periodic sweep
- * so the Map never grows unbounded — this server runs as a single Node
- * process (standalone output), so process-local state is sufficient.
- * A distributed deployment would move this to Redis, which is explicitly
- * out of scope for this project.
+ * Two buckets per key (client IP), same 60s sliding window:
+ *
+ *   'lenient'  30 req/min — meters EVERY request that reaches the
+ *              handler (valid or not). It only exists to blunt
+ *              flood/abuse spam; a validation error must not lock a
+ *              real visitor out of the strict quota (Batch 2 item 10 —
+ *              the single 5/min bucket previously counted 400-rejected
+ *              payloads, so a few typos triggered a 429).
+ *   'strict'    5 req/min — burned ONLY by requests that made it all
+ *              the way to a persisted write (the 201 path); the leads
+ *              route checks it immediately before db.lead.create.
+ *
+ * Pure in-memory with a periodic sweep so the Map never grows
+ * unbounded — this server runs as a single Node process (standalone
+ * output), so process-local state is sufficient. A distributed
+ * deployment would move this to Redis, which is explicitly out of
+ * scope for this project.
  */
 
 const WINDOW_MS = 60_000
-const MAX_HITS = 5
+const MAX_HITS_STRICT = 5
+const MAX_HITS_LENIENT = 30
 const SWEEP_INTERVAL_MS = 60_000
 
+/** Bucket selector — see the module doc above for the semantics. */
+export type RateLimitBucket = 'strict' | 'lenient'
+
+// Both buckets share one Map: keys are namespaced with a short prefix
+// so the sweep/cap logic below stays a single code path.
 const hits = new Map<string, number[]>()
 let lastSweep = 0
 
@@ -41,17 +59,28 @@ export interface RateLimitResult {
   retryAfterSec: number
 }
 
-export function rateLimit(key: string, now = Date.now()): RateLimitResult {
+/**
+ * Check-and-record a hit in the given bucket (default 'strict' — the
+ * historical single-bucket behavior, kept as the default so any future
+ * caller gets the conservative quota).
+ */
+export function rateLimit(
+  key: string,
+  bucket: RateLimitBucket = 'strict',
+  now = Date.now()
+): RateLimitResult {
   sweep(now)
-  const windowHits = (hits.get(key) ?? []).filter((t) => now - t < WINDOW_MS)
+  const mapKey = bucket === 'strict' ? `s:${key}` : `l:${key}`
+  const maxHits = bucket === 'strict' ? MAX_HITS_STRICT : MAX_HITS_LENIENT
+  const windowHits = (hits.get(mapKey) ?? []).filter((t) => now - t < WINDOW_MS)
 
-  if (windowHits.length >= MAX_HITS) {
+  if (windowHits.length >= maxHits) {
     const oldest = windowHits.at(0) ?? now
     const retryAfterSec = Math.max(1, Math.ceil((oldest + WINDOW_MS - now) / 1000))
     return { allowed: false, retryAfterSec }
   }
 
   windowHits.push(now)
-  hits.set(key, windowHits)
+  hits.set(mapKey, windowHits)
   return { allowed: true, retryAfterSec: 0 }
 }

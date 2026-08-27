@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Link, usePathname } from '@/i18n/navigation'
 import { Logo } from '@/components/brand/logo'
-import { LanguageSwitcher } from './language-switcher'
+import { LanguageSwitcher, LanguageToggleCompact } from './language-switcher'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet'
 import { Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -65,7 +65,7 @@ export function Navbar() {
                 <Link
                   href={item.href}
                   className={cn(
-                    'group relative inline-flex h-9 items-center rounded-full px-3 text-sm font-medium transition-colors',
+                    'group relative inline-flex h-11 items-center rounded-full px-3 text-sm font-medium transition-colors',
                     active
                       ? 'text-white'
                       : 'text-white/70 hover:text-white'
@@ -93,14 +93,21 @@ export function Navbar() {
 
         <div className="flex items-center gap-2">
           <LanguageSwitcher variant="on-dark" className="hidden sm:inline-flex" />
+          {/* Batch 2 item 11b: compact EN/ع toggle on the mobile bar — the
+              full switcher only appears at sm+, and before this the
+              language control lived solely inside the sheet (audit 1-b).
+              Base classes include sm:hidden so it never coexists with
+              the full switcher. */}
+          <LanguageToggleCompact />
           {/* WS-2: sound toggle moved to navbar — one mount, no fixed overlap.
               Visible on all screens (mobile too — it's small and fits next
-              to the hamburger). */}
-          <SoundToggle />
+              to the hamburger). Batch 1 item 4: size-11 (44px) override —
+              cn/twMerge replaces the component's size-9 default. */}
+          <SoundToggle className="size-11" />
           <Link
             href="/contact"
             data-cursor="magnet"
-            className="hidden h-9 items-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:inline-flex"
+            className="hidden h-11 items-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:inline-flex"
           >
             {t('nav.cta')}
           </Link>
@@ -108,7 +115,7 @@ export function Navbar() {
           {/* Mobile menu */}
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger
-              className="inline-flex size-9 items-center justify-center rounded-full text-white hover:bg-white/10 md:hidden"
+              className="inline-flex size-11 items-center justify-center rounded-full text-white hover:bg-white/10 md:hidden"
               aria-label={t('nav.openMenu')}
               aria-expanded={open}
             >
@@ -123,7 +130,7 @@ export function Navbar() {
                   <Logo variant="on-dark" />
                 </SheetTitle>
                 <SheetClose
-                  className="inline-flex size-9 items-center justify-center rounded-full text-white hover:bg-white/10"
+                  className="inline-flex size-11 items-center justify-center rounded-full text-white hover:bg-white/10"
                   aria-label={t('nav.closeMenu')}
                 >
                   <X className="size-5" aria-hidden="true" />
@@ -142,13 +149,16 @@ export function Navbar() {
                             className={cn(
                               'group relative flex min-h-12 items-center overflow-hidden rounded-xl px-4 py-3 text-base transition-colors',
                               active
-                                /* MED-2: g-blue family for the active pill.
-                                   Text goes full white — g-blue #4285F4 on
-                                   the g-blue/15 tint over #0F172A measures
-                                   only 4.13:1 (fails AA for 16px medium);
-                                   white on the same tint is ~14.7:1 ✓ and
-                                   mirrors the desktop active treatment
-                                   (white text + colored indicator). */
+                                /* MED-2: token-driven active pill. The g-* names
+                                   are palette-neutral aliases — --g-blue now
+                                   resolves to amber-600 (#D97706) after the
+                                   Batch 1 no-blue sweep (I-1), so the pill and
+                                   its ring auto-followed the rebrand with no
+                                   change here. Text stays full white: the tinted
+                                   pill over #0F172A is a low-contrast surface,
+                                   so white (~14.7:1) keeps AA and mirrors the
+                                   desktop active treatment (white text +
+                                   colored indicator). */
                                 ? 'bg-g-blue/15 text-white ring-1 ring-g-blue/40'
                                 : 'text-white/80 hover:bg-white/5 hover:text-white'
                             )}

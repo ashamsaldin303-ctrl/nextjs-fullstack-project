@@ -143,8 +143,10 @@ export function Hero() {
       className="elyra-spotlight relative min-h-[100svh] overflow-hidden bg-elyra-deep text-elyra-on-dark"
       aria-labelledby="hero-title"
     >
-      {/* Background */}
-      <div className="absolute inset-0">
+      {/* Background — data-bg-layer opts out of .elyra-spotlight's
+          content-lifting rule (position:relative + z-index) so this
+          absolute layer keeps sizing to the section (see globals.css). */}
+      <div className="absolute inset-0" data-bg-layer="">
         {show3D ? <HeroCanvas active={active} /> : null}
         <div className="hero-fallback absolute inset-0 -z-10" aria-hidden="true" />
         {/* vignette for legibility */}

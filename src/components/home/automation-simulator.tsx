@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useIsRtl } from '@/lib/use-rtl'
+import { useRouter } from '@/i18n/navigation'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { playSuccess } from '@/lib/sound'
 
@@ -183,6 +184,9 @@ export function AutomationSimulator({
   const t = useTranslations('simulator')
   const isRtl = useIsRtl()
   const reduced = useReducedMotion()
+  // Batch 2 item 9: locale-aware router (@/i18n/navigation) for the
+  // post-run completion CTA → /contact?service=automation.
+  const router = useRouter()
 
   const [scenario, setScenario] = useState<ScenarioId>(initialScenario)
   const steps = SCENARIOS[scenario]
@@ -424,8 +428,8 @@ export function AutomationSimulator({
             >
               <defs>
                 <linearGradient id="elyra-edge" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#0071E3" stopOpacity="0.2" />
-                  <stop offset="50%" stopColor="#0071E3" stopOpacity="1" />
+                  <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.2" />
+                  <stop offset="50%" stopColor="#F59E0B" stopOpacity="1" />
                   <stop offset="100%" stopColor="#34A853" stopOpacity="0.2" />
                 </linearGradient>
               </defs>
@@ -434,7 +438,7 @@ export function AutomationSimulator({
                 const x2 = ((positions[i + 1] ?? 0) / 100) * VIEW_W
                 const edgeActive = currentStep === i + 1
                 const edgeDone = currentStep > i + 1 || (completed.includes(i) && completed.includes(i + 1)) || (status === 'completed' && completed.includes(i))
-                const stroke = edgeActive ? 'url(#elyra-edge)' : edgeDone ? 'rgba(0,113,227,0.45)' : 'rgba(255,255,255,0.10)'
+                const stroke = edgeActive ? 'url(#elyra-edge)' : edgeDone ? 'rgba(217,119,6,0.45)' : 'rgba(255,255,255,0.10)'
                 return (
                   <line
                     key={i}
@@ -455,11 +459,12 @@ export function AutomationSimulator({
                 background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1.5px);
                 background-size: 24px 24px;
               }
-              /* Real monospace stack for the terminal/log/JSON panels —
-                 the global --font-mono token is aliased to Inter, which
-                 is not a monospace face. */
+              /* Real monospace for the terminal/log/JSON panels — the
+                 global --font-mono token resolves to JetBrains Mono
+                 (next/font, Batch 1 item 3 / I-1); the panels below are
+                 already dir="ltr" so Latin tokens align correctly. */
               .elyra-mono {
-                font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;
+                font-family: var(--font-mono);
               }
             `}</style>
             {!reduced ? (
@@ -503,7 +508,7 @@ export function AutomationSimulator({
                     <span
                       key={`packet-${i}`}
                       aria-hidden="true"
-                      className="elyra-packet absolute top-1/2 size-2 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_12px_rgba(0,113,227,0.95)]"
+                      className="elyra-packet absolute top-1/2 size-2 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_12px_rgba(217,119,6,0.95)]"
                       style={{ '--from': `${from}%`, '--to': `${to}%` } as CSSProperties}
                     />
                   )
@@ -536,7 +541,7 @@ export function AutomationSimulator({
                   <div
                     className={cn(
                       'relative flex size-16 items-center justify-center rounded-2xl border backdrop-blur-md transition-all duration-300',
-                      isActive && 'border-primary bg-primary/20 shadow-[0_0_28px_rgba(0,113,227,0.55)]',
+                      isActive && 'border-primary bg-primary/20 shadow-[0_0_28px_rgba(217,119,6,0.55)]',
                       isDone && 'border-g-green/70 bg-g-green/15',
                       !isActive && !isDone && 'border-white/15 bg-white/5',
                       status === 'completed' && !reduced && 'elyra-node-flash'
@@ -545,7 +550,7 @@ export function AutomationSimulator({
                     {isActive && !reduced ? (
                       <motion.span
                         className="absolute inset-0 rounded-2xl border-2 border-primary/50"
-                        animate={{ boxShadow: ['0 0 0 0 rgba(0,113,227,0.5)', '0 0 0 12px rgba(0,113,227,0)'] }}
+                        animate={{ boxShadow: ['0 0 0 0 rgba(217,119,6,0.5)', '0 0 0 12px rgba(217,119,6,0)'] }}
                         transition={{ duration: 1, repeat: Infinity }}
                       />
                     ) : null}
@@ -675,7 +680,7 @@ export function AutomationSimulator({
               on the Arabic RTL page. */}
           <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md lg:col-span-2">
             <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-white/70">{t('logTitle')}</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-white/85">{t('logTitle')}</h3>
               <span
                 aria-hidden="true"
                 className={cn(
@@ -735,11 +740,11 @@ export function AutomationSimulator({
           className={cn(
             'mt-4 overflow-hidden rounded-2xl border bg-black/40 backdrop-blur-md transition-[border-color,box-shadow] duration-700',
             payloadFlash ? 'border-primary/60' : 'border-white/10',
-            payloadFlash && !reduced && 'shadow-[0_0_32px_rgba(0,113,227,0.28)]'
+            payloadFlash && !reduced && 'shadow-[0_0_32px_rgba(217,119,6,0.28)]'
           )}
         >
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-white/70">{t('payloadTitle')}</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-white/85">{t('payloadTitle')}</h3>
             <span aria-hidden="true" dir="ltr" className="elyra-mono text-[10px] text-white/50">
               {FLOW_ENTRY[scenario]}
             </span>
@@ -759,24 +764,48 @@ export function AutomationSimulator({
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="mt-6 flex justify-center gap-3">
-          {status !== 'running' ? (
-            <button
-              type="button"
-              data-cursor="magnet"
-              onClick={run}
-              className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
-            >
-              {status === 'completed' ? <RotateCw className="size-4" aria-hidden="true" /> : <Play className="size-4" aria-hidden="true" />}
-              {status === 'completed' ? t('replay') : t('run')}
-            </button>
-          ) : (
-            <span className="inline-flex h-11 items-center gap-2 rounded-full border border-white/15 px-6 text-sm text-white/60">
-              <span className="size-2 animate-pulse rounded-full bg-primary" aria-hidden="true" />
-              {t('running')}
-            </span>
-          )}
+        {/* Controls. Batch 2 item 9: the run button already relabels to
+            simulator.replay ("إعادة التشغيل" / "Replay") once a run has
+            finished, so replay is explicit; the completion block below
+            adds the conversion payoff. */}
+        <div className="mt-6 flex flex-col items-center gap-5">
+          <div className="flex justify-center gap-3">
+            {status !== 'running' ? (
+              <button
+                type="button"
+                data-cursor="magnet"
+                onClick={run}
+                className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
+              >
+                {status === 'completed' ? <RotateCw className="size-4" aria-hidden="true" /> : <Play className="size-4" aria-hidden="true" />}
+                {status === 'completed' ? t('replay') : t('run')}
+              </button>
+            ) : (
+              <span className="inline-flex h-11 items-center gap-2 rounded-full border border-white/15 px-6 text-sm text-white/60">
+                <span className="size-2 animate-pulse rounded-full bg-primary" aria-hidden="true" />
+                {t('running')}
+              </span>
+            )}
+          </div>
+          {/* Batch 2 item 9: post-run completion state — the finished run
+              converts instead of dead-ending: completion title + CTA to a
+              prefilled contact request (URL contract:
+              /contact?service=automation, locale-correct via
+              @/i18n/navigation's router — same pattern as hero-console). */}
+          {status === 'completed' ? (
+            <div className="flex flex-col items-center gap-3 text-center">
+              <p className="text-sm font-medium text-white/85">{t('completionTitle')}</p>
+              <button
+                type="button"
+                data-cursor="magnet"
+                onClick={() => router.push('/contact?service=automation')}
+                className="inline-flex h-11 items-center gap-2 rounded-full border border-g-green/40 bg-g-green/15 px-6 text-sm font-medium text-white transition-colors hover:bg-g-green/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
+              >
+                <Send className="size-4" aria-hidden="true" />
+                {t('completionCta')}
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     </section>

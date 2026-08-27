@@ -503,7 +503,13 @@
 .elyra-spotlight.spotlight-active::before {
   opacity: 1;
 }
-.elyra-spotlight > * {
+/* Lifting rule scoped to CONTENT children only — background layers
+   (data-bg-layer, e.g. the hero's absolute canvas/fallback stack) keep
+   their Tailwind `absolute` positioning. Unlayered rules beat layered
+   utilities in the cascade, so without the :not() the hero background
+   div collapses to height 0 and the 3D canvas renders at the HTML
+   default 300×150 — invisible (found in Group-4 verification). */
+.elyra-spotlight > *:not([data-bg-layer]) {
   position: relative;
   z-index: 1;
 }
