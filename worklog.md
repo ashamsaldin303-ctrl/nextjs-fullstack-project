@@ -1766,7 +1766,7 @@ Agent: coordinator (main)
 Task: LOOP-2 E2E verification record — the audit-trail note flagged missing by the L2 verifier.
 
 Work Log:
-- Routes walked E2E after LOOP-2 fixes: / (intro → hero drag 360° → preset switch → payoff nav to /contact), /contact (form renders, intent params prefill), /work, /about, /services/*, /methodology, locale switch ar↔en.
+- Routes walked E2E after LOOP-2 fixes: / (intro → hero drag 360° → preset switch → payoff nav to /contact), /contact (form renders, intent params prefill), /work, /about, /services/*, methodology section on /, locale switch ar↔en.
 - Drag-postponement observed live: starting a drag during the payoff beat postpones (never cancels) the /contact navigation; releasing lands it within ~400ms. First-intent-wins held across repeated intents.
 - Gates at that time: tsc=0, eslint=0/0, i18n parity 635/635, dev server 200, DB leads table clean after E2E.
 - Choice rationale: 400ms post-release delay matches the reduced-motion nav path (250ms) family — short enough to feel instant, long enough to avoid a visual cut mid-pointer-up.
@@ -1786,3 +1786,147 @@ Work Log:
 
 Stage Summary:
 - All 3 P3 issues from L2-V VERDICT fixed. Next: LOOP 3 Group 3 — six reviewers.
+
+---
+Task ID: L3-1b
+Agent: G2-b (Home UI implementation)
+Task: Apply the 11 verified R3/R5 home-UI fixes (a11y affordances, keyboard paths, perf coalescing, contrast, SR labels).
+
+Work Log:
+- Read worklog tail (L2 verification verdicts + L3-0 coordinator stage). Located use-cursor-velocity at src/lib/ (not components/sensory); live-clock confirmed at src/components/layout/.
+- FIX 1 [P2] deconstructed-card.tsx:256-260 — removed `data-cursor="rotate"` + `data-cursor-label` from the scene root (zero pointer handlers; the rotate cursor + "drag to explore layers" chip was a false affordance). Provenance comment added.
+- FIX 2 [P3] bento.tsx MiniCube keyboard path — stage div (bento.tsx:636-643) now carries role="img" + aria-label (moved from the cube so it names the FOCUSABLE element; children of role="img" are presentational) + tabIndex={0} + onKeyDown + focus-visible ring (ring-ring offset-2 offset-elyra-dark — three-d-section convention, flat 2D ring instead of a 3D-rotated one on the cube). onKeyDown (588-614): ArrowLeft/Right/Up/Down nudge the same `rot` state the drag writes, ±0.15 rad (≈8.6°) yaw / ±0.1 rad (≈5.7°) pitch (KEY_YAW_DEG/KEY_PITCH_DEG at 502-507 — one firm ≈17px drag at the drag's 0.5°/px mapping; same unclamped rotation space — the pointer drag clamps nothing), delta signs mirror same-direction drags (right→+yaw, down→−pitch), preventDefault AFTER the switch (three-d-section pattern — only handled arrows swallow scrolling), each press = an interaction (stopSpin + armIdle, like onDown/onUp). DEVIATION from task parenthetical: tabIndex NOT gated on reduced motion — MiniCube drags still work for reduced users (only autonomous spin + 0.2s easing are disabled; component doc comment), and reduced users get instant un-eased nudges (transition:'none' when reduced). Label kept as `${t('hint')} — ${t('idle')}` — no suitable existing key mentions arrow keys (bento.threeD.mini has only hint/idle; hero.console.sceneLabel is hero-specific copy), task fallback applied (no new keys).
+- FIX 3 [P3] before-after.tsx:1018-1061 — drag pointermove rAF-coalesced (GlowCard pattern): pendingXRef stores latest clientX, schedulePosFromPending schedules ONE frame applying setFromClientX(pendingXRef.current), rAF cancelled on unmount (1034-1039) AND drag-end; onPointerUp cancels the queued frame and applies the final position synchronously (final-position guarantee preserved); pointerdown still applies immediately; clamp logic (2-98) + cursor + RTL START-edge math untouched.
+- FIX 4 [P3] calculator.tsx:87-96 + 449-455 — success swap focus: `<h3>` in the done branch gets ref={successHeadingRef} + tabIndex={-1}; `useEffect(() => { if (done) successHeadingRef.current?.focus() }, [done])` (effect preferred per task — runs after the swap commits; done only flips at step 2 where the panel renders). No visible ring suppression (programmatic focus on a non-interactive heading; focus-visible shows naturally for keyboard-originated focus).
+- FIX 5 [P2] calculator.tsx:395 — active integration chips `text-primary` → `text-primary-strong` (--color-primary-strong → --primary-strong #0066CC verified in globals.css @theme; methodology/kicker already use the convention).
+- FIX 6 [P3] calculator.tsx:626/638/651 — wizard nav buttons h-10 → min-h-11 (44px project standard; all three rows are flex justify-between so height absorbs cleanly; restart button was already h-11).
+- FIX 7 [P3] methodology.tsx:92-99 — decorative '↓'/'✓' glyph wrapper now aria-hidden="true" (SR no longer announces contextless "down arrow"/"check mark" per step).
+- FIX 8 [P3] live-clock.tsx:56-62 — aria-hidden removed from the label span so "الوقت المحلي:" prefixes the announced value (was contextless "15:16 (GMT+3)"). No aria-live (standing decision documented); title tooltip untouched.
+- FIX 9 [P3] layout.tsx:162-168 + 214-220 — Toaster SR labels localized via new `const tCommon = await getTranslations({ locale, namespace: 'common' })` (existing `t` is namespace 'nav' — not suitable): `containerAriaLabel={tCommon('notifications')}` + `toastOptions={{ closeButtonAriaLabel: tCommon('close') }}`. API DEVIATION from task sketch: in installed sonner 2.0.7 `closeButtonAriaLabel` is NOT a ToasterProps member (tsc TS2322 on the sketched form — it's a ToastOptions field, Toaster-level prop doesn't exist in type OR runtime destructure); verified runtime flow (dist/index.mjs:1164 forwards toastOptions.closeButtonAriaLabel to every toast; Toast component defaults it to 'Close toast'). No per-toast closeButtonAriaLabel overrides exist in src (grep) so the Toaster default applies universally. Nothing else in layout.tsx changed.
+- FIX 10 [P3] trust-bar.tsx:59-63 — stale digit-convention comment reworded: runtime-formatted values (useFormatter/Intl — incl. formatMoney, clock, dates) follow the locale (Arabic-Indic in ar), only static catalog strings keep Latin digits. Verified against lib/calculator.ts formatMoney (Intl.NumberFormat('ar') → Arabic-Indic) — the old "money stays Latin" claim was factually wrong.
+- FIX 11 [P3] use-cursor-velocity.ts:106-111 (+ doc guard list 18-24) — per-event `if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return` first line of onPointerMove (exact use-magnetic.ts:161 guard); touch drags on hybrid fine-pointer devices no longer animate font-weight; lastPos not corrupted by touch events either.
+- Gates: `bunx eslint` on all 9 touched files → 0 errors / 0 warnings, exit 0 (react-compiler included). `bunx tsc --noEmit` → 0 errors, exit 0. `node scripts/check-i18n-parity.js` → exit 0 (638/638). messages/*.json NOT touched. No dev server/build/browser run. Files outside the exclusive set untouched.
+
+Stage Summary:
+- 11/11 fixes applied and verified (FIX 2 tabIndex gating + FIX 9 sonner API shape = two documented, justified deviations from the task sketch — both driven by what the code actually does).
+- A11y: no false drag affordance on deconstructed-card; MiniCube operable by keyboard (arrows, focus ring, named stage); calculator success announces context via focus move (not body-drop); Toaster + live-clock speak Arabic; decorative glyphs silenced.
+- Perf: before-after drag now one setState per frame (was per-pointermove); cursor-velocity ignores touch.
+- Contrast: active integration chips 4.10:1 → text-primary-strong ≈5.4:1; wizard nav 40px → 44px min.
+- Catalog keys consumed: common.close / common.notifications (pre-added by coordinator; verified present in both catalogs — ar "إغلاق"/"الإشعارات", en "Close"/"Notifications").
+- eslint 0/0 × 9 files, tsc 0, parity 638/638 — all gates green.
+
+---
+Task ID: L3-1a
+Agent: G2-a (WebGL implementation)
+Task: Implement the 10 verified WebGL fixes from R3/R4 (LOOP-3 Group 2)
+
+Work Log:
+- Read worklog tail (L1 audits → L2 verifications → L3-0). Verified actual capability-scene path: src/components/three/capability-scene.tsx (not home/). Verified hero.console.sceneLabel exists in BOTH catalogs at messages/*.json:75 (added by coordinator — I did not touch messages/*).
+- FIX 1 [P2] touch-action: console-scene.tsx:637-645 — drag wrapper style gains `touchAction: 'none'` (+ rationale comment; iPads ≥768px mount this scene and native panning would claim the gesture → pointercancel → dead "اسحب للتدوير 360°"). capability-scene.tsx:691-698 — same on its drag wrapper. Repo precedent before-after.tsx:1113.
+- FIX 2 [P3] console-scene.tsx:363-381 — split the [tubes, glowTexture] disposal effect into TWO: tubes effect deps [tubes] (363-372), glowTexture effect deps [glowTexture] (379-381; stable useMemo-[] identity ⇒ cleanup fires exactly once at unmount, never mid-mount on preset switch). Chose [glowTexture] over [] because exhaustive-deps is ERROR level here — instruction explicitly allowed either. Stale "exactly once" comments updated (124-129, 359-362, 374-378) to state the real semantics.
+- FIX 3 [P3] hero-console.tsx:163-178 — scrollIntoView behavior: reduced ? 'auto' : 'smooth'; `reduced` added to scrollSceneIntoView's useCallback deps ([reduced]).
+- FIX 4 [P3] console keyboard path: console-scene.tsx:582-618 — stable useCallback onKeyDown: ArrowLeft/Right ±0.13 rad free yaw, ArrowUp/Down ±0.07 rad pitch clamped ±MAX_TILT (same THREE.MathUtils.clamp as the drag pitch path), groupRef null-guard early-return, preventDefault AFTER the switch (default returns early) so only the 4 handled arrows swallow scroll. Wrapper (620-646): role="img" + tabIndex={0} + aria-label={sceneLabel} (new optional prop, 494-505) + focus ring. hero-console.tsx:299-304 passes sceneLabel={t('sceneLabel')}. data-cursor="rotate" untouched.
+  DEVIATION (documented): the focus ring is `focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset` instead of three-d-section's verbatim `ring-offset-2 ring-offset-elyra-dark` — this wrapper is inset-0 inside hero-console's overflow-hidden frame, so an outward ring+offset would be clipped invisible; inset draws the same 2px ring token just inside the scene edge. Tailwind v4.1.18 compile-probed both `ring-inset` and `inset-ring-*` (both compile; used the legacy modifier form).
+- FIX 5 [P3] NEW FILE src/lib/use-mobile-tier.ts (60 lines, 'use client') — useMobileTier extracted verbatim from hero-canvas (MQL singleton '(max-width: 767px), (pointer: coarse)' + useSyncExternalStore + false server snapshot, comments adapted to be consumer-generic). hero-canvas.tsx:7 imports it, local copy deleted (597-600 note left). capability-scene.tsx:15 imports it; 643 `const mobileTier = useMobileTier()`; 701 `dpr={[1, mobileTier ? 1.5 : 2]}`.
+- FIX 6 [P3] uPixelRatio live sync: hero-canvas.tsx:449-455 — Particles useFrame sets `uniforms.uPixelRatio.value = state.viewport.dpr` every frame (memo initial value kept as first-frame guess). capability-scene.tsx:465-470 — haloUniforms.uPixelRatio live-synced the same way; initial value tier-clamped via new Centerpiece prop `dprMax` (320/328-332, memo deps [dprMax] at 405-415, passed at 711-715). Note: react-hooks/immutability reports ONE finding per memoized value, so the second uniform mutation needs no eslint-disable (removed 2 unused-directive warnings to reach 0/0).
+- FIX 7 [P3] clock rewind: console-scene.tsx:308-331 — `const tRef = useRef(0)`; useFrame does `tRef.current += delta; const t = tRef.current` (drives emissive pulse phases + traveling-pulse arcs). capability-scene.tsx:449-459 — same tRef pattern (drives blob uTime, halo uTime, satellite orbit angles). Grep-audited: ZERO remaining clock.elapsedTime/getElapsedTime in either file (only explanatory comments). Audit also covered hero-canvas (already immune via uTime += delta).
+- FIX 8 [P3] shared WebGL probe: hero-canvas.tsx:614-630 and capability-scene.tsx:662-676 — inline createElement('canvas').getContext probes replaced with `if (!probeWebGL()) setGlAvailable(false)` inside the SAME rAF callbacks. Timing semantics preserved byte-for-byte (glAvailable starts true, flips false at first rAF only on failure — no first-paint delay, no new flash; useWebGLSupport()'s false-first semantics were deliberately NOT adopted to keep observable behavior identical). probeWebGL is module-memoized ⇒ one real probe per page load shared across hero-canvas + capability-scene + hero-console. use-webgl.ts itself untouched (0-line diff).
+- FIX 9 [P3] reversed smoothstep: hero-canvas.tsx:241-244 (PARTICLE_FRAGMENT) and capability-scene.tsx:309-312 (HALO_FRAGMENT) — `smoothstep(0.5, 0.08, d)` → `1.0 - smoothstep(0.08, 0.5, d)` (+GLSL comment). Mechanical GLSL block diff vs HEAD: these are the ONLY shader deltas in both files — 4/5 blocks byte-identical in hero-canvas (3311/1729/176/5273 chars), 4/5 in capability-scene (2148/1580/1554/614 chars). Grep confirmed no other reversed-edge smoothstep anywhere.
+- FIX 10 [P3] dt-compensated lerps (1 - Math.exp(-k·delta), clamps safely at delta 0/huge): hero-canvas.tsx Particles mouse ×0.04→k=2.454 (460), uScroll ×0.08→k=4.983 (468), tilt ×0.05→k=3.079 (473); SilkBackdrop mouse ×0.05→k=3.079 (524), uScroll ×0.08→k=4.983 (533); ScrollDolly camera ×0.05→k=3.079 (575). capability-scene.tsx parallax ×0.04→k=2.454 (488). k constants as given in the task brief; each carries a "dt-compensated (was ×N/frame)" comment.
+- three-d-section.tsx: NOT modified (its keyboard/a11y path already exists — FIX 4 only needed the console side).
+- Gates: `bunx eslint` on all 6 files (console-scene, capability-scene, hero-canvas, hero-console, use-mobile-tier, use-webgl) → 0 errors / 0 warnings / exit 0 (zero output; react-compiler at warn included). `bunx tsc --noEmit` → 0 errors / exit 0. i18n parity → 638/638, exit 0 (grew from 635 via coordinator's LOOP-3 catalog additions, not mine). No dev server / build / browser run. No files outside the exclusive set touched.
+
+Stage Summary:
+- All 10 fixes implemented: FIX 1 touch-action ×2, FIX 2 disposal split, FIX 3 reduced-motion scrollIntoView, FIX 4 console keyboard path + sceneLabel, FIX 5 use-mobile-tier extraction + capability dpr tier, FIX 6 uPixelRatio live sync ×2 (tier-aware initial in capability), FIX 7 clock→tRef ×2 (all useFrames audited), FIX 8 shared probeWebGL ×2 (identical timing semantics), FIX 9 reversed smoothstep ×2 (mechanically verified only shader delta), FIX 10 dt-compensated lerps ×7.
+- One documented deviation: inset focus ring (clipping rationale above). One implementation choice within the brief's allowance: glowTexture disposal deps [glowTexture] not [] (exhaustive-deps=error).
+- eslint 0/0 on all 6 files; tsc 0; parity 638/638 green; GLSL byte-diff proof recorded; messages/*.json untouched.
+
+---
+Task ID: L3-1c
+Agent: G2-c (Pages/API/scripts implementation)
+Task: Apply the 21 verified R1/R2/R5/R6 fixes across pages, API, scripts and configs (LOOP 3 Group 2-c).
+
+Work Log:
+- FIX 1 (P1-ops): `git remote set-url origin https://github.com/ashamsaldin303-ctrl/nextjs-fullstack-project.git` — the embedded x-access-token credential is gone from the remote URL (verified via `git remote get-url origin`). Token rotation remains the owner's job.
+- FIX 2 (P3): src/app/api/leads/route.ts:161-167 — clientIp now takes the LAST XFF element (`xff?.split(',').pop()?.trim()`) instead of the first; comment block (141-159) rewritten to explain WHY last-not-first (appending proxies grow the list rightward → first element attacker-controlled → bucket rotation; single-element overwrite lists coincide). .env.example:31-33 — appended the prescribed clarifying note near TRUST_PROXY (overwriting proxy required; appending nginx proxies NOT supported; limiter reads the LAST XFF element).
+- FIX 3 (P3): deploy/Caddyfile.example:25-28 — `header_up Host {host}` → `header_up Host {host_port}` + 3-line rationale comment (Origin↔Host comparison on non-443 trial deployments like :8443). Everything else identical.
+- FIX 4 (P3): src/proxy.ts:16 — matcher tightened to `'/((?!api|_next|_vercel|icon(?:$|/)|.*\\..*).*)'`. **DEVIATION (verified necessary)**: the reviewer's literal `icon($|/)` uses a NESTED CAPTURING GROUP, which Next.js's matcher validation (SourceSchema → tryToParsePath → path-to-regexp v6) REJECTS with "Capturing groups are not allowed" — shipping it verbatim would hard-fail the build. Shipped the semantically identical NON-CAPTURING form `icon(?:$|/)`. Empirical proof via Next's own compiled path-to-regexp: /icon → skip (icon route intact), /icons + /iconic → middleware RUNS (locale rewrite restored — the fix's goal), /icon/x → skip, /about//work//en/* → run, /api/_next/files-with-dots → skip. Comment explains the anchoring + the non-capturing constraint.
+- FIX 5 (P3): src/app/[locale]/opengraph-image.tsx:2-7 — hardcoded alt replaced with `import { OG_IMAGE_ALT } from '@/lib/site-config'` + `export const alt = OG_IMAGE_ALT` (4th consumer of the single source).
+- FIX 6 (P2): setRequestLocale added to about/page.tsx:57-67, contact/page.tsx:78-90, work/page.tsx:27-37, services/websites/page.tsx:39-49, services/automation/page.tsx:45-55 — each page component now takes `params: Promise<{ locale: string }>`, guards `hasLocale(routing.locales, locale) → notFound()`, then calls setRequestLocale BEFORE any implicit-locale getTranslations (canonical next-intl static-rendering pattern + prescribed comment). NOTE: task text said "each page already destructures params" — they did NOT (only generateMetadata did); the params prop was added to each component. Home page.tsx checked: it does NOT call setRequestLocale (component takes no params) — but src/app/[locale]/page.tsx is OUTSIDE my exclusive file set, so the addition is DEFERRED to its owner (one params-prop + guard + call, same pattern as the five pages above).
+- FIX 7 (P2): contact-form.tsx:211-216 — success handler now syncs `lastTemplateRef.current = buildTemplate(null, prefillIdea)` after setService(null), exactly the value the re-seed effect next computes for service=null → prev===next → effect no-ops → the just-cleared textarea STAYS cleared (was re-seeded with the ideaOnly machine template on the primary conversion funnel). Traced: post-success chip toggle, post-success locale switch, no-idea success (ref='' → effect no-op) all consistent.
+- FIX 8 (P2): contact-form.tsx:284 — active service chip `text-primary` → `text-primary-strong` (4.86:1 accessible convention).
+- FIX 9 (P3): contact-form.tsx:282 — service chips gained `min-h-11` (44px target standard on the lead form's primary interactive control).
+- FIX 10 (P3): work-grid.tsx:71 — filter buttons `h-10` → `min-h-11`.
+- FIX 11 (P3): services/websites/page.tsx:108 — journey step badge `text-primary` → `text-primary-strong`.
+- FIX 12 (P3): error.tsx:29-31 — retry Button gained `h-11` in className (tailwind-merge overrides the cva default h-9 → 44px) + comment.
+- FIX 13 (P2): contact/page.tsx:72-76 + 124 + 149 — channel DISPLAY values now come from SITE_CONTACT (email → SITE_CONTACT.email, whatsapp → SITE_CONTACT.whatsappDisplay, telegram → `@${SITE_CONTACT.telegramHandle}`) via a new `display` field on CHANNELS; channel NAMES/titles stay translated from messages; dir="ltr" inner-span islands preserved. site-config.ts:20-22 — SITE_SOCIAL.telegram now DERIVED from SITE_CONTACT.telegramHandle (hardcode duplication killed). Value-neutral today (hello@elyra.agency / +963 991 000 000 / @elyra_agency identical in both sources); closes the drift trap where a site-config pre-launch swap would update links but not displayed text. The `pages.contact.channels.{email,whatsapp,telegram}.value` message keys are now UNUSED but were LEFT in the catalogs untouched (coordinator owns messages/*.json; they also feed the parity script's identical-values advisory) — noted for coordinator cleanup.
+- FIX 14 (P2): scripts/verify-api.mjs:277-278 — assertion updated to the live contract: `ref.length === 10 && row.reference === ref` (row fetched by email, latest first — variable names ref/row verified in place).
+- FIX 15 (P2): scripts/verify-sensory.mjs:127 selector `.elyra-grain` → `.grain-overlay`; assertion line 140 opacity `'0.035'` → `'0.045'` and the ok() label "3.5%" → "4.5%" — the LIVE .grain-overlay CSS (globals.css:957-968) declares `opacity: 0.045` (position:fixed / pointer-events:none / aria-hidden / SVG data-URI all re-verified against the component + CSS; scripts assert reality). scripts/verify-sensory-negative.mjs:131,147 and scripts/verify-performance.mjs:152 — same selector swap (existence-only checks, no opacity assertions). Grep: zero `.elyra-grain` references remain under scripts/.
+- FIX 16 (P3): README.md:98 + :280 — "610 مفاتيح متطابقة" → "638 مفاتيح متطابقة" on BOTH lines, using the live `node scripts/check-i18n-parity.js` output (638 keys) as instructed.
+- FIX 17 (P3): `git rm scripts/update-messages-phase2.py` (tracked one-shot Phase-2 migration removed; re-running it would regress baked catalog content).
+- FIX 18 (P3): package.json — removed `db:migrate` and `db:reset` script entries entirely (no migrations directory exists; db:push is the convention). No other scripts touched; JSON validity verified.
+- FIX 19 (P3): scripts/clean-leads.ts — full wipe now REQUIRES `--all`; bare run (with or without stray --dry-run) prints usage and exits 1 (chose the safer print-usage/exit-non-zero option); `--all --dry-run` counts only; `--purge-days=N [--dry-run]` unchanged; malformed --purge-days still hard-errors. Behavior LIVE-TESTED: bare → usage + exit 1 ✓; `--all --dry-run` → "0 lead(s) would be deleted" exit 0 ✓; `--purge-days=90 --dry-run` → works ✓; `--purge-days=9O` → hard error exit 1 ✓. README.md:226 + :255 updated to match the new CLI (pre-launch wipe is now `--all`/`--all --dry-run`) — required to keep the README's clean-leads references truthful after the footgun fix.
+- FIX 20 (P3): src/app/globals.css:83-88 — contrast comment corrected with machine-computed values (WCAG relative-luminance script): white on #0071E3 = 4.70:1; #0071E3 on #F5F5F7 = 4.31:1 (was claimed 4.5:1) — guidance now states primary as text on light surfaces is restricted to large display text (≥3:1) and small text/links must use --primary-strong. NO color values changed.
+- FIX 21 (doc): README.md:237 — added the CSV-injection export invariant to the Data-retention section: any export path for lead data MUST re-apply `neutralizeCsvInjection` (src/lib/n8n-webhook.ts:129) before producing CSV/spreadsheet files; the DB stores raw values by design.
+- Gates: `bunx eslint` on ALL 13 touched TS/TSX files → 0 errors / 0 warnings / exit 0. `bunx tsc --noEmit` → 0. `node scripts/check-i18n-parity.js` → 638/638 green, exit 0. `node --check` on verify-api.mjs + clean-leads.ts (as required) AND verify-sensory.mjs + verify-sensory-negative.mjs + verify-performance.mjs → all OK. package.json JSON-valid. No dev server/build/browser run; no messages/*.json edits; git status confirms ONLY in-scope files touched (+ the git rm).
+
+Stage Summary:
+- 20/21 fixes applied in full; FIX 4 applied with one verified deviation (non-capturing `(?:$|/)` instead of the prescribed capturing `($|/)` — the literal form is rejected by Next's path-to-regexp matcher validation and would break the build; semantics identical, empirically probed through Next's own compiled path-to-regexp).
+- 1 sub-item DEFERRED: home page.tsx setRequestLocale (checked — missing) — file is outside G2-c's exclusive set; needs the same params+guard+call pattern by its owner.
+- Coordinator notes: (a) `pages.contact.channels.{email,whatsapp,telegram}.value` message keys now unused in code (left in catalogs per instructions — messages/*.json is coordinator-owned); (b) the --primary-strong comment at globals.css:91-94 claims ≈5.4:1 on #F5F5F7 / 5.8:1 on white — actual is 5.11:1 / 5.57:1 (still comfortably AA; out of my "one comment fix only" scope, flagged for the next pass); (c) README clean-leads command references updated alongside FIX 19 to stay truthful.
+- All gates green: eslint 0/0 (13 files), tsc 0, parity 638/638, node --check ×5 OK, clean-leads behavior live-tested (4 paths), matcher compile+behavior probed via Next's own path-to-regexp.
+
+---
+Task ID: L3-2 (coordinator)
+Agent: coordinator (main)
+Task: Fix the 5 residual issues found by the L3-2 verification round (V-1/V-2/V-3).
+
+Work Log:
+- V-1 P3: capability-scene.tsx — split the shared disposal effect [blobGeo,blobMat,haloGeo,haloMat] into 4 per-resource effects; the dprMax-keyed haloUniforms→haloMat memo changes identity on a mid-session tier flip, and the shared cleanup would have disposed the still-live blob/halo GPU resources (three.js self-heals, but it was the same mid-mount-dispose bug class console-scene just got fixed for).
+- V-1 P3: console-scene.tsx — keyboard steps now pause the auto-drift: onKeyDown sets the same `dragging` flag the pointer drag sets + re-arms a 900ms idle timer (each key repeat re-arms; unmount cleanup clears). Deliberately NOT routed through onDragStateChange — keyboard rotation must never postpone the pending payoff navigation.
+- V-1 P3: k-constants corrected to exact -60·ln(1-f) values: 2.449 (was 0.04), 3.078 (was 0.05), 5.003 (was 0.08) across hero-canvas (6 sites) + capability-scene (1 site); comments synced.
+- V-2 P3: contact-form.tsx — submittedRef guard: post-success an empty message is user-owned, blocking the locale-switch-after-success re-seed path (with ?idea=, buildTemplate identity changes on locale flip → prev≠next → trim()==='' arm used to fire). Chip-toggle path still re-seeds intentionally (own synchronous guard, unaffected).
+- V-2 P4: live-clock.tsx — dropped the container title attr (duplicate announcement risk now the visible label is AT-exposed).
+- V-2 P4: removed orphaned workSection.deconstructed.hint key from both catalogs (its only consumer was the removed data-cursor-label attr).
+- V-3 P3: README parity count re-synced to live script output (634 — was 638 pre-dead-key-removals).
+
+Stage Summary:
+- All 5 residual findings fixed. Gates: tsc=0, eslint 0/0 on all touched files, parity 634/634, dev server 200 on / and /contact.
+- ACCEPTED-TRADEOFF LEDGER (documented decisions for future rounds):
+  1. CSP keeps script-src 'unsafe-inline' — nonce CSP is incompatible with static prerendering; hash-based CSP is possible but fragile (any inline-script change breaks it). Documented in next.config.ts.
+  2. Root Caddyfile stays as-is — it is the LIVE sandbox gateway config (renaming breaks the preview); it carries an in-file SANDBOX-ONLY warning; deploy/Caddyfile.example is the production-safe template.
+  3. Full message catalog inherits to client per next-intl default — measured acceptable in prior perf loops; nearly every namespace has some client consumer; scoping requires an aggregated namespace map (recorded as future optimization).
+  4. Mock content (Lamsa store) intentionally triplicated per-section (bento/workSection/pages.work) — per-section display copy allowed to diverge; a single shared mocks namespace was rejected to keep per-context framing freedom.
+  5. Token rotation for the GitHub remote credential remains the OWNER's action (URL de-embedded in L3-1c; the exposed token must still be rotated).
+
+---
+Task ID: L4-1
+Agent: coordinator (main)
+Task: Fix all 12 LOOP-4 findings (3×P2, 9×P3).
+
+Work Log:
+- [P2, R3+R4] console-scene.tsx — keyIdleTimer vs pointer-drag desync: onPointerDown now cancels any pending keyboard idle timer (pointer takes ownership of the dragging flag) + belt-and-braces pointerHeld ref guards the release callback (never setDragging(false) under a held pointer); endDrag resets pointerHeld. Restructured as armKeyIdlePause() mirroring hero-console's goToContact/navigate nesting (the compiler-clean shape — the flat inline-closure version tripped react-hooks/immutability).
+- [P3, R4] capability-scene.tsx — keyboard nudge now pauses the +0.25 rad/s auto-spin for 900ms: keyboardActive state + keyIdleTimer armed in the imperative nudge() handle, threaded to Centerpiece's spin gate (!dragging && !keyboardActive). Unmount cleanup added.
+- [P3, R3+R4] bento.tsx MiniCube — onKeyDown no longer re-arms the idle spin while a pointer drag is active (armIdled only when !dragging; onPointerUp re-arms after real drags anyway).
+- [P3, R3] calculator.tsx — wizard progress bars: transition gated on reduced (duration 0 vs 0.4) — framer-motion animates on its own JS clock, the CSS kill-switch can't reach it.
+- [P3, R5] 44px targets — contact-form submit + calculator submit h-11; global-error retry + root-404 home CTA minHeight 2.75rem (matching their [locale] twins and the same files' own recovery chips).
+- [P2, R1] README docker run — loopback binding (-p 127.0.0.1:3000:3000) + Arabic warning block explaining the TRUST_PROXY/XFF rate-limit bypass rationale.
+- [P3, R1] honeypot indistinguishability — honeypotSchema now z.unknown().optional(); route short-circuits on RAW presence (any type/length/null → fake 201; only undefined or empty/whitespace string proceeds). Oversized/typed honeypot probes no longer fingerprint the field via 400.
+- [P3, R6] removed 14 orphan catalog keys ×2 locales (calculator.steps.features/result, common.viewAll, pages.automation.simulator.kicker/title/subtitle, pages.contact.calculator.kicker/title, pages.work.projects.p1..p6.category) — every one verified zero-consumer before removal; empty containers pruned; parity 620/620; README synced.
+- [P3, R6] README doc drift — grain decision #14 corrected to 4.5% + animated 8-step flicker (collapses under reduced motion); lib/ tree now lists all 18 files.
+
+Stage Summary:
+- All 12 LOOP-4 findings fixed. Gates: tsc=0, eslint 0/0 across src+scripts, parity 620/620, dev 200 on / and /services/websites.
+- R2 (architecture reviewer) failed with an infrastructure error during LOOP 4 — must re-run as part of LOOP-5 verification alongside verification of these 12 fixes.
+
+---
+Task ID: L5-3
+Agent: coordinator (main)
+Task: Close LOOP 5 — fix the final 2 doc findings; record the Next 16 dev-server quirk.
+
+Work Log:
+- [P3, V-4] README components tree: sensory/ line corrected to the real file names (custom-cursor, grain-overlay, sound-toggle — magnetic-cursor/film-grain were R7-b-era names).
+- [P3, R2-retry] Framework quirk documented (ACCEPTED-TRADEOFF LEDGER item 6): one-segment-deep metadata-route subpaths (/icon/x, /apple-icon/x, /opengraph-image/x, /en/opengraph-image/x) return HTTP 500 in the Next 16 DEV server via an internal ENOENT manifest lookup ([__metadata_id__]/[__metadata_id__]/route/app-paths-manifest.json) that happens BEFORE any app code runs — the app's hasLocale/notFound guards never execute. Two-deep variants and all designed 404 paths work. Root cause is upstream (next 16.1.3 dev-server), not application code; needs a production-build probe if it matters operationally.
+
+Stage Summary:
+- LOOP-5 verification: R2-retry found 1 framework-level doc item; V-4 verified all 12 LOOP-4 fixes with zero functional regressions. Both residual items are now closed (one README line, one ledger entry). All six reviewer domains have now reported zero open code-level issues.

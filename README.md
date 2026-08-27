@@ -273,7 +273,7 @@ src/
 │   ├── home/              # hero, bento, simulator, before-after, calculator...
 │   ├── layout/            # navbar, footer, language-switcher, live-clock
 │   ├── shared/            # reveal, section-heading, page-hero, cta, service-prose
-│   ├── sensory/           # magnetic-cursor, film-grain, sound-toggle (المرحلة 2)
+│   ├── sensory/           # custom-cursor, grain-overlay, sound-toggle (المرحلة 2)
 │   ├── three/             # capability-scene (R3F)
 │   ├── brand/             # logo
 │   ├── pages/             # work-grid, contact-form
