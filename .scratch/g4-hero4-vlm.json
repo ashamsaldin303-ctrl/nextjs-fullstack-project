@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "1) Yes, a field of glowing particles is visible in white, orange, and green.\n2) Yes, there is a soft, subtle amber/green light wash (aurora-like glow) behind the text.\n3) No visual defects are apparent; the layout and typography appear clean and well-aligned.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1787826246,
+  "id": "202608271824037adcc64914d74fd4",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "202608271824037adcc64914d74fd4",
+  "usage": {
+    "completion_tokens": 63,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 944,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 1007
+  }
+}

@@ -1,0 +1,785 @@
+     1→'use client'
+     2→
+     3→import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+     4→import { useTranslations } from 'next-intl'
+     5→import { motion, useReducedMotion } from 'framer-motion'
+     6→import {
+     7→  Inbox, Database, KanbanSquare, Mail, Send,
+     8→  FileText, Clock, CalendarClock, BarChart3, RefreshCw,
+     9→  Play, RotateCw, Check,
+    10→  type LucideIcon,
+    11→} from 'lucide-react'
+    12→import { cn } from '@/lib/utils'
+    13→import { useIsRtl } from '@/lib/use-rtl'
+    14→import { SectionHeading } from '@/components/shared/section-heading'
+    15→import { playSuccess } from '@/lib/sound'
+    16→
+    17→type StepId =
+    18→  | 'receive' | 'validate' | 'crm' | 'email' | 'telegram'
+    19→  | 'invoice' | 'schedule' | 'update'
+    20→  | 'trigger' | 'collect' | 'analyze' | 'report' | 'notify'
+    21→
+    22→interface StepDef {
+    23→  id: StepId
+    24→  icon: LucideIcon
+    25→}
+    26→
+    27→type ScenarioId = 'newOrder' | 'paymentReminder' | 'weeklyReport'
+    28→
+    29→const SCENARIOS: Record<ScenarioId, StepDef[]> = {
+    30→  newOrder: [
+    31→    { id: 'receive', icon: Inbox },
+    32→    { id: 'validate', icon: Database },
+    33→    { id: 'crm', icon: KanbanSquare },
+    34→    { id: 'email', icon: Mail },
+    35→    { id: 'telegram', icon: Send },
+    36→  ],
+    37→  paymentReminder: [
+    38→    { id: 'invoice', icon: FileText },
+    39→    { id: 'schedule', icon: Clock },
+    40→    { id: 'email', icon: Mail },
+    41→    { id: 'telegram', icon: Send },
+    42→    { id: 'update', icon: RefreshCw },
+    43→  ],
+    44→  weeklyReport: [
+    45→    { id: 'trigger', icon: CalendarClock },
+    46→    { id: 'collect', icon: Database },
+    47→    { id: 'analyze', icon: BarChart3 },
+    48→    { id: 'report', icon: FileText },
+    49→    { id: 'notify', icon: Send },
+    50→  ],
+    51→}
+    52→
+    53→/* UI-3 ───────────────────────────────────────────────────────────────
+    54→ * Literal (non-translated) technical metadata for the enriched stage:
+    55→ * per-step node type badges and per-scenario trigger/entry lines.
+    56→ */
+    57→const NODE_TYPE: Record<StepId, string> = {
+    58→  receive: 'WEBHOOK', validate: 'VALIDATE', crm: 'CRM', email: 'EMAIL', telegram: 'TG',
+    59→  invoice: 'FILE', schedule: 'CRON', update: 'DB',
+    60→  trigger: 'CRON', collect: 'QUERY', analyze: 'AI', report: 'DOC', notify: 'PUSH',
+    61→}
+    62→
+    63→const FLOW_ENTRY: Record<ScenarioId, string> = {
+    64→  newOrder: 'POST /webhook/elyra-lead 200',
+    65→  paymentReminder: 'POST /webhook/invoice-reminder 200',
+    66→  weeklyReport: 'CRON 0 9 * * SUN · fired',
+    67→}
+    68→
+    69→/* UI-3: incoming webhook bodies — literal JSON shown verbatim (never
+    70→ * translated). Numbers/booleans/strings only; rendered by jsonLines().
+    71→ */
+    72→type JsonValue = string | number | boolean | { [key: string]: JsonValue }
+    73→
+    74→const PAYLOADS: Record<ScenarioId, JsonValue> = {
+    75→  newOrder: {
+    76→    event: 'lead.created',
+    77→    name: 'Zeinab H.',
+    78→    email: 'zeinab@example.com',
+    79→    source: 'website:hero',
+    80→    estimate: { tier: 'growth', weeks: 9 },
+    81→    ts: '2025-11-03T14:02:11.482Z',
+    82→  },
+    83→  paymentReminder: {
+    84→    event: 'invoice.due',
+    85→    invoice: 'INV-2041',
+    86→    client: 'Nour K.',
+    87→    amount: 2400,
+    88→    currency: 'USD',
+    89→    overdue_days: 3,
+    90→    ts: '2025-11-03T14:02:11.482Z',
+    91→  },
+    92→  weeklyReport: {
+    93→    event: 'cron.triggered',
+    94→    schedule: '0 9 * * SUN',
+    95→    timezone: 'Asia/Damascus',
+    96→    window_days: 7,
+    97→    recipients: 4,
+    98→    ts: '2025-11-03T14:02:11.482Z',
+    99→  },
+   100→}
+   101→
+   102→const JSON_CLS = {
+   103→  key: 'text-g-blue',
+   104→  string: 'text-g-green',
+   105→  number: 'text-g-yellow',
+   106→  punct: 'text-white/40',
+   107→} as const
+   108→
+   109→interface JsonToken {
+   110→  text: string
+   111→  cls: string
+   112→}
+   113→
+   114→function isJsonObject(value: JsonValue): value is { [key: string]: JsonValue } {
+   115→  return typeof value === 'object'
+   116→}
+   117→
+   118→function scalarToken(value: Exclude<JsonValue, { [key: string]: JsonValue }>): JsonToken {
+   119→  if (typeof value === 'string') return { text: JSON.stringify(value), cls: JSON_CLS.string }
+   120→  if (typeof value === 'number') return { text: String(value), cls: JSON_CLS.number }
+   121→  return { text: String(value), cls: JSON_CLS.number } // boolean
+   122→}
+   123→
+   124→/** Pretty-prints a JsonValue into syntax-colored display lines (2-space indent). */
+   125→function jsonLines(value: JsonValue, indent = 0): JsonToken[][] {
+   126→  if (!isJsonObject(value)) return [[scalarToken(value)]]
+   127→  const pad = '  '.repeat(indent)
+   128→  const lines: JsonToken[][] = [[{ text: '{', cls: JSON_CLS.punct }]]
+   129→  const entries = Object.entries(value)
+   130→  entries.forEach(([key, val], i) => {
+   131→    const comma = i < entries.length - 1
+   132→    const keyTok: JsonToken = { text: `${pad}  ${JSON.stringify(key)}`, cls: JSON_CLS.key }
+   133→    if (isJsonObject(val)) {
+   134→      lines.push([keyTok, { text: ': ', cls: JSON_CLS.punct }])
+   135→      const nested = jsonLines(val, indent + 1)
+   136→      if (comma) {
+   137→        const lastLine = nested[nested.length - 1]
+   138→        const lastTok = lastLine?.[lastLine.length - 1]
+   139→        if (lastTok) lastTok.text += ','
+   140→      }
+   141→      nested.forEach((line) => lines.push(line))
+   142→    } else {
+   143→      const tok = scalarToken(val)
+   144→      lines.push([
+   145→        keyTok,
+   146→        { text: ': ', cls: JSON_CLS.punct },
+   147→        { text: tok.text + (comma ? ',' : ''), cls: tok.cls },
+   148→      ])
+   149→    }
+   150→  })
+   151→  lines.push([{ text: `${pad}}`, cls: JSON_CLS.punct }])
+   152→  return lines
+   153→}
+   154→
+   155→/** UI-3: wall-clock timestamp for log lines — HH:MM:SS.mmm, LTR-safe. */
+   156→function logTimestamp(date: Date): string {
+   157→  const p2 = (n: number) => String(n).padStart(2, '0')
+   158→  const p3 = (n: number) => String(n).padStart(3, '0')
+   159→  return `${p2(date.getHours())}:${p2(date.getMinutes())}:${p2(date.getSeconds())}.${p3(date.getMilliseconds())}`
+   160→}
+   161→
+   162→interface LogLine {
+   163→  id: number
+   164→  time: string
+   165→  kind: 'entry' | 'step' | 'done'
+   166→  text: string
+   167→  ms?: number
+   168→}
+   169→
+   170→const NODE_Y = 140 // svg viewBox y center for nodes
+   171→const VIEW_W = 1000
+   172→const VIEW_H = 280
+   173→
+   174→interface SimulatorProps {
+   175→  scenario?: ScenarioId
+   176→  showScenarioPicker?: boolean
+   177→}
+   178→
+   179→export function AutomationSimulator({
+   180→  scenario: initialScenario = 'newOrder',
+   181→  showScenarioPicker = false,
+   182→}: SimulatorProps) {
+   183→  const t = useTranslations('simulator')
+   184→  const isRtl = useIsRtl()
+   185→  const reduced = useReducedMotion()
+   186→
+   187→  const [scenario, setScenario] = useState<ScenarioId>(initialScenario)
+   188→  const steps = SCENARIOS[scenario]
+   189→  const stepCount = steps.length
+   190→
+   191→  // node center positions in % (RTL mirrors the order so the flow reads naturally)
+   192→  const positions = useMemo(() => {
+   193→    const ltr = [8, 29, 50, 71, 92]
+   194→    return isRtl ? [...ltr].reverse() : ltr
+   195→  }, [isRtl])
+   196→
+   197→  const [status, setStatus] = useState<'idle' | 'running' | 'completed'>('idle')
+   198→  const [currentStep, setCurrentStep] = useState(-1)
+   199→  const [completed, setCompleted] = useState<number[]>([])
+   200→  const [counter, setCounter] = useState(0) // live ms counter for current step
+   201→  const [logLines, setLogLines] = useState<LogLine[]>([]) // UI-3: execution log
+   202→  const [payloadFlash, setPayloadFlash] = useState(false) // UI-3: "payload arrived" highlight
+   203→
+   204→  const timeouts = useRef<number[]>([])
+   205→  const rafRef = useRef<number>(0)
+   206→  const logSeq = useRef(0) // UI-3: stable id sequence for log lines
+   207→  const logScrollRef = useRef<HTMLDivElement | null>(null)
+   208→
+   209→  const clearAll = useCallback(() => {
+   210→    timeouts.current.forEach((id) => window.clearTimeout(id))
+   211→    timeouts.current = []
+   212→    cancelAnimationFrame(rafRef.current)
+   213→  }, [])
+   214→
+   215→  const schedule = useCallback((fn: () => void, ms: number) => {
+   216→    const id = window.setTimeout(fn, ms)
+   217→    timeouts.current.push(id)
+   218→  }, [])
+   219→
+   220→  useEffect(() => () => clearAll(), [clearAll])
+   221→
+   222→  const reset = useCallback(() => {
+   223→    clearAll()
+   224→    setStatus('idle')
+   225→    setCurrentStep(-1)
+   226→    setCompleted([])
+   227→    setCounter(0)
+   228→    setLogLines([]) // UI-3: log clears on scenario change
+   229→    setPayloadFlash(false)
+   230→  }, [clearAll])
+   231→
+   232→  // Reset whenever scenario changes — deferred to rAF so the setStates
+   233→  // inside reset() aren't called synchronously within the effect body.
+   234→  useEffect(() => {
+   235→    let cancelled = false
+   236→    const id = requestAnimationFrame(() => {
+   237→      if (!cancelled) reset()
+   238→    })
+   239→    return () => {
+   240→      cancelled = true
+   241→      cancelAnimationFrame(id)
+   242→    }
+   243→  }, [scenario, reset])
+   244→
+   245→  // UI-3: keep the newest log line in view (instant jump — functional
+   246→  // scrolling, not an animation, so it stays under reduced motion).
+   247→  useEffect(() => {
+   248→    const el = logScrollRef.current
+   249→    if (el) el.scrollTop = el.scrollHeight
+   250→  }, [logLines])
+   251→
+   252→  const totalMs = useMemo(() => {
+   253→    return steps.reduce((acc, step) => {
+   254→      const ms = Number(t.raw(`scenarios.${scenario}.steps.${step.id}.ms`))
+   255→      return acc + (Number.isFinite(ms) ? ms : 0)
+   256→    }, 0)
+   257→  }, [steps, scenario, t])
+   258→
+   259→  const run = useCallback(() => {
+   260→    clearAll()
+   261→    setCompleted([])
+   262→    setCounter(0)
+   263→    setStatus('running')
+   264→    setCurrentStep(0)
+   265→
+   266→    // UI-3: fresh log — the "webhook received" entry line comes first.
+   267→    logSeq.current += 1
+   268→    setLogLines([{
+   269→      id: logSeq.current,
+   270→      time: logTimestamp(new Date()),
+   271→      kind: 'entry',
+   272→      text: FLOW_ENTRY[scenario],
+   273→    }])
+   274→    // UI-3: payload panel flashes "arrived" (~1s, cleaned with the rest).
+   275→    setPayloadFlash(true)
+   276→    schedule(() => setPayloadFlash(false), 1000)
+   277→
+   278→    const STEP_DISPLAY = reduced ? 250 : 850
+   279→    const TRANSITION = reduced ? 80 : 320
+   280→
+   281→    steps.forEach((step, i) => {
+   282→      const startAt = i * (STEP_DISPLAY + TRANSITION)
+   283→      schedule(() => {
+   284→        setCurrentStep(i)
+   285→        // animate counter 0 → step.ms over STEP_DISPLAY
+   286→        const stepMs = t.raw(`scenarios.${scenario}.steps.${step.id}.ms`) as number
+   287→        const target = Number(stepMs)
+   288→        if (reduced) {
+   289→          setCounter(target)
+   290→        } else {
+   291→          const start = performance.now()
+   292→          const tick = (now: number) => {
+   293→            const p = Math.min(1, (now - start) / STEP_DISPLAY)
+   294→            const eased = 1 - Math.pow(1 - p, 3)
+   295→            setCounter(Math.round(eased * target))
+   296→            if (p < 1) rafRef.current = requestAnimationFrame(tick)
+   297→          }
+   298→          rafRef.current = requestAnimationFrame(tick)
+   299→        }
+   300→      }, startAt)
+   301→
+   302→      schedule(() => {
+   303→        setCompleted((c) => (c.includes(i) ? c : [...c, i]))
+   304→        // UI-3: timestamped log line appended at completion time.
+   305→        const ms = Number(t.raw(`scenarios.${scenario}.steps.${step.id}.ms`))
+   306→        logSeq.current += 1
+   307→        setLogLines((prev) => [...prev, {
+   308→          id: logSeq.current,
+   309→          time: logTimestamp(new Date()),
+   310→          kind: 'step',
+   311→          text: t(`scenarios.${scenario}.steps.${step.id}.title`),
+   312→          ms: Number.isFinite(ms) ? ms : 0,
+   313→        }])
+   314→      }, startAt + STEP_DISPLAY)
+   315→    })
+   316→
+   317→    schedule(() => {
+   318→      setStatus('completed')
+   319→      setCurrentStep(-1)
+   320→      setCounter(0)
+   321→      playSuccess() // Phase 2 sensory feedback (no-op while muted)
+   322→      // UI-3: final summary line for the terminal.
+   323→      logSeq.current += 1
+   324→      setLogLines((prev) => [...prev, {
+   325→        id: logSeq.current,
+   326→        time: logTimestamp(new Date()),
+   327→        kind: 'done',
+   328→        text: 'flow complete',
+   329→        ms: totalMs,
+   330→      }])
+   331→    }, steps.length * (STEP_DISPLAY + TRANSITION))
+   332→  }, [clearAll, reduced, steps, scenario, t, schedule, totalMs])
+   333→
+   334→  const secondsLabel = (totalMs / 1000).toFixed(2)
+   335→
+   336→  // current step def
+   337→  const activeStep = currentStep >= 0 ? steps[currentStep] : null
+   338→  const activeStepTitle = activeStep ? t(`scenarios.${scenario}.steps.${activeStep.id}.title`) : null
+   339→  const activeStepDesc = activeStep ? t(`scenarios.${scenario}.steps.${activeStep.id}.desc`) : null
+   340→  const activeStepMs = activeStep ? Number(t.raw(`scenarios.${scenario}.steps.${activeStep.id}.ms`)) : 0
+   341→
+   342→  // UI-3: syntax-highlighted payload lines for the active scenario.
+   343→  const payloadLines = useMemo(() => jsonLines(PAYLOADS[scenario]), [scenario])
+   344→
+   345→  // UI-3: stats chip values — live elapsed while running (finished steps +
+   346→  // in-flight counter; during the inter-step transition the active step is
+   347→  // already in `completed`, so the counter is never double-counted),
+   348→  // expected/final total otherwise.
+   349→  const completedMsSum = useMemo(() => completed.reduce((acc, i) => {
+   350→    const step = steps[i]
+   351→    if (!step) return acc
+   352→    const ms = Number(t.raw(`scenarios.${scenario}.steps.${step.id}.ms`))
+   353→    return acc + (Number.isFinite(ms) ? ms : 0)
+   354→  }, 0), [completed, steps, scenario, t])
+   355→  const inFlightMs = currentStep >= 0 && !completed.includes(currentStep) ? counter : 0
+   356→  const totalDisplay = status === 'running' ? completedMsSum + inFlightMs : totalMs
+   357→
+   358→  const statusDotCls = status === 'running'
+   359→    ? 'bg-primary'
+   360→    : status === 'completed'
+   361→      ? 'bg-g-green'
+   362→      : 'bg-white/40'
+   363→
+   364→  return (
+   365→    <section className="bg-elyra-deep py-20 text-elyra-on-dark sm:py-28" aria-labelledby="sim-title">
+   366→      <div className="elyra-container max-w-container">
+   367→        <SectionHeading
+   368→          kicker={t('kicker')}
+   369→          title={t('title')}
+   370→          subtitle={t('subtitle')}
+   371→          variant="on-dark"
+   372→          titleId="sim-title"
+   373→        />
+   374→
+   375→        {showScenarioPicker ? (
+   376→          // FIX(2-c/14): plain toggle-button group — the previous
+   377→          // role="tablist"/"tab" markup had no tabpanels, no aria-controls
+   378→          // and no roving tabindex, which is an incomplete (broken) tabs
+   379→          // pattern. These are scenario switches, not tabs.
+   380→          <div className="mt-8 flex flex-wrap justify-center gap-2">
+   381→            {(['newOrder', 'paymentReminder', 'weeklyReport'] as ScenarioId[]).map((s) => (
+   382→              <button
+   383→                key={s}
+   384→                type="button"
+   385→                data-cursor="magnet"
+   386→                aria-pressed={scenario === s}
+   387→                onClick={() => setScenario(s)}
+   388→                className={cn(
+   389→                  'inline-flex h-10 items-center rounded-full px-4 text-sm font-medium transition-colors',
+   390→                  scenario === s
+   391→                    ? 'bg-primary text-primary-foreground'
+   392→                    : 'border border-white/15 bg-white/5 text-white/80 hover:bg-white/10'
+   393→                )}
+   394→              >
+   395→                {t(`scenarios.${s}.label`)}
+   396→              </button>
+   397→            ))}
+   398→          </div>
+   399→        ) : null}
+   400→
+   401→        {/* Stage — Phase 5 WS-7: data-cursor="inspect" so the magnetic
+   402→            cursor shows the localized 'Inspect element' chip over the
+   403→            n8n nodes panel (technical context, not just a magnet snap).
+   404→            LOW-11: the min-w-[680px] stage overflows below ~712px, so the
+   405→            wrapper is a labelled, focusable region (keyboard-scrollable
+   406→            via arrows once focused) + a visible md:hidden hint. */}
+   407→        <div
+   408→          className="mt-10 overflow-x-auto scroll-dark no-scrollbar rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+   409→          data-cursor="inspect"
+   410→          tabIndex={0}
+   411→          role="region"
+   412→          aria-label={t('scrollHint')}
+   413→        >
+   414→          <div
+   415→            className="elyra-dotgrid relative min-w-[680px]"
+   416→            style={{ height: '260px' }}
+   417→          >
+   418→            {/* SVG edges */}
+   419→            <svg
+   420→              viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+   421→              className="absolute inset-0 size-full"
+   422→              aria-hidden="true"
+   423→              preserveAspectRatio="none"
+   424→            >
+   425→              <defs>
+   426→                <linearGradient id="elyra-edge" x1="0" y1="0" x2="1" y2="0">
+   427→                  <stop offset="0%" stopColor="#0071E3" stopOpacity="0.2" />
+   428→                  <stop offset="50%" stopColor="#0071E3" stopOpacity="1" />
+   429→                  <stop offset="100%" stopColor="#34A853" stopOpacity="0.2" />
+   430→                </linearGradient>
+   431→              </defs>
+   432→              {steps.slice(0, -1).map((_, i) => {
+   433→                const x1 = ((positions[i] ?? 0) / 100) * VIEW_W
+   434→                const x2 = ((positions[i + 1] ?? 0) / 100) * VIEW_W
+   435→                const edgeActive = currentStep === i + 1
+   436→                const edgeDone = currentStep > i + 1 || (completed.includes(i) && completed.includes(i + 1)) || (status === 'completed' && completed.includes(i))
+   437→                const stroke = edgeActive ? 'url(#elyra-edge)' : edgeDone ? 'rgba(0,113,227,0.45)' : 'rgba(255,255,255,0.10)'
+   438→                return (
+   439→                  <line
+   440→                    key={i}
+   441→                    x1={x1} y1={NODE_Y} x2={x2} y2={NODE_Y}
+   442→                    stroke={stroke}
+   443→                    strokeWidth={2}
+   444→                    strokeDasharray={edgeActive ? '6 6' : undefined}
+   445→                    className={edgeActive && !reduced ? 'elyra-flow' : undefined}
+   446→                  />
+   447→                )
+   448→              })}
+   449→            </svg>
+   450→            {/* Static stage skin + (motion-allowed only) keyframes. The
+   451→                global reduced-motion kill-switch is the backstop; these
+   452→                guards keep motion off at the source. */}
+   453→            <style>{`
+   454→              .elyra-dotgrid {
+   455→                background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1.5px);
+   456→                background-size: 24px 24px;
+   457→              }
+   458→              /* Real monospace stack for the terminal/log/JSON panels —
+   459→                 the global --font-mono token is aliased to Inter, which
+   460→                 is not a monospace face. */
+   461→              .elyra-mono {
+   462→                font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;
+   463→              }
+   464→            `}</style>
+   465→            {!reduced ? (
+   466→              <style>{`
+   467→                @keyframes elyra-flow { to { stroke-dashoffset: -24 } }
+   468→                .elyra-flow { animation: elyra-flow 0.8s linear infinite; }
+   469→                /* UI-3: traveling packet along the active edge — travels
+   470→                   between the two node centers (physical left; RTL is
+   471→                   handled by the mirrored positions array). */
+   472→                @keyframes elyra-packet {
+   473→                  0% { left: var(--from); opacity: 0 }
+   474→                  12% { opacity: 1 }
+   475→                  88% { opacity: 1 }
+   476→                  100% { left: var(--to); opacity: 0 }
+   477→                }
+   478→                .elyra-packet { left: var(--from); animation: elyra-packet 1.05s linear infinite; }
+   479→                /* UI-3: log line entry (fade/slide, one-shot). */
+   480→                @keyframes elyra-log-in {
+   481→                  from { opacity: 0; transform: translateY(4px) }
+   482→                  to { opacity: 1; transform: translateY(0) }
+   483→                }
+   484→                .elyra-log-line { animation: elyra-log-in 0.25s ease-out both; }
+   485→                /* UI-3: one-shot g-green ring flash when a flow completes. */
+   486→                @keyframes elyra-node-flash {
+   487→                  0% { box-shadow: 0 0 0 0 rgba(52,168,83,0.55) }
+   488→                  100% { box-shadow: 0 0 0 16px rgba(52,168,83,0) }
+   489→                }
+   490→                .elyra-node-flash { animation: elyra-node-flash 0.8s ease-out 1; }
+   491→              `}</style>
+   492→            ) : null}
+   493→
+   494→            {/* UI-3: packet dots travel the active edge (below the nodes,
+   495→                so they emerge from / disappear into each node). */}
+   496→            {!reduced
+   497→              ? steps.slice(0, -1).map((_, i) => {
+   498→                  if (currentStep !== i + 1) return null
+   499→                  const from = positions[i]
+   500→                  const to = positions[i + 1]
+   501→                  if (from == null || to == null) return null
+   502→                  return (
+   503→                    <span
+   504→                      key={`packet-${i}`}
+   505→                      aria-hidden="true"
+   506→                      className="elyra-packet absolute top-1/2 size-2 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_12px_rgba(0,113,227,0.95)]"
+   507→                      style={{ '--from': `${from}%`, '--to': `${to}%` } as CSSProperties}
+   508→                    />
+   509→                  )
+   510→                })
+   511→              : null}
+   512→
+   513→            {/* HTML nodes — positioned to align with SVG node centers */}
+   514→            {steps.map((step, i) => {
+   515→              const Icon = step.icon
+   516→              const isActive = currentStep === i
+   517→              const isDone = completed.includes(i)
+   518→              const xPercent = positions[i]
+   519→              if (!xPercent) return null
+   520→              return (
+   521→                <div
+   522→                  key={`${scenario}-${step.id}`}
+   523→                  className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
+   524→                  style={{ left: `${xPercent}%`, top: '46%' }}
+   525→                >
+   526→                  {/* UI-3: literal tech type badge (decorative — aria-hidden). */}
+   527→                  <span
+   528→                    aria-hidden="true"
+   529→                    className={cn(
+   530→                      'elyra-mono mb-1.5 text-[8px] uppercase tracking-[0.18em]',
+   531→                      isActive ? 'text-g-blue' : 'text-white/55'
+   532→                    )}
+   533→                  >
+   534→                    {NODE_TYPE[step.id]}
+   535→                  </span>
+   536→                  <div
+   537→                    className={cn(
+   538→                      'relative flex size-16 items-center justify-center rounded-2xl border backdrop-blur-md transition-all duration-300',
+   539→                      isActive && 'border-primary bg-primary/20 shadow-[0_0_28px_rgba(0,113,227,0.55)]',
+   540→                      isDone && 'border-g-green/70 bg-g-green/15',
+   541→                      !isActive && !isDone && 'border-white/15 bg-white/5',
+   542→                      status === 'completed' && !reduced && 'elyra-node-flash'
+   543→                    )}
+   544→                  >
+   545→                    {isActive && !reduced ? (
+   546→                      <motion.span
+   547→                        className="absolute inset-0 rounded-2xl border-2 border-primary/50"
+   548→                        animate={{ boxShadow: ['0 0 0 0 rgba(0,113,227,0.5)', '0 0 0 12px rgba(0,113,227,0)'] }}
+   549→                        transition={{ duration: 1, repeat: Infinity }}
+   550→                      />
+   551→                    ) : null}
+   552→                    <Icon
+   553→                      className={cn(
+   554→                        'size-6 transition-colors',
+   555→                        isActive ? 'text-white' : isDone ? 'text-g-green' : 'text-white/60'
+   556→                      )}
+   557→                      aria-hidden="true"
+   558→                    />
+   559→                    {isDone ? (
+   560→                      <span className="absolute -top-1.5 -end-1.5 flex size-5 items-center justify-center rounded-full bg-g-green text-white">
+   561→                        <Check className="size-3" aria-hidden="true" />
+   562→                      </span>
+   563→                    ) : null}
+   564→                  </div>
+   565→                  <p className={cn(
+   566→                    'mt-2 max-w-[110px] text-center text-xs leading-tight',
+   567→                    isActive ? 'text-white' : 'text-white/55'
+   568→                  )}>
+   569→                    {t(`scenarios.${scenario}.steps.${step.id}.title`)}
+   570→                  </p>
+   571→                </div>
+   572→              )
+   573→            })}
+   574→          </div>
+   575→        </div>
+   576→        {/* LOW-11: visible horizontal-scroll hint — the stage only
+   577→            overflows below ~712px (min-w-[680px] + container padding),
+   578→            so it is hidden from md (768px) up. Key exists in both
+   579→            catalogs (ar/en simulator.scrollHint). */}
+   580→        <p className="mt-2 text-center text-xs text-white/55 md:hidden">
+   581→          {t('scrollHint')}
+   582→        </p>
+   583→
+   584→        {/* UI-3: compact run stats. No aria-live here on purpose — status
+   585→            changes are announced once by the polite region inside the
+   586→            step card (MED-8 dedup semantics stay authoritative). */}
+   587→        <dl className="mt-6 grid grid-cols-3 gap-3 sm:gap-4">
+   588→          <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 backdrop-blur-md">
+   589→            <dt className="text-[11px] text-white/60">{t('stats.steps')}</dt>
+   590→            <dd className="mt-1 text-lg font-semibold tabular-nums text-white">{stepCount}</dd>
+   591→          </div>
+   592→          <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 backdrop-blur-md">
+   593→            <dt className="text-[11px] text-white/60">{t('stats.total')}</dt>
+   594→            <dd className="mt-1 text-lg font-semibold tabular-nums text-white">{totalDisplay}ms</dd>
+   595→          </div>
+   596→          <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 backdrop-blur-md">
+   597→            <dt className="text-[11px] text-white/60">{t('stats.status')}</dt>
+   598→            <dd className="mt-1 flex items-center gap-2 text-base font-semibold text-white">
+   599→              <span
+   600→                aria-hidden="true"
+   601→                className={cn('size-2 shrink-0 rounded-full', statusDotCls, status === 'running' && 'animate-pulse')}
+   602→              />
+   603→              {t(`state.${status}`)}
+   604→            </dd>
+   605→          </div>
+   606→        </dl>
+   607→
+   608→        <div className="mt-4 grid gap-4 lg:grid-cols-5">
+   609→          {/* Step card */}
+   610→          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-md sm:p-6 lg:col-span-3">
+   611→            {/* MED-8: live region for status changes (idle/running/stepOf).
+   612→                The per-frame ms counter below is deliberately OUTSIDE this
+   613→                region — polite announcements happen on status/step change
+   614→                only, not every animation frame. */}
+   615→            <div className="flex flex-wrap items-center justify-between gap-3" aria-live="polite">
+   616→              {/* FIX(2-c/13): the completion sentence used to render 3×
+   617→                  (status row left + right + h3). The h3 below is now the
+   618→                  single completion announcement; the status row only
+   619→                  carries idle/running + step progress. */}
+   620→              <p className="text-sm text-white/60">
+   621→                {status === 'idle' ? t('idle') : status === 'running' ? t('running') : null}
+   622→              </p>
+   623→              <p className="text-xs text-white/60">
+   624→                {status === 'running' && activeStep
+   625→                  ? t('stepOf', { current: currentStep + 1, total: stepCount })
+   626→                  : null}
+   627→              </p>
+   628→            </div>
+   629→
+   630→            {activeStep && status === 'running' ? (
+   631→              <div className="mt-4">
+   632→                <h3 className="text-lg font-semibold text-white">{activeStepTitle}</h3>
+   633→                <p className="mt-1 text-sm text-white/70">{activeStepDesc}</p>
+   634→                <div className="mt-3 flex items-center gap-2 text-xs text-white/50">
+   635→                  <span className="tabular-nums text-g-green">{counter}ms</span>
+   636→                  <span>/ {activeStepMs}ms</span>
+   637→                </div>
+   638→              </div>
+   639→            ) : null}
+   640→
+   641→            {status === 'completed' ? (
+   642→              <div className="mt-4">
+   643→                {/* MED-8: the completion announcement point (see comment
+   644→                    above) — polite, fires once when the flow finishes. */}
+   645→                <h3 className="text-lg font-semibold text-white" aria-live="polite">{t('completed', { seconds: secondsLabel })}</h3>
+   646→                <p className="mt-1 text-sm text-white/70">{t('subtitle')}</p>
+   647→              </div>
+   648→            ) : null}
+   649→
+   650→            {/* Log of completed steps */}
+   651→            {completed.length > 0 ? (
+   652→              <ul className="mt-4 space-y-1.5">
+   653→                {completed.map((idx) => {
+   654→                  const step = steps[idx]
+   655→                  if (!step) return null
+   656→                  const ms = Number(t.raw(`scenarios.${scenario}.steps.${step.id}.ms`))
+   657→                  return (
+   658→                    <li key={step.id} className="flex items-center justify-between gap-2 text-xs">
+   659→                      <span className="flex items-center gap-2 text-white/70">
+   660→                        <Check className="size-3 text-g-green" aria-hidden="true" />
+   661→                        {t(`scenarios.${scenario}.steps.${step.id}.title`)}
+   662→                      </span>
+   663→                      <span className="tabular-nums text-white/60">{ms}ms</span>
+   664→                    </li>
+   665→                  )
+   666→                })}
+   667→              </ul>
+   668→            ) : null}
+   669→          </div>
+   670→
+   671→          {/* UI-3: execution log terminal. Supplementary panel — role="log"
+   672→              with an explicit aria-live="off" override so it NEVER
+   673→              duplicates the polite announcements from the step card.
+   674→              dir="ltr" keeps timestamps/monospace alignment correct even
+   675→              on the Arabic RTL page. */}
+   676→          <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md lg:col-span-2">
+   677→            <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+   678→              <h3 className="text-xs font-semibold uppercase tracking-wider text-white/70">{t('logTitle')}</h3>
+   679→              <span
+   680→                aria-hidden="true"
+   681→                className={cn(
+   682→                  'size-2 shrink-0 rounded-full',
+   683→                  status === 'idle' ? 'bg-white/30' : statusDotCls,
+   684→                  status === 'running' && 'animate-pulse'
+   685→                )}
+   686→              />
+   687→            </div>
+   688→            <div
+   689→              ref={logScrollRef}
+   690→              role="log"
+   691→              aria-live="off"
+   692→              dir="ltr"
+   693→              className="elyra-mono scroll-dark max-h-48 min-h-0 flex-1 overflow-y-auto px-4 py-3 font-mono text-[11px] leading-relaxed"
+   694→            >
+   695→              {logLines.length === 0 ? (
+   696→                // literal JS-style comment as the terminal's idle hint
+   697→                <p className="text-white/50">{'// awaiting trigger...'}</p>
+   698→              ) : (
+   699→                logLines.map((line) => (
+   700→                  <div key={line.id} dir="ltr" className={cn('whitespace-pre', !reduced && 'elyra-log-line')}>
+   701→                    <span className="text-white/50">[{line.time}] </span>
+   702→                    {line.kind === 'entry' ? (
+   703→                      <span className="text-primary">→ </span>
+   704→                    ) : (
+   705→                      <span className="text-g-green">✓ </span>
+   706→                    )}
+   707→                    <span
+   708→                      className={cn(
+   709→                        line.kind === 'entry'
+   710→                          ? 'text-g-blue'
+   711→                          : line.kind === 'done'
+   712→                            ? 'text-g-green'
+   713→                            : 'text-white/80'
+   714→                      )}
+   715→                    >
+   716→                      {line.text}
+   717→                    </span>
+   718→                    {typeof line.ms === 'number' ? (
+   719→                      <>
+   720→                        <span className="text-white/40"> — </span>
+   721→                        <span className="tabular-nums text-white/50">{line.ms}ms</span>
+   722→                      </>
+   723→                    ) : null}
+   724→                  </div>
+   725→                ))
+   726→              )}
+   727→            </div>
+   728→          </div>
+   729→        </div>
+   730→
+   731→        {/* UI-3: incoming payload viewer — literal JSON, never translated.
+   732→            Brief border+glow highlight when a run starts ("payload
+   733→            arrived"), fading back after ~1s. */}
+   734→        <div
+   735→          className={cn(
+   736→            'mt-4 overflow-hidden rounded-2xl border bg-black/40 backdrop-blur-md transition-[border-color,box-shadow] duration-700',
+   737→            payloadFlash ? 'border-primary/60' : 'border-white/10',
+   738→            payloadFlash && !reduced && 'shadow-[0_0_32px_rgba(0,113,227,0.28)]'
+   739→          )}
+   740→        >
+   741→          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
+   742→            <h3 className="text-xs font-semibold uppercase tracking-wider text-white/70">{t('payloadTitle')}</h3>
+   743→            <span aria-hidden="true" dir="ltr" className="elyra-mono text-[10px] text-white/50">
+   744→              {FLOW_ENTRY[scenario]}
+   745→            </span>
+   746→          </div>
+   747→          <div dir="ltr" className="scroll-dark overflow-x-auto px-4 py-3">
+   748→            <pre className="elyra-mono font-mono text-[11px] leading-relaxed">
+   749→              <code className="block">
+   750→                {payloadLines.map((tokens, i) => (
+   751→                  <span key={i} className="block whitespace-pre">
+   752→                    {tokens.map((tok, j) => (
+   753→                      <span key={j} className={tok.cls}>{tok.text}</span>
+   754→                    ))}
+   755→                  </span>
+   756→                ))}
+   757→              </code>
+   758→            </pre>
+   759→          </div>
+   760→        </div>
+   761→
+   762→        {/* Controls */}
+   763→        <div className="mt-6 flex justify-center gap-3">
+   764→          {status !== 'running' ? (
+   765→            <button
+   766→              type="button"
+   767→              data-cursor="magnet"
+   768→              onClick={run}
+   769→              className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
+   770→            >
+   771→              {status === 'completed' ? <RotateCw className="size-4" aria-hidden="true" /> : <Play className="size-4" aria-hidden="true" />}
+   772→              {status === 'completed' ? t('replay') : t('run')}
+   773→            </button>
+   774→          ) : (
+   775→            <span className="inline-flex h-11 items-center gap-2 rounded-full border border-white/15 px-6 text-sm text-white/60">
+   776→              <span className="size-2 animate-pulse rounded-full bg-primary" aria-hidden="true" />
+   777→              {t('running')}
+   778→            </span>
+   779→          )}
+   780→        </div>
+   781→      </div>
+   782→    </section>
+   783→  )
+   784→}
+   785→
