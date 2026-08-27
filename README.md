@@ -95,7 +95,7 @@
 |---|---|
 | `bun run lint` | ✓ 0 أخطاء / 0 تحذيرات (قواعد React 19 الصارمة مفعّلة) |
 | `bunx tsc --noEmit` | ✓ 0 أخطاء (مع `noUncheckedIndexedAccess`) |
-| تكافؤ i18n (ar/en) | ✓ 638 مفاتيح متطابقة |
+| تكافؤ i18n (ar/en) | ✓ 634 مفاتيح متطابقة |
 | جميع المسارات (×2 لغة) | ✓ 200 OK |
 | تحقق في المتصفح | ✓ رسم + تفاعلات + RTL/LTR + responsive + sticky footer |
 | أخطاء console/hydration | ✓ صفر |
@@ -279,7 +279,7 @@ src/
 │                          # seo, site-config, use-rtl, use-reduced-motion, db, utils
 ├── app/api/leads/route.ts # نقطة الكتابة الوحيدة (Zod + إعادة حساب + Prisma + 429)
 └── proxy.ts               # next-intl middleware (Next.js 16)
-messages/{ar,en}.json      # 638 مفاتيح متطابقة
+messages/{ar,en}.json      # 634 مفاتيح متطابقة
 ```
 
 ---

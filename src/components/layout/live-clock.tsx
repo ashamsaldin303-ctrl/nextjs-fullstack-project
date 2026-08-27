@@ -48,9 +48,10 @@ export function LiveClock({ variant = 'on-dark' }: { variant?: 'on-dark' | 'on-l
     <span
       className="inline-flex items-center gap-2 text-sm"
       // No aria-live/role on purpose (audit P1-3): a clock that announces
-      // every minute is noise for screen-reader users. The visible text
-      // stays readable; the `title` tooltip carries the context.
-      title={t('localTime')}
+      // every minute is noise for screen-reader users. No title either
+      // (V-2 L3-2b P4): the visible label below is exposed to AT, and a
+      // title with identical content can be announced twice by some
+      // SR/browser combos.
     >
       <Clock className={onLight ? 'size-4 text-foreground/60' : 'size-4 text-white/60'} aria-hidden="true" />
       {/* L3 FIX (R3): label exposed to AT — it used to be aria-hidden while

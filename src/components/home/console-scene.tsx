@@ -587,6 +587,20 @@ export function ConsoleScene({
   // returns early) so only the four handled arrows swallow the page
   // scroll. Null-guarded: before the lazy scene mounts, arrows scroll
   // normally. Stable useCallback — mutations stay on the local groupRef.
+  // V-1 L3-2a P3: a keyboard step is an INTERACTION — set the same
+  // `dragging` flag the pointer drag sets so the +0.08 rad/s auto-drift
+  // pauses (otherwise it unwinds an ArrowLeft step in ~1.6s), then re-arm
+  // the drift after a short keyboard idle (each repeat re-arms; unmount
+  // clears the timer). Deliberately NOT routed through
+  // onDragStateChange — keyboard rotation must never postpone the hero's
+  // pending payoff navigation (that flag stays pointer-drag-only).
+  const keyIdleTimer = useRef<number | null>(null)
+  useEffect(
+    () => () => {
+      if (keyIdleTimer.current !== null) window.clearTimeout(keyIdleTimer.current)
+    },
+    []
+  )
   const onKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     const group = groupRef.current
     if (!group) return
@@ -615,6 +629,12 @@ export function ConsoleScene({
         return
     }
     e.preventDefault()
+    setDragging(true)
+    if (keyIdleTimer.current !== null) window.clearTimeout(keyIdleTimer.current)
+    keyIdleTimer.current = window.setTimeout(() => {
+      keyIdleTimer.current = null
+      setDragging(false)
+    }, 900)
   }, [])
 
   return (

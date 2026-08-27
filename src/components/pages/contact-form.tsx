@@ -130,13 +130,21 @@ export function ContactForm({
   // already re-seeded synchronously by onToggleService, which keeps
   // lastTemplateRef in sync, so those runs are no-ops via the guard).
   const lastTemplateRef = useRef(buildTemplate(initialService, prefillIdea))
+  /** V-2 L3-2b P3: once a submission SUCCEEDS, an empty message is the
+   *  post-reset state, not an invitation to re-seed — without this flag a
+   *  locale switch after success (with ?idea= present) repopulates the
+   *  just-cleared textarea with the ideaOnly template in the new locale
+   *  (buildTemplate identity changes → prev≠next → the `trim()===''` arm
+   *  fires). Resets naturally on reload (fresh mount). The chip-toggle
+   *  path still re-seeds intentionally — it has its own synchronous guard. */
+  const submittedRef = useRef(false)
   useEffect(() => {
     const prevTemplate = lastTemplateRef.current
     const nextTemplate = buildTemplate(service, prefillIdea)
     lastTemplateRef.current = nextTemplate
     if (prevTemplate === nextTemplate) return
     setValues((v) =>
-      v.message === prevTemplate || v.message.trim() === ''
+      v.message === prevTemplate || (v.message.trim() === '' && !submittedRef.current)
         ? { ...v, message: nextTemplate }
         : v,
     )
@@ -214,6 +222,9 @@ export function ContactForm({
         // re-populate the just-cleared message textarea with the ideaOnly
         // machine template on the primary conversion funnel.
         lastTemplateRef.current = buildTemplate(null, prefillIdea)
+        // V-2 L3-2b P3: post-success, an empty message is user-owned —
+        // blocks the locale-switch re-seed path (see submittedRef above).
+        submittedRef.current = true
         return
       }
 

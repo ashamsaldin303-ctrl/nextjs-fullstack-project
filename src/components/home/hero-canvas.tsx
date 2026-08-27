@@ -455,22 +455,22 @@ function Particles({
     uniforms.uPixelRatio.value = state.viewport.dpr
 
     // Lerp mouse target into the actual mouse vector (smoothing) —
-    // dt-compensated (was ×0.04/frame; k=-60·ln(1-0.04)≈2.454) so 120Hz
+    // dt-compensated (was ×0.04/frame; k=-60·ln(1-0.04)≈2.449) so 120Hz
     // displays don't double the easing speed (LOOP-3 FIX 10).
-    const mouseS = 1 - Math.exp(-2.454 * delta)
+    const mouseS = 1 - Math.exp(-2.449 * delta)
     mouseVec.current.x += (mouse.current.tx - mouseVec.current.x) * mouseS
     mouseVec.current.y += (mouse.current.ty - mouseVec.current.y) * mouseS
     uniforms.uMouse.value.copy(mouseVec.current)
 
     // Scroll bridge (methodology section) → gentle flow swell, lerped —
-    // dt-compensated (was ×0.08/frame; k≈4.983).
+    // dt-compensated (was ×0.08/frame; k≈5.003).
     const scrollTarget = getHeroScroll()
-    const scrollS = 1 - Math.exp(-4.983 * delta)
+    const scrollS = 1 - Math.exp(-5.003 * delta)
     uniforms.uScroll.value += (scrollTarget - uniforms.uScroll.value) * scrollS
 
     // Gentle group tilt toward mouse — dt-compensated (was ×0.05/frame;
-    // k≈3.079).
-    const tiltS = 1 - Math.exp(-3.079 * delta)
+    // k≈3.078).
+    const tiltS = 1 - Math.exp(-3.078 * delta)
     pointsRef.current.rotation.y += ((mouseVec.current.x * 0.25) - pointsRef.current.rotation.y) * tiltS
     pointsRef.current.rotation.x += ((mouseVec.current.y * 0.15) - pointsRef.current.rotation.x) * tiltS
   })
@@ -518,19 +518,19 @@ function SilkBackdrop({ mouse }: { mouse: React.MutableRefObject<{ x: number; y:
     // Project the pointer onto the silk plane in world space (aspect-
     // correct; numbers only — no per-frame allocations). The CPU lerp
     // smooths the vortex centre, so the stir glides instead of snapping —
-    // dt-compensated (was ×0.05/frame; k≈3.079; LOOP-3 FIX 10).
+    // dt-compensated (was ×0.05/frame; k≈3.078; LOOP-3 FIX 10).
     const aspect = state.size.width / state.size.height
     const halfH = Math.tan(CAMERA_FOV_RAD * 0.5) * SILK_PLANE_DIST
-    const silkS = 1 - Math.exp(-3.079 * delta)
+    const silkS = 1 - Math.exp(-3.078 * delta)
     mouseVec.current.x += (mouse.current.tx * halfH * aspect - mouseVec.current.x) * silkS
     mouseVec.current.y += (mouse.current.ty * halfH - mouseVec.current.y) * silkS
     uniforms.uMouse.value.copy(mouseVec.current)
 
     // Scroll bridge (methodology section) → gentle silk swell, lerped
     // with the same pattern Particles uses — dt-compensated (was
-    // ×0.08/frame; k≈4.983).
+    // ×0.08/frame; k≈5.003).
     const scrollTarget = getHeroScroll()
-    const scrollS = 1 - Math.exp(-4.983 * delta)
+    const scrollS = 1 - Math.exp(-5.003 * delta)
     uniforms.uScroll.value += (scrollTarget - uniforms.uScroll.value) * scrollS
   })
 
@@ -571,8 +571,8 @@ function SilkBackdrop({ mouse }: { mouse: React.MutableRefObject<{ x: number; y:
 function ScrollDolly() {
   useFrame((state, delta) => {
     const targetZ = BASE_CAMERA_Z + getHeroScroll() * 0.8
-    // dt-compensated (was ×0.05/frame; k≈3.079; LOOP-3 FIX 10)
-    const dollyS = 1 - Math.exp(-3.079 * delta)
+    // dt-compensated (was ×0.05/frame; k≈3.078; LOOP-3 FIX 10)
+    const dollyS = 1 - Math.exp(-3.078 * delta)
     state.camera.position.z += (targetZ - state.camera.position.z) * dollyS
   })
   return null

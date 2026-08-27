@@ -429,14 +429,18 @@ function Centerpiece({
   // FIX(2-c/10): R3F does not dispose prop-passed geometry/material (only
   // JSX-declared ones) — free the GPU buffers explicitly on unmount. The
   // satellites/rings below are JSX-declared so R3F handles those.
-  useEffect(() => {
-    return () => {
-      blobGeo.dispose()
-      blobMat.dispose()
-      haloGeo.dispose()
-      haloMat.dispose()
-    }
-  }, [blobGeo, blobMat, haloGeo, haloMat])
+  // V-1 L3-2a P3: split PER-RESOURCE — a shared effect keyed on all four
+  // identities re-fires its whole cleanup (with old-closure values) when
+  // ANY identity changes. haloUniforms is now keyed [dprMax], so a
+  // mid-session tier flip (768px crossing) swaps haloMat's identity and
+  // would have disposed the still-live blobGeo/blobMat/haloGeo alongside
+  // the stale haloMat. Per-resource effects dispose exactly the resource
+  // whose identity changed — and only that one mid-mount; each fires its
+  // unmount cleanup exactly once.
+  useEffect(() => () => blobGeo.dispose(), [blobGeo])
+  useEffect(() => () => blobMat.dispose(), [blobMat])
+  useEffect(() => () => haloGeo.dispose(), [haloGeo])
+  useEffect(() => () => haloMat.dispose(), [haloMat])
 
   // FIX(2-b): publish the spinner group to the parent's imperative nudge
   // handle (keyboard rotation). Refs attach before effects run, and the
@@ -480,12 +484,12 @@ function Centerpiece({
     // the NDC target never updated and this lerp chased (0,0) forever.
     // state.pointer is R3F's own maintained NDC pointer (updated by its
     // event pass), so no listener and no rect read are needed. ÷4 keeps
-    // the drift subtle; dt-compensated easing (was ×0.04/frame; k≈2.454;
+    // the drift subtle; dt-compensated easing (was ×0.04/frame; k≈2.449;
     // LOOP-3 FIX 10) so 120Hz displays don't double the chase speed.
     if (parallax.current) {
       const tx = (state.pointer.x * viewport.width) / 4
       const ty = (state.pointer.y * viewport.height) / 4
-      const parallaxS = 1 - Math.exp(-2.454 * delta)
+      const parallaxS = 1 - Math.exp(-2.449 * delta)
       parallax.current.position.x += (tx - parallax.current.position.x) * parallaxS
       parallax.current.position.y += (ty - parallax.current.position.y) * parallaxS
     }
