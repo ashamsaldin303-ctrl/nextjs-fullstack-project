@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import { Hero } from '@/components/home/hero'
+import { IntroOverlay } from '@/components/home/intro-overlay'
 import { TrustBar } from '@/components/home/trust-bar'
 import { ServicesBento } from '@/components/home/bento'
 import { SimulatorLazy } from '@/components/home/simulator-lazy'
@@ -62,6 +63,7 @@ export default function HomePage() {
   return (
     <>
       <HomeJsonLd />
+      <IntroOverlay />
       <Hero />
       <TrustBar />
       <ServicesBento />

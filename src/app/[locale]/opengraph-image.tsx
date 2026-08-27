@@ -88,7 +88,7 @@ export default function OpengraphImage() {
               width: 11,
               height: 11,
               borderRadius: '50%',
-              background: '#DC2626',
+              background: '#EA4335',
             }}
           />
           <div
@@ -99,7 +99,7 @@ export default function OpengraphImage() {
               width: 11,
               height: 11,
               borderRadius: '50%',
-              background: '#60A5FA',
+              background: '#FBBC05',
             }}
           />
           <div
@@ -161,7 +161,7 @@ export default function OpengraphImage() {
               width: 10,
               height: 10,
               borderRadius: '50%',
-              background: '#DC2626',
+              background: '#EA4335',
             }}
           />
           <div
@@ -169,7 +169,7 @@ export default function OpengraphImage() {
               width: 10,
               height: 10,
               borderRadius: '50%',
-              background: '#60A5FA',
+              background: '#FBBC05',
             }}
           />
           <div

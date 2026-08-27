@@ -257,6 +257,152 @@
 }
 
 /* =========================================================================
+   R3 — Cinematic homepage intro (IntroOverlay). All timings mirror the
+   component constants (HOLD 1.7s / LIFT 0.85s). Arabic-safe: the wordmark
+   reveals via clip-path (never per-letter), so joining is never broken.
+   ========================================================================= */
+
+/* Pre-paint gate (script in [locale]/layout.tsx):
+   - data-intro     → genuine first visit: hero entrance animations are
+                      PAUSED until the curtain lifts (they play INTO the
+                      reveal instead of finishing invisibly underneath).
+   - data-intro-off → repeat visit in the same session: overlay never
+                      paints (zero flash), component unmounts post-hydration. */
+html[data-intro-off] .intro-overlay {
+  display: none;
+}
+html[data-intro] .hero-enter,
+html[data-intro] .hero-scroll-hint,
+html[data-intro] .kinetic-word {
+  animation-play-state: paused !important;
+}
+
+.intro-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80; /* above navbar (50) & scroll progress (60); below grain
+                 (90), skip-link (100) and the cursor (200) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(52% 44% at 50% 42%, rgba(66, 133, 244, 0.14) 0%, transparent 70%),
+    #08080A;
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  /* No-JS failsafe: if scripting never runs, the stage clears by itself. */
+  animation: intro-failsafe 0.5s ease 4.5s forwards;
+}
+.intro-overlay.intro-exit {
+  clip-path: inset(0 0 100% 0);
+  pointer-events: none;
+}
+
+.intro-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 0 1.5rem;
+  text-align: center;
+  transition:
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.7s ease;
+}
+.intro-exit .intro-inner {
+  transform: translateY(-56px);
+  opacity: 0;
+}
+
+/* Soft pulsing stage glow behind the mark */
+.intro-glow {
+  position: absolute;
+  top: -28%;
+  left: 50%;
+  width: 420px;
+  height: 420px;
+  transform: translateX(-50%);
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(66, 133, 244, 0.20) 0%, transparent 65%);
+  filter: blur(24px);
+  opacity: 0;
+  animation: intro-glow-in 1.2s ease 0.05s forwards;
+  pointer-events: none;
+}
+
+.intro-mark {
+  width: clamp(72px, 12vw, 104px);
+  height: auto;
+  filter: drop-shadow(0 0 30px rgba(66, 133, 244, 0.35));
+  opacity: 0;
+  transform: scale(0.72);
+  animation: intro-mark-in 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
+}
+
+.intro-word {
+  font-size: clamp(2.6rem, 9vw, 4.6rem);
+  font-weight: 900;
+  line-height: 1.25;
+  color: #F1F5F9;
+  clip-path: inset(0 0 100% 0);
+  animation: intro-word-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+}
+
+.intro-tag {
+  font-size: clamp(0.85rem, 2.6vw, 1.05rem);
+  color: #A3AEC2;
+  opacity: 0;
+  transform: translateY(14px);
+  animation: intro-fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.85s forwards;
+}
+
+.intro-line {
+  width: 132px;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, transparent, #4285F4 30%, #34A853 70%, transparent);
+  transform: scaleX(0);
+  animation: intro-line-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.05s forwards;
+}
+
+@keyframes intro-glow-in {
+  to { opacity: 1; }
+}
+@keyframes intro-mark-in {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes intro-word-in {
+  /* -10% bottom overshoot keeps Arabic descenders clear of the clip edge */
+  to { clip-path: inset(0 0 -12% 0); }
+}
+@keyframes intro-fade-up {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes intro-line-in {
+  to { transform: scaleX(1); }
+}
+@keyframes intro-failsafe {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* Reduced motion — no cinematic veil at all */
+@media (prefers-reduced-motion: reduce) {
+  .intro-overlay {
+    display: none;
+  }
+}
+
+/* =========================================================================
    Phase 3 — Performance: CSS-only scroll reveal + kinetic words + hero
    entrance (framer-motion-free, LCP-safe — prompt §4.1/§4.3)
    ========================================================================= */

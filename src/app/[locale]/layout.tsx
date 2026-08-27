@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import Script from 'next/script'
 import { Inter, Cairo, JetBrains_Mono } from 'next/font/google'
 import { notFound } from 'next/navigation'
 import { hasLocale, NextIntlClientProvider } from 'next-intl'
@@ -164,6 +165,19 @@ export default async function LocaleLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen flex flex-col bg-background text-foreground antialiased">
+        {/* R3 intro gate — runs BEFORE first paint (parser-blocking head
+            script), so the intro decision is made before anything renders:
+            • same-session repeat visit → data-intro-off: the overlay is
+              display:none from the very first frame (zero dark flash);
+            • genuine first visit, motion allowed → data-intro: the hero
+              entrance animations start PAUSED and play into the curtain
+              lift (removed by IntroOverlay the moment it starts rising);
+            • reduced motion / storage unavailable → no attribute, the
+              overlay is display:none via the media query anyway.
+            Everything is wrapped defensively — this must NEVER throw. */}
+        <Script id="elyra-intro-gate" strategy="beforeInteractive">
+          {`try{if(sessionStorage.getItem('elyra-intro')==='1'){document.documentElement.setAttribute('data-intro-off','1')}else if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.setAttribute('data-intro','1')}}catch(e){}`}
+        </Script>
         <NextIntlClientProvider>
           <a
             href="#main"

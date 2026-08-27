@@ -36,8 +36,8 @@ export function Logo({
           fill={onLight ? '#F1F5F9' : '#0F172A'}
         />
         <circle cx="27" cy="20.4" r="2.6" fill="#4285F4" />
-        <circle cx="27" cy="14.8" r="1.5" fill="#DC2626" />
-        <circle cx="22.6" cy="20.4" r="1.5" fill="#60A5FA" />
+        <circle cx="27" cy="14.8" r="1.5" fill="#EA4335" />
+        <circle cx="22.6" cy="20.4" r="1.5" fill="#FBBC05" />
         <circle cx="27" cy="25.9" r="1.5" fill="#34A853" />
       </svg>
       {withWordmark && (
