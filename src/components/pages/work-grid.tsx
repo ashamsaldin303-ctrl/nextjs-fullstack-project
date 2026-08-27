@@ -82,8 +82,11 @@ export function WorkGrid() {
 
         {/* Phase 3 §4.3: framer layout-animation replaced by a CSS fade
             keyed on the filter — filtering stays instant and framer-free,
-            dropping /work's initial JS below the 200KB target. */}
-        <div key={filter} className="reveal-filter-in mt-12 grid gap-8 md:grid-cols-2">
+            dropping /work's initial JS below the 200KB target.
+            R2: cards are BIGGER (gap-10, larger type) and reveal with the
+            zoom variant + per-card stagger — the same scroll-animation
+            language as the deconstructed card, scaled for the grid. */}
+        <div key={filter} className="reveal-filter-in mt-14 grid gap-10 md:grid-cols-2">
           {visible.map((p, i) => {
             const metrics = t.raw(`projects.${p.key}.metrics`) as string[]
             const services = t.raw(`projects.${p.key}.services`) as string[]
@@ -92,13 +95,12 @@ export function WorkGrid() {
             return (
               <article
                 key={p.key}
-                className="group reveal reveal-visible"
+                className="group"
                 data-cursor="zoom"
-                style={{ transitionDelay: `${i * 0.04}s` }}
               >
-                <Reveal>
+                <Reveal variant="zoom" delay={i * 0.07}>
                   {/* subtle hover lift on the comparison mockup (UI-4) */}
-                  <div className="rounded-2xl transition-all duration-300 ease-out group-hover:-translate-y-1 group-hover:shadow-lg">
+                  <div className="rounded-2xl transition-all duration-300 ease-out group-hover:-translate-y-1.5 group-hover:shadow-xl">
                     <BeforeAfter
                       variant={p.variant}
                       accent={p.accent}
@@ -106,19 +108,19 @@ export function WorkGrid() {
                       mock={mock}
                     />
                   </div>
-                  <div className="mt-5 flex items-center gap-3">
-                    <span className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">
+                  <div className="mt-6 flex items-center gap-3">
+                    <span className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
                       {t(`projects.${p.key}.type`)}
                     </span>
-                    <h3 className="text-lg font-semibold tracking-tight">{t(`projects.${p.key}.title`)}</h3>
+                    <h3 className="text-xl font-semibold tracking-tight">{t(`projects.${p.key}.title`)}</h3>
                   </div>
-                  <p className="mt-2 text-sm text-muted-foreground">{t(`projects.${p.key}.desc`)}</p>
+                  <p className="mt-2.5 text-sm text-muted-foreground">{t(`projects.${p.key}.desc`)}</p>
 
                   {/* Services delivered (Phase 2 content enrichment) */}
                   <ul className="mt-4 space-y-1.5">
                     {services.map((s) => (
-                      <li key={s} className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Wrench className="size-3 shrink-0 text-primary/70" aria-hidden="true" />
+                      <li key={s} className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Wrench className="size-3.5 shrink-0 text-primary/70" aria-hidden="true" />
                         {s}
                       </li>
                     ))}

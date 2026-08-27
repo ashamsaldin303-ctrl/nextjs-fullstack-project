@@ -7,6 +7,7 @@ import { routing, getDir } from '@/i18n/routing'
 import { SITE_URL } from '@/lib/seo'
 import { Navbar } from '@/components/layout/navbar'
 import { Footer } from '@/components/layout/footer'
+import { ScrollProgress } from '@/components/layout/scroll-progress'
 import { Toaster } from '@/components/ui/sonner'
 import { MagneticCursor } from '@/components/sensory/magnetic-cursor'
 import { FilmGrain } from '@/components/sensory/film-grain'
@@ -171,6 +172,7 @@ export default async function LocaleLayout({
             {t('skipToContent')}
           </a>
           <Navbar />
+          <ScrollProgress />
           <main id="main" className="flex-1">
             {children}
           </main>

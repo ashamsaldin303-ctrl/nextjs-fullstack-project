@@ -52,7 +52,7 @@ export default async function WebsitesPage() {
           />
           <div className="mt-14 grid gap-6 md:grid-cols-3">
             {TYPES.map(({ key, icon: Icon }, i) => (
-              <Reveal key={key} delay={i * 0.1}>
+              <Reveal key={key} delay={i * 0.1} variant="zoom">
                 <article className="group h-full overflow-hidden rounded-3xl border border-border bg-card p-8 transition-all hover:border-primary/40 hover:shadow-lg">
                   <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-transform group-hover:scale-110">
                     <Icon className="size-7" aria-hidden="true" />
@@ -91,7 +91,7 @@ export default async function WebsitesPage() {
               /* li must be a direct child of ol — Reveal (a div) wraps the
                  CONTENT inside the li instead (Lighthouse a11y: list-item). */
               <li key={s}>
-                <Reveal delay={i * 0.05}>
+                <Reveal delay={i * 0.05} variant={i % 2 === 0 ? 'left' : 'right'}>
                   {/* UI-5: hover depth on the journey rows — gentle lift +
                       primary border tint; the number badge brightens. */}
                   <div className="card-hover-lift group flex gap-4 rounded-2xl border border-border bg-card p-5 hover:border-primary/30 sm:gap-6 sm:p-6">

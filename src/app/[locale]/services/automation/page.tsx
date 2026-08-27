@@ -60,7 +60,7 @@ export default async function AutomationPage() {
           />
           <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {INTEGRATIONS.map(({ key, icon: Icon }, i) => (
-              <Reveal key={key} delay={(i % 4) * 0.06}>
+              <Reveal key={key} delay={(i % 4) * 0.06} variant="zoom">
                 <article className="group h-full rounded-2xl border border-border bg-card p-6 transition-all hover:border-primary/40 hover:shadow-md">
                   <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform group-hover:scale-110">
                     <Icon className="size-5" aria-hidden="true" />

@@ -59,7 +59,7 @@ export function CTA({
             {t('subtitle')}
           </p>
         </Reveal>
-        <Reveal delay={0.15}>
+        <Reveal delay={0.15} variant="zoom">
           <Link
             href={href}
             data-cursor="magnet"

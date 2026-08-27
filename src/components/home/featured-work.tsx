@@ -7,6 +7,7 @@ import { SectionHeading } from '@/components/shared/section-heading'
 import { Reveal } from '@/components/shared/reveal'
 import { BeforeAfter, toMockContent } from './before-after'
 import { DeconstructedCard } from './deconstructed-card'
+
 const PROJECTS = [
   { key: 'project1' as const, variant: 'site-new' as const, accent: '#0071E3', metrics: ['metric1', 'metric2'] },
   { key: 'project2' as const, variant: 'dashboard-new' as const, accent: '#34A853', metrics: ['metric1', 'metric2'] },
@@ -49,7 +50,7 @@ export function FeaturedWork() {
             // UI-4: per-project mock content for the realistic "after" scene
             const mock = toMockContent(t.raw(`${p.key}.mock`))
             return (
-              <Reveal key={p.key} delay={0.1}>
+              <Reveal key={p.key} delay={0.1} variant="zoom">
                 <article className="group" data-cursor="preview" data-cursor-label={tc('cursor.preview')}>
                   {/* subtle hover lift on the comparison mockup (UI-4) */}
                   <div className="rounded-2xl transition-all duration-300 ease-out group-hover:-translate-y-1 group-hover:shadow-lg">

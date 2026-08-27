@@ -18,11 +18,19 @@ import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
  *
  * Phase 5 fix (P0-1): the original implementation used `<line>` JSX which
  * collides with SVG's `<line>` element in R3F v9 + React 19, silently
- * failing to render geometry. We now construct THREE.Line instances
- * explicitly via `<primitive>` so the renderer reliably draws connections,
- * and verify scene readiness through a `sceneReady` state gate that also
- * triggers a manual invalidation (defensive — should not be needed, but
- * guarantees a render frame in any SwiftShader/headless combo).
+ * failing to render geometry. Connections are now THREE.Mesh tubes built
+ * explicitly via `<primitive>` (same bypass), so the renderer reliably
+ * draws them, and scene readiness is verified through the `sceneReady`
+ * gate pattern below (InitialRenderSafety).
+ *
+ * Task 4 visual upgrade: nodes are glowing spheres (0.32 radius, 32×32
+ * segments) with additive glow sprites behind them (one shared 64×64
+ * radial-gradient CanvasTexture), connections are curved QuadraticBezier
+ * arcs (midpoint lifted ~0.6 units perpendicular) rendered as additive
+ * TubeGeometry meshes, each main connection carries a bright traveling
+ * pulse (getPointAt((t·speed + phase) % 1)), and node emissive gently
+ * pulses out of phase. Perf budget: ≤ 12 tubes, pulses ≤ node count, no
+ * post-processing, no drei.
  */
 
 type PresetId = 'store' | 'booking' | 'ai' | 'dashboard' | 'custom'
@@ -108,17 +116,73 @@ function buildPositions(config: PresetConfig): [number, number, number][] {
   return positions
 }
 
-/** Build a reusable Line object from two points — bypasses the `<line>` JSX
- *  intrinsic which collides with SVG line in R3F v9 + React 19. */
-function buildLine(start: THREE.Vector3, end: THREE.Vector3, color: number, opacity: number) {
-  const geometry = new THREE.BufferGeometry().setFromPoints([start, end])
-  const material = new THREE.LineBasicMaterial({
+/** Shared radial-gradient glow texture — 64×64 white radial fade, generated
+ *  once per mount (component scope, this is a client-only dynamic import)
+ *  and reused by every node's SpriteMaterial. Material.dispose() never
+ *  frees textures, so this is disposed exactly once in the cleanup below. */
+function makeGlowTexture(): THREE.CanvasTexture {
+  const size = 64
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')
+  if (ctx) {
+    const half = size / 2
+    const grad = ctx.createRadialGradient(half, half, 0, half, half, half)
+    grad.addColorStop(0, 'rgba(255, 255, 255, 1)')
+    grad.addColorStop(0.35, 'rgba(255, 255, 255, 0.4)')
+    grad.addColorStop(1, 'rgba(255, 255, 255, 0)')
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, size, size)
+  }
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.needsUpdate = true
+  return tex
+}
+
+const UP = new THREE.Vector3(0, 1, 0)
+const WHITE = new THREE.Color('#FFFFFF')
+
+/** Build the curved connection path between two nodes — a quadratic bezier
+ *  whose midpoint is lifted ~0.6 units perpendicular to the chord, so links
+ *  read as elegant arcs instead of straight wires. */
+function buildArc(a: THREE.Vector3, b: THREE.Vector3, lift: number): THREE.QuadraticBezierCurve3 {
+  const dir = new THREE.Vector3().subVectors(b, a)
+  const perp = new THREE.Vector3().crossVectors(dir, UP)
+  // chord parallel to UP → pick a stable fallback perpendicular
+  if (perp.lengthSq() < 1e-6) perp.set(1, 0, 0)
+  else perp.normalize()
+  const mid = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5).addScaledVector(perp, lift)
+  return new THREE.QuadraticBezierCurve3(a, mid, b)
+}
+
+/** Render an arc as a thin additive tube — Mesh form factor avoids the
+ *  `<line>` JSX/SVG intrinsic collision from P0-1 entirely. */
+function buildTube(curve: THREE.QuadraticBezierCurve3, color: number, opacity: number): THREE.Mesh {
+  const geometry = new THREE.TubeGeometry(curve, 24, 0.012, 8, false)
+  const material = new THREE.MeshBasicMaterial({
     color,
     transparent: true,
     opacity,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
   })
-  const line = new THREE.Line(geometry, material)
-  return line
+  return new THREE.Mesh(geometry, material)
+}
+
+/** Traveling pulse metadata — the mesh/material are JSX-declared (R3F
+ *  disposes them); only the curve + timing live here. */
+interface PulseSpec {
+  curve: THREE.QuadraticBezierCurve3
+  /** Loops per second along the path */
+  speed: number
+  /** Start offset along the path (also used for the static initial pose) */
+  phase: number
+  /** Bright whitened link color for the pulse core */
+  color: string
+  /** Initial position so the scene looks intentional even when the
+   *  frameloop is paused (reduced motion / offscreen). */
+  initial: [number, number, number]
 }
 
 function Nodes({ preset, active }: { preset: PresetId; active: boolean }) {
@@ -126,109 +190,198 @@ function Nodes({ preset, active }: { preset: PresetId; active: boolean }) {
   const reduced = usePrefersReducedMotion()
   const config = PRESET_CONFIG[preset] ?? PRESET_CONFIG.custom
 
-  // Positions + colors computed once per preset change
-  const { positions, colors, lines } = useMemo(() => {
+  // Per-node material refs (emissive pulsing) + per-pulse mesh/material refs
+  // — all mutations go through ref.current, the React-19-safe path.
+  const nodeMatRefs = useRef<(THREE.MeshStandardMaterial | null)[]>([])
+  const pulseMeshRefs = useRef<(THREE.Mesh | null)[]>([])
+  const pulseMatRefs = useRef<(THREE.MeshBasicMaterial | null)[]>([])
+
+  // One glow texture per mount, shared by every sprite.
+  const glowTexture = useMemo(() => makeGlowTexture(), [])
+
+  // Positions, colors, tube meshes and pulse specs — computed once per
+  // preset change (pure: no randomness).
+  const { positions, colors, tubes, pulses } = useMemo(() => {
     const positions = buildPositions(config)
     const colors = config.colors.map((hex) => new THREE.Color(hex))
-    // Build connection lines between adjacent nodes (and from orbit center
-    // to each planet when layout === 'orbit')
-    const lines: THREE.Line[] = []
+    const tubes: THREE.Mesh[] = []
+    const pulses: PulseSpec[] = []
+
+    const addLink = (
+      a: [number, number, number] | undefined,
+      b: [number, number, number] | undefined,
+      color: number,
+      opacity: number,
+      withPulse: boolean,
+      lift: number
+    ) => {
+      if (!a || !b) return
+      const curve = buildArc(new THREE.Vector3(...a), new THREE.Vector3(...b), lift)
+      tubes.push(buildTube(curve, color, opacity))
+      if (!withPulse) return
+      const phase = pulses.length * 0.37
+      const start = curve.getPointAt(phase % 1)
+      pulses.push({
+        curve,
+        speed: 0.22 + (pulses.length % 3) * 0.07,
+        phase,
+        // whitened link color — reads as a bright energy packet
+        color: '#' + new THREE.Color(color).lerp(WHITE, 0.55).getHexString(),
+        initial: [start.x, start.y, start.z],
+      })
+    }
+
     if (config.layout === 'orbit') {
+      // Spokes from the central "sun" to each planet (all carry pulses)
       const center = positions[0] ?? [0, 0, 0]
-      const centerVec = new THREE.Vector3(...center)
       for (let i = 1; i < positions.length; i++) {
-        const target = positions[i]
-        if (!target) continue
-        const line = buildLine(
-          centerVec,
-          new THREE.Vector3(...target),
-          0x0071e3,
-          0.55
-        )
-        lines.push(line)
+        addLink(center, positions[i], 0x0071e3, 0.5, true, 0.6)
       }
     } else if (config.layout === 'flow') {
+      // Pipeline segments bow consistently toward the camera
       for (let i = 0; i < positions.length - 1; i++) {
-        const a = positions[i]
-        const b = positions[i + 1]
-        if (!a || !b) continue
-        lines.push(
-          buildLine(new THREE.Vector3(...a), new THREE.Vector3(...b), 0x4285f4, 0.55)
-        )
+        addLink(positions[i], positions[i + 1], 0x4285f4, 0.5, true, 0.6)
       }
     } else {
-      // Ring — connect each node to its neighbor (and add a few cross links
-      // for visual richness)
+      // Ring — neighbor links carry pulses and alternate bow direction;
+      // faint cross-chords (no pulses) bow the other way for depth layering
       for (let i = 0; i < positions.length; i++) {
-        const a = positions[i]
-        const b = positions[(i + 1) % positions.length]
-        if (!a || !b) continue
-        lines.push(
-          buildLine(new THREE.Vector3(...a), new THREE.Vector3(...b), 0x4285f4, 0.5)
+        addLink(
+          positions[i],
+          positions[(i + 1) % positions.length],
+          0x4285f4,
+          0.5,
+          true,
+          i % 2 === 0 ? 0.6 : -0.6
         )
       }
-      // Add cross-links for richness (every other node)
       for (let i = 0; i < positions.length; i++) {
-        const a = positions[i]
-        const b = positions[(i + 2) % positions.length]
-        if (!a || !b) continue
-        lines.push(
-          buildLine(new THREE.Vector3(...a), new THREE.Vector3(...b), 0x0071e3, 0.2)
+        addLink(
+          positions[i],
+          positions[(i + 2) % positions.length],
+          0x0071e3,
+          0.22,
+          false,
+          i % 2 === 0 ? -0.6 : 0.6
         )
       }
     }
-    return { positions, colors, lines }
+    return { positions, colors, tubes, pulses }
   }, [config])
 
-  // Slow rotation of the whole group — no user hijack, just camera drift
-  useFrame((_, delta) => {
-    if (!groupRef.current || !active || reduced) return
-    groupRef.current.rotation.y += delta * 0.08
-    groupRef.current.rotation.x += delta * 0.02
+  // Slow rotation of the whole group — no user hijack, just camera drift.
+  // Node emissive pulses out of phase; connection pulses travel their arcs.
+  useFrame((state, delta) => {
+    if (!groupRef.current) return
+    if (active && !reduced) {
+      groupRef.current.rotation.y += delta * 0.08
+      groupRef.current.rotation.x += delta * 0.02
+    }
+    if (reduced) return
+    const t = state.clock.elapsedTime
+    nodeMatRefs.current.forEach((mat, i) => {
+      if (!mat) return
+      // gentle breathing glow, per-node phase offset so the constellation
+      // shimmers instead of flashing in lockstep
+      mat.emissiveIntensity = 0.9 + 0.5 * Math.sin(t * 1.7 + i * 1.9)
+    })
+    pulses.forEach((pulse, i) => {
+      const mesh = pulseMeshRefs.current[i]
+      const mat = pulseMatRefs.current[i]
+      if (!mesh || !mat) return
+      const u = (t * pulse.speed + pulse.phase) % 1
+      pulse.curve.getPointAt(u, mesh.position)
+      // bright mid-path, fading near the endpoints
+      mat.opacity = 0.2 + 0.8 * Math.sin(Math.PI * u)
+    })
   })
 
   // FIX(2-c/9, board-R3): R3F never disposes primitives (its removeChild →
-  // disposeOnIdle path explicitly skips them), so the line geometry +
-  // material GPU buffers need explicit disposal. Dispose the `lines`
+  // disposeOnIdle path explicitly skips them), so the tube geometry +
+  // material GPU buffers need explicit disposal. Dispose the `tubes`
   // closure value in the cleanup: on a preset switch React has already
   // unmounted the OLD set by the time the cleanup runs, and on final
   // unmount the finally-mounted set IS disposed. Under StrictMode the
   // dev double-invoke briefly disposes still-mounted geometries which
   // three.js transparently re-uploads next frame — the same accepted
-  // semantics as capability-scene's Knot disposal (consistency +
-  // correctness over the previous off-by-one, which freed each retired
-  // set one commit late and never the finally-mounted one).
+  // semantics as capability-scene's Centerpiece disposal. The glow
+  // texture is shared by all (JSX-declared) sprite materials, and
+  // Material.dispose() never frees textures — so it is disposed here,
+  // exactly once. Node spheres / sprites / pulse meshes are JSX-declared
+  // so R3F handles those.
   useEffect(() => {
     return () => {
-      for (const line of lines) {
-        line.geometry.dispose()
-        const material = line.material
+      for (const tube of tubes) {
+        tube.geometry.dispose()
+        const material = tube.material
         if (Array.isArray(material)) material.forEach((m) => m.dispose())
         else material.dispose()
       }
+      glowTexture.dispose()
     }
-  }, [lines])
+  }, [tubes, glowTexture])
 
   return (
     <group ref={groupRef}>
       {positions.map((pos, i) => {
         const color = colors[i % colors.length] ?? new THREE.Color('#4285F4')
         return (
-          <mesh key={`node-${i}`} position={pos}>
-            <sphereGeometry args={[0.28, 24, 24]} />
-            <meshStandardMaterial
-              color={color}
-              emissive={color}
-              emissiveIntensity={0.7}
-              roughness={0.3}
-              metalness={0.6}
-            />
-          </mesh>
+          <group key={`node-${i}`} position={pos}>
+            <mesh>
+              <sphereGeometry args={[0.32, 32, 32]} />
+              <meshStandardMaterial
+                ref={(m) => {
+                  nodeMatRefs.current[i] = m
+                }}
+                color={color}
+                emissive={color}
+                emissiveIntensity={0.9}
+                roughness={0.3}
+                metalness={0.6}
+              />
+            </mesh>
+            {/* additive glow halo — depthTest off + late renderOrder so it
+                reads like bloom over the constellation instead of being
+                clipped by its own sphere */}
+            <sprite scale={[1.7, 1.7, 1]} renderOrder={2}>
+              <spriteMaterial
+                map={glowTexture}
+                color={color}
+                transparent
+                opacity={0.5}
+                blending={THREE.AdditiveBlending}
+                depthWrite={false}
+                depthTest={false}
+              />
+            </sprite>
+          </group>
         )
       })}
-      {/* Connections — bypass the broken `<line>` JSX intrinsic */}
-      {lines.map((line, i) => (
-        <primitive key={`line-${i}`} object={line} />
+      {/* Curved connections — mesh tubes via <primitive> (bypasses the
+          broken `<line>` JSX intrinsic) */}
+      {tubes.map((tube, i) => (
+        <primitive key={`tube-${i}`} object={tube} />
+      ))}
+      {/* Traveling pulses along the connection arcs */}
+      {pulses.map((pulse, i) => (
+        <mesh
+          key={`pulse-${i}`}
+          position={pulse.initial}
+          ref={(m) => {
+            pulseMeshRefs.current[i] = m
+          }}
+        >
+          <sphereGeometry args={[0.05, 12, 12]} />
+          <meshBasicMaterial
+            ref={(mat) => {
+              pulseMatRefs.current[i] = mat
+            }}
+            color={pulse.color}
+            transparent
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
       ))}
     </group>
   )

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 
 /**
  * Lightweight scroll-reveal (Phase 3 §4.3) — IntersectionObserver + CSS
@@ -10,22 +11,47 @@ import { cn } from '@/lib/utils'
  * only for the genuinely complex interactions (calculator step slider,
  * automation simulator, methodology scroll-linked cards).
  *
- * Behavior parity with the old component:
+ * R2 (user request — "scroll animations across the whole site"): the
+ * component grew VISUAL VARIANTS. All of them share the same discipline:
+ *
  *   - content is present in the SSR HTML (SEO/no-JS see it after CSS runs);
  *   - animates once when scrolled into view (rootMargin -10%);
  *   - `delay` staggers via transition-delay (seconds);
- *   - reduced-motion users get instant content (global CSS override).
+ *   - reduced-motion users get instant content (global CSS override);
+ *   - the hidden start state applies ONLY under `@media (scripting: enabled)`
+ *     (see globals.css) so no-JS visitors never lose content.
+ *
+ * Variants:
+ *   up    — fade + rise (the classic, default)
+ *   zoom  — fade + scale 0.92→1 (cards, media)
+ *   blur  — blur(10px)→0 + rise (quotes, testimonials)
+ *   left  — fade + slide from the physical left (decorative, LTR+RTL safe)
+ *   right — fade + slide from the physical right
+ *   clip  — clip-path wipe from the bottom (headlines, images)
  */
+export type RevealVariant = 'up' | 'zoom' | 'blur' | 'left' | 'right' | 'clip'
+
+const VARIANT_CLASS: Record<RevealVariant, string> = {
+  up: 'reveal',
+  zoom: 'reveal reveal-zoom',
+  blur: 'reveal reveal-blur',
+  left: 'reveal reveal-left',
+  right: 'reveal reveal-right',
+  clip: 'reveal reveal-clip',
+}
 
 export function Reveal({
   children,
   className,
   delay = 0,
+  variant = 'up',
 }: {
   children: React.ReactNode
   className?: string
   /** Stagger in seconds (CSS transition-delay). */
   delay?: number
+  /** Visual variant — see the table above. */
+  variant?: RevealVariant
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
@@ -56,7 +82,7 @@ export function Reveal({
   return (
     <div
       ref={ref}
-      className={cn('reveal', visible && 'reveal-visible', className)}
+      className={cn(VARIANT_CLASS[variant], visible && 'reveal-visible', className)}
       style={delay > 0 ? { transitionDelay: `${delay}s` } : undefined}
     >
       {children}
@@ -99,5 +125,89 @@ export function KineticWords({
         ))}
       </span>
     </span>
+  )
+}
+
+/**
+ * Parallax — continuous scroll-LINKED motion (R2). Unlike Reveal (which
+ * fires once), Parallax keeps translating the element while it is anywhere
+ * near the viewport, so the drift tracks the scrollbar in both directions
+ * like the deconstructed work card.
+ *
+ * Discipline:
+ *   - rAF-coalesced scroll listener (one listener, one rect read per frame);
+ *   - IntersectionObserver arms/disarms the scroll listener — elements far
+ *     offscreen cost literally nothing;
+ *   - transform-only (compositor), never layout properties;
+ *   - reduced-motion → static (no listener at all);
+ *   - `speed` in px per viewport-height of travel (negative = moves against
+ *     the scroll direction). Keep it small (±80) — this is seasoning, not
+ *     the dish.
+ */
+export function Parallax({
+  children,
+  className,
+  speed = 40,
+}: {
+  children: React.ReactNode
+  className?: string
+  /** Vertical drift in px per viewport height of scroll (±; default 40). */
+  speed?: number
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const reduced = usePrefersReducedMotion()
+
+  useEffect(() => {
+    if (reduced) return
+    const el = ref.current
+    if (!el) return
+
+    let rafId = 0
+    let armed = false
+
+    const apply = () => {
+      rafId = 0
+      const rect = el.getBoundingClientRect()
+      const vh = window.innerHeight
+      // −1 (element top at viewport bottom) … +1 (element bottom at top)
+      const t = (rect.top + rect.height / 2 - vh / 2) / vh
+      const clamped = Math.max(-1.2, Math.min(1.2, t))
+      el.style.transform = `translate3d(0, ${(-clamped * speed).toFixed(1)}px, 0)`
+    }
+    const requestUpdate = () => {
+      if (!rafId) rafId = requestAnimationFrame(apply)
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0]
+        if (!entry) return
+        if (entry.isIntersecting && !armed) {
+          armed = true
+          window.addEventListener('scroll', requestUpdate, { passive: true })
+          apply()
+        } else if (!entry.isIntersecting && armed) {
+          armed = false
+          window.removeEventListener('scroll', requestUpdate)
+          if (rafId) {
+            cancelAnimationFrame(rafId)
+            rafId = 0
+          }
+        }
+      },
+      { rootMargin: '20% 0px 20% 0px', threshold: 0 }
+    )
+    io.observe(el)
+    return () => {
+      io.disconnect()
+      window.removeEventListener('scroll', requestUpdate)
+      if (rafId) cancelAnimationFrame(rafId)
+    }
+  }, [reduced, speed])
+
+  return (
+    <div ref={ref} className={className} style={{ willChange: 'transform' }}>
+      {children}
+    </div>
   )
 }

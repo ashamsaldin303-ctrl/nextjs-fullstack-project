@@ -135,7 +135,7 @@ export default async function ContactPage({
                   </li>
                 ))}
               </ul>
-              <Reveal delay={0.2}>
+              <Reveal delay={0.2} variant="right">
                 <p className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
                   <Clock className="size-4" aria-hidden="true" />
                   {t('channels.responseNote')}
@@ -155,7 +155,7 @@ export default async function ContactPage({
                   plus two case metric badges («متجر لمسة» / «عقار بلس»).
                   RTL-safe: no directional utilities, values isolated via
                   <bdi>. */}
-              <Reveal delay={0.06}>
+              <Reveal delay={0.06} variant="zoom">
                 <figure className="mt-8 rounded-3xl border border-border bg-card p-5 sm:p-6">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex gap-0.5" role="img" aria-label={tTesti('rating')}>

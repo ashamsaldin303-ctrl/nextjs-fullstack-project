@@ -125,6 +125,7 @@ export function TrustBar() {
               <Reveal
                 key={item.key}
                 delay={i * 0.08}
+                variant="zoom"
                 className="bg-background p-6 text-center sm:p-8"
               >
                 <dt className="sr-only">{item.label}</dt>

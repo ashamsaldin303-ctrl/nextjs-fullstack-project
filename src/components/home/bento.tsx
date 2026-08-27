@@ -11,6 +11,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useRouter } from '@/i18n/navigation'
 import { SectionHeading } from '@/components/shared/section-heading'
+import { Reveal } from '@/components/shared/reveal'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 
 /** Bento card with cursor-following radial glow (works in RTL & LTR). */
@@ -894,8 +895,12 @@ export function ServicesBento() {
         <div className="mt-14 grid gap-4 lg:grid-cols-3 lg:grid-rows-2">
           {/* Big websites card — FIX(2-c/12): the icon eyebrow used to repeat
               the identical i18n string as the h3 below (catalog has no distinct
-              per-card kicker key) — icon-only row preserves the rhythm. */}
-          <GlowCard className="lg:col-span-2 lg:row-span-2">
+              per-card kicker key) — icon-only row preserves the rhythm.
+              R2: cards reveal with the zoom variant + stagger; grid-span
+              classes live on the Reveal wrapper (the grid item) and GlowCard
+              takes h-full so the stretch layout is preserved. */}
+          <Reveal variant="zoom" className="lg:col-span-2 lg:row-span-2">
+            <GlowCard className="h-full">
             <div className="flex items-center gap-2 text-primary">
               <Globe className="size-5" aria-hidden="true" />
             </div>
@@ -917,10 +922,12 @@ export function ServicesBento() {
               ))}
             </ul>
             <MiniSite />
-          </GlowCard>
+            </GlowCard>
+          </Reveal>
 
           {/* Automation */}
-          <GlowCard>
+          <Reveal variant="zoom" delay={0.08}>
+            <GlowCard className="h-full">
             <div className="flex items-center gap-2 text-primary">
               <Workflow className="size-5" aria-hidden="true" />
             </div>
@@ -931,10 +938,12 @@ export function ServicesBento() {
               {t('automation.desc')}
             </p>
             <MiniFlow />
-          </GlowCard>
+            </GlowCard>
+          </Reveal>
 
           {/* 3D */}
-          <GlowCard>
+          <Reveal variant="zoom" delay={0.14}>
+            <GlowCard className="h-full">
             <div className="flex items-center gap-2 text-primary">
               <Boxes className="size-5" aria-hidden="true" />
             </div>
@@ -945,10 +954,12 @@ export function ServicesBento() {
               {t('threeD.desc')}
             </p>
             <MiniCube />
-          </GlowCard>
+            </GlowCard>
+          </Reveal>
 
           {/* AI — wide */}
-          <GlowCard className="lg:col-span-2">
+          <Reveal variant="zoom" delay={0.2} className="lg:col-span-2">
+            <GlowCard className="h-full">
             <div className="flex items-center gap-2 text-primary">
               <Bot className="size-5" aria-hidden="true" />
             </div>
@@ -963,10 +974,12 @@ export function ServicesBento() {
               </div>
               <MiniAgent />
             </div>
-          </GlowCard>
+            </GlowCard>
+          </Reveal>
 
           {/* Integrations */}
-          <GlowCard className="lg:col-span-1">
+          <Reveal variant="zoom" delay={0.26} className="lg:col-span-1">
+            <GlowCard className="h-full">
             <div className="flex items-center gap-2 text-primary">
               <Sparkles className="size-5" aria-hidden="true" />
             </div>
@@ -977,7 +990,8 @@ export function ServicesBento() {
               {t('integrations.desc')}
             </p>
             <MiniOrbit />
-          </GlowCard>
+            </GlowCard>
+          </Reveal>
         </div>
       </div>
     </section>

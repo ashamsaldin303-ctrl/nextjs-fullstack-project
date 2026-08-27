@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { Star, Quote } from 'lucide-react'
 import { SectionHeading } from '@/components/shared/section-heading'
-import { Reveal } from '@/components/shared/reveal'
+import { Reveal, Parallax } from '@/components/shared/reveal'
 
 // Phase 2 content enrichment (prompt §6.3): four deeper testimonials,
 // each attributed with name / role / company and results-specific quotes.
@@ -18,11 +18,16 @@ export function Testimonials() {
         {/* UI-5: very subtle radial accent behind the grid — the container
             is a stacking context (elyra-spotlight forces position:relative
             + z-index:1 on direct children), so -z-10 paints it above the
-            section background but below all in-flow content. Decorative. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-1/4 -z-10 mx-auto h-80 max-w-4xl rounded-full bg-primary/10 blur-3xl"
-        />
+            section background but below all in-flow content. Decorative.
+            R2: the glow now drifts AGAINST the scroll (Parallax) — a
+            continuous scroll-linked counter-motion that deepens the
+            section's depth without touching content. */}
+        <Parallax speed={-34} className="pointer-events-none absolute inset-x-0 top-1/4 -z-10">
+          <div
+            aria-hidden="true"
+            className="mx-auto h-80 max-w-4xl rounded-full bg-primary/10 blur-3xl"
+          />
+        </Parallax>
         <SectionHeading
           kicker={t('kicker')}
           title={t('title')}
@@ -33,7 +38,7 @@ export function Testimonials() {
 
         <div className="mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           {ITEMS.map((key, i) => (
-            <Reveal key={key} delay={i * 0.08}>
+            <Reveal key={key} delay={i * 0.08} variant="blur">
               {/* UI-5: hover depth — border tint + gentle lift + shadow
                   deepening. Purely decorative (transition-all is collapsed
                   to ~0ms under prefers-reduced-motion by the global

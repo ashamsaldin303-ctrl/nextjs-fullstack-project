@@ -87,7 +87,7 @@ export default async function AboutPage() {
           />
           <div className="mt-14 grid gap-6 md:grid-cols-3">
             {VALUES.map(({ key, icon: Icon }, i) => (
-              <Reveal key={key} delay={i * 0.1}>
+              <Reveal key={key} delay={i * 0.1} variant="zoom">
                 {/* UI-5: hover depth on the dark value cards — gentle lift +
                     border/background brightening (card-hover-lift collapses
                     to ~0ms under prefers-reduced-motion). */}
@@ -117,7 +117,7 @@ export default async function AboutPage() {
               const name = t(`team.members.${m}.name`)
               const initials = name.split(' ').map((w) => w[0]).slice(0, 2).join('')
               return (
-                <Reveal key={m} delay={i * 0.08}>
+                <Reveal key={m} delay={i * 0.08} variant="zoom">
                   {/* UI-5: hover depth on team cards — lift + primary border
                       tint + avatar nudge. */}
                   <article className="card-hover-lift group flex h-full flex-col items-center rounded-3xl border border-border bg-card p-6 text-center hover:border-primary/30">
