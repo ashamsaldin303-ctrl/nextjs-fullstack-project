@@ -43,35 +43,35 @@ interface PresetConfig {
 const PRESET_CONFIG: Record<PresetId, PresetConfig> = {
   store: {
     count: 6,
-    colors: ['#0071E3', '#34A853', '#FBBC05', '#EA4335', '#4285F4', '#F1F5F9'],
+    colors: ['#F59E0B', '#34A853', '#FBBF24', '#DC2626', '#D97706', '#F1F5F9'],
     radius: 3,
     layout: 'ring',
     cameraZ: 9,
   },
   booking: {
     count: 5,
-    colors: ['#0071E3', '#34A853', '#FBBC05', '#4285F4', '#F1F5F9'],
+    colors: ['#F59E0B', '#34A853', '#FBBF24', '#D97706', '#F1F5F9'],
     radius: 3,
     layout: 'orbit',
     cameraZ: 9,
   },
   ai: {
     count: 7,
-    colors: ['#0071E3', '#4285F4', '#34A853', '#EA4335', '#FBBC05', '#F1F5F9', '#0071E3'],
+    colors: ['#F59E0B', '#D97706', '#34A853', '#DC2626', '#FBBF24', '#F1F5F9', '#F59E0B'],
     radius: 3.5,
     layout: 'orbit',
     cameraZ: 10,
   },
   dashboard: {
     count: 6,
-    colors: ['#0071E3', '#4285F4', '#34A853', '#FBBC05', '#EA4335', '#F1F5F9'],
+    colors: ['#F59E0B', '#D97706', '#34A853', '#FBBF24', '#DC2626', '#F1F5F9'],
     radius: 3,
     layout: 'flow',
     cameraZ: 9,
   },
   custom: {
     count: 5,
-    colors: ['#0071E3', '#34A853', '#FBBC05', '#4285F4', '#F1F5F9'],
+    colors: ['#F59E0B', '#34A853', '#FBBF24', '#D97706', '#F1F5F9'],
     radius: 3.2,
     layout: 'ring',
     cameraZ: 9,
@@ -142,7 +142,7 @@ function Nodes({ preset, active }: { preset: PresetId; active: boolean }) {
         const line = buildLine(
           centerVec,
           new THREE.Vector3(...target),
-          0x4285f4,
+          0xd97706,
           0.55
         )
         lines.push(line)
@@ -153,7 +153,7 @@ function Nodes({ preset, active }: { preset: PresetId; active: boolean }) {
         const b = positions[i + 1]
         if (!a || !b) continue
         lines.push(
-          buildLine(new THREE.Vector3(...a), new THREE.Vector3(...b), 0x0071e3, 0.55)
+          buildLine(new THREE.Vector3(...a), new THREE.Vector3(...b), 0xf59e0b, 0.55)
         )
       }
     } else {
@@ -164,7 +164,7 @@ function Nodes({ preset, active }: { preset: PresetId; active: boolean }) {
         const b = positions[(i + 1) % positions.length]
         if (!a || !b) continue
         lines.push(
-          buildLine(new THREE.Vector3(...a), new THREE.Vector3(...b), 0x0071e3, 0.5)
+          buildLine(new THREE.Vector3(...a), new THREE.Vector3(...b), 0xf59e0b, 0.5)
         )
       }
       // Add cross-links for richness (every other node)
@@ -173,7 +173,7 @@ function Nodes({ preset, active }: { preset: PresetId; active: boolean }) {
         const b = positions[(i + 2) % positions.length]
         if (!a || !b) continue
         lines.push(
-          buildLine(new THREE.Vector3(...a), new THREE.Vector3(...b), 0x4285f4, 0.2)
+          buildLine(new THREE.Vector3(...a), new THREE.Vector3(...b), 0xd97706, 0.2)
         )
       }
     }
@@ -212,7 +212,7 @@ function Nodes({ preset, active }: { preset: PresetId; active: boolean }) {
   return (
     <group ref={groupRef}>
       {positions.map((pos, i) => {
-        const color = colors[i % colors.length] ?? new THREE.Color('#0071E3')
+        const color = colors[i % colors.length] ?? new THREE.Color('#F59E0B')
         return (
           <mesh key={`node-${i}`} position={pos}>
             <sphereGeometry args={[0.28, 24, 24]} />
@@ -272,7 +272,7 @@ export function ConsoleScene({
       {/* Lighting: brighter to ensure glowing nodes pop visually */}
       <ambientLight intensity={0.5} />
       <pointLight position={[5, 5, 5]} intensity={1.2} color="#ffffff" />
-      <pointLight position={[-5, -3, 4]} intensity={0.7} color="#0071E3" />
+      <pointLight position={[-5, -3, 4]} intensity={0.7} color="#F59E0B" />
       <pointLight position={[0, 5, -5]} intensity={0.4} color="#34A853" />
       <Nodes preset={preset} active={!reduced && active} />
       <InitialRenderSafety />

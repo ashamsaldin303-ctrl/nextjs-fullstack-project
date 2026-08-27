@@ -34,7 +34,7 @@ export function PageHero({ namespace, ctaHref = '/contact', className }: PageHer
       <div className="hero-fallback absolute inset-0 -z-10" aria-hidden="true" />
       <div
         className="absolute inset-0 -z-10"
-        style={{ background: 'radial-gradient(60% 60% at 50% 0%, rgba(0,113,227,0.18), transparent 70%)' }}
+        style={{ background: 'radial-gradient(60% 60% at 50% 0%, rgba(245,158,11,0.18), transparent 70%)' }}
         aria-hidden="true"
       />
       <div className="elyra-container max-w-4xl text-center">

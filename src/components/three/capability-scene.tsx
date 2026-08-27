@@ -6,7 +6,8 @@ import * as THREE from 'three'
 
 /**
  * Interactive 3D capability scene for /services/websites.
- * A metallic TorusKnot lit by 4 Google-colored point lights, with
+ * A metallic TorusKnot lit by 4 brand-colored point lights (amber/gold/
+ * green/warm-white — palette law: no blue), with
  * mouse parallax + drag-to-rotate. Dark stage, DPR capped at 2.
  *
  * Refactor note: React 19's react-hooks/immutability rule disallows mutating
@@ -16,10 +17,10 @@ import * as THREE from 'three'
  */
 
 const LIGHTS: { color: string; pos: [number, number, number] }[] = [
-  { color: '#4285F4', pos: [3, 2, 4] },
-  { color: '#EA4335', pos: [-3, 2, 4] },
-  { color: '#FBBC05', pos: [3, -2, 2] },
-  { color: '#34A853', pos: [-3, -2, 2] },
+  { color: '#F59E0B', pos: [3, 2, 4] },
+  { color: '#34A853', pos: [-3, 2, 4] },
+  { color: '#FBBF24', pos: [3, -2, 2] },
+  { color: '#FFF3D6', pos: [-3, -2, 2] },
 ]
 
 function Knot({ dragging }: { dragging: boolean }) {
@@ -101,7 +102,7 @@ function Knot({ dragging }: { dragging: boolean }) {
         <mesh geometry={geo} material={mat} />
         <mesh position={[2.6, 1.2, -1]}>
           <icosahedronGeometry args={[0.28, 0]} />
-          <meshStandardMaterial color="#0071E3" metalness={0.6} roughness={0.3} />
+          <meshStandardMaterial color="#F59E0B" metalness={0.6} roughness={0.3} />
         </mesh>
         <mesh position={[-2.4, -1.4, 0.5]}>
           <octahedronGeometry args={[0.34, 0]} />
@@ -109,7 +110,7 @@ function Knot({ dragging }: { dragging: boolean }) {
         </mesh>
         <mesh position={[1.8, -1.8, 1.2]}>
           <dodecahedronGeometry args={[0.26, 0]} />
-          <meshStandardMaterial color="#FBBC05" metalness={0.6} roughness={0.3} />
+          <meshStandardMaterial color="#FBBF24" metalness={0.6} roughness={0.3} />
         </mesh>
       </group>
     </>

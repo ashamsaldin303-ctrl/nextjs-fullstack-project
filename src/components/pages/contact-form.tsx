@@ -11,39 +11,141 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { playSuccess } from '@/lib/sound'
-import { leadEmailSchema, leadMessageSchema, leadNameSchema } from '@/lib/lead-fields'
+import {
+  leadEmailSchema,
+  leadMessageSchema,
+  leadNameSchema,
+  leadWhatsappSchema,
+} from '@/lib/lead-fields'
+
+/** Project-type quick chips (Batch 2 item 7c) — the same taxonomy the hero
+ *  console presets and the /contact prefill URL contract use:
+ *  service ∈ store|booking|agent|dashboard|automation|websites. */
+export type ContactServiceId =
+  | 'store'
+  | 'booking'
+  | 'agent'
+  | 'dashboard'
+  | 'websites'
+  | 'automation'
+
+const SERVICE_IDS: ContactServiceId[] = [
+  'store',
+  'booking',
+  'agent',
+  'dashboard',
+  'websites',
+  'automation',
+]
+
+const SERVICE_LABEL_KEYS: Record<ContactServiceId, string> = {
+  store: 'projectTypes.store',
+  booking: 'projectTypes.booking',
+  agent: 'projectTypes.agent',
+  dashboard: 'projectTypes.dashboard',
+  websites: 'projectTypes.websites',
+  automation: 'projectTypes.automation',
+}
 
 // Shared lead-field schemas (R2-MED-1): the SAME rules the API enforces
-// (name 2–100, email via zod v4 z.email() ≤254, message 10–5000) — one
-// source of truth, no client/server rule drift.
+// (name 2–100, email via zod v4 z.email() ≤254, whatsapp 5–30 + phone
+// pattern optional, message 10–5000) — one source of truth, no
+// client/server rule drift.
 const schema = z.object({
   name: leadNameSchema,
   email: leadEmailSchema,
+  whatsapp: leadWhatsappSchema,
   message: leadMessageSchema,
 })
 
-type FormValues = z.infer<typeof schema>
+type FormValues = {
+  name: string
+  email: string
+  whatsapp: string
+  message: string
+}
 
-export function ContactForm() {
+type FormErrors = {
+  name?: string
+  email?: string
+  whatsapp?: string
+  message?: string
+}
+
+export function ContactForm({
+  prefillService,
+  prefillIdea,
+}: {
+  /** `service` search param — already validated by the page (7a). */
+  prefillService?: ContactServiceId
+  /** `idea` search param — already sanitized + clamped by the page (7a). */
+  prefillIdea?: string
+}) {
   const t = useTranslations('pages.contact.form')
+  // Whatsapp has no local errors key — reuse the API's own translated
+  // field copy (apiErrors.fields.whatsapp) so client and server
+  // rejections read identically (same rule, same message) — the same
+  // convention the calculator form already uses.
+  const tApiFields = useTranslations('apiErrors.fields')
   const locale = useLocale()
-  const [values, setValues] = useState<FormValues>({ name: '', email: '', message: '' })
-  const [errors, setErrors] = useState<{ name?: string; email?: string; message?: string }>({})
+
+  /** Localized message template seeded from the arriving intent (7a):
+   *  chip-only → service sentence; free text → idea sentence; both →
+   *  combined. The template is a STARTING POINT the visitor edits. */
+  const buildTemplate = (
+    service: ContactServiceId | null,
+    idea: string | undefined
+  ): string => {
+    const serviceLabel = service ? t(SERVICE_LABEL_KEYS[service]) : undefined
+    if (serviceLabel && idea) {
+      return t('prefill.serviceIdea', { service: serviceLabel, idea })
+    }
+    if (idea) return t('prefill.ideaOnly', { idea })
+    if (serviceLabel) return t('prefill.serviceOnly', { service: serviceLabel })
+    return ''
+  }
+
+  const initialService = prefillService ?? null
+  const [service, setService] = useState<ContactServiceId | null>(initialService)
+  const [values, setValues] = useState<FormValues>(() => ({
+    name: '',
+    email: '',
+    whatsapp: '',
+    message: buildTemplate(initialService, prefillIdea),
+  }))
+  const [errors, setErrors] = useState<FormErrors>({})
   const [submitting, setSubmitting] = useState(false)
   // FIX(2-c/18): honeypot trap — bots autofill hidden "companyWebsite"
   // fields; humans never see it. The value rides along in the JSON body
   // and the API silently discards bot submissions with a fake success.
   const honeypotRef = useRef<HTMLInputElement>(null)
 
+  /** Chip toggle (7c): single-select — clicking the active chip clears the
+   *  selection. The message template is re-seeded ONLY while the textarea
+   *  still holds the previously generated template (or is empty) so the
+   *  visitor's own edits are never clobbered. */
+  const onToggleService = (id: ContactServiceId) => {
+    const next = service === id ? null : id
+    setService(next)
+    setValues((v) => {
+      const prevTemplate = buildTemplate(service, prefillIdea)
+      if (v.message === prevTemplate || v.message.trim() === '') {
+        return { ...v, message: buildTemplate(next, prefillIdea) }
+      }
+      return v
+    })
+  }
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const parsed = schema.safeParse(values)
     if (!parsed.success) {
-      const fe: typeof errors = {}
+      const fe: FormErrors = {}
       for (const issue of parsed.error.issues) {
         const path = issue.path[0]
         if (path === 'name') fe.name = t('errors.name')
         if (path === 'email') fe.email = t('errors.email')
+        if (path === 'whatsapp') fe.whatsapp = tApiFields('whatsapp')
         if (path === 'message') fe.message = t('errors.message')
       }
       setErrors(fe)
@@ -53,6 +155,9 @@ export function ContactForm() {
     setSubmitting(true)
     // Phase 3: real storage — same endpoint as the calculator with
     // source "contact-form" (prompt §3.2); no duplicated logic.
+    // NOTE: the project-type chip selection intentionally does NOT ride
+    // the JSON body — the strict contact-form schema accepts no `service`
+    // key, so the type is carried by the seeded message template instead.
     try {
       const res = await fetch('/api/leads', {
         method: 'POST',
@@ -65,6 +170,7 @@ export function ContactForm() {
           companyWebsite: honeypotRef.current?.value ?? '',
           name: parsed.data.name,
           email: parsed.data.email,
+          whatsapp: parsed.data.whatsapp || undefined,
           message: parsed.data.message,
         }),
       })
@@ -72,7 +178,8 @@ export function ContactForm() {
       if (res.status === 201) {
         playSuccess() // sensory feedback — fires on REAL success only
         toast.success(t('successTitle'), { description: t('successDesc') })
-        setValues({ name: '', email: '', message: '' })
+        setValues({ name: '', email: '', whatsapp: '', message: '' })
+        setService(null)
         return
       }
 
@@ -81,9 +188,10 @@ export function ContactForm() {
         | { message?: string; fields?: Record<string, string> }
         | null
       if (res.status === 400 && data?.fields) {
-        const fe: typeof errors = {}
+        const fe: FormErrors = {}
         if (data.fields.name) fe.name = data.fields.name
         if (data.fields.email) fe.email = data.fields.email
+        if (data.fields.whatsapp) fe.whatsapp = data.fields.whatsapp
         if (data.fields.message) fe.message = data.fields.message
         setErrors(fe)
       }
@@ -118,6 +226,33 @@ export function ContactForm() {
         aria-hidden="true"
         className="pointer-events-none absolute -left-[9999px] h-px w-px overflow-hidden"
       />
+
+      {/* Project-type quick chips (Batch 2 item 7c) — single-select toggles
+          reusing the hero taxonomy. The choice seeds the message template
+          below; the API itself takes no service key on this source. */}
+      <fieldset>
+        <legend className="text-sm font-medium">{t('projectTypeLabel')}</legend>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {SERVICE_IDS.map((id) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onToggleService(id)}
+              aria-pressed={service === id}
+              data-cursor="magnet"
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                service === id
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'
+              )}
+            >
+              {t(SERVICE_LABEL_KEYS[id])}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
       <div>
         <Label htmlFor="cf-name" className="text-sm">{t('name')}</Label>
         {/* LOW-9: required communicated to AT (3.3.2) — attributes only;
@@ -130,6 +265,30 @@ export function ContactForm() {
         <Input id="cf-email" type="email" autoComplete="email" required aria-required="true" className="mt-1.5" {...field('email')} />
         {errors.email ? <p id="cf-email-err" role="alert" className="mt-1 text-xs text-destructive">{errors.email}</p> : null}
       </div>
+
+      {/* Optional whatsapp (Batch 2 item 7b) — same shared schema rule the
+          API enforces; dir="ltr" keeps the phone number visually coherent
+          inside the RTL Arabic layout. */}
+      <div>
+        <Label htmlFor="cf-whatsapp" className="text-sm">{t('whatsapp')}</Label>
+        <Input
+          id="cf-whatsapp"
+          type="tel"
+          inputMode="tel"
+          dir="ltr"
+          autoComplete="tel"
+          placeholder={t('whatsappPlaceholder')}
+          className="mt-1.5"
+          {...field('whatsapp')}
+          aria-describedby={errors.whatsapp ? 'cf-whatsapp-err' : 'cf-whatsapp-hint'}
+        />
+        {errors.whatsapp ? (
+          <p id="cf-whatsapp-err" role="alert" className="mt-1 text-xs text-destructive">{errors.whatsapp}</p>
+        ) : (
+          <p id="cf-whatsapp-hint" className="mt-1 text-xs text-muted-foreground">{t('whatsappHint')}</p>
+        )}
+      </div>
+
       <div>
         <Label htmlFor="cf-message" className="text-sm">{t('message')}</Label>
         <Textarea

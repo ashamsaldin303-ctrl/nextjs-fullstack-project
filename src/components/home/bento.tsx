@@ -64,14 +64,15 @@ function GlowCard({
    Mini interactive 1 — websites theme playground (mini e-commerce site)
    ========================================================================= */
 
-const SITE_PALETTE = ['#0071E3', '#34A853', '#EA4335', '#FBBC05'] as const
+const SITE_PALETTE = ['#B45309', '#34A853', '#DC2626', '#F59E0B'] as const
 
 /* Contrast-safe accent derivations (module scope, pure & deterministic —
    identical on server & client, so no hydration risk).
    The mini-site CTA / badges render WHITE text on the accent and several
    strings render as accent-colored TEXT on the dark browser panel — neither
+   strings render as accent-colored TEXT on the dark browser panel — neither
    pair passes WCAG AA for every swatch (amber being the worst offender:
-   white on #FBBC05 is ~1.7:1). Instead of a blanket dark overlay, each fixed
+   white on #F59E0B is ~2.2:1). Instead of a blanket dark overlay, each fixed
    palette entry is mixed toward black (white-text surfaces) or toward white
    (accent text) in 2% steps until the pair clears 4.54:1 (AA + margin). */
 
@@ -100,7 +101,7 @@ function mixToward(hex: string, towardWhite: boolean, f: number): string {
   return rgbToHex(ch(r), ch(g), ch(b))
 }
 /** Darken the accent until WHITE text on it clears AA — used for the CTA,
- *  cart badge and discount badges (keeps #0071E3 untouched: 4.70:1 already). */
+ *  cart badge and discount badges (keeps #B45309 untouched: 4.62:1 already). */
 function ctaSafe(hex: string): string {
   for (let f = 0; f <= 0.9; f += 0.02) {
     const c = mixToward(hex, false, f)
@@ -139,7 +140,7 @@ function discountPct(price: string, old: string): number {
 function MiniSite() {
   const t = useTranslations('bento.websites.mini')
   const [swatch, setSwatch] = useState(0)
-  const accent = SITE_PALETTE[swatch] ?? '#0071E3'
+  const accent = SITE_PALETTE[swatch] ?? '#B45309'
   const nav = t.raw('nav') as string[]
   const paletteNames = t.raw('palette') as string[]
   const products = t.raw('products') as { name: string; price: string; old: string }[]
@@ -412,7 +413,7 @@ function MiniFlow() {
                       // reduced-motion gets a static shadow instead.
                       <span
                         className={cn('absolute inset-0 rounded-full', !reduced && 'elyra-pulse')}
-                        style={reduced ? { boxShadow: '0 0 0 4px rgba(0,113,227,0.35)' } : undefined}
+                        style={reduced ? { boxShadow: '0 0 0 4px rgba(217,119,6,0.35)' } : undefined}
                       />
                     ) : null}
                   </div>
@@ -441,7 +442,7 @@ function MiniFlow() {
                     {swept(i) && !reduced ? (
                       <span
                         key={`dot-${runId}-${i}`}
-                        className="absolute top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_6px_rgba(0,113,227,0.9)]"
+                        className="absolute top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_6px_rgba(217,119,6,0.9)]"
                         style={{ animation: 'elyra-flow-dot 550ms ease-in-out 80ms forwards' }}
                       />
                     ) : null}
@@ -488,12 +489,12 @@ const CUBE_FACES: ReadonlyArray<{
   glyph?: string
   dark?: boolean
 }> = [
-  { tr: 'translateZ(28px)', grad: 'linear-gradient(135deg, #2F80ED, #0053B8)', icon: null, glyph: 'E' },
-  { tr: 'rotateY(180deg) translateZ(28px)', grad: 'linear-gradient(135deg, #74AEFF, #3B6FD4)', icon: Globe },
+  { tr: 'translateZ(28px)', grad: 'linear-gradient(135deg, #F59E0B, #B45309)', icon: null, glyph: 'E' },
+  { tr: 'rotateY(180deg) translateZ(28px)', grad: 'linear-gradient(135deg, #FBBF24, #D97706)', icon: Globe },
   { tr: 'rotateY(90deg) translateZ(28px)', grad: 'linear-gradient(135deg, #4CBF6E, #1E8F41)', icon: Boxes },
   { tr: 'rotateY(-90deg) translateZ(28px)', grad: 'linear-gradient(135deg, #F0655A, #C22F23)', icon: Sparkles },
   { tr: 'rotateX(90deg) translateZ(28px)', grad: 'linear-gradient(135deg, #FFD44D, #E9A61D)', icon: Bot, dark: true },
-  { tr: 'rotateX(-90deg) translateZ(28px)', grad: 'linear-gradient(135deg, #F4F7FB, #C4D0E2)', icon: null, glyph: '◆', dark: true },
+  { tr: 'rotateX(-90deg) translateZ(28px)', grad: 'linear-gradient(135deg, #FDF8ED, #D9CDAC)', icon: null, glyph: '◆', dark: true },
 ]
 
 function MiniCube() {
@@ -594,7 +595,7 @@ function MiniCube() {
         <div
           aria-hidden="true"
           className="absolute inset-0"
-          style={{ background: 'radial-gradient(130px 90px at 50% 44%, rgba(0,113,227,0.28), transparent 70%)' }}
+          style={{ background: 'radial-gradient(130px 90px at 50% 44%, rgba(217,119,6,0.28), transparent 70%)' }}
         />
         {/* soft elliptical floor shadow */}
         <div

@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import { Search, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useRouter } from '@/i18n/navigation'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 import { playSuccess } from '@/lib/sound'
 
@@ -21,6 +22,38 @@ const PRESETS: { id: PresetId; key: string }[] = [
   { id: 'ai', key: 'presets.ai' },
   { id: 'dashboard', key: 'presets.dashboard' },
 ]
+
+/* ------------------------------------------------------------------ */
+/* Batch 2 item 6 — hero intent → contact conversion                    */
+/* ------------------------------------------------------------------ */
+
+/** Preset id → `service` value of the /contact prefill URL contract
+ *  (store|booking|agent|dashboard|automation|websites). The hero preset
+ *  `ai` maps to the contract's `agent`. */
+const SERVICE_PARAM: Record<Exclude<PresetId, 'custom'>, string> = {
+  store: 'store',
+  booking: 'booking',
+  ai: 'agent',
+  dashboard: 'dashboard',
+}
+
+/** Lightweight keyword best-guess for free-text submissions (bilingual,
+ *  substring match, first hit wins — a miss simply omits `service`). */
+const KEYWORD_HINTS: { preset: Exclude<PresetId, 'custom'>; words: string[] }[] = [
+  { preset: 'store', words: ['متجر', 'تجار', 'منتج', 'shop', 'store', 'ecommerce'] },
+  { preset: 'booking', words: ['حجز', 'حجوزات', 'مواعيد', 'booking', 'reserv'] },
+  { preset: 'ai', words: ['ذكاء', 'وكيل', 'بوت', 'شات', 'agent', 'chatbot', 'assistant'] },
+  { preset: 'dashboard', words: ['لوحة', 'تحليل', 'تقارير', 'dashboard', 'analytics'] },
+]
+
+function guessPreset(text: string): Exclude<PresetId, 'custom'> | null {
+  const t = text.trim().toLowerCase()
+  if (!t) return null
+  for (const { preset, words } of KEYWORD_HINTS) {
+    if (words.some((w) => t.includes(w))) return preset
+  }
+  return null
+}
 
 /**
  * Hero interactive console (Phase 4 WS-1, prompt §4).
@@ -44,10 +77,48 @@ export function HeroConsole({
   active?: boolean
 }) {
   const t = useTranslations('hero.console')
+  const router = useRouter()
   const reduced = usePrefersReducedMotion()
   const [selected, setSelected] = useState<PresetId | null>(null)
   const [input, setInput] = useState('')
   const [mounted, setMounted] = useState(false)
+
+  // Batch 2 item 6: the pending navigation timer (scene payoff beat).
+  // Tracked in a ref so it is cancelled if the component unmounts first
+  // (e.g. the user scrolls on before the beat ends) and so a second
+  // submit while one is already scheduled can never double-push.
+  const navTimer = useRef<number | undefined>(undefined)
+  useEffect(
+    () => () => {
+      if (navTimer.current) window.clearTimeout(navTimer.current)
+    },
+    []
+  )
+
+  /** Hands the visitor's intent to the contact form — AFTER a short beat
+   *  so the console scene still mounts and their words materialize (the
+   *  scene is the payoff; the form is the destination). The scene mounts
+   *  ONLY on submit, so navigating immediately would make it unreachable
+   *  dead code. router comes from @/i18n/navigation → the locale prefix
+   *  is correct (ar default: /contact, en: /en/contact). */
+  const goToContact = useCallback(
+    (service: string | null, idea: string) => {
+      if (navTimer.current) return // first intent wins
+      const params = new URLSearchParams()
+      if (service) params.set('service', service)
+      if (idea) params.set('idea', idea)
+      const qs = params.toString()
+      navTimer.current = window.setTimeout(
+        () => {
+          navTimer.current = undefined // allow a later intent (e.g. via Back)
+          router.push(qs ? `/contact?${qs}` : '/contact')
+        },
+        // Reduced-motion visitors opted out of the show — near-immediate.
+        reduced ? 250 : 800
+      )
+    },
+    [router, reduced]
+  )
 
   // FIX(2-c/5): track the one-shot scroll rAF so it can be cancelled on
   // unmount (a pending rAF firing after unmount is harmless, but leaving
@@ -87,21 +158,30 @@ export function HeroConsole({
       // on standard screens. Without this scroll, users click a preset
       // but never see the WebGL scene (the original P0-1 symptom).
       scrollSceneIntoView()
+      // Batch 2 item 6: chip intent now continues into the contact form
+      // (service from the chip; idea from anything typed in the prompt —
+      // combining both is the natural behavior when a visitor types a
+      // keyword then confirms with a chip instead of pressing Enter).
+      goToContact(id === 'custom' ? null : SERVICE_PARAM[id], input.trim())
     },
-    [scrollSceneIntoView]
+    [scrollSceneIntoView, goToContact, input]
   )
 
   const on_submit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault()
-      if (!input.trim()) return
-      // Free text that doesn't match a preset → "custom" scene
-      setSelected('custom')
+      const idea = input.trim()
+      if (!idea) return
+      // Free text: best-guess a preset by keyword (scene + service param
+      // follow the guess); a miss → "custom" scene and no service param.
+      const preset = guessPreset(idea)
+      setSelected(preset ?? 'custom')
       setMounted(true)
       playSuccess()
       scrollSceneIntoView()
+      goToContact(preset ? SERVICE_PARAM[preset] : null, idea)
     },
-    [input, scrollSceneIntoView]
+    [input, scrollSceneIntoView, goToContact]
   )
 
   // Detect mobile for SVG fallback (no WebGL on touch — §9.3)
@@ -150,9 +230,9 @@ export function HeroConsole({
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all',
               selected === id
-                /* MED-2: brand primary #0071E3 on the dark hero is 3.8:1 —
-                   fails AA for the 14px label. g-blue (#4285F4) on the
-                   g-blue/15 tint over #08080A measures 4.85:1 ✓. */
+                /* MED-2: the brand amber accent carried by the legacy g-blue
+                   token (#D97706) on the g-blue/15 tint over #08080A
+                   measures ≈5.3:1 — AA for the 14px label. */
                 ? 'border-g-blue bg-g-blue/15 text-g-blue'
                 : 'border-white/15 bg-white/5 text-white/70 hover:border-white/30 hover:text-white'
             )}
@@ -224,7 +304,7 @@ function ConsoleSvgDiagram({
                   y1={y}
                   x2={150 + Math.cos(((i + 1) / nodes) * Math.PI * 2) * 70}
                   y2={100 + Math.sin(((i + 1) / nodes) * Math.PI * 2) * 50}
-                  stroke="rgba(0,113,227,0.3)"
+                  stroke="rgba(217,119,6,0.3)"
                   strokeWidth="1.5"
                 />
               ) : null}
@@ -232,8 +312,8 @@ function ConsoleSvgDiagram({
                 cx={x}
                 cy={y}
                 r="12"
-                fill="rgba(0,113,227,0.15)"
-                stroke="rgba(0,113,227,0.6)"
+                fill="rgba(217,119,6,0.15)"
+                stroke="rgba(217,119,6,0.6)"
                 strokeWidth="1.5"
               >
                 {!reduced ? (

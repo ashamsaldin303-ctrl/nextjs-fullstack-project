@@ -8,8 +8,9 @@ export const contentType = 'image/png'
 /**
  * Shared OG/Twitter card for every page under [locale] (file-convention
  * bubbling: pages without their own opengraph-image inherit this one).
- * Mirrors the icon.tsx E-mark + quad-dot brand language on the dark
- * hero surface (#0F172A + primary glow).
+ * Mirrors the icon.tsx E-mark + quad-dot brand language (amber/gold/
+ * red/green — palette law: no blue) on the dark hero surface
+ * (#0F172A + amber glow).
  *
  * FONT DECISION: text is English-only on purpose. ImageResponse's default
  * font has no Arabic glyphs (renders tofu), and the repo ships no font
@@ -33,13 +34,14 @@ export default function OpengraphImage() {
           background: '#0F172A',
         }}
       >
-        {/* Primary glow — same radial treatment as the page heroes */}
+        {/* Primary glow — same radial treatment as the page heroes
+            (amber, was blue) */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
             backgroundImage:
-              'radial-gradient(circle 700px at 50% 0%, rgba(0, 113, 227, 0.35), rgba(15, 23, 42, 0) 100%)',
+              'radial-gradient(circle 700px at 50% 0%, rgba(245, 158, 11, 0.35), rgba(15, 23, 42, 0) 100%)',
           }}
         />
 
@@ -75,7 +77,7 @@ export default function OpengraphImage() {
               width: 18,
               height: 18,
               borderRadius: '50%',
-              background: '#4285F4',
+              background: '#F59E0B',
             }}
           />
           <div
@@ -86,7 +88,7 @@ export default function OpengraphImage() {
               width: 11,
               height: 11,
               borderRadius: '50%',
-              background: '#EA4335',
+              background: '#DC2626',
             }}
           />
           <div
@@ -97,7 +99,7 @@ export default function OpengraphImage() {
               width: 11,
               height: 11,
               borderRadius: '50%',
-              background: '#FBBC05',
+              background: '#FBBF24',
             }}
           />
           <div
@@ -151,7 +153,7 @@ export default function OpengraphImage() {
               width: 10,
               height: 10,
               borderRadius: '50%',
-              background: '#4285F4',
+              background: '#F59E0B',
             }}
           />
           <div
@@ -159,7 +161,7 @@ export default function OpengraphImage() {
               width: 10,
               height: 10,
               borderRadius: '50%',
-              background: '#EA4335',
+              background: '#DC2626',
             }}
           />
           <div
@@ -167,7 +169,7 @@ export default function OpengraphImage() {
               width: 10,
               height: 10,
               borderRadius: '50%',
-              background: '#FBBC05',
+              background: '#FBBF24',
             }}
           />
           <div

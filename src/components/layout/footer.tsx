@@ -20,10 +20,12 @@ function getClientYear(): number {
 }
 
 /* UI-5: column headings carry a tiny primary accent tick (2×12px,
-   decorative) before the text — shared by all three footer columns. */
+   decorative) before the text — shared by all three footer columns.
+   Batch 1 item 5 (dark-band contrast floor): white/50 → white/70
+   (≈10.9:1 on #0F172A); text-xs uppercase tracking-wider kept. */
 function FooterHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-wider text-white/50">
+    <h2 className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-wider text-white/70">
       <span aria-hidden="true" className="h-3 w-0.5 rounded-full bg-primary" />
       {children}
     </h2>
@@ -206,7 +208,10 @@ export function Footer({ className }: { className?: string }) {
           </div>
         </div>
 
-        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 text-sm text-white/50 sm:flex-row">
+        {/* Batch 1 item 5: bottom legal row lifted to the same white/70
+            floor (white/50 measured ≈5.2:1 — legal text deserves the
+            same margin as the headings). */}
+        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 text-sm text-white/70 sm:flex-row">
           <p>{t('footer.rights', { year })}</p>
           <p>{t('footer.madeWith')}</p>
         </div>

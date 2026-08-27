@@ -117,7 +117,7 @@ export function toMockContent(raw: unknown): MockContent | undefined {
    Color helpers — accents arrive as hex strings per project
    -------------------------------------------------------------------------- */
 
-const FALLBACK_RGB: [number, number, number] = [0, 113, 227] // #0071E3
+const FALLBACK_RGB: [number, number, number] = [180, 83, 9] // #B45309 (brand amber)
 
 function hexToRgb(hex: string): [number, number, number] {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim())
@@ -158,7 +158,7 @@ function luminance(hex: string): number {
 const isLightColor = (hex: string) => luminance(hex) > 0.55
 
 /** Readable ink on top of a solid accent fill (white on dark accents,
- *  darkened accent on light ones like the yellow #FBBC05). */
+ *  darkened accent on light ones like the gold #FBBF24). */
 const onAccentColor = (hex: string) => (isLightColor(hex) ? shadeColor(hex, 0.6) : '#ffffff')
 
 /** Readable ink on top of an accent TINT (announcement bar, chips). */
@@ -506,7 +506,7 @@ function SiteOldScene() {
         {nav.map((l, i) => (
           <span key={l} className="flex items-center gap-1">
             {i > 0 && <span className="text-[6px] leading-none text-stone-400">|</span>}
-            <span className="whitespace-nowrap text-[6.5px] leading-none text-blue-800 underline">
+            <span className="whitespace-nowrap text-[6.5px] leading-none text-amber-800 underline">
               {l}
             </span>
           </span>
@@ -935,7 +935,7 @@ function DashOldScene() {
               )}
               innerStyle={
                 i === OLD_SHEET_ROWS.length - 1
-                  ? { boxShadow: 'inset 0 0 0 1.5px #1d4ed8' }
+                  ? { boxShadow: 'inset 0 0 0 1.5px #b45309' }
                   : undefined
               }
             >
@@ -988,7 +988,7 @@ interface BeforeAfterProps {
 
 export function BeforeAfter({
   variant,
-  accent = '#0071E3',
+  accent = '#B45309',
   className,
   label,
   mock,

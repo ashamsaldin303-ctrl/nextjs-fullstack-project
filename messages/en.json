@@ -38,7 +38,8 @@
     "closeMenu": "Close menu",
     "switchLocale": "عربي",
     "switchLocaleLabel": "Switch to Arabic",
-    "skipToContent": "Skip to main content"
+    "skipToContent": "Skip to main content",
+    "languageToggleCompact": "Switch language"
   },
   "hero": {
     "badge": "Digital Agency · Websites & Automation",
@@ -182,7 +183,9 @@
           "47-minute meeting, 5 participants. Highlights: response time cut to 4 hours and a designer to hire ✓",
           "Logged 6 potential risks ranked by impact, each with a mitigation draft in the shared doc ✓",
           "Client’s key note: loves the new direction but wants a darker variant — revised draft ready for approval ✓"
-        ]
+        ],
+        "inputPlaceholder": "Type your question here…",
+        "convertCta": "Turn this into a request"
       }
     },
     "integrations": {
@@ -307,7 +310,9 @@
       "idle": "Idle",
       "running": "Running",
       "completed": "Completed"
-    }
+    },
+    "completionTitle": "Ready for a flow that serves your business?",
+    "completionCta": "Order a similar system"
   },
   "workSection": {
     "kicker": "Selected Work",
@@ -1150,7 +1155,8 @@
         },
         "whatsapp": {
           "title": "WhatsApp",
-          "value": "+963 991 000 000"
+          "value": "+963 991 000 000",
+          "greeting": "Hi Elyra! I'd like to talk about a project."
         },
         "telegram": {
           "title": "Telegram",
@@ -1175,11 +1181,42 @@
           "message": "Message is required (at least 10 characters)"
         },
         "errorTitle": "Couldn't send your message",
-        "errorNetwork": "Check your connection and try again — your message is preserved."
+        "errorNetwork": "Check your connection and try again — your message is preserved.",
+        "projectTypeLabel": "Project type",
+        "projectTypes": {
+          "store": "Smart Store",
+          "booking": "Booking Platform",
+          "agent": "AI Agent",
+          "dashboard": "Dashboard",
+          "websites": "Websites",
+          "automation": "Automation"
+        },
+        "whatsapp": "WhatsApp (optional)",
+        "whatsappPlaceholder": "+963 9XX XXX XXX",
+        "whatsappHint": "Optional — for faster replies",
+        "prefill": {
+          "serviceIdea": "I'd like to build: {service} — {idea}",
+          "ideaOnly": "I'd like to build: {idea}",
+          "serviceOnly": "I'd like to build: {service}."
+        }
       },
       "calculator": {
         "kicker": "The Fast Lane",
         "title": "Or Calculate Your Project Instantly"
+      },
+      "socialProof": {
+        "metrics": {
+          "lamsa": {
+            "company": "Lamsa Store",
+            "value": "+140%",
+            "label": "conversion rate"
+          },
+          "aqar": {
+            "company": "Aqar Plus",
+            "value": "+85%",
+            "label": "organic visits"
+          }
+        }
       }
     }
   },
@@ -1197,6 +1234,7 @@
     "retry": "Try Again",
     "notFoundTitle": "Page Not Found",
     "notFoundDesc": "Looks like you've reached an old or incorrect link — no worries, the road home is short.",
+    "notFoundRecoveryTitle": "Where would you like to go?",
     "reduceMotionNote": "Animations reduced in respect for your device settings",
     "sound": {
       "enable": "Enable sound effects",

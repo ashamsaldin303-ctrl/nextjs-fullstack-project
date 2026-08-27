@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Cairo } from 'next/font/google'
+import { Inter, Cairo, JetBrains_Mono } from 'next/font/google'
 import { notFound } from 'next/navigation'
 import { hasLocale, NextIntlClientProvider } from 'next-intl'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
@@ -21,6 +21,17 @@ const inter = Inter({
 const cairo = Cairo({
   subsets: ['arabic', 'latin'],
   variable: '--font-cairo',
+  display: 'swap',
+})
+
+// Batch 1 item 3 — REAL mono: the global --font-mono token (globals.css)
+// resolves to this variable, so every `font-mono` / .elyra-mono usage
+// (simulator console, payload JSON, calculator reference pill) renders
+// a true monospace face instead of the old Inter alias. latin subset only
+// — code/JSON content is ASCII (no package install needed).
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
   display: 'swap',
 })
 
@@ -148,7 +159,7 @@ export default async function LocaleLayout({
     <html
       lang={locale}
       dir={dir}
-      className={`${inter.variable} ${cairo.variable}`}
+      className={`${inter.variable} ${cairo.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
       <body className="min-h-screen flex flex-col bg-background text-foreground antialiased">

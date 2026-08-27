@@ -460,7 +460,7 @@ export function Calculator() {
                               value={result.max}
                               formatValue={(n) => formatMoney(Math.round(n), locale)}
                               label={t('result.budget')}
-                              color="#0071E3"
+                              color="#B45309"
                               isRtl={locale === 'ar'}
                             />
                             <RingGauge

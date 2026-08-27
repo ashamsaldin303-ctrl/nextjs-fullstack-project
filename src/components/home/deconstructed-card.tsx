@@ -121,7 +121,7 @@ function BrowserContent() {
   )
 }
 
-/** Systems layer — blue-tinted card, n8n-style nodes + connections. */
+/** Systems layer — primary-tinted card (amber), n8n-style nodes + connections. */
 function SystemsContent({ rows }: { rows: number }) {
   return (
     <div className="flex flex-col items-center gap-3">
@@ -241,7 +241,7 @@ export function DeconstructedCard({ projectKey }: { projectKey: string }) {
 
   // Depth cues — blur/offset/opacity grow with separation, per layer.
   const frontShadow = `0 ${(14 + 30 * p).toFixed(1)}px ${(34 + 50 * p).toFixed(1)}px -16px rgba(0,0,0,${(0.45 + 0.2 * p).toFixed(2)})`
-  const middleShadow = `0 ${(10 + 18 * p).toFixed(1)}px ${(26 + 30 * p).toFixed(1)}px -12px rgba(0,113,227,${(0.3 + 0.16 * p).toFixed(2)})`
+  const middleShadow = `0 ${(10 + 18 * p).toFixed(1)}px ${(26 + 30 * p).toFixed(1)}px -12px rgba(180,83,9,${(0.3 + 0.16 * p).toFixed(2)})`
   const backShadow = `0 ${(8 + 12 * p).toFixed(1)}px ${(20 + 22 * p).toFixed(1)}px -10px rgba(52,168,83,${(0.24 + 0.12 * p).toFixed(2)})`
 
   return (
