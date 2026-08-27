@@ -78,11 +78,14 @@ export function KineticHeading({
 
   // Per-line reveal choreography: each line's words start after the
   // previous line has largely landed, words inside a line chase at 70ms.
+  // R8: bases retimed to the "Assembly" build sequence (the hero scan
+  // line reaches the headline zone ~0.9–1.1s into the build — the words
+  // rise out of the mask right as the light passes over them).
   const lines = useMemo(
     () => [
-      { text: t(titleTopKey), accent: false, base: 0.05, indent: '' },
-      { text: t(titleAccentKey), accent: true, base: 0.3, indent: 'ms-[7vw] md:ms-[9vw]' },
-      { text: t(titleBottomKey), accent: false, base: 0.55, indent: 'ms-[1.5vw]' },
+      { text: t(titleTopKey), accent: false, base: 0.7, indent: '' },
+      { text: t(titleAccentKey), accent: true, base: 0.88, indent: 'ms-[7vw] md:ms-[9vw]' },
+      { text: t(titleBottomKey), accent: false, base: 1.06, indent: 'ms-[1.5vw]' },
     ],
     [t, titleTopKey, titleAccentKey, titleBottomKey],
   )

@@ -226,7 +226,9 @@ export function HeroConsole({
   const showSvg = mounted && (isMobile || reduced || !webglSupported)
 
   return (
-    <div className="hero-enter hero-enter-5 mt-8 w-full">
+    // R8: inline build-sequence delay (scan line reaches the console zone
+    // ~1.4s into the build); the old hero-enter-5 class delay stays unused.
+    <div className="hero-enter mt-8 w-full" style={{ animationDelay: '1.45s' }}>
       {/* Command bar — instant HTML/CSS, protects LCP */}
       <form onSubmit={on_submit} className="group relative">
         <div className="flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-4 py-3 backdrop-blur-md transition-colors focus-within:border-primary/50">

@@ -21,10 +21,12 @@ import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
  *     for the ring, a LABEL span. Splitting position from scale is what
  *     lets hover growth ease via CSS without the per-frame position
  *     writes also being eased into mush.
- *   · mix-blend-mode: difference lives on the positioner — the same
- *     proven placement as the Phase 2 cursor (an element's own transform
- *     never isolates its own blending) — so the whole group (core + label
- *     text) inverts as one against the page beneath.
+ *   · mix-blend-mode: difference lives on the WRAPPER layer — NOT on the
+ *     positioners. A `position:fixed; z-index` wrapper creates a stacking
+ *     context that isolates any blend set on its children (pixel-probe
+ *     verified: the white dot stayed pure white and vanished over the light
+ *     page). On the wrapper itself the blend is NOT isolated, so the whole
+ *     group (dot + ring + label) inverts as one against the page beneath.
  *
  * Interaction states, all via classList on the positioners (CSS owns the
  * transitions; JS never writes scale/opacity inline):

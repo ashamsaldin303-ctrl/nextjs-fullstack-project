@@ -6,14 +6,22 @@ import {
   Activity,
   BarChart3,
   Bell,
+  Headphones,
+  Heart,
   ImageOff,
   LayoutDashboard,
+  MessageCircle,
   MoveHorizontal,
+  RotateCcw,
   Search,
   Settings,
+  ShieldCheck,
   ShoppingBag,
   Smile,
+  Star,
   TriangleAlert,
+  Truck,
+  User,
   Users,
   X,
 } from 'lucide-react'
@@ -175,10 +183,35 @@ function discountPct(price: string, old: string | undefined): number | null {
 
 const MONO_STACK = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
 
+/* Local keyframes for the 2005 blinking announcement dots + the old-site
+   scrolling news ticker. The global prefers-reduced-motion kill-switch in
+   globals.css freezes these (the ticker completes to -50% where its
+   duplicated copy sits — content stays readable). */
+const SCENE_KEYFRAMES =
+  '@keyframes ba-scene-blink{0%,100%{opacity:1}50%{opacity:.2}}.ba-scene-blink{animation:ba-scene-blink 1.3s ease-in-out infinite}' +
+  '@keyframes ba-scene-ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}.ba-scene-ticker-track{animation:ba-scene-ticker 16s linear infinite}'
+
+/* R8 "real screenshot" pass — shared era/scene constants. */
+/** Faint graph-paper tiling behind the 2009 site body + masthead. */
+const OLD_TILE_BG =
+  'repeating-linear-gradient(0deg, rgba(0,0,0,0.018) 0 1px, transparent 1px 7px), repeating-linear-gradient(90deg, rgba(0,0,0,0.018) 0 1px, transparent 1px 7px)'
+/** Prices for the old product table when no per-project mock exists. */
+const OLD_PRICES = ['12,500', '8,900', '15,400']
+/** Trust-bar icons (site-new) — index-aligned with the i18n trust array. */
+const TRUST_ICONS = [Truck, ShieldCheck, RotateCcw, Headphones] as const
+/** KPI sparkline bar heights (dashboard-new) — one set per KPI card. */
+const KPI_SPARKS: ReadonlyArray<readonly number[]> = [
+  [35, 55, 42, 68, 88],
+  [55, 42, 60, 52, 74],
+  [70, 50, 38, 46, 30],
+  [40, 58, 66, 78, 92],
+]
+/** Excel column letters (dashboard-old) — locale-neutral chrome. */
+const COL_LETTERS = ['A', 'B', 'C', 'D'] as const
+
 /* --------------------------------------------------------------------------
    Static scene data
    -------------------------------------------------------------------------- */
-
 /** 12 believable upward-trending points for the dashboard area chart. */
 const CHART_POINTS: ReadonlyArray<readonly [number, number]> = [
   [2, 30],
@@ -242,11 +275,6 @@ const OLD_SHEET_ROWS: OldSheetRow[] = [
 
 const SHEET_COLS = 'grid-cols-[10px_1.1fr_1fr_0.72fr_0.95fr]'
 
-/* Local keyframes for the 2005 blinking announcement dots. The global
-   prefers-reduced-motion kill-switch in globals.css freezes this. */
-const SCENE_KEYFRAMES =
-  '@keyframes ba-scene-blink{0%,100%{opacity:1}50%{opacity:.2}}.ba-scene-blink{animation:ba-scene-blink 1.3s ease-in-out infinite}'
-
 /* --------------------------------------------------------------------------
    Scene 1 — "site-new": modern e-commerce storefront
    -------------------------------------------------------------------------- */
@@ -284,13 +312,17 @@ function ProductArt({ i }: { i: number }) {
 function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) {
   const t = useTranslations('workSection.scenes')
   const nav = asStringArray(t.raw('site.nav'))
+  const categories = asStringArray(t.raw('site.categories'))
+  const trust = asStringArray(t.raw('site.trust'))
   const footerLinks = asStringArray(t.raw('site.footerLinks'))
+  const payments = asStringArray(t.raw('site.payments'))
   const cards = mock?.cards && mock.cards.length > 0 ? mock.cards.slice(0, 3) : null
   const onAccent = onAccentColor(accent)
   const accentInk = accentInkColor(accent)
+  const rating = t('site.rating')
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-white text-stone-900">
+    <div className="relative flex h-full flex-col overflow-hidden bg-white text-stone-900">
       {/* announcement bar (accent-tinted) */}
       <div
         className="flex h-[13px] shrink-0 items-center justify-center px-14"
@@ -301,7 +333,7 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
         </span>
       </div>
 
-      {/* navbar: brand • links • search pill • cart with badge */}
+      {/* navbar: brand • links • search pill • wishlist • account • cart */}
       <div className="flex h-[22px] shrink-0 items-center justify-between gap-2 border-b border-stone-200 bg-white px-2 pe-[52px]">
         <div className="flex min-w-0 items-center gap-1">
           <span className="size-[6px] shrink-0 rounded-full" style={{ background: accent }} />
@@ -314,11 +346,13 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
             </span>
           ))}
         </nav>
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1">
           <span className="flex items-center gap-0.5 rounded-full border border-stone-200 bg-stone-50 px-1.5 py-px">
             <Search className="size-[7px] shrink-0 text-stone-400" />
             <span className="whitespace-nowrap text-[6px] text-stone-400">{t('site.search')}</span>
           </span>
+          <Heart className="size-[10px] shrink-0 text-stone-500" />
+          <User className="size-[10px] shrink-0 text-stone-500" />
           <span className="relative block text-stone-700">
             <ShoppingBag className="size-[11px]" />
             <span
@@ -329,6 +363,22 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
             </span>
           </span>
         </div>
+      </div>
+
+      {/* category chips row — merchandising rail */}
+      <div className="flex h-[15px] shrink-0 items-center gap-1 border-b border-stone-100 bg-white px-2 pe-[52px]">
+        {categories.map((c, i) => (
+          <span
+            key={c}
+            className={cn(
+              'whitespace-nowrap rounded-full px-1.5 py-[1.5px] text-[5.5px] font-semibold leading-none',
+              i === 0 ? 'text-white' : 'bg-stone-100 text-stone-500'
+            )}
+            style={i === 0 ? { background: accent } : undefined}
+          >
+            {c}
+          </span>
+        ))}
       </div>
 
       {/* hero: copy side + layered "photo" side */}
@@ -361,20 +411,35 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
                 {mock.cta}
               </span>
             ) : null}
-            <span className="flex min-w-0 items-center gap-[3px]">
-              <span className="size-[4px] shrink-0 animate-pulse rounded-full bg-emerald-500" />
-              <span className="truncate text-[6px] font-medium text-stone-500 underline decoration-stone-300 underline-offset-[3px]">
-                {t('site.viewers')}
+            {/* social proof: overlapping avatars + rating + customer count */}
+            <span className="flex min-w-0 items-center gap-1">
+              <span className="flex shrink-0">
+                {['bg-stone-300', 'bg-amber-200', 'bg-emerald-200', 'bg-sky-200'].map((tone, i) => (
+                  <span
+                    key={tone}
+                    className={cn('size-[9px] rounded-full border border-white', tone)}
+                    style={{ marginInlineStart: i === 0 ? 0 : '-2.5px' }}
+                  />
+                ))}
+              </span>
+              <span className="min-w-0 truncate text-[6px] font-medium text-stone-500">
+                {`★ ${rating} · ${t('site.socialProof')}`}
               </span>
             </span>
           </div>
         </div>
 
-        {/* hero image — accent gradient + layered CSS silhouettes + shine */}
+        {/* hero image — accent gradient + radial glow + floating chips + shine */}
         <div
           className="relative min-h-0 overflow-hidden rounded-lg"
           style={{ background: `linear-gradient(135deg, ${accent} 0%, ${shadeColor(accent, 0.35)} 100%)` }}
         >
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'radial-gradient(60% 55% at 50% 40%, rgba(255,255,255,0.22), transparent 70%)',
+            }}
+          />
           <div className="absolute -top-[25%] start-[8%] size-[80%] rounded-full bg-white/15 blur-[5px]" />
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="relative h-[58%] w-[42%]">
@@ -383,13 +448,42 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
               <div className="absolute inset-x-[20%] top-[26%] h-[13%] rounded-[30%] bg-white/65" />
             </div>
           </div>
+          {/* floating chips — "new" badge + live viewers pill */}
+          <span
+            className="absolute start-[6%] top-[8%] rounded-[3px] px-1 py-px text-[5px] font-bold leading-none shadow-sm"
+            style={{ background: '#ffffff', color: shadeColor(accent, 0.25) }}
+          >
+            {t('site.newBadge')}
+          </span>
+          <span className="absolute bottom-[10%] end-[6%] flex items-center gap-[3px] rounded-full bg-black/30 px-1.5 py-[2px] text-[5.5px] font-medium leading-none text-white backdrop-blur-sm">
+            <span className="size-[3px] animate-pulse rounded-full bg-emerald-400" />
+            {t('site.viewers')}
+          </span>
           <div className="absolute inset-y-[-25%] start-[60%] w-[14%] rotate-[16deg] bg-white/20 blur-[2px]" />
           <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/25" />
         </div>
       </div>
 
+      {/* trust bar — four service promises */}
+      <div className="grid h-[16px] shrink-0 grid-cols-4 gap-1 px-2">
+        {trust.map((label, i) => {
+          const Icon = TRUST_ICONS[i % TRUST_ICONS.length] ?? Truck
+          return (
+            <div
+              key={label}
+              className="flex min-w-0 items-center justify-center gap-[3px] rounded-md bg-stone-50 px-1"
+            >
+              <Icon className="size-[8px] shrink-0" style={{ color: accent }} />
+              <span className="min-w-0 truncate text-[5.5px] font-medium leading-none text-stone-500">
+                {label}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+
       {/* product row */}
-      <div className="grid h-[27%] shrink-0 grid-cols-3 gap-1 px-2">
+      <div className="mt-1 grid h-[27%] shrink-0 grid-cols-3 gap-1 px-2">
         {cards ? (
           cards.map((card, i) => {
             const off = discountPct(card.price, card.old)
@@ -435,17 +529,15 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
                     {t('site.addToCart')}
                   </span>
                 </div>
-                {i === 1 && (
-                  <div className="mt-[1px] flex min-w-0 items-center gap-[3px] overflow-hidden">
-                    <span className="shrink-0 text-[6px] leading-none text-g-blue">★★★★★</span>
-                    <span className="shrink-0 text-[6px] font-bold leading-none text-stone-700">
-                      {t('site.rating')}
-                    </span>
-                    <span className="truncate text-[6px] leading-none text-stone-400">
-                      {t('site.reviews')}
-                    </span>
-                  </div>
-                )}
+                <div className="mt-[1px] flex min-w-0 items-center gap-[3px] overflow-hidden">
+                  <Star className="size-[5px] shrink-0 fill-amber-400 text-amber-400" />
+                  <span className="shrink-0 text-[5.5px] font-bold leading-none text-stone-700">
+                    {rating}
+                  </span>
+                  <span className="truncate text-[5.5px] leading-none text-stone-400">
+                    {t('site.reviews')}
+                  </span>
+                </div>
               </div>
             )
           })
@@ -464,31 +556,89 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
         )}
       </div>
 
-      {/* footer */}
-      <div className="shrink-0 border-t border-stone-200 bg-white px-2 pb-[3px] pt-[2px]">
-        <div className="flex items-center justify-center gap-2">
-          {footerLinks.map((l) => (
-            <span key={l} className="whitespace-nowrap text-[6px] font-medium text-stone-500">
-              {l}
-            </span>
-          ))}
+      {/* footer: service links • payment badges • copyright */}
+      <div className="shrink-0 border-t border-stone-200 bg-stone-50 px-2 pb-[3px] pt-[3px]">
+        <div className="flex items-center justify-between gap-1.5">
+          <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+            {footerLinks.map((l) => (
+              <span key={l} className="whitespace-nowrap text-[6px] font-medium text-stone-500">
+                {l}
+              </span>
+            ))}
+          </div>
+          <div className="flex shrink-0 items-center gap-[3px]">
+            {payments.map((p) => (
+              <span
+                key={p}
+                dir="ltr"
+                className="rounded-[3px] border border-stone-200 bg-white px-[3px] py-px text-[5px] font-bold leading-none text-stone-500"
+              >
+                {p}
+              </span>
+            ))}
+          </div>
         </div>
         <div className="mt-px truncate text-center text-[6px] text-stone-400">
           {`© ${mock?.brand ? `${mock.brand} — ` : ''}${t('site.footerNote')}`}
         </div>
       </div>
+
+      {/* floating support bubble — the modern-site tell */}
+      <span
+        className="absolute bottom-[38%] end-2 z-10 flex size-[18px] items-center justify-center rounded-full shadow-md"
+        style={{ background: accent }}
+      >
+        <MessageCircle className="size-[9px] text-white" />
+      </span>
     </div>
   )
 }
 
 /* --------------------------------------------------------------------------
-   Scene 2 — "site-old": a 2005 time capsule (ugly on purpose)
+   Scene 2 — "site-old": a 2009 time capsule (ugly on purpose, rich on
+   detail — masthead + banner ad, link-farm nav, scrolling news ticker,
+   3-column table layout with poll/news/friends sidebars, hit counter…)
    -------------------------------------------------------------------------- */
 
-function SiteOldScene() {
+/** The classic old-CMS module: bordered box + gray title bar. */
+function OldBox({
+  title,
+  children,
+  className,
+}: {
+  title: string
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div
+      className={cn(
+        'flex min-h-0 flex-col overflow-hidden rounded-[2px] border border-stone-400 bg-white',
+        className
+      )}
+    >
+      <div className="shrink-0 border-b border-stone-400 bg-stone-300 px-1 py-[2px] font-serif text-[6px] font-bold leading-none text-stone-800">
+        {title}
+      </div>
+      <div className="min-h-0 flex-1 overflow-hidden p-[3px]">{children}</div>
+    </div>
+  )
+}
+
+function SiteOldScene({ mock }: { mock?: MockContent }) {
   const t = useTranslations('workSection.scenes')
   const nav = asStringArray(t.raw('old.nav'))
   const items = asStringArray(t.raw('old.items'))
+  const categories = asStringArray(t.raw('old.categories'))
+  const news = asStringArray(t.raw('old.news'))
+  const friends = asStringArray(t.raw('old.friends'))
+  // The "before" is the SAME business — products echo the modern catalog
+  // when a per-project mock exists (the transformation story made literal).
+  const products =
+    mock?.cards && mock.cards.length > 0
+      ? mock.cards.slice(0, 3).map((c) => ({ name: c.name, price: c.price }))
+      : items.map((it, i) => ({ name: it, price: OLD_PRICES[i % OLD_PRICES.length] ?? '' }))
+  const pollYesPct = 78
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-stone-100 font-serif text-stone-800">
@@ -499,6 +649,35 @@ function SiteOldScene() {
           {t('old.announce')}
         </span>
         <span className="ba-scene-blink size-[4px] shrink-0 rounded-full bg-red-600" />
+      </div>
+
+      {/* masthead: boxed serif brand + slogan • 468×60-style banner ad */}
+      <div
+        className="flex h-[26px] shrink-0 items-center justify-between gap-1 border-b-2 border-stone-400 bg-stone-100 px-1.5 ps-10"
+        style={{ backgroundImage: OLD_TILE_BG }}
+      >
+        <div className="flex min-w-0 items-center gap-1">
+          <span className="flex size-[14px] shrink-0 items-center justify-center rounded-[2px] border border-stone-500 bg-yellow-200 text-[8px] leading-none text-amber-600">
+            ★
+          </span>
+          <div className="min-w-0 leading-none">
+            <span className="block truncate text-[9px] font-bold">
+              {mock?.brand ?? t('old.fallbackBrand')}
+            </span>
+            <span className="mt-[2px] block truncate text-[5.5px] text-stone-600">{t('old.slogan')}</span>
+          </div>
+        </div>
+        <div
+          className="relative flex h-[18px] w-[34%] shrink-0 items-center justify-center overflow-hidden rounded-[2px] border border-stone-500"
+          style={{ background: 'linear-gradient(90deg, #1d4ed8 0%, #7c3aed 50%, #db2777 100%)' }}
+        >
+          <span className="text-[5px] font-bold uppercase tracking-widest text-white/90">
+            {t('old.adSpace')}
+          </span>
+          <span className="absolute end-px top-px bg-black/40 px-[2px] text-[4px] leading-none text-white">
+            {t('old.adTag')}
+          </span>
+        </div>
       </div>
 
       {/* dense underlined link farm navbar */}
@@ -513,51 +692,158 @@ function SiteOldScene() {
         ))}
       </div>
 
-      {/* welcome box + beveled Win98 button */}
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-2 py-1">
-        <div className="w-full max-w-[88%] rounded-[2px] border-2 border-stone-400 bg-white p-1 text-center shadow-[2px_2px_0_rgba(0,0,0,0.10)]">
-          <div className="flex items-start justify-center gap-1">
-            <Smile className="mt-px size-3 shrink-0 text-yellow-500" />
-            <p className="text-[7px] leading-snug text-stone-800">{t('old.welcome')}</p>
+      {/* scrolling news ticker — the era's <marquee> (LTR track, Arabic
+          items keep their own direction — the hero marquee pattern). */}
+      <div
+        className="flex h-[12px] shrink-0 items-center gap-1 overflow-hidden border-b border-stone-300 bg-yellow-100 px-1"
+        dir="ltr"
+      >
+        <span className="shrink-0 rounded-[2px] bg-red-700 px-[3px] text-[4.5px] font-bold uppercase leading-none text-white">
+          {t('old.tickerTag')}
+        </span>
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <div className="ba-scene-ticker-track flex w-max items-center">
+            {[0, 1].map((copy) => (
+              <span key={copy} className="flex shrink-0 items-center" aria-hidden={copy === 1 || undefined}>
+                <span className="whitespace-nowrap px-2 text-[5.5px] font-semibold leading-none text-stone-700">
+                  {t('old.ticker')}
+                </span>
+                <span className="text-[5px] leading-none text-red-700">◆</span>
+              </span>
+            ))}
           </div>
-          <span className="mt-1 inline-block border-2 border-t-white border-l-white border-b-stone-500 border-r-stone-500 bg-stone-300 px-2 py-[2px] text-[7px] font-bold leading-none text-red-700 shadow-[1px_1px_0_rgba(0,0,0,0.25)]">
-            {t('old.clickHere')}
-          </span>
         </div>
       </div>
 
-      {/* product table with broken-image thumbnails */}
-      <div className="mx-2 shrink-0 overflow-hidden rounded-[2px] border border-stone-400 bg-white">
-        {items.map((it, i) => (
-          <div
-            key={it}
-            className={cn('flex items-center gap-1 px-1 py-[2px]', i > 0 && 'border-t border-stone-300')}
-          >
-            <span className="flex size-4 shrink-0 items-center justify-center border border-stone-400 bg-stone-200">
-              <ImageOff className="size-2 text-stone-400" />
+      {/* 3-column table layout: sections sidebar • main • news sidebar */}
+      <div className="flex min-h-0 flex-1 gap-[3px] p-[3px]" style={{ backgroundImage: OLD_TILE_BG }}>
+        {/* start sidebar — site sections + the obligatory poll */}
+        <aside className="flex w-[27%] min-w-0 shrink-0 flex-col gap-[3px]">
+          <OldBox title={t('old.categoriesTitle')} className="min-h-0 flex-1">
+            <div className="space-y-[3px]">
+              {categories.map((c) => (
+                <div key={c} className="flex items-center gap-[3px]">
+                  <span className="shrink-0 text-[5px] leading-none text-red-700">▸</span>
+                  <span className="min-w-0 truncate text-[5.5px] leading-tight text-blue-700 underline">
+                    {c}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </OldBox>
+          <OldBox title={t('old.pollTitle')} className="shrink-0">
+            <p className="text-center text-[5.5px] font-bold leading-snug">{t('old.pollQ')}</p>
+            <div className="mt-[3px] space-y-[2px]">
+              {[t('old.pollYes'), t('old.pollNo')].map((opt, i) => (
+                <div key={opt} className="flex items-center gap-1">
+                  <span
+                    className={cn(
+                      'size-[5px] shrink-0 rounded-full border border-stone-500',
+                      i === 0 ? 'bg-red-700' : 'bg-white'
+                    )}
+                  />
+                  <span className="w-[32%] shrink-0 truncate text-[5px] leading-none">{opt}</span>
+                  <span className="h-[4px] min-w-0 flex-1 rounded-[1px] border border-stone-400 bg-stone-100">
+                    <span
+                      className={cn('block h-full', i === 0 ? 'bg-red-700' : 'bg-stone-500')}
+                      style={{ width: i === 0 ? `${pollYesPct}%` : `${100 - pollYesPct}%` }}
+                    />
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-[3px] text-center text-[4.5px] italic leading-none text-stone-500">
+              {t('old.pollVotes')}
+            </p>
+          </OldBox>
+        </aside>
+
+        {/* main column — welcome box + product table */}
+        <main className="flex min-w-0 flex-1 flex-col gap-[3px]">
+          <div className="shrink-0 rounded-[2px] border border-stone-400 bg-white p-1 text-center">
+            <div className="flex items-start justify-center gap-1">
+              <Smile className="mt-px size-3 shrink-0 text-yellow-500" />
+              <p className="text-[6px] leading-snug text-stone-800">{t('old.welcome')}</p>
+            </div>
+            <span className="mt-1 inline-block border-2 border-t-white border-l-white border-b-stone-500 border-r-stone-500 bg-stone-300 px-2 py-[2px] text-[6.5px] font-bold leading-none text-red-700 shadow-[1px_1px_0_rgba(0,0,0,0.25)]">
+              {t('old.clickHere')}
             </span>
-            <span className="min-w-0 flex-1 truncate text-[6px] leading-none">{it}</span>
-            <span className="h-[5px] w-8 shrink-0 rounded-[1px] bg-stone-300" />
           </div>
-        ))}
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2px] border border-stone-400 bg-white">
+            <div
+              className="shrink-0 border-b border-stone-400 px-1 py-[2px] text-[6px] font-bold leading-none text-white"
+              style={{ background: 'linear-gradient(180deg, #3b82f6, #1d4ed8)' }}
+            >
+              {t('old.productsTitle')}
+            </div>
+            {products.map((p, i) => (
+              <div
+                key={`${p.name}-${i}`}
+                className={cn('flex items-center gap-1 px-1 py-[3px]', i > 0 && 'border-t border-stone-300')}
+              >
+                <span className="flex size-4 shrink-0 items-center justify-center border border-stone-400 bg-stone-200">
+                  <ImageOff className="size-2 text-stone-400" />
+                </span>
+                <span className="min-w-0 flex-1 truncate text-[6px] leading-none">{p.name}</span>
+                <span
+                  dir="ltr"
+                  className="shrink-0 text-[6px] font-bold leading-none tabular-nums text-red-700"
+                >
+                  {p.price}
+                </span>
+                <span className="shrink-0 text-[5.5px] leading-none text-blue-700 underline">
+                  {t('old.orderNow')}
+                </span>
+              </div>
+            ))}
+          </div>
+        </main>
+
+        {/* end sidebar — news + friends */}
+        <aside className="flex w-[24%] min-w-0 shrink-0 flex-col gap-[3px]">
+          <OldBox title={t('old.newsTitle')} className="min-h-0 flex-1">
+            <div className="space-y-[3px]">
+              {news.map((n) => (
+                <div key={n} className="flex items-start gap-[3px]">
+                  <span className="mt-[1px] size-[3px] shrink-0 rounded-full bg-red-700" />
+                  <span className="min-w-0 text-[5px] leading-[1.4] text-stone-700">{n}</span>
+                </div>
+              ))}
+            </div>
+          </OldBox>
+          <OldBox title={t('old.friendsTitle')} className="shrink-0">
+            <div className="space-y-[2px]">
+              {friends.map((f) => (
+                <div key={f} className="truncate text-[5px] leading-tight text-blue-700 underline">
+                  {f}
+                </div>
+              ))}
+            </div>
+          </OldBox>
+        </aside>
       </div>
 
-      {/* footer junk: hit counter + under-construction + best-viewed */}
-      <div className="flex shrink-0 flex-col items-center gap-[3px] px-2 py-1">
-        <span
-          className="rounded-[2px] bg-black px-1 py-px text-[6px] leading-none tracking-wider text-lime-400 shadow-[1px_1px_0_rgba(0,0,0,0.35)]"
-          style={{ fontFamily: MONO_STACK }}
-        >
-          {t('old.counter')}
-        </span>
-        <div className="flex h-[11px] w-full items-stretch overflow-hidden rounded-[2px] border border-stone-400">
+      {/* footer junk: counter + design credit • under-construction • best-viewed */}
+      <div className="flex shrink-0 flex-col gap-[2px] border-t-2 border-stone-400 bg-stone-200 px-1 py-[3px]">
+        <div className="flex items-center justify-between gap-1">
+          <span
+            className="shrink-0 rounded-[2px] bg-black px-1 py-px text-[5.5px] leading-none tracking-wider text-lime-400 shadow-[1px_1px_0_rgba(0,0,0,0.35)]"
+            style={{ fontFamily: MONO_STACK }}
+          >
+            {t('old.counter')}
+          </span>
+          <span className="min-w-0 truncate text-[4.5px] italic leading-none text-stone-500">
+            {t('old.credit')}
+          </span>
+        </div>
+        <div className="flex h-[10px] w-full items-stretch overflow-hidden rounded-[2px] border border-stone-400">
           <span
             className="w-[6px] shrink-0"
             style={{
               background: 'repeating-linear-gradient(45deg, #facc15 0 3px, #1c1917 3px 6px)',
             }}
           />
-          <span className="min-w-0 flex-1 truncate bg-yellow-100 px-1 text-[6px] font-bold leading-none text-stone-800">
+          <span className="min-w-0 flex-1 truncate bg-yellow-100 px-1 text-[5.5px] font-bold leading-none text-stone-800">
             {t('old.construction')}
           </span>
           <span
@@ -567,7 +853,9 @@ function SiteOldScene() {
             }}
           />
         </div>
-        <p className="truncate text-[6px] italic leading-none text-stone-500">{t('old.bestViewed')}</p>
+        <p className="truncate text-center text-[4.5px] italic leading-none text-stone-500">
+          {t('old.bestViewed')}
+        </p>
       </div>
     </div>
   )
@@ -581,12 +869,16 @@ function DashNewScene({ accent, brand }: { accent: string; brand?: string }) {
   const t = useTranslations('workSection.scenes')
   const nav = asStringArray(t.raw('dash.nav'))
   const kpis = asKpis(t.raw('dash.kpis'))
+  const range = asStringArray(t.raw('dash.range'))
   const tableHead = asStringArray(t.raw('dash.tableHead'))
   const rows = asRows(t.raw('dash.rows'))
   // unique per-instance gradient id (several sliders can share a page)
   const gid = `ba-chart-${useId().replace(/[^a-zA-Z0-9]/g, '')}`
   const welcome = t('dash.welcome')
-  const initial = welcome.trim().split(/\s+/).pop()?.charAt(0) ?? ''
+  // The topbar's last word is the user's name ("مساء الخير، زينب") — the
+  // sidebar chip shows it next to the initial instead of skeleton bars.
+  const name = welcome.trim().split(/\s+/).pop() ?? ''
+  const initial = name.charAt(0) ?? ''
   const TABLE_COLS = 'grid-cols-[1fr_1.3fr_0.7fr_0.85fr]'
 
   return (
@@ -622,15 +914,35 @@ function DashNewScene({ accent, brand }: { accent: string; brand?: string }) {
             )
           })}
         </nav>
-        {/* user chip */}
-        <div className="mt-auto flex min-w-0 items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-1 py-[3px]">
-          <span
-            className="size-3 shrink-0 rounded-full"
-            style={{ background: `linear-gradient(135deg, ${accent}, ${tintColor(accent, 0.45)})` }}
-          />
-          <div className="flex min-w-0 flex-col gap-[2px]">
-            <span className="h-[3px] w-full rounded-full bg-white/40" />
-            <span className="h-[2px] w-2/3 rounded-full bg-white/20" />
+        {/* sidebar footer — storage meter + named user chip */}
+        <div className="mt-auto flex shrink-0 flex-col gap-1">
+          <div className="rounded-md border border-white/10 bg-white/[0.04] px-1 py-[3px]">
+            <div className="flex items-center justify-between gap-1">
+              <span className="min-w-0 truncate text-[5px] leading-none text-white/45">{t('dash.storage')}</span>
+              <span
+                dir="ltr"
+                className="shrink-0 text-[5px] font-semibold leading-none tabular-nums text-white/70"
+              >
+                {t('dash.storageValue')}
+              </span>
+            </div>
+            <div className="mt-[3px] h-[3px] overflow-hidden rounded-full bg-white/10">
+              <div className="h-full w-[72%] rounded-full" style={{ background: accent }} />
+            </div>
+          </div>
+          <div className="flex min-w-0 items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-1 py-[3px]">
+            <span
+              className="flex size-[13px] shrink-0 items-center justify-center rounded-full text-[5px] font-bold leading-none text-white"
+              style={{
+                background: `linear-gradient(135deg, ${accent}, ${tintColor(accent, 0.45)})`,
+              }}
+            >
+              {initial}
+            </span>
+            <div className="flex min-w-0 flex-col gap-[2px]">
+              <span className="min-w-0 truncate text-[6px] font-bold leading-none">{name}</span>
+              <span className="min-w-0 truncate text-[5px] leading-none text-white/45">{t('dash.role')}</span>
+            </div>
           </div>
         </div>
       </aside>
@@ -668,8 +980,9 @@ function DashNewScene({ accent, brand }: { accent: string; brand?: string }) {
         {/* content: KPIs • chart • table */}
         <div className="flex min-h-0 flex-1 flex-col gap-1 p-1.5">
           <div className="grid shrink-0 grid-cols-4 gap-1">
-            {kpis.map((k) => {
+            {kpis.map((k, i) => {
               const up = k.delta.trim().startsWith('+')
+              const spark = KPI_SPARKS[i % KPI_SPARKS.length] ?? []
               return (
                 <div
                   key={k.label}
@@ -689,6 +1002,19 @@ function DashNewScene({ accent, brand }: { accent: string; brand?: string }) {
                       {k.delta}
                     </span>
                   </div>
+                  {/* mini sparkline — last bar carries the full accent */}
+                  <div className="mt-[3px] flex h-[7px] items-end gap-[2px]">
+                    {spark.map((h, j) => (
+                      <span
+                        key={j}
+                        className="w-[3px] shrink-0 rounded-[1px]"
+                        style={{
+                          height: `${h}%`,
+                          background: rgba(accent, j === spark.length - 1 ? 0.9 : 0.28),
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
               )
             })}
@@ -700,10 +1026,24 @@ function DashNewScene({ accent, brand }: { accent: string; brand?: string }) {
               <span className="min-w-0 truncate text-[6px] font-semibold leading-none">
                 {t('dash.chartTitle')}
               </span>
-              <span className="flex shrink-0 items-center gap-[3px] rounded-full bg-emerald-400/10 px-1 py-[2px] text-[6px] font-bold leading-none text-emerald-300">
-                <span className="size-[3px] animate-pulse rounded-full bg-emerald-400" />
-                {t('dash.live')}
-              </span>
+              <div className="flex shrink-0 items-center gap-[3px]">
+                <span className="flex items-center gap-[3px] rounded-full bg-emerald-400/10 px-1 py-[2px] text-[5px] font-bold leading-none text-emerald-300">
+                  <span className="size-[3px] animate-pulse rounded-full bg-emerald-400" />
+                  {t('dash.live')}
+                </span>
+                {range.map((r, i) => (
+                  <span
+                    key={r}
+                    className={cn(
+                      'whitespace-nowrap rounded-[3px] px-[3px] py-[1px] text-[5px] font-semibold leading-none',
+                      i === range.length - 1 ? 'text-white' : 'text-white/45'
+                    )}
+                    style={i === range.length - 1 ? { background: rgba(accent, 0.3) } : undefined}
+                  >
+                    {r}
+                  </span>
+                ))}
+              </div>
             </div>
             <svg
               className="mt-1 min-h-0 w-full flex-1"
@@ -749,8 +1089,16 @@ function DashNewScene({ accent, brand }: { accent: string; brand?: string }) {
 
           {/* latest operations table */}
           <div className="shrink-0 overflow-hidden rounded-md border border-white/10 bg-white/[0.04]">
-            <div className="border-b border-white/10 px-1 py-[3px] text-[6px] font-semibold leading-none">
-              {t('dash.tableTitle')}
+            <div className="flex items-center justify-between gap-1 border-b border-white/10 px-1 py-[3px]">
+              <span className="min-w-0 truncate text-[6px] font-semibold leading-none">
+                {t('dash.tableTitle')}
+              </span>
+              <span
+                className="shrink-0 text-[5px] font-semibold leading-none"
+                style={{ color: accent }}
+              >
+                {t('dash.viewAll')}
+              </span>
             </div>
             <div className={cn('grid gap-1 border-b border-white/5 px-1 py-[3px]', TABLE_COLS)}>
               {tableHead.map((h) => (
@@ -776,8 +1124,16 @@ function DashNewScene({ accent, brand }: { accent: string; brand?: string }) {
                   >
                     {r.ref}
                   </span>
-                  <span className="min-w-0 truncate text-[6px] leading-none text-white/85">
-                    {r.party}
+                  <span className="flex min-w-0 items-center gap-1">
+                    <span
+                      className="size-[6px] shrink-0 rounded-full"
+                      style={{
+                        background: `linear-gradient(135deg, ${tintColor(accent, 0.25)}, ${shadeColor(accent, 0.15)})`,
+                      }}
+                    />
+                    <span className="min-w-0 truncate text-[6px] leading-none text-white/85">
+                      {r.party}
+                    </span>
                   </span>
                   <span dir="ltr" className="min-w-0 truncate text-[6px] leading-none tabular-nums text-white/85">
                     {r.amount}
@@ -838,6 +1194,8 @@ function OldCell({
 function DashOldScene() {
   const t = useTranslations('workSection.scenes')
   const cols = asStringArray(t.raw('oldDash.cols'))
+  const menubar = asStringArray(t.raw('oldDash.menubar'))
+  const sheets = asStringArray(t.raw('oldDash.sheets'))
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden bg-stone-200 text-stone-800">
@@ -857,6 +1215,18 @@ function DashOldScene() {
             <X className="size-[7px] text-stone-700" />
           </span>
         </span>
+      </div>
+
+      {/* classic menu bar — ملف تحرير عرض … the unmistakable Excel tell */}
+      <div className="flex h-[12px] shrink-0 items-center gap-1.5 overflow-hidden border-b border-stone-400 bg-stone-100 px-1">
+        {menubar.map((m) => (
+          <span
+            key={m}
+            className="whitespace-nowrap font-serif text-[5.5px] leading-none text-stone-800"
+          >
+            {m}
+          </span>
+        ))}
       </div>
 
       {/* toolbar with beveled buttons */}
@@ -896,10 +1266,30 @@ function DashOldScene() {
         </span>
       </div>
 
-      {/* sheet: header row + dense cell grid */}
+      {/* sheet: column letters chrome + header row (row 1) + dense grid */}
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className={cn('grid shrink-0 border-b-2 border-stone-500 bg-stone-300', SHEET_COLS)}>
+        <div
+          className={cn(
+            'grid shrink-0 border-b border-stone-400 bg-stone-300',
+            SHEET_COLS
+          )}
+        >
           <span className="border-e border-stone-400" />
+          {cols.map((_, i) => (
+            <span
+              key={i}
+              dir="ltr"
+              className="border-e border-stone-400 px-[3px] text-center text-[5px] leading-[10px] text-stone-600 last:border-e-0"
+              style={{ fontFamily: MONO_STACK }}
+            >
+              {COL_LETTERS[i] ?? ''}
+            </span>
+          ))}
+        </div>
+        <div className={cn('grid shrink-0 border-b-2 border-stone-500 bg-stone-300', SHEET_COLS)}>
+          <span className="flex items-center justify-center border-e border-stone-400 bg-stone-200 text-[5px] leading-none tabular-nums text-stone-500">
+            1
+          </span>
           {cols.map((c) => (
             <OldCell key={c} className="py-[2px]" innerClassName="font-bold text-stone-700">
               {c}
@@ -915,7 +1305,7 @@ function DashOldScene() {
             )}
           >
             <span className="flex items-center justify-center border-e border-stone-400 bg-stone-100 text-[5px] leading-none tabular-nums text-stone-500">
-              {i + 1}
+              {i + 2}
             </span>
             <OldCell dir="ltr" innerClassName="tabular-nums text-stone-700">
               {r.date}
@@ -948,8 +1338,28 @@ function DashOldScene() {
         ))}
       </div>
 
+      {/* sheet tabs + status bar — the bottom Excel chrome */}
+      <div className="flex h-[13px] shrink-0 items-center gap-[2px] border-t border-stone-400 bg-stone-200 px-1">
+        {sheets.map((s, i) => (
+          <span
+            key={s}
+            className={cn(
+              'flex h-full items-center border-x border-t border-stone-400 px-[4px] font-serif text-[5.5px] leading-none',
+              i === 0
+                ? 'bg-white font-bold text-stone-800'
+                : 'bg-stone-300 text-stone-600'
+            )}
+          >
+            {s}
+          </span>
+        ))}
+        <span className="ms-auto shrink-0 font-serif text-[5.5px] italic leading-none text-stone-600">
+          {t('oldDash.ready')}
+        </span>
+      </div>
+
       {/* unsaved-changes warning dialog overlay */}
-      <div className="absolute bottom-1.5 start-1.5 end-1.5 z-10 flex items-center gap-1 rounded-[2px] border border-red-700 bg-yellow-300 px-1 py-[3px] shadow-[3px_3px_0_rgba(0,0,0,0.3)]">
+      <div className="absolute bottom-[17px] start-1.5 end-1.5 z-10 flex items-center gap-1 rounded-[2px] border border-red-700 bg-yellow-300 px-1 py-[3px] shadow-[3px_3px_0_rgba(0,0,0,0.3)]">
         <TriangleAlert className="size-[10px] shrink-0 text-red-700" />
         <span className="min-w-0 flex-1 truncate text-[6px] font-bold leading-none text-red-700">
           {t('oldDash.warning')}
@@ -968,7 +1378,10 @@ function Scene({ variant, accent, mock }: { variant: SceneVariant; accent: strin
   return (
     <div className="size-full" aria-hidden="true">
       {variant === 'site-new' && <SiteNewScene accent={accent} mock={mock} />}
-      {variant === 'site-old' && <SiteOldScene />}
+      {/* R8: the OLD scenes receive the mock too — the "before" is the SAME
+          business (brand on the 2009 masthead, products echoed in the old
+          table), which sells the before→after transformation. */}
+      {variant === 'site-old' && <SiteOldScene mock={mock} />}
       {variant === 'dashboard-new' && <DashNewScene accent={accent} brand={mock?.brand} />}
       {variant === 'dashboard-old' && <DashOldScene />}
     </div>

@@ -402,7 +402,27 @@
           "Returns",
           "Contact"
         ],
-        "footerNote": "All rights reserved"
+        "footerNote": "All rights reserved",
+        "categories": [
+          "Bestsellers",
+          "New arrivals",
+          "Offers",
+          "Full collections"
+        ],
+        "trust": [
+          "Express 48h delivery",
+          "Secure encrypted payment",
+          "Free 30-day returns",
+          "Around-the-clock support"
+        ],
+        "payments": [
+          "VISA",
+          "Mastercard",
+          "Mada",
+          "Apple Pay"
+        ],
+        "socialProof": "+2,400 verified customers",
+        "newBadge": "NEW"
       },
       "old": {
         "announce": "*** SPECIAL OFFERS!!! UP TO 70% OFF — HURRY BEFORE IT ENDS ***",
@@ -423,7 +443,42 @@
           "Product No. 1",
           "Product No. 2",
           "Product No. 3"
-        ]
+        ],
+        "fallbackBrand": "Al-Sham Trading Co.",
+        "slogan": "You deserve the best since 1998",
+        "adSpace": "Ad space",
+        "adTag": "AD",
+        "tickerTag": "NEW",
+        "ticker": "Welcome to our official website — special offers for a limited time — to book or get in touch, call the phone numbers at the bottom of the page",
+        "categoriesTitle": "Site sections",
+        "categories": [
+          "Home",
+          "About us",
+          "Products",
+          "Offers",
+          "News",
+          "Contact"
+        ],
+        "pollTitle": "Site poll",
+        "pollQ": "Do you like our design?",
+        "pollYes": "Yes, great",
+        "pollNo": "No",
+        "pollVotes": "1,240 votes so far",
+        "newsTitle": "Latest news",
+        "news": [
+          "12/03 — products page updated with summer offers",
+          "05/03 — a new collection has just arrived",
+          "28/02 — our 10th anniversary, 10% off"
+        ],
+        "friendsTitle": "Friendly sites",
+        "friends": [
+          "Arabic web directory",
+          "Discussion forums",
+          "Download center"
+        ],
+        "productsTitle": "Featured products",
+        "orderNow": "Order now",
+        "credit": "Design & code: Sham Tech Network"
       },
       "dash": {
         "nav": [
@@ -486,11 +541,20 @@
             "amount": "$2,150",
             "status": "Completed"
           }
-        ]
+        ],
+        "range": [
+          "7 days",
+          "30 days",
+          "12 months"
+        ],
+        "storage": "Storage",
+        "storageValue": "7.2 GB / 10 GB",
+        "viewAll": "View all",
+        "role": "Account manager"
       },
       "oldDash": {
         "file": "sales_v2_FINAL_really_final.xls",
-        "formula": "=SUM(B2:B14)",
+        "formula": "=SUM(C2:C14)",
         "warning": "Warning: 3 rows contain errors — unsaved changes!",
         "cols": [
           "Date",
@@ -498,7 +562,23 @@
           "Amount",
           "Status"
         ],
-        "status": "Pending?"
+        "status": "Pending?",
+        "menubar": [
+          "File",
+          "Edit",
+          "View",
+          "Insert",
+          "Format",
+          "Tools",
+          "Data",
+          "Help"
+        ],
+        "sheets": [
+          "Sheet1",
+          "Sheet2",
+          "Sheet3"
+        ],
+        "ready": "Ready"
       }
     }
   },

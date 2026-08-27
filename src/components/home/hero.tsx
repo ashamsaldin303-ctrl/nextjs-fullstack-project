@@ -145,13 +145,20 @@ function Spark({ className }: { className?: string }) {
 }
 
 /**
- * Elyra hero — R7 editorial-cinematic rework.
+ * Elyra hero — R7 editorial-cinematic rework + R8 "Assembly" build sequence.
  *
  * Layout: asymmetric, start-aligned (right on RTL), giant masked-reveal
  * display type (KineticHeading), kicker row with a live Damascus clock,
  * outlined ELYRA watermark bleeding off the bottom corner, vertical
  * scroll rail on the empty edge, rotating orbit badge beside the CTAs,
  * and an infinite service marquee as the section's bottom edge.
+ *
+ * R8 build sequence: as the intro curtain lifts, a blueprint layer draws
+ * itself (guides + brackets + crosshairs + mono spec labels), a scan line
+ * sweeps the hero top→bottom "printing" the content into place (each
+ * block's inline animationDelay is tuned to the line's position), the
+ * marquee edge powers on and a closing diagonal sheen sweeps across —
+ * the agency's "we build" narrative made literal.
  *
  * Preserved performance architecture: above-the-fold content renders
  * from the SERVER with CSS-only entrances (no framer-motion, LCP-safe);
@@ -288,6 +295,32 @@ export function Hero() {
         />
       </div>
 
+      {/* R8 — "The Assembly" build sequence (plays right after the entry
+          intro lifts): blueprint guides draw, a scan line sweeps the hero
+          top→bottom printing the content into place, the marquee edge
+          powers on and a closing sheen sweeps across. Decorative only —
+          every child animation is paused under html[data-intro] (see the
+          globals.css R8 block for the full choreography). */}
+      <div className="hero-build-fx" data-bg-layer="" aria-hidden="true">
+        <div className="hero-blueprint">
+          <span className="hb-line hb-v hb-v1" />
+          <span className="hb-line hb-v hb-v2" />
+          <span className="hb-line hb-h hb-h1" />
+          <span className="hb-bracket hb-tl" />
+          <span className="hb-bracket hb-tr" />
+          <span className="hb-bracket hb-bl" />
+          <span className="hb-bracket hb-br" />
+          <span className="hb-cross hb-c1" />
+          <span className="hb-cross hb-c2" />
+          <span className="hb-cross hb-c3" />
+          <span className="hb-label hb-l1">FIG. 01 — HOMEPAGE ASSEMBLY</span>
+          <span className="hb-label hb-l2">33.51°N · 36.29°E — DAMASCUS</span>
+          <span className="hb-label hb-l3">GRID 12 × 8 · BUILD v2.5</span>
+        </div>
+        <span className="hero-build-scan" />
+        <span className="hero-build-sheen" />
+      </div>
+
       {/* Outlined ELYRA watermark — bleeds off the far corner (the empty
           side of the asymmetric composition). Latin glyphs, stroke-only.
           data-bg-layer: exempt from .elyra-spotlight's content-lift rule
@@ -297,9 +330,11 @@ export function Hero() {
       </div>
 
       {/* Vertical scroll rail on the empty edge (desktop only).
-          data-bg-layer: same spotlight content-lift exemption. */}
+          data-bg-layer: same spotlight content-lift exemption. R8: inline
+          build-sequence delay (synced to the scan line reaching this edge). */}
       <div
-        className="hero-enter hero-enter-4 pointer-events-none absolute bottom-36 top-1/2 z-10 hidden -translate-y-1/2 flex-col items-center gap-4 ltr:right-7 rtl:left-7 lg:flex"
+        className="hero-enter pointer-events-none absolute bottom-36 top-1/2 z-10 hidden -translate-y-1/2 flex-col items-center gap-4 ltr:right-7 rtl:left-7 lg:flex"
+        style={{ animationDelay: '1.3s' }}
         data-bg-layer=""
         aria-hidden="true"
       >
@@ -313,8 +348,12 @@ export function Hero() {
 
       {/* Content — start-aligned editorial column, CSS-only entrance. */}
       <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-7xl flex-col justify-center px-4 pb-32 pt-24 text-start sm:px-6 lg:px-8 lg:pb-28">
-        {/* Kicker row — pulse dot, agency line, place + live time. */}
-        <div className="hero-enter hero-enter-1 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-white/70">
+        {/* Kicker row — pulse dot, agency line, place + live time.
+            R8: inline delay synced to the build scan line (~30% hero height). */}
+        <div
+          className="hero-enter flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-white/70"
+          style={{ animationDelay: '0.6s' }}
+        >
           <span className="flex items-center gap-2.5">
             <span className="size-1.5 rounded-full bg-g-green elyra-pulse" aria-hidden="true" />
             <span className="font-medium">{t('badge')}</span>
@@ -334,11 +373,17 @@ export function Hero() {
           titleBottomKey="titleBottom"
         />
 
-        <p className="hero-enter hero-enter-3 mt-7 max-w-xl text-base leading-relaxed text-white/70 sm:text-lg">
+        <p
+          className="hero-enter mt-7 max-w-xl text-base leading-relaxed text-white/70 sm:text-lg"
+          style={{ animationDelay: '1.15s' }}
+        >
           {t('subtitle')}
         </p>
 
-        <div className="hero-enter hero-enter-4 mt-9 flex w-full items-center gap-4 sm:gap-6">
+        <div
+          className="hero-enter mt-9 flex w-full items-center gap-4 sm:gap-6"
+          style={{ animationDelay: '1.3s' }}
+        >
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
             <Link
               ref={ctaPrimaryRef}
