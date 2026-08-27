@@ -17,7 +17,7 @@ import { getHeroScroll } from '@/lib/hero-scroll'
  * gently swells the flow; the camera dollies +0.8 on the same signal.
  *
  * Aurora backdrop (item 13): one additive fullscreen-ish plane BEHIND the
- * particles — 4-octave fbm curtains in amber/green with a soft cursor
+ * particles — 4-octave fbm curtains in blue/green with a soft cursor
  * light and a gentle vignette on the light itself. Additive blending
  * keeps the CSS stage (#08080A + hero-fallback gradient + blueprint
  * spotlight grid) visible underneath.
@@ -32,16 +32,17 @@ import { getHeroScroll } from '@/lib/hero-scroll'
  */
 
 const PARTICLE_COUNT = 4500
-// Brand family only — amber / green / warm-white (palette law: no blue).
+// Brand family only — blues / green / cool-white (palette revert: blue
+// is back — Google/Apple blue family with the brand green as counterpoint).
 const COLORS = [
-  new THREE.Color('#F59E0B'),
-  new THREE.Color('#F59E0B'),
-  new THREE.Color('#FBBF24'),
-  new THREE.Color('#FBBF24'),
+  new THREE.Color('#4285F4'),
+  new THREE.Color('#4285F4'),
+  new THREE.Color('#0071E3'),
+  new THREE.Color('#0071E3'),
+  new THREE.Color('#60A5FA'),
+  new THREE.Color('#60A5FA'),
   new THREE.Color('#34A853'),
-  new THREE.Color('#34A853'),
-  new THREE.Color('#10B981'),
-  new THREE.Color('#FFF3D6'),
+  new THREE.Color('#E8F2FF'),
 ]
 
 const BASE_CAMERA_Z = 6 // mirrors the Canvas camera prop below
@@ -245,7 +246,7 @@ const AURORA_VERTEX = /* glsl */ `
 const AURORA_FRAGMENT = /* glsl */ `
   uniform float uTime;
   uniform vec2 uMouse;   // world-space (plane local) cursor position
-  uniform vec3 uColorA;  // amber
+  uniform vec3 uColorA;  // blue
   uniform vec3 uColorB;  // green
   varying vec2 vUv;
   varying vec2 vPos;
@@ -293,16 +294,16 @@ const AURORA_FRAGMENT = /* glsl */ `
     // Gentle vignette on the aurora light itself (screen edges stay calm).
     float vig = 1.0 - smoothstep(0.15, 0.42, length(vUv - vec2(0.5)));
 
-    float amber = pow(smoothstep(0.38, 0.85, n1), 1.6) * vert * vig;
+    float blue = pow(smoothstep(0.38, 0.85, n1), 1.6) * vert * vig;
     float green = pow(smoothstep(0.42, 0.90, n2), 1.7) * vert * vig;
 
     vec3 col = vec3(0.0); // additive: the CSS stage shows through
-    col += uColorA * amber * 0.30;
+    col += uColorA * blue * 0.30;
     col += uColorB * green * 0.24;
-    // warm core where the curtains cross
-    col += uColorA * amber * green * 0.30;
+    // cool core where the curtains cross
+    col += uColorA * blue * green * 0.30;
 
-    // Subtle cursor light — a broad warm wash following the pointer.
+    // Subtle cursor light — a broad cool wash following the pointer.
     float md = length(vPos - uMouse);
     col += mix(uColorB, uColorA, 0.6) * exp(-md * md / 220.0) * 0.10;
 
@@ -399,8 +400,8 @@ function AuroraBackdrop({ mouse }: { mouse: React.MutableRefObject<{ x: number; 
     () => ({
       uTime: { value: 0 },
       uMouse: { value: new THREE.Vector2(0, 0) },
-      uColorA: { value: new THREE.Color('#F59E0B') },
-      uColorB: { value: new THREE.Color('#10B981') },
+      uColorA: { value: new THREE.Color('#4285F4') },
+      uColorB: { value: new THREE.Color('#34A853') },
     }),
     []
   )

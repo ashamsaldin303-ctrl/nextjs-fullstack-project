@@ -46,7 +46,7 @@ export default function RootNotFound() {
             as the inline styles (no globals.css dependency). */}
         <style>{`
           .nf-chip:hover { background: rgba(255, 255, 255, 0.10); border-color: rgba(245, 158, 11, 0.5); }
-          .nf-chip:focus-visible { outline: 2px solid #F59E0B; outline-offset: 2px; }
+          .nf-chip:focus-visible { outline: 2px solid #4285F4; outline-offset: 2px; }
         `}</style>
       </head>
       <body
@@ -68,8 +68,8 @@ export default function RootNotFound() {
         {/* Self-contained hover/focus states ship in <head> above. */}
         <main style={{ padding: '4rem 1.5rem', maxWidth: '34rem' }}>
           {/* Elyra wordmark — inline SVG, zero external assets. Quad-dot
-              accent matches logo.tsx (Batch 1 no-blue sweep, I-1):
-              amber / red / amber-yellow / green. */}
+              accent matches logo.tsx (blue palette revert):
+              blue / red / light-blue / green. */}
           <svg
             viewBox="0 0 36 36"
             width="48"
@@ -83,9 +83,9 @@ export default function RootNotFound() {
               d="M11 9 H22 V12.4 H14.6 V16.4 H20.6 V19.8 H14.6 V24 H22 V27.4 H11 Z"
               fill="#0F172A"
             />
-            <circle cx="27" cy="20.4" r="2.6" fill="#F59E0B" />
+            <circle cx="27" cy="20.4" r="2.6" fill="#4285F4" />
             <circle cx="27" cy="14.8" r="1.5" fill="#DC2626" />
-            <circle cx="22.6" cy="20.4" r="1.5" fill="#FBBF24" />
+            <circle cx="22.6" cy="20.4" r="1.5" fill="#60A5FA" />
             <circle cx="27" cy="25.9" r="1.5" fill="#34A853" />
           </svg>
           <div
@@ -122,7 +122,7 @@ export default function RootNotFound() {
               marginTop: '2rem',
               padding: '0.625rem 1.5rem',
               borderRadius: '9999px',
-              background: '#B45309',
+              background: '#0071E3',
               color: '#FFFFFF',
               textDecoration: 'none',
               fontWeight: 500,

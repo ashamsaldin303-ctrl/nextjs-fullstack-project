@@ -21,12 +21,12 @@ interface ProjectDef {
 // and a creative agency. Industries live in the i18n `type` field;
 // service lists are served per project via `projects.{key}.services`.
 const PROJECTS: ProjectDef[] = [
-  { key: 'p1', category: 'websites', variant: 'site-new', accent: '#B45309' },   // e-commerce (amber-700)
-  { key: 'p2', category: 'websites', variant: 'site-new', accent: '#34A853' },   // real estate (brand green)
-  { key: 'p3', category: 'websites', variant: 'site-new', accent: '#DC2626' },   // education (red-600)
-  { key: 'p4', category: 'websites', variant: 'site-new', accent: '#FBBF24' },   // restaurant (gold)
-  { key: 'p5', category: 'automation', variant: 'dashboard-new', accent: '#D97706' }, // SaaS (amber-600)
-  { key: 'p6', category: 'automation', variant: 'dashboard-new', accent: '#F59E0B' }, // creative agency (amber-500)
+  { key: 'p1', category: 'websites', variant: 'site-new', accent: '#0071E3' },  // e-commerce (blue)
+  { key: 'p2', category: 'websites', variant: 'site-new', accent: '#34A853' },  // real estate (brand green)
+  { key: 'p3', category: 'websites', variant: 'site-new', accent: '#EA4335' },  // education (red)
+  { key: 'p4', category: 'websites', variant: 'site-new', accent: '#FBBC05' },  // restaurant (gold)
+  { key: 'p5', category: 'automation', variant: 'dashboard-new', accent: '#4285F4' }, // SaaS (google blue)
+  { key: 'p6', category: 'automation', variant: 'dashboard-new', accent: '#60A5FA' }, // creative agency (light blue)
 ]
 
 type Filter = 'all' | Category

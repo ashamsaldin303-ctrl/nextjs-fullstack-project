@@ -151,8 +151,8 @@ export function Navbar() {
                               active
                                 /* MED-2: token-driven active pill. The g-* names
                                    are palette-neutral aliases — --g-blue now
-                                   resolves to amber-600 (#D97706) after the
-                                   Batch 1 no-blue sweep (I-1), so the pill and
+                                   resolves to Google blue (#4285F4) after the
+                                   blue palette revert, so the pill and
                                    its ring auto-followed the rebrand with no
                                    change here. Text stays full white: the tinted
                                    pill over #0F172A is a low-contrast surface,

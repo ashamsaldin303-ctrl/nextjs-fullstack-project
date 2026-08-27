@@ -117,7 +117,7 @@ export function toMockContent(raw: unknown): MockContent | undefined {
    Color helpers — accents arrive as hex strings per project
    -------------------------------------------------------------------------- */
 
-const FALLBACK_RGB: [number, number, number] = [180, 83, 9] // #B45309 (brand amber)
+const FALLBACK_RGB: [number, number, number] = [0, 113, 227] // #0071E3 (brand blue)
 
 function hexToRgb(hex: string): [number, number, number] {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim())
@@ -158,7 +158,7 @@ function luminance(hex: string): number {
 const isLightColor = (hex: string) => luminance(hex) > 0.55
 
 /** Readable ink on top of a solid accent fill (white on dark accents,
- *  darkened accent on light ones like the gold #FBBF24). */
+ *  darkened accent on light ones like the gold #FBBC05). */
 const onAccentColor = (hex: string) => (isLightColor(hex) ? shadeColor(hex, 0.6) : '#ffffff')
 
 /** Readable ink on top of an accent TINT (announcement bar, chips). */
@@ -437,7 +437,7 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
                 </div>
                 {i === 1 && (
                   <div className="mt-[1px] flex min-w-0 items-center gap-[3px] overflow-hidden">
-                    <span className="shrink-0 text-[6px] leading-none text-amber-500">★★★★★</span>
+                    <span className="shrink-0 text-[6px] leading-none text-amber-400">★★★★★</span>
                     <span className="shrink-0 text-[6px] font-bold leading-none text-stone-700">
                       {t('site.rating')}
                     </span>
@@ -506,7 +506,7 @@ function SiteOldScene() {
         {nav.map((l, i) => (
           <span key={l} className="flex items-center gap-1">
             {i > 0 && <span className="text-[6px] leading-none text-stone-400">|</span>}
-            <span className="whitespace-nowrap text-[6.5px] leading-none text-amber-800 underline">
+            <span className="whitespace-nowrap text-[6.5px] leading-none text-blue-700 underline">
               {l}
             </span>
           </span>
@@ -785,7 +785,7 @@ function DashNewScene({ accent, brand }: { accent: string; brand?: string }) {
                   <span
                     className={cn(
                       'min-w-0 truncate rounded-full px-[4px] py-[1px] text-[6px] font-semibold leading-none',
-                      done ? 'bg-emerald-400/15 text-emerald-300' : 'bg-amber-400/15 text-amber-300'
+                      done ? 'bg-emerald-400/15 text-emerald-300' : 'bg-blue-400/15 text-blue-300'
                     )}
                   >
                     {r.status}
@@ -988,7 +988,7 @@ interface BeforeAfterProps {
 
 export function BeforeAfter({
   variant,
-  accent = '#B45309',
+  accent = '#0071E3',
   className,
   label,
   mock,

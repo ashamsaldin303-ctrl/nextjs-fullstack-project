@@ -230,9 +230,9 @@ export function HeroConsole({
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all',
               selected === id
-                /* MED-2: the brand amber accent carried by the legacy g-blue
-                   token (#D97706) on the g-blue/15 tint over #08080A
-                   measures ≈5.3:1 — AA for the 14px label. */
+                /* MED-2: the brand blue accent carried by the legacy g-blue
+                   token (#4285F4) on the g-blue/15 tint over #08080A
+                   measures ≈5.0:1 — AA for the 14px label. */
                 ? 'border-g-blue bg-g-blue/15 text-g-blue'
                 : 'border-white/15 bg-white/5 text-white/70 hover:border-white/30 hover:text-white'
             )}

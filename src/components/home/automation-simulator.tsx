@@ -428,8 +428,8 @@ export function AutomationSimulator({
             >
               <defs>
                 <linearGradient id="elyra-edge" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.2" />
-                  <stop offset="50%" stopColor="#F59E0B" stopOpacity="1" />
+                  <stop offset="0%" stopColor="#4285F4" stopOpacity="0.2" />
+                  <stop offset="50%" stopColor="#4285F4" stopOpacity="1" />
                   <stop offset="100%" stopColor="#34A853" stopOpacity="0.2" />
                 </linearGradient>
               </defs>

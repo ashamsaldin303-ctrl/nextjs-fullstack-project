@@ -42,7 +42,7 @@ export default function AppleIcon() {
             width: 28,
             height: 28,
             borderRadius: '50%',
-            background: '#F59E0B',
+            background: '#4285F4',
           }}
         />
         <div
@@ -64,7 +64,7 @@ export default function AppleIcon() {
             width: 17,
             height: 17,
             borderRadius: '50%',
-            background: '#FBBF24',
+            background: '#60A5FA',
           }}
         />
         <div

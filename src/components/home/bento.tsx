@@ -65,7 +65,7 @@ function GlowCard({
    Mini interactive 1 — websites theme playground (mini e-commerce site)
    ========================================================================= */
 
-const SITE_PALETTE = ['#B45309', '#34A853', '#DC2626', '#F59E0B'] as const
+const SITE_PALETTE = ['#0071E3', '#34A853', '#EA4335', '#4285F4'] as const
 
 /* Contrast-safe accent derivations (module scope, pure & deterministic —
    identical on server & client, so no hydration risk).
@@ -73,7 +73,7 @@ const SITE_PALETTE = ['#B45309', '#34A853', '#DC2626', '#F59E0B'] as const
    strings render as accent-colored TEXT on the dark browser panel — neither
    strings render as accent-colored TEXT on the dark browser panel — neither
    pair passes WCAG AA for every swatch (amber being the worst offender:
-   white on #F59E0B is ~2.2:1). Instead of a blanket dark overlay, each fixed
+   white on #4285F4 is ~3.1:1). Instead of a blanket dark overlay, each fixed
    palette entry is mixed toward black (white-text surfaces) or toward white
    (accent text) in 2% steps until the pair clears 4.54:1 (AA + margin). */
 
@@ -102,7 +102,7 @@ function mixToward(hex: string, towardWhite: boolean, f: number): string {
   return rgbToHex(ch(r), ch(g), ch(b))
 }
 /** Darken the accent until WHITE text on it clears AA — used for the CTA,
- *  cart badge and discount badges (keeps #B45309 untouched: 4.62:1 already). */
+ *  cart badge and discount badges (keeps #0071E3 untouched: 4.5:1 already). */
 function ctaSafe(hex: string): string {
   for (let f = 0; f <= 0.9; f += 0.02) {
     const c = mixToward(hex, false, f)
@@ -141,7 +141,7 @@ function discountPct(price: string, old: string): number {
 function MiniSite() {
   const t = useTranslations('bento.websites.mini')
   const [swatch, setSwatch] = useState(0)
-  const accent = SITE_PALETTE[swatch] ?? '#B45309'
+  const accent = SITE_PALETTE[swatch] ?? '#0071E3'
   const nav = t.raw('nav') as string[]
   const paletteNames = t.raw('palette') as string[]
   const products = t.raw('products') as { name: string; price: string; old: string }[]
@@ -490,8 +490,8 @@ const CUBE_FACES: ReadonlyArray<{
   glyph?: string
   dark?: boolean
 }> = [
-  { tr: 'translateZ(28px)', grad: 'linear-gradient(135deg, #F59E0B, #B45309)', icon: null, glyph: 'E' },
-  { tr: 'rotateY(180deg) translateZ(28px)', grad: 'linear-gradient(135deg, #FBBF24, #D97706)', icon: Globe },
+  { tr: 'translateZ(28px)', grad: 'linear-gradient(135deg, #4285F4, #0071E3)', icon: null, glyph: 'E' },
+  { tr: 'rotateY(180deg) translateZ(28px)', grad: 'linear-gradient(135deg, #60A5FA, #4285F4)', icon: Globe },
   { tr: 'rotateY(90deg) translateZ(28px)', grad: 'linear-gradient(135deg, #4CBF6E, #1E8F41)', icon: Boxes },
   { tr: 'rotateY(-90deg) translateZ(28px)', grad: 'linear-gradient(135deg, #F0655A, #C22F23)', icon: Sparkles },
   { tr: 'rotateX(90deg) translateZ(28px)', grad: 'linear-gradient(135deg, #FFD44D, #E9A61D)', icon: Bot, dark: true },

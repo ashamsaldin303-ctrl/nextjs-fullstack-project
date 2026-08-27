@@ -7,8 +7,8 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 
 /**
  * Interactive 3D capability scene for /services/websites.
- * A metallic TorusKnot lit by 4 brand-colored point lights (amber/gold/
- * green/warm-white — palette law: no blue), with
+ * A metallic TorusKnot lit by 4 brand-colored point lights (blue/green/
+ * deep-blue/cool-white — palette revert: blue family), with
  * mouse parallax + drag-to-rotate. Dark stage, DPR capped at 2.
  * Batch 3 item 14: PMREM/RoomEnvironment image-based lighting so the
  * 0.85-metalness knot has real reflections (envMapIntensity 1).
@@ -20,10 +20,10 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
  */
 
 const LIGHTS: { color: string; pos: [number, number, number] }[] = [
-  { color: '#F59E0B', pos: [3, 2, 4] },
+  { color: '#4285F4', pos: [3, 2, 4] },
   { color: '#34A853', pos: [-3, 2, 4] },
-  { color: '#FBBF24', pos: [3, -2, 2] },
-  { color: '#FFF3D6', pos: [-3, -2, 2] },
+  { color: '#0071E3', pos: [3, -2, 2] },
+  { color: '#E8F2FF', pos: [-3, -2, 2] },
 ]
 
 function Knot({ dragging }: { dragging: boolean }) {
@@ -105,7 +105,7 @@ function Knot({ dragging }: { dragging: boolean }) {
         <mesh geometry={geo} material={mat} />
         <mesh position={[2.6, 1.2, -1]}>
           <icosahedronGeometry args={[0.28, 0]} />
-          <meshStandardMaterial color="#F59E0B" metalness={0.6} roughness={0.3} />
+          <meshStandardMaterial color="#4285F4" metalness={0.6} roughness={0.3} />
         </mesh>
         <mesh position={[-2.4, -1.4, 0.5]}>
           <octahedronGeometry args={[0.34, 0]} />
@@ -113,7 +113,7 @@ function Knot({ dragging }: { dragging: boolean }) {
         </mesh>
         <mesh position={[1.8, -1.8, 1.2]}>
           <dodecahedronGeometry args={[0.26, 0]} />
-          <meshStandardMaterial color="#FBBF24" metalness={0.6} roughness={0.3} />
+          <meshStandardMaterial color="#0071E3" metalness={0.6} roughness={0.3} />
         </mesh>
       </group>
     </>

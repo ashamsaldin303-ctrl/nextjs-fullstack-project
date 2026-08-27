@@ -65,8 +65,8 @@ export function Testimonials() {
                     <p className="text-xs text-white/60">
                       {t(`items.${key}.role`)}
                     </p>
-                    {/* MED-2: the amber accent carried by the legacy g-blue
-                        token (#D97706) on the same surface is ≈6.3:1 ✓. */}
+                    {/* MED-2: the blue accent carried by the legacy g-blue
+                        token (#4285F4) on the same surface is ≈5.9:1 ✓. */}
                     <p className="text-xs font-medium text-g-blue">
                       {t(`items.${key}.company`)}
                     </p>

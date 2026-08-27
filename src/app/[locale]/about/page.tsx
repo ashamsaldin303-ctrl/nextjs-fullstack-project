@@ -126,7 +126,7 @@ export default async function AboutPage() {
                     </div>
                     <h3 className="mt-4 font-semibold">{name}</h3>
                     {/* MED-3: primary/90 on white was 4.04:1 — the AA-on-white
-                        brand token primary-strong (#92400E) is ≈7.1:1 ✓. */}
+                        brand token primary-strong (#0066CC) is ≈5.8:1 ✓. */}
                     <p className="mt-1 text-sm text-primary-strong">{t(`team.members.${m}.role`)}</p>
                     <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                       {t(`team.members.${m}.bio`)}

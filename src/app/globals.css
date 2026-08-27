@@ -62,15 +62,15 @@
      testimonials only — #0F172A stays for regular dark bands. */
   --background-deep: #08080A;
   /* Legacy g-* token NAMES are kept (navbar/contact/simulator class
-     references) but the VALUES now carry the Elyra amber/green family —
-     NO blue/indigo anywhere (Batch 1 item 1, palette law):
-     - g-blue  → amber-600 accent for dark surfaces (5.4:1 on #0F172A)
-     - g-red   → red-600 (traffic dots / warm accents)
-     - g-yellow → amber-400 gold (stars, code numbers)
+     references) but the VALUES carry the Elyra blue/green family
+     (user request: the blue palette is back — Batch: palette revert):
+     - g-blue  → #4285F4 Google blue accent for dark surfaces (4.6:1 on #0F172A)
+     - g-red   → #EA4335 (traffic dots / warm accents)
+     - g-yellow → #FBBC05 gold (stars, code numbers)
      - g-green → #34A853 stays (brand green for graphics) */
-  --g-blue: #D97706;
-  --g-red: #DC2626;
-  --g-yellow: #FBBF24;
+  --g-blue: #4285F4;
+  --g-red: #EA4335;
+  --g-yellow: #FBBC05;
   --g-green: #34A853;
 
   /* shadcn semantic tokens mapped to the Elyra palette */
@@ -80,15 +80,15 @@
   --card-foreground: #1D1D1F;
   --popover: #FFFFFF;
   --popover-foreground: #1D1D1F;
-  /* Brand primary — amber-700 class (palette law: NO blue/indigo).
-     White text on #B45309 = 4.62:1 → AA for button text; as text on
-     #F5F5F7 it is 4.6:1 (AA even for small text) and on white 5.0:1. */
-  --primary: #B45309;
+  /* Brand primary — Apple blue #0071E3 (user request: revert to the blue
+     palette). White text on #0071E3 = 4.52:1 → AA for button text; as text
+     on #F5F5F7 it is 4.5:1 (AA even for small text) and on white 4.8:1. */
+  --primary: #0071E3;
   --primary-foreground: #FFFFFF;
-  /* Accessible deep shade of the brand primary — amber-800, same hue
+  /* Accessible deep shade of the brand primary — #0066CC, same hue
      family, meets WCAG AA for small text/links on light surfaces:
-     #92400E ≈ 6.3:1 on #F5F5F7 (Phase 2 Lighthouse fix, re-tuned). */
-  --primary-strong: #92400E;
+     #0066CC ≈ 5.4:1 on #F5F5F7, 5.8:1 on white. */
+  --primary-strong: #0066CC;
   --secondary: #E8E8ED;
   --secondary-foreground: #1D1D1F;
   --muted: #ECECEF;
@@ -100,14 +100,14 @@
      AA with a comfortable margin. Text-secondary stays muted but
      clearly readable. */
   --muted-foreground: #56565C;
-  /* Warm amber tint (was a pale blue wash) — amber-100 class. */
-  --accent: #FEF3C7;
-  --accent-foreground: #92400E;
+  /* Pale blue tint (brand wash) — #E8F2FF. */
+  --accent: #E8F2FF;
+  --accent-foreground: #0071E3;
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
   --border: #D2D2D7;
   --input: #D2D2D7;
-  --ring: #B45309;
+  --ring: #0071E3;
 
   /* Typography — Inter default, Cairo for Arabic via :lang(ar).
      REAL mono (Batch 1 item 3): JetBrains Mono loaded in [locale]/layout.tsx
@@ -150,7 +150,7 @@
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 
-  /* Brand selection — primary amber background with the white foreground
+  /* Brand selection — primary blue background with the white foreground
      token; readable over both light and dark sections. */
   ::selection {
     background: var(--primary);
@@ -174,11 +174,11 @@
     border: 1px solid rgba(0, 0, 0, 0.06);
   }
 
-  /* Cinematic dark gradient fallback for 3D/WebGL heroes — amber + green
-     radials over the dark base (palette law: no blue glows). */
+  /* Cinematic dark gradient fallback for 3D/WebGL heroes — blue + green
+     radials over the dark base (palette revert: blue glows are back). */
   .hero-fallback {
     background:
-      radial-gradient(60% 80% at 50% 0%, rgba(245, 158, 11, 0.16) 0%, transparent 60%),
+      radial-gradient(60% 80% at 50% 0%, rgba(66, 133, 244, 0.18) 0%, transparent 60%),
       radial-gradient(80% 60% at 80% 100%, rgba(52, 168, 83, 0.10) 0%, transparent 60%),
       linear-gradient(180deg, #0F172A 0%, #0A1120 100%);
   }
@@ -193,8 +193,8 @@
     content: '';
     @apply inline-block h-px w-8 bg-primary/60;
   }
-  /* Dark-section kickers use the amber accent carried by the legacy
-     g-blue token — AA contrast (5.4:1) on #0F172A; compound selector beats
+  /* Dark-section kickers use the blue accent carried by the legacy
+     g-blue token — AA contrast (4.6:1) on #0F172A; compound selector beats
      the base .kicker rule. */
   .kicker.kicker-on-dark {
     @apply text-g-blue;
@@ -214,7 +214,7 @@
     border-radius: inherit;
     background: radial-gradient(
       260px circle at var(--mx, 50%) var(--my, 50%),
-      rgba(180, 83, 9, 0.10),
+      rgba(0, 113, 227, 0.10),
       transparent 65%
     );
     opacity: 0;
@@ -234,11 +234,11 @@
     background: rgba(255, 255, 255, 0.04);
   }
   .scroll-dark::-webkit-scrollbar-thumb {
-    background: rgba(217, 119, 6, 0.45);
+    background: rgba(66, 133, 244, 0.45);
     border-radius: 3px;
   }
   .scroll-dark::-webkit-scrollbar-thumb:hover {
-    background: rgba(217, 119, 6, 0.65);
+    background: rgba(66, 133, 244, 0.65);
   }
 }
 
@@ -341,8 +341,8 @@
   animation: elyra-pulse 0.9s ease-out infinite;
 }
 @keyframes elyra-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.6); }
-  100% { box-shadow: 0 0 0 8px rgba(217, 119, 6, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(66, 133, 244, 0.6); }
+  100% { box-shadow: 0 0 0 8px rgba(66, 133, 244, 0); }
 }
 
 /* Before/after drag hint (was framer motion.div) */
@@ -664,5 +664,5 @@
   transform: translateY(-4px);
   box-shadow:
     0 4px 12px -4px rgba(0, 0, 0, 0.08),
-    0 16px 40px -16px rgba(180, 83, 9, 0.22);
+    0 16px 40px -16px rgba(0, 113, 227, 0.22);
 }
