@@ -1,0 +1,726 @@
+     1→'use client'
+     2→
+     3→import { Canvas, useFrame, useThree } from '@react-three/fiber'
+     4→import {
+     5→  useCallback,
+     6→  useEffect,
+     7→  useImperativeHandle,
+     8→  useMemo,
+     9→  useRef,
+    10→  useState,
+    11→  type Ref,
+    12→} from 'react'
+    13→import * as THREE from 'three'
+    14→import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
+    15→import { useMobileTier } from '@/lib/use-mobile-tier'
+    16→import { probeWebGL } from '@/lib/use-webgl'
+    17→
+    18→/**
+    19→ * Interactive 3D capability scene for /services/websites.
+    20→ *
+    21→ * Centerpiece (Task 4 visual upgrade): a "liquid glass / iridescent" blob —
+    22→ * an IcosahedronGeometry whose vertices are displaced by time-animated 3D
+    23→ * simplex noise (custom ShaderMaterial, GLSL1 attribute/varying style per
+    24→ * repo convention) and shaded with a Fresnel rim + iridescent gradient
+    25→ * through the brand blues (#4285F4 → #0071E3 → #60A5FA) with a hint of
+    26→ * brand green (#34A853) at grazing angles and a soft deep-blue inner glow.
+    27→ * Around it: three glass satellites (clearcoat + RoomEnvironment IBL) on
+    28→ * tilted elliptical orbits marked by thin additive torus rings, plus a
+    29→ * ~600-point particle halo in the brand palette.
+    30→ *
+    31→ * Kept from the previous architecture: PMREM/RoomEnvironment IBL, ambient +
+    32→ * 4 brand-colored point lights, drag-to-rotate with pointer capture, mouse
+    33→ * parallax lerp (FIX(2-b), L1-D P1: reads R3F's state.pointer NDC directly —
+    34→ * the old manual e.currentTarget rect math was dead under R3F v9's
+    35→ * pointer-capture shim), auto-spin when idle, arrow-key rotation via the
+    36→ * imperative nudge handle (keyboard drag equivalent), mobile-tier dpr clamp
+    37→ * (LOOP-3 FIX 5: coarse-pointer/<768px runs dpr ≤ 1.5 via useMobileTier,
+    38→ * matching hero-canvas), frameloop gated on `active`, ContextLossGuard,
+    39→ * WebGL feature detection (shared probeWebGL, LOOP-3 FIX 8), and explicit
+    40→ * disposal of every prop-passed geometry/material (R3F only disposes
+    41→ * JSX-declared ones).
+    42→ *
+    43→ * React 19 note: react-hooks/immutability disallows mutating plain useRef
+    44→ * objects inside useFrame — we mutate only attached object refs (group
+    45→ * rotation/position, owned shader uniforms via the material's uniform
+    46→ * object) and accumulate drag deltas in event handlers. Impure Math.random
+    47→ * (halo particle field) lives exclusively in a lazy useState initializer.
+    48→ */
+    49→
+    50→const LIGHTS: { color: string; pos: [number, number, number] }[] = [
+    51→  { color: '#4285F4', pos: [3, 2, 4] },
+    52→  { color: '#34A853', pos: [-3, 2, 4] },
+    53→  { color: '#0071E3', pos: [3, -2, 2] },
+    54→  { color: '#E8F2FF', pos: [-3, -2, 2] },
+    55→]
+    56→
+    57→/** Halo palette — brand blues with green/cool-white counterpoints. */
+    58→const HALO_COLORS = [
+    59→  new THREE.Color('#4285F4'),
+    60→  new THREE.Color('#4285F4'),
+    61→  new THREE.Color('#0071E3'),
+    62→  new THREE.Color('#0071E3'),
+    63→  new THREE.Color('#60A5FA'),
+    64→  new THREE.Color('#60A5FA'),
+    65→  new THREE.Color('#34A853'),
+    66→  new THREE.Color('#E8F2FF'),
+    67→]
+    68→
+    69→const HALO_COUNT = 600
+    70→
+    71→/** Deterministic satellite orbit layout (no randomness → useMemo stays pure). */
+    72→interface OrbitConfig {
+    73→  /** Base orbit radius (local units, before the ellipse stretch) */
+    74→  radius: number
+    75→  /** Ellipse stretch on the local X axis (ring + satellite share it) */
+    76→  sx: number
+    77→  /** Satellite sphere radius */
+    78→  size: number
+    79→  color: string
+    80→  /** Orbit plane tilt (applied to the whole orbit group) */
+    81→  tilt: [number, number, number]
+    82→  /** Angular speed (rad/s) — negative = opposite direction */
+    83→  speed: number
+    84→  /** Start angle (rad) so satellites never cluster at launch */
+    85→  phase: number
+    86→}
+    87→
+    88→const ORBITS: OrbitConfig[] = [
+    89→  { radius: 1.9, sx: 1.35, size: 0.1, color: '#4285F4', tilt: [Math.PI * 0.42, 0, Math.PI * 0.1], speed: 0.45, phase: 0 },
+    90→  { radius: 2.3, sx: 0.8, size: 0.085, color: '#60A5FA', tilt: [Math.PI * 0.55, 0.2, -Math.PI * 0.3], speed: -0.34, phase: 2.2 },
+    91→  { radius: 2.55, sx: 1.12, size: 0.095, color: '#34A853', tilt: [Math.PI * 0.35, -0.5, Math.PI * 0.38], speed: 0.27, phase: 4.4 },
+    92→]
+    93→
+    94→/* ------------------------------------------------------------------ *
+    95→ * GLSL — Ashima 3D simplex noise (Stefan Gustavson / Ian McEwan, MIT),
+    96→ * identical to the NOISE_GLSL block in hero-canvas.tsx so both shader
+    97→ * materials share one proven noise implementation. GLSL1 style.
+    98→ * ------------------------------------------------------------------ */
+    99→const NOISE_GLSL = /* glsl */ `
+   100→  vec3 mod289(vec3 x) {
+   101→    return x - floor(x * (1.0 / 289.0)) * 289.0;
+   102→  }
+   103→  vec4 mod289(vec4 x) {
+   104→    return x - floor(x * (1.0 / 289.0)) * 289.0;
+   105→  }
+   106→  vec4 permute(vec4 x) {
+   107→    return mod289(((x * 34.0) + 1.0) * x);
+   108→  }
+   109→  vec4 taylorInvSqrt(vec4 r) {
+   110→    return 1.79284291400159 - 0.85373472095314 * r;
+   111→  }
+   112→  float snoise(vec3 v) {
+   113→    const vec2 C = vec2(1.0 / 6.0, 1.0 / 3.0);
+   114→    const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+   115→
+   116→    // First corner
+   117→    vec3 i  = floor(v + dot(v, C.yyy));
+   118→    vec3 x0 = v - i + dot(i, C.xxx);
+   119→
+   120→    // Other corners
+   121→    vec3 g = step(x0.yzx, x0.xyz);
+   122→    vec3 l = 1.0 - g;
+   123→    vec3 i1 = min(g.xyz, l.zxy);
+   124→    vec3 i2 = max(g.xyz, l.zxy);
+   125→
+   126→    vec3 x1 = x0 - i1 + C.xxx;
+   127→    vec3 x2 = x0 - i2 + C.yyy;
+   128→    vec3 x3 = x0 - D.yyy;
+   129→
+   130→    // Permutations
+   131→    i = mod289(i);
+   132→    vec4 p = permute(permute(permute(
+   133→              i.z + vec4(0.0, i1.z, i2.z, 1.0))
+   134→            + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+   135→            + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+   136→
+   137→    // Gradients: 7x7 points over a square, mapped onto an octahedron.
+   138→    float n_ = 0.142857142857;
+   139→    vec3 ns = n_ * D.wyz - D.xzx;
+   140→
+   141→    vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+   142→
+   143→    vec4 x_ = floor(j * ns.z);
+   144→    vec4 y_ = floor(j - 7.0 * x_);
+   145→
+   146→    vec4 x = x_ * ns.x + ns.yyyy;
+   147→    vec4 y = y_ * ns.x + ns.yyyy;
+   148→    vec4 h = 1.0 - abs(x) - abs(y);
+   149→
+   150→    vec4 b0 = vec4(x.xy, y.xy);
+   151→    vec4 b1 = vec4(x.zw, y.zw);
+   152→
+   153→    vec4 s0 = floor(b0) * 2.0 + 1.0;
+   154→    vec4 s1 = floor(b1) * 2.0 + 1.0;
+   155→    vec4 sh = -step(h, vec4(0.0));
+   156→
+   157→    vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
+   158→    vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
+   159→
+   160→    vec3 p0 = vec3(a0.xy, h.x);
+   161→    vec3 p1 = vec3(a0.zw, h.y);
+   162→    vec3 p2 = vec3(a1.xy, h.z);
+   163→    vec3 p3 = vec3(a1.zw, h.w);
+   164→
+   165→    // Normalise gradients
+   166→    vec4 norm = taylorInvSqrt(vec4(dot(p0, p0), dot(p1, p1), dot(p2, p2), dot(p3, p3)));
+   167→    p0 *= norm.x;
+   168→    p1 *= norm.y;
+   169→    p2 *= norm.z;
+   170→    p3 *= norm.w;
+   171→
+   172→    // Mix final noise value
+   173→    vec4 m = max(0.6 - vec4(dot(x0, x0), dot(x1, x1), dot(x2, x2), dot(x3, x3)), 0.0);
+   174→    m = m * m;
+   175→    return 42.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
+   176→  }
+   177→`
+   178→
+   179→/* Liquid-glass blob: vertices displaced along the radial direction by two
+   180→ * simplex octaves sampled in a slowly-translating space (the surface flows
+   181→ * like liquid instead of pulsing in place). Normals are recomputed with
+   182→ * finite differences on the displaced surface so the Fresnel shading stays
+   183→ * crisp — no CPU geometry updates, everything lives on the GPU. */
+   184→const BLOB_VERTEX = /* glsl */ `
+   185→  ${NOISE_GLSL}
+   186→
+   187→  uniform float uTime;
+   188→  uniform float uAmp;
+   189→  varying vec3 vNormal;
+   190→  varying vec3 vViewDir;
+   191→  varying float vNoise;
+   192→
+   193→  // Any unit vector perpendicular to v (numerically safe for poles).
+   194→  vec3 orthogonal(vec3 v) {
+   195→    return normalize(abs(v.x) > abs(v.z)
+   196→      ? vec3(-v.y, v.x, 0.0)
+   197→      : vec3(0.0, -v.z, v.y));
+   198→  }
+   199→
+   200→  float surfaceNoise(vec3 p) {
+   201→    vec3 dir = normalize(p);
+   202→    vec3 q = dir * 1.7;
+   203→    float n = snoise(q + vec3(0.0, uTime * 0.16, uTime * 0.11));
+   204→    n += 0.45 * snoise(q * 2.3 - vec3(uTime * 0.09, 0.0, uTime * 0.13));
+   205→    return n;
+   206→  }
+   207→
+   208→  void main() {
+   209→    // Slow "breathing" keeps the silhouette organic but stable (~0.12).
+   210→    float amp = uAmp * (0.85 + 0.15 * sin(uTime * 0.45));
+   211→
+   212→    vec3 dir = normalize(position);
+   213→    float n0 = surfaceNoise(position);
+   214→    vNoise = n0;
+   215→    vec3 p = position + dir * n0 * amp;
+   216→
+   217→    // Tangent frame on the sphere → displaced neighbors → cross product
+   218→    // gives the perturbed normal (duplicated icosphere vertices share
+   219→    // positions, so seams get identical results — no cracks).
+   220→    float eps = 0.06;
+   221→    vec3 tangent = orthogonal(dir);
+   222→    vec3 bitangent = normalize(cross(dir, tangent));
+   223→    vec3 pt = position + tangent * eps;
+   224→    pt += normalize(pt) * surfaceNoise(pt) * amp;
+   225→    vec3 pb = position + bitangent * eps;
+   226→    pb += normalize(pb) * surfaceNoise(pb) * amp;
+   227→    vec3 n = normalize(cross(pt - p, pb - p));
+   228→
+   229→    vec4 mv = modelViewMatrix * vec4(p, 1.0);
+   230→    vNormal = normalize(normalMatrix * n);
+   231→    vViewDir = normalize(-mv.xyz);
+   232→    gl_Position = projectionMatrix * mv;
+   233→  }
+   234→`
+   235→
+   236→const BLOB_FRAGMENT = /* glsl */ `
+   237→  uniform float uTime;
+   238→  uniform vec3 uColorA; // #4285F4 brand blue
+   239→  uniform vec3 uColorB; // #0071E3 deep blue
+   240→  uniform vec3 uColorC; // #60A5FA light blue
+   241→  uniform vec3 uColorG; // #34A853 brand green
+   242→  varying vec3 vNormal;
+   243→  varying vec3 vViewDir;
+   244→  varying float vNoise;
+   245→
+   246→  void main() {
+   247→    vec3 N = normalize(vNormal);
+   248→    vec3 V = normalize(vViewDir);
+   249→    float ndv = clamp(dot(N, V), 0.0, 1.0);
+   250→    // Fresnel rim — the glassy edge highlight
+   251→    float fresnel = pow(1.0 - ndv, 2.4);
+   252→
+   253→    // Iridescent body gradient driven by the displacement field: deep blue
+   254→    // valleys → brand blue → light blue crests.
+   255→    float g = clamp(vNoise * 0.5 + 0.5, 0.0, 1.0);
+   256→    vec3 body = mix(uColorB * 0.45, uColorA, g);
+   257→    body = mix(body, uColorC, pow(g, 2.2) * 0.55);
+   258→    // Thin-film hint of brand green only at grazing angles.
+   259→    body = mix(body, uColorG, fresnel * 0.30);
+   260→
+   261→    // Soft inner glow — deep-blue energy core seen through the glass.
+   262→    vec3 col = body + uColorB * pow(ndv, 2.5) * 0.35;
+   263→    // Bright rim, slightly whitened.
+   264→    col += mix(uColorC, vec3(1.0), 0.4) * fresnel * 0.85;
+   265→    // Gentle animated sheen for the "liquid" feel.
+   266→    col += uColorC * 0.06 * sin(uTime * 0.5 + vNoise * 6.28318);
+   267→
+   268→    // Single fake key-light glint (view space) — a specular sparkle without
+   269→    // needing the IBL, which ShaderMaterial cannot sample anyway.
+   270→    vec3 L = normalize(vec3(0.4, 0.65, 0.8));
+   271→    vec3 R = reflect(-V, N);
+   272→    col += vec3(0.9, 0.95, 1.0) * pow(max(dot(R, L), 0.0), 48.0) * 0.55;
+   273→
+   274→    gl_FragColor = vec4(col, 1.0);
+   275→  }
+   276→`
+   277→
+   278→/* Particle halo — soft round additive sprites (same pattern as
+   279→ * hero-canvas.tsx), gently breathing and twinkling in the brand palette. */
+   280→const HALO_VERTEX = /* glsl */ `
+   281→  attribute float aScale;
+   282→  attribute float aPhase;
+   283→  attribute vec3 aColor;
+   284→  uniform float uTime;
+   285→  uniform float uPixelRatio;
+   286→  varying vec3 vColor;
+   287→  varying float vAlpha;
+   288→
+   289→  void main() {
+   290→    vec3 p = position;
+   291→    // gentle radial breathing of the whole shell
+   292→    p *= 1.0 + 0.03 * sin(uTime * 0.3 + aPhase);
+   293→    vec4 mv = modelViewMatrix * vec4(p, 1.0);
+   294→    gl_Position = projectionMatrix * mv;
+   295→    float size = aScale * uPixelRatio * (24.0 / -mv.z);
+   296→    gl_PointSize = clamp(size, 1.0, 20.0);
+   297→    vColor = aColor;
+   298→    // soft per-particle twinkle
+   299→    vAlpha = 0.45 + 0.35 * sin(uTime * 0.8 + aPhase);
+   300→  }
+   301→`
+   302→
+   303→const HALO_FRAGMENT = /* glsl */ `
+   304→  varying vec3 vColor;
+   305→  varying float vAlpha;
+   306→  void main() {
+   307→    vec2 uv = gl_PointCoord - 0.5;
+   308→    float d = length(uv);
+   309→    // spec-defined form: smoothstep is undefined for edge0 >= edge1, so the
+   310→    // old reversed-edge smoothstep(0.5, 0.08, d) is rewritten as its
+   311→    // algebraically identical 1 - smoothstep(lo, hi, d) twin (LOOP-3 FIX 9)
+   312→    float a = 1.0 - smoothstep(0.08, 0.5, d);
+   313→    gl_FragColor = vec4(vColor, a * vAlpha);
+   314→  }
+   315→`
+   316→
+   317→function Centerpiece({
+   318→  dragging,
+   319→  registerSpinner,
+   320→  dprMax,
+   321→}: {
+   322→  dragging: boolean
+   323→  /** Hands the spinner group up to CapabilityScene so its imperative
+   324→   *  keyboard-nudge handle can rotate the same group this component's
+   325→   *  drag/auto-spin mutates (a callback prop — never a ref prop — so the
+   326→   *  react-compiler sees only local-ref mutations in BOTH components). */
+   327→  registerSpinner: (g: THREE.Group | null) => void
+   328→  /** Tier-dependent upper bound for the halo's uPixelRatio uniform — MUST
+   329→   *  track the Canvas dpr prop (desktop 2 / mobile 1.5) or gl_PointSize
+   330→   *  drifts oversize relative to the render scale (LOOP-3 FIX 6, same
+   331→   *  dprMax prop hero-canvas's Particles takes). */
+   332→  dprMax: number
+   333→}) {
+   334→  // spinner: drag/auto-spin rotation. parallax: pointer-lerp position
+   335→  // (parent of everything so halo + satellites drift together for depth).
+   336→  const spinner = useRef<THREE.Group | null>(null)
+   337→  const parallax = useRef<THREE.Group>(null)
+   338→  const haloRef = useRef<THREE.Points>(null)
+   339→  const satRefs = useRef<(THREE.Mesh | null)[]>([])
+   340→  const last = useRef({ x: 0, y: 0 })
+   341→  // FIX(2-c/4): R3F pointer events can't be rAF-coalesced (they fire inside
+   342→  // the render loop's event pass), so throttle to ~60Hz with a timestamp
+   343→  // guard — early return when the last processed event was <16ms ago.
+   344→  const lastPointerTs = useRef(0)
+   345→  const { viewport } = useThree()
+   346→
+   347→  // --- liquid-glass blob ------------------------------------------------
+   348→  const blobGeo = useMemo(() => new THREE.IcosahedronGeometry(1.1, 5), [])
+   349→  const blobUniforms = useMemo(
+   350→    () => ({
+   351→      uTime: { value: 0 },
+   352→      uAmp: { value: 0.12 },
+   353→      uColorA: { value: new THREE.Color('#4285F4') },
+   354→      uColorB: { value: new THREE.Color('#0071E3') },
+   355→      uColorC: { value: new THREE.Color('#60A5FA') },
+   356→      uColorG: { value: new THREE.Color('#34A853') },
+   357→    }),
+   358→    []
+   359→  )
+   360→  const blobMat = useMemo(
+   361→    () =>
+   362→      new THREE.ShaderMaterial({
+   363→        vertexShader: BLOB_VERTEX,
+   364→        fragmentShader: BLOB_FRAGMENT,
+   365→        uniforms: blobUniforms,
+   366→      }),
+   367→    [blobUniforms]
+   368→  )
+   369→
+   370→  // --- particle halo ------------------------------------------------------
+   371→  // Geometry is generated ONCE per mount with Math.random — an impure call
+   372→  // that React 19 only permits inside a lazy state initializer (never in a
+   373→  // render body or useMemo factory). See react-hooks/purity.
+   374→  const [haloBuffers] = useState(() => {
+   375→    const positions = new Float32Array(HALO_COUNT * 3)
+   376→    const scales = new Float32Array(HALO_COUNT)
+   377→    const phases = new Float32Array(HALO_COUNT)
+   378→    const colors = new Float32Array(HALO_COUNT * 3)
+   379→    for (let i = 0; i < HALO_COUNT; i++) {
+   380→      // uniform direction on the sphere → spherical shell around the blob
+   381→      const theta = Math.random() * Math.PI * 2
+   382→      const phi = Math.acos(2 * Math.random() - 1)
+   383→      const r = 2.1 + Math.random() * 1.1
+   384→      positions[i * 3 + 0] = r * Math.sin(phi) * Math.cos(theta)
+   385→      positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta) * 0.85
+   386→      positions[i * 3 + 2] = r * Math.cos(phi)
+   387→      scales[i] = 0.5 + Math.random() * 1.1
+   388→      phases[i] = Math.random() * Math.PI * 2
+   389→      const c = HALO_COLORS[Math.floor(Math.random() * HALO_COLORS.length)]
+   390→      if (!c) continue
+   391→      colors[i * 3 + 0] = c.r
+   392→      colors[i * 3 + 1] = c.g
+   393→      colors[i * 3 + 2] = c.b
+   394→    }
+   395→    return { positions, scales, phases, colors }
+   396→  })
+   397→  const haloGeo = useMemo(() => {
+   398→    const g = new THREE.BufferGeometry()
+   399→    g.setAttribute('position', new THREE.BufferAttribute(haloBuffers.positions, 3))
+   400→    g.setAttribute('aScale', new THREE.BufferAttribute(haloBuffers.scales, 1))
+   401→    g.setAttribute('aPhase', new THREE.BufferAttribute(haloBuffers.phases, 1))
+   402→    g.setAttribute('aColor', new THREE.BufferAttribute(haloBuffers.colors, 3))
+   403→    return g
+   404→  }, [haloBuffers])
+   405→  const haloUniforms = useMemo(
+   406→    () => ({
+   407→      uTime: { value: 0 },
+   408→      // tier-aware initial clamp (LOOP-3 FIX 6) — matches hero-canvas's
+   409→      // Particles dprMax pattern; the useFrame below then live-syncs it to
+   410→      // R3F's actual clamped dpr every frame, so this is only the
+   411→      // first-frame value.
+   412→      uPixelRatio: { value: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, dprMax) },
+   413→    }),
+   414→    [dprMax]
+   415→  )
+   416→  const haloMat = useMemo(
+   417→    () =>
+   418→      new THREE.ShaderMaterial({
+   419→        vertexShader: HALO_VERTEX,
+   420→        fragmentShader: HALO_FRAGMENT,
+   421→        uniforms: haloUniforms,
+   422→        transparent: true,
+   423→        depthWrite: false,
+   424→        blending: THREE.AdditiveBlending,
+   425→      }),
+   426→    [haloUniforms]
+   427→  )
+   428→
+   429→  // FIX(2-c/10): R3F does not dispose prop-passed geometry/material (only
+   430→  // JSX-declared ones) — free the GPU buffers explicitly on unmount. The
+   431→  // satellites/rings below are JSX-declared so R3F handles those.
+   432→  // V-1 L3-2a P3: split PER-RESOURCE — a shared effect keyed on all four
+   433→  // identities re-fires its whole cleanup (with old-closure values) when
+   434→  // ANY identity changes. haloUniforms is now keyed [dprMax], so a
+   435→  // mid-session tier flip (768px crossing) swaps haloMat's identity and
+   436→  // would have disposed the still-live blobGeo/blobMat/haloGeo alongside
+   437→  // the stale haloMat. Per-resource effects dispose exactly the resource
+   438→  // whose identity changed — and only that one mid-mount; each fires its
+   439→  // unmount cleanup exactly once.
+   440→  useEffect(() => () => blobGeo.dispose(), [blobGeo])
+   441→  useEffect(() => () => blobMat.dispose(), [blobMat])
+   442→  useEffect(() => () => haloGeo.dispose(), [haloGeo])
+   443→  useEffect(() => () => haloMat.dispose(), [haloMat])
+   444→
+   445→  // FIX(2-b): publish the spinner group to the parent's imperative nudge
+   446→  // handle (keyboard rotation). Refs attach before effects run, and the
+   447→  // group persists across renders — register once per mount cycle.
+   448→  useEffect(() => {
+   449→    registerSpinner(spinner.current)
+   450→    return () => registerSpinner(null)
+   451→  }, [registerSpinner])
+   452→
+   453→  // LOOP-3 FIX 7: R3F resets clock.elapsedTime to 0 on every frameloop
+   454→  // 'never'↔'always' transition (the `active` prop flips it whenever the
+   455→  // section scrolls offscreen / the tab hides), which would rewind the blob
+   456→  // shader's uTime, the halo twinkle phases and the satellite orbit angles
+   457→  // on every resume. Accumulate scene-local time from delta instead — the
+   458→  // same immune pattern hero-canvas uses for uTime.
+   459→  const tRef = useRef(0)
+   460→
+   461→  useFrame((state, delta) => {
+   462→    tRef.current += delta
+   463→    const t = tRef.current
+   464→    // Shader uniforms are owned three.js objects — canonical R3F pattern.
+   465→    // eslint-disable-next-line react-hooks/immutability
+   466→    blobUniforms.uTime.value = t
+   467→    // eslint-disable-next-line react-hooks/immutability
+   468→    haloUniforms.uTime.value = t
+   469→    // uPixelRatio live sync (LOOP-3 FIX 6): state.viewport.dpr is R3F's
+   470→    // clamped actual dpr, so gl_PointSize always matches the render scale —
+   471→    // including when the mobile tier flips the Canvas dpr prop mid-session.
+   472→    // Covered by the uTime disable above (the immutability rule reports one
+   473→    // finding per memoized value).
+   474→    haloUniforms.uPixelRatio.value = state.viewport.dpr
+   475→
+   476→    if (spinner.current && !dragging) {
+   477→      // gentle auto-spin
+   478→      spinner.current.rotation.y += delta * 0.25
+   479→    }
+   480→    // mouse parallax (lerp position toward the pointer target). FIX(2-b,
+   481→    // L1-D P1): the old pointermove handler read
+   482→    // e.currentTarget.getBoundingClientRect, but R3F v9 replaces
+   483→    // e.currentTarget with a pointer-capture shim that has no DOM API —
+   484→    // the NDC target never updated and this lerp chased (0,0) forever.
+   485→    // state.pointer is R3F's own maintained NDC pointer (updated by its
+   486→    // event pass), so no listener and no rect read are needed. ÷4 keeps
+   487→    // the drift subtle; dt-compensated easing (was ×0.04/frame; k≈2.449;
+   488→    // LOOP-3 FIX 10) so 120Hz displays don't double the chase speed.
+   489→    if (parallax.current) {
+   490→      const tx = (state.pointer.x * viewport.width) / 4
+   491→      const ty = (state.pointer.y * viewport.height) / 4
+   492→      const parallaxS = 1 - Math.exp(-2.449 * delta)
+   493→      parallax.current.position.x += (tx - parallax.current.position.x) * parallaxS
+   494→      parallax.current.position.y += (ty - parallax.current.position.y) * parallaxS
+   495→    }
+   496→    // ambient halo drift — independent of the drag spinner so the dust
+   497→    // cloud feels like environment, not part of the object
+   498→    if (haloRef.current) {
+   499→      haloRef.current.rotation.y += delta * 0.04
+   500→      haloRef.current.rotation.z += delta * 0.01
+   501→    }
+   502→    // satellites ride their tilted elliptical orbits (local XY plane of
+   503→    // each tilted group; sx mirrors the ring's non-uniform scale)
+   504→    ORBITS.forEach((o, i) => {
+   505→      const mesh = satRefs.current[i]
+   506→      if (!mesh) return
+   507→      const a = o.phase + t * o.speed
+   508→      mesh.position.set(Math.cos(a) * o.radius * o.sx, Math.sin(a) * o.radius, 0)
+   509→    })
+   510→  })
+   511→
+   512→  return (
+   513→    <group
+   514→      ref={parallax}
+   515→      onPointerDown={(e) => {
+   516→        last.current.x = e.clientX
+   517→        last.current.y = e.clientY
+   518→        ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
+   519→      }}
+   520→      onPointerMove={(e) => {
+   521→        // FIX(2-c/4): ~60Hz throttle — skips the drag delta math for
+   522→        // sub-frame events. Early return BEFORE updating `last` keeps
+   523→        // drag deltas accumulation-correct.
+   524→        const now = performance.now()
+   525→        if (now - lastPointerTs.current < 16) return
+   526→        lastPointerTs.current = now
+   527→        // mutate spinner.current.rotation directly — Three.js Object3D, allowed
+   528→        if (spinner.current && dragging) {
+   529→          const dx = e.clientX - last.current.x
+   530→          const dy = e.clientY - last.current.y
+   531→          spinner.current.rotation.y += dx * 0.01
+   532→          spinner.current.rotation.x += dy * 0.01
+   533→        }
+   534→        last.current.x = e.clientX
+   535→        last.current.y = e.clientY
+   536→      }}
+   537→    >
+   538→      <group ref={spinner}>
+   539→        {/* liquid-glass iridescent centerpiece */}
+   540→        <mesh geometry={blobGeo} material={blobMat} />
+   541→        {/* glass satellites + orbit-path rings */}
+   542→        {ORBITS.map((o, i) => (
+   543→          <group key={`orbit-${i}`} rotation={o.tilt}>
+   544→            <mesh ref={(m) => { satRefs.current[i] = m }}>
+   545→              <sphereGeometry args={[o.size, 24, 24]} />
+   546→              {/* clearcoat + RoomEnvironment IBL reads as glass without the
+   547→                  cost of a transmission pass */}
+   548→              <meshPhysicalMaterial
+   549→                color={o.color}
+   550→                metalness={0.1}
+   551→                roughness={0.05}
+   552→                clearcoat={1}
+   553→                clearcoatRoughness={0.12}
+   554→                envMapIntensity={1.6}
+   555→                transparent
+   556→                opacity={0.9}
+   557→              />
+   558→            </mesh>
+   559→            {/* faint additive ring marking the orbit path — stretched on X
+   560→                to match the satellite's ellipse */}
+   561→            <mesh scale={[o.sx, 1, 1]}>
+   562→              <torusGeometry args={[o.radius, 0.006, 6, 96]} />
+   563→              <meshBasicMaterial
+   564→                color={o.color}
+   565→                transparent
+   566→                opacity={0.16}
+   567→                blending={THREE.AdditiveBlending}
+   568→                depthWrite={false}
+   569→              />
+   570→            </mesh>
+   571→          </group>
+   572→        ))}
+   573→      </group>
+   574→      <points ref={haloRef} geometry={haloGeo} material={haloMat} frustumCulled={false} />
+   575→    </group>
+   576→  )
+   577→}
+   578→
+   579→/** Batch 3 item 14 — image-based lighting for the glass satellites.
+   580→ * PMREMGenerator + RoomEnvironment ship with three itself (no new
+   581→ * dependency); the prefiltered radiance map is applied via
+   582→ * scene.environment so every MeshStandard/Physical material in the scene
+   583→ * gets ambient reflections. The room scene, render target and generator
+   584→ * are all disposed on unmount. */
+   585→function RoomEnv() {
+   586→  const gl = useThree((s) => s.gl)
+   587→  const scene = useThree((s) => s.scene)
+   588→  useEffect(() => {
+   589→    const pmrem = new THREE.PMREMGenerator(gl)
+   590→    const room = new RoomEnvironment()
+   591→    const target = pmrem.fromScene(room, 0.04)
+   592→    // scene.environment is the canonical three.js IBL wiring (Object3D
+   593→    // property, written once per mount) — same R3F mutation exemption as
+   594→    // the per-frame uniform updates in hero-canvas.
+   595→    // eslint-disable-next-line react-compiler/react-compiler, react-hooks/immutability
+   596→    scene.environment = target.texture
+   597→    room.dispose()
+   598→    return () => {
+   599→      scene.environment = null
+   600→      target.dispose()
+   601→      pmrem.dispose()
+   602→    }
+   603→  }, [gl, scene])
+   604→  return null
+   605→}
+   606→
+   607→/** FIX(2-c/10): context-loss guard — `preventDefault()` marks the event
+   608→ *  as handled so the browser keeps the canvas alive for a possible restore
+   609→ *  (and stops the default console error spam); we log once for diagnostics. */
+   610→function ContextLossGuard() {
+   611→  const gl = useThree((s) => s.gl)
+   612→  useEffect(() => {
+   613→    const canvas = gl.domElement
+   614→    const onLost = (e: Event) => {
+   615→      e.preventDefault()
+   616→      console.warn('[CapabilityScene] WebGL context lost')
+   617→    }
+   618→    canvas.addEventListener('webglcontextlost', onLost)
+   619→    return () => canvas.removeEventListener('webglcontextlost', onLost)
+   620→  }, [gl])
+   621→  return null
+   622→}
+   623→
+   624→/** Imperative rotation handle (React 19 ref-as-prop, FIX(2-b) for L1-D P3)
+   625→ *  — the keyboard path for the drag in three-d-section.tsx. Deltas are in
+   626→ *  "drag pixels": the same ×0.01 rad/px mapping the pointer drag applies. */
+   627→export interface CapabilitySceneHandle {
+   628→  nudge: (dx: number, dy: number) => void
+   629→}
+   630→
+   631→export function CapabilityScene({
+   632→  active,
+   633→  ref,
+   634→}: {
+   635→  active: boolean
+   636→  /** Keyboard rotation handle — passes through next/dynamic → React.lazy
+   637→   *  because ref is a regular prop in React 19. Optional (no keyboard
+   638→   *  consumer → simply omit it). */
+   639→  ref?: Ref<CapabilitySceneHandle>
+   640→}) {
+   641→  const [glAvailable, setGlAvailable] = useState(true)
+   642→  const [dragging, setDragging] = useState(false)
+   643→  // LOOP-3 FIX 5: mobile tier — coarse-pointer/<768px viewports cap the dpr
+   644→  // at 1.5 (was a flat [1,2] for every device), matching hero-canvas's
+   645→  // tier via the shared useMobileTier hook. The halo's uPixelRatio uniform
+   646→  // gets the same ceiling through Centerpiece's dprMax prop.
+   647→  const mobileTier = useMobileTier()
+   648→  // The spinner group itself, registered up by Centerpiece (callback prop,
+   649→  // not a ref prop — keeps every mutation on a component-local ref so the
+   650→  // react-compiler stays quiet in both components).
+   651→  const spinnerGroup = useRef<THREE.Group | null>(null)
+   652→  const registerSpinner = useCallback((g: THREE.Group | null) => {
+   653→    spinnerGroup.current = g
+   654→  }, [])
+   655→
+   656→  // FIX(2-b, L1-D P3): arrow-key rotation — same ±0.01 rad/px mapping the
+   657→  // pointer drag uses, applied to the same spinner group, so keys rotate
+   658→  // blob + satellites + rings exactly like an equivalent drag.
+   659→  useImperativeHandle(
+   660→    ref,
+   661→    () => ({
+   662→      nudge: (dx: number, dy: number) => {
+   663→        const spinner = spinnerGroup.current
+   664→        if (!spinner) return
+   665→        spinner.rotation.y += dx * 0.01
+   666→        spinner.rotation.x += dy * 0.01
+   667→      },
+   668→    }),
+   669→    []
+   670→  )
+   671→
+   672→  // LOOP-3 FIX 8: the inline createElement('canvas') probe now delegates to
+   673→  // the shared module-memoized probeWebGL() (src/lib/use-webgl.ts) —
+   674→  // identical timing semantics (true-first, flips false at the first rAF
+   675→  // only on failure), one probe implementation for the whole app.
+   676→  useEffect(() => {
+   677→    let cancelled = false
+   678→    const id = requestAnimationFrame(() => {
+   679→      if (cancelled) return
+   680→      if (!probeWebGL()) setGlAvailable(false)
+   681→    })
+   682→    return () => {
+   683→      cancelled = true
+   684→      cancelAnimationFrame(id)
+   685→    }
+   686→  }, [])
+   687→
+   688→  if (!glAvailable) return null
+   689→
+   690→  return (
+   691→    <div
+   692→      className="absolute inset-0"
+   693→      onPointerDown={() => setDragging(true)}
+   694→      onPointerUp={() => setDragging(false)}
+   695→      onPointerCancel={() => setDragging(false)}
+   696→      style={{
+   697→        cursor: dragging ? 'grabbing' : 'grab',
+   698→        // LOOP-3 FIX 1: claim the gesture for the drag, not page scroll —
+   699→        // without this, touch devices hand the pointer to native panning →
+   700→        // pointercancel → the drag affordance is dead on tablets. Repo
+   701→        // precedent: before-after.tsx (touch-none / touchAction:'none').
+   702→        touchAction: 'none',
+   703→      }}
+   704→    >
+   705→      <Canvas
+   706→        dpr={[1, mobileTier ? 1.5 : 2]}
+   707→        frameloop={active ? 'always' : 'never'}
+   708→        camera={{ position: [0, 0, 5], fov: 50 }}
+   709→        gl={{ antialias: true, alpha: true }}
+   710→      >
+   711→        <ambientLight intensity={0.25} />
+   712→        {LIGHTS.map((l, i) => (
+   713→          <pointLight key={i} color={l.color} position={l.pos} intensity={28} distance={12} />
+   714→        ))}
+   715→        <RoomEnv />
+   716→        <Centerpiece
+   717→          dragging={dragging}
+   718→          registerSpinner={registerSpinner}
+   719→          dprMax={mobileTier ? 1.5 : 2}
+   720→        />
+   721→        <ContextLossGuard />
+   722→      </Canvas>
+   723→    </div>
+   724→  )
+   725→}
+   726→

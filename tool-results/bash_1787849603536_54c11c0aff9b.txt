@@ -1,0 +1,1909 @@
+ .env.example                                     |   3 +
+ .scratch/g1b-deconstructed.png                   | Bin 213798 -> 213798 bytes
+ .scratch/g1b-mobile-sheet.png                    | Bin 229559 -> 229559 bytes
+ .scratch/g4-hero.png                             | Bin 275544 -> 275544 bytes
+ .scratch/g4-hero2-vlm.json                       |   0
+ .scratch/g4-hero2.png                            | Bin 275544 -> 275544 bytes
+ .scratch/g4-hero3.png                            | Bin 163637 -> 163637 bytes
+ .scratch/g4-hero4-vlm.json                       |   0
+ .scratch/g4-hero4.png                            | Bin 718041 -> 718041 bytes
+ .scratch/g4-mobile.png                           | Bin 361415 -> 361415 bytes
+ .scratch/g4-web-vlm.json                         |   0
+ .scratch/g4-websites.png                         | Bin 223223 -> 223223 bytes
+ .scratch/g4-websites2.png                        | Bin 157948 -> 157948 bytes
+ .scratch/i2_add_keys.py                          |   0
+ README.md                                        |  10 +-
+ deploy/Caddyfile.example                         |  47 ++++-----
+ messages/ar.json                                 |   7 +-
+ messages/en.json                                 |   7 +-
+ package.json                                     |   4 +-
+ scripts/clean-leads.ts                           |  32 +++++--
+ scripts/verify-api.mjs                           |   4 +-
+ scripts/verify-performance.mjs                   |   2 +-
+ scripts/verify-sensory-negative.mjs              |   4 +-
+ scripts/verify-sensory.mjs                       |   6 +-
+ src/app/[locale]/about/page.tsx                  |  14 ++-
+ src/app/[locale]/contact/page.tsx                |  29 ++++--
+ src/app/[locale]/error.tsx                       |   4 +-
+ src/app/[locale]/layout.tsx                      |  15 ++-
+ src/app/[locale]/opengraph-image.tsx             |   7 +-
+ src/app/[locale]/services/automation/page.tsx    |  14 ++-
+ src/app/[locale]/services/websites/page.tsx      |  16 +++-
+ src/app/[locale]/work/page.tsx                   |  13 ++-
+ src/app/api/leads/route.ts                       |  13 ++-
+ src/app/globals.css                              |   7 +-
+ src/components/home/before-after.tsx             |  42 +++++++-
+ src/components/home/bento.tsx                    |  52 +++++++++-
+ src/components/home/calculator.tsx               |  29 ++++--
+ src/components/home/console-scene.tsx            |  99 ++++++++++++++++---
+ src/components/home/deconstructed-card.tsx       |   6 +-
+ src/components/home/hero-canvas.tsx              | 116 +++++++++++------------
+ src/components/home/hero-console.tsx             |  13 ++-
+ src/components/home/intro-overlay.tsx            |   0
+ src/components/home/manifesto.tsx                |   0
+ src/components/home/methodology.tsx              |   7 +-
+ src/components/home/trust-bar.tsx                |   7 +-
+ src/components/layout/live-clock.tsx             |   6 +-
+ src/components/layout/scroll-progress.tsx        |   0
+ src/components/pages/contact-form.tsx            |  10 +-
+ src/components/pages/work-grid.tsx               |   2 +-
+ src/components/sensory/custom-cursor.tsx         |   0
+ src/components/sensory/grain-overlay.tsx         |   0
+ src/components/three/capability-scene.tsx        |  87 +++++++++++++----
+ src/lib/hero-scroll.ts                           |   0
+ src/lib/site-config.ts                           |   4 +-
+ src/lib/use-cursor-velocity.ts                   |   7 ++
+ src/lib/use-magnetic.ts                          |   0
+ src/lib/use-webgl.ts                             |   0
+ src/proxy.ts                                     |   4 +-
+ tool-results/bash_1787839155063_2277b01199a1.txt |   0
+ tool-results/bash_1787839155374_2277b01199a1.txt |   0
+ tool-results/bash_1787842272614_4ae5de289e7f.txt |   0
+ tool-results/bash_1787842282479_c9d60a3a9eed.txt |   0
+ tool-results/bash_1787842285379_ea6209814165.txt |   0
+ tool-results/grep_1787839734770_47ec78e002e0.txt |   0
+ tool-results/read_1787837806584_896933f98ce8.txt |   0
+ tool-results/read_1787837808084_896933f98ce8.txt |   0
+ tool-results/read_1787837809046_1e636c9a880a.txt |   0
+ tool-results/read_1787837810197_4660804f24e5.txt |   0
+ tool-results/read_1787837811508_6aec4d5e382d.txt |   0
+ tool-results/read_1787837812507_5c15b0bb0c74.txt |   0
+ tool-results/read_1787837815060_5c3ab1e9aeb9.txt |   0
+ tool-results/read_1787837816832_0834ea927e7d.txt |   0
+ tool-results/read_1787837818875_8b55675db195.txt |   0
+ tool-results/read_1787837819289_706180217c73.txt |   0
+ tool-results/read_1787837821928_7eea127a00bb.txt |   0
+ tool-results/read_1787837828983_6d35bb36db57.txt |   0
+ tool-results/read_1787837976207_b21589728f7c.txt |   0
+ tool-results/read_1787838018548_c6b514c1c6a0.txt |   0
+ tool-results/read_1787838059932_45ccfb61fb45.txt |   0
+ tool-results/read_1787839158793_ec483acf368f.txt |   0
+ tool-results/read_1787839159233_01849fefa556.txt |   0
+ tool-results/read_1787839160711_01849fefa556.txt |   0
+ tool-results/read_1787839162192_117150b79e87.txt |   0
+ tool-results/read_1787839164235_ec483acf368f.txt |   0
+ tool-results/read_1787839164532_b25649046b57.txt |   0
+ tool-results/read_1787839165654_c319a2b71f12.txt |   0
+ tool-results/read_1787839167507_4992bf28408d.txt |   0
+ tool-results/read_1787839171461_9f1a0ba38b5f.txt |   0
+ tool-results/read_1787839173569_ca97bde3400c.txt |   0
+ tool-results/read_1787839196410_45ccfb61fb45.txt |   0
+ tool-results/read_1787839204233_85e118bf3683.txt |   0
+ tool-results/read_1787839218542_b21589728f7c.txt |   0
+ tool-results/read_1787840434969_4639afe4211d.txt |   0
+ tool-results/read_1787840437663_ccb95ad9f2d6.txt |   0
+ tool-results/read_1787840440705_0064b86b90e7.txt |   0
+ tool-results/read_1787840449832_622fba822344.txt |   0
+ tool-results/read_1787842259179_2cdaad8da091.txt |   0
+ tool-results/read_1787842259663_2cdaad8da091.txt |   0
+ tool-results/read_1787842262678_a712289a7bb7.txt |   0
+ tool-results/read_1787842266195_7c03724b092f.txt |   0
+ tool-results/read_1787842272083_c63bb8454e16.txt |   0
+ tool-results/read_1787842277268_59a9f95aadf0.txt |   0
+ 102 files changed, 558 insertions(+), 191 deletions(-)
+=== FULL DIFF ===
+diff --git a/.env.example b/.env.example
+index f5495ec..062efea 100755
+--- a/.env.example
++++ b/.env.example
+@@ -28,4 +28,7 @@ N8N_WEBHOOK_SECRET=
+ # X-Forwarded-For with the real client IP (the included Caddyfile does).
+ # Otherwise the API ignores those spoofable headers and rate-limits all
+ # clients through a single shared bucket.
++# TRUST_PROXY=true requires an OVERWRITING reverse proxy (the bundled Caddy
++# config does this). Appending proxies (nginx proxy_add_x_forwarded_for) are
++# NOT supported — the rate limiter reads the LAST XFF element.
+ TRUST_PROXY=false
+diff --git a/.scratch/g1b-deconstructed.png b/.scratch/g1b-deconstructed.png
+old mode 100644
+new mode 100755
+diff --git a/.scratch/g1b-mobile-sheet.png b/.scratch/g1b-mobile-sheet.png
+old mode 100644
+new mode 100755
+diff --git a/.scratch/g4-hero.png b/.scratch/g4-hero.png
+old mode 100644
+new mode 100755
+diff --git a/.scratch/g4-hero2-vlm.json b/.scratch/g4-hero2-vlm.json
+old mode 100644
+new mode 100755
+diff --git a/.scratch/g4-hero2.png b/.scratch/g4-hero2.png
+old mode 100644
+new mode 100755
+diff --git a/.scratch/g4-hero3.png b/.scratch/g4-hero3.png
+old mode 100644
+new mode 100755
+diff --git a/.scratch/g4-hero4-vlm.json b/.scratch/g4-hero4-vlm.json
+old mode 100644
+new mode 100755
+diff --git a/.scratch/g4-hero4.png b/.scratch/g4-hero4.png
+old mode 100644
+new mode 100755
+diff --git a/.scratch/g4-mobile.png b/.scratch/g4-mobile.png
+old mode 100644
+new mode 100755
+diff --git a/.scratch/g4-web-vlm.json b/.scratch/g4-web-vlm.json
+old mode 100644
+new mode 100755
+diff --git a/.scratch/g4-websites.png b/.scratch/g4-websites.png
+old mode 100644
+new mode 100755
+diff --git a/.scratch/g4-websites2.png b/.scratch/g4-websites2.png
+old mode 100644
+new mode 100755
+diff --git a/.scratch/i2_add_keys.py b/.scratch/i2_add_keys.py
+old mode 100644
+new mode 100755
+diff --git a/README.md b/README.md
+index 078bdda..4ca4772 100755
+--- a/README.md
++++ b/README.md
+@@ -95,7 +95,7 @@
+ |---|---|
+ | `bun run lint` | ✓ 0 أخطاء / 0 تحذيرات (قواعد React 19 الصارمة مفعّلة) |
+ | `bunx tsc --noEmit` | ✓ 0 أخطاء (مع `noUncheckedIndexedAccess`) |
+-| تكافؤ i18n (ar/en) | ✓ 610 مفاتيح متطابقة |
++| تكافؤ i18n (ar/en) | ✓ 638 مفاتيح متطابقة |
+ | جميع المسارات (×2 لغة) | ✓ 200 OK |
+ | تحقق في المتصفح | ✓ رسم + تفاعلات + RTL/LTR + responsive + sticky footer |
+ | أخطاء console/hydration | ✓ صفر |
+@@ -223,7 +223,7 @@ docker build --build-arg NEXT_PUBLIC_SITE_URL=https://elyra.agency -t elyra .
+ 
+ `TRUST_PROXY=true` (افتراضي مضمّن في ENV الخاص بـ Dockerfile): النشر خلف بروكسي عاكس **يطمس** `X-Forwarded-For` بحكم التعريف — وبدونه تشارك كل الطلبات حصة إرسال واحدة عالمية (5 طلبات/دقيقة للجميع)، فيستطيع سكربت واحد تعطيل النموذجين عن الجميع (إصلاح L1-A).
+ 
+-راجع `.env.example` لكل المتغيرات وتوثيقها. **قبل أول إطلاق**: شغّل `bun scripts/clean-leads.ts` أو `--dry-run` لضمان خلو قاعدة البيانات من بيانات الاختبار.
++راجع `.env.example` لكل المتغيرات وتوثيقها. **قبل أول إطلاق**: شغّل `bun scripts/clean-leads.ts --all` أو `--all --dry-run` لضمان خلو قاعدة البيانات من بيانات الاختبار (المحو الكامل يتطلب `--all` صراحةً — التشغيل المجرد يطبع الاستخدام فقط).
+ 
+ ### الاحتفاظ بالبيانات (Data retention)
+ 
+@@ -234,6 +234,8 @@ bun scripts/clean-leads.ts --purge-days=90          # حذف السجلات ال
+ bun scripts/clean-leads.ts --purge-days=90 --dry-run # عدّ فقط بلا حذف
+ ```
+ 
++**ثابتة تصدير البيانات (CSV injection)**: قاعدة البيانات تخزّن القيم الخام كما وردت عمداً — أي مسار تصدير لبيانات العملاء المحتملين (CSV/جداول بيانات) يجب أن يعيد تطبيق معقّم حقن CSV (`neutralizeCsvInjection` في `src/lib/n8n-webhook.ts`) قبل إنتاج الملف.
++
+ ### ⚠️ ملف Caddyfile الجذري — للصندوق الرمل فقط
+ 
+ الملف `Caddyfile` في جذر المستودع **خاص ببيئة المعاينة (sandbox) حصراً**: يحتوي عمداً على `?XTransformPort` (وكيل مفتوح/بدائيّة SSRF لأداة المعاينة). **لا تنسخه أبداً إلى الإنتاج.** استخدم بدلاً منه [`deploy/Caddyfile.example`](deploy/Caddyfile.example) — نسخة إنتاجية آمنة: TLS تلقائي، لا توجيه بالاستعلام، و`X-Forwarded-For` يُطمس من البروكسي (وهذا شرط صحة `TRUST_PROXY=true` أعلاه).
+@@ -250,7 +252,7 @@ bun scripts/verify-api.mjs               # التحقق الأمني الكام
+ node scripts/verify-performance.mjs      # فحص إصلاحات الأداء (10 فحوص)
+ node scripts/verify-sensory.mjs          # فحص طبقة الإحساس (16 فحصاً)
+ bash scripts/lighthouse-prod.sh          # قياس Lighthouse إنتاجي (بيئة تسمح بالبناء)
+-bun scripts/clean-leads.ts [--dry-run|--purge-days=N]   # تنظيف بيانات الاختبار قبل النشر / تنقية دورية حسب العمر
++bun scripts/clean-leads.ts (--all|--purge-days=N)[ --dry-run]  # محو كامل صريح (--all) / تنقية دورية حسب العمر
+ ```
+ 
+ ## بنية المجلدات
+@@ -277,7 +279,7 @@ src/
+ │                          # seo, site-config, use-rtl, use-reduced-motion, db, utils
+ ├── app/api/leads/route.ts # نقطة الكتابة الوحيدة (Zod + إعادة حساب + Prisma + 429)
+ └── proxy.ts               # next-intl middleware (Next.js 16)
+-messages/{ar,en}.json      # 610 مفاتيح متطابقة
++messages/{ar,en}.json      # 638 مفاتيح متطابقة
+ ```
+ 
+ ---
+diff --git a/deploy/Caddyfile.example b/deploy/Caddyfile.example
+old mode 100644
+new mode 100755
+index 69c2dc1..c4eed7b
+--- a/deploy/Caddyfile.example
++++ b/deploy/Caddyfile.example
+@@ -12,29 +12,32 @@
+ #   cp deploy/Caddyfile.example /etc/caddy/Caddyfile
+ # =============================================================================
+ elyra.example.com {
+-	# TLS is automatic (Let's Encrypt) once the domain resolves here.
+-	# For a local trial only: replace the site address with `:8443` and
+-	# add a `tls internal` directive.
++        # TLS is automatic (Let's Encrypt) once the domain resolves here.
++        # For a local trial only: replace the site address with `:8443` and
++        # add a `tls internal` directive.
+ 
+-	# Compression (zstd preferred, gzip fallback).
+-	encode zstd gzip
++        # Compression (zstd preferred, gzip fallback).
++        encode zstd gzip
+ 
+-	reverse_proxy 127.0.0.1:3000 {
+-		# Overwrite — never append — client-supplied forwarding headers:
+-		# the app trusts X-Forwarded-For only because the proxy replaces it.
+-		header_up Host {host}
+-		header_up X-Forwarded-For {remote_host}
+-		header_up X-Forwarded-Proto {scheme}
+-		header_up X-Real-IP {remote_host}
+-	}
++        reverse_proxy 127.0.0.1:3000 {
++                # Overwrite — never append — client-supplied forwarding headers:
++                # the app trusts X-Forwarded-For only because the proxy replaces it.
++                # {host_port} (not {host}): keeps the port on non-443 trial
++                # deployments (e.g. :8443) so the app's Origin↔Host same-origin
++                # comparison still matches.
++                header_up Host {host_port}
++                header_up X-Forwarded-For {remote_host}
++                header_up X-Forwarded-Proto {scheme}
++                header_up X-Real-IP {remote_host}
++        }
+ 
+-	# Optional backstop hardening — the app itself already sends its full
+-	# security-header set (CSP, HSTS, COOP/CORP, ...) via next.config.ts;
+-	# these lines just guarantee a sane floor if the app is ever swapped.
+-	# header {
+-	# 	Strict-Transport-Security "max-age=63072000; includeSubDomains"
+-	# 	X-Content-Type-Options "nosniff"
+-	# 	X-Frame-Options "DENY"
+-	# 	Referrer-Policy "strict-origin-when-cross-origin"
+-	# }
++        # Optional backstop hardening — the app itself already sends its full
++        # security-header set (CSP, HSTS, COOP/CORP, ...) via next.config.ts;
++        # these lines just guarantee a sane floor if the app is ever swapped.
++        # header {
++        #       Strict-Transport-Security "max-age=63072000; includeSubDomains"
++        #       X-Content-Type-Options "nosniff"
++        #       X-Frame-Options "DENY"
++        #       Referrer-Policy "strict-origin-when-cross-origin"
++        # }
+ }
+diff --git a/messages/ar.json b/messages/ar.json
+index 05110f7..be0c963 100755
+--- a/messages/ar.json
++++ b/messages/ar.json
+@@ -71,7 +71,8 @@
+         "booking": "منصة حجوزات",
+         "ai": "وكيل AI للعملاء",
+         "dashboard": "لوحة تحكم تحليلية"
+-      }
++      },
++      "sceneLabel": "نموذج ثلاثي الأبعاد تفاعلي — اسحب بالماوس أو استخدم مفاتيح الأسهم للتدوير"
+     }
+   },
+   "manifesto": {
+@@ -1257,7 +1258,9 @@
+       "inspect": "افحص العنصر",
+       "external": "رابط خارجي",
+       "magnet": ""
+-    }
++    },
++    "close": "إغلاق",
++    "notifications": "الإشعارات"
+   },
+   "apiErrors": {
+     "invalid": "تحقق من الحقول المميزة ثم أعد المحاولة.",
+diff --git a/messages/en.json b/messages/en.json
+index 411968b..a62b685 100755
+--- a/messages/en.json
++++ b/messages/en.json
+@@ -71,7 +71,8 @@
+         "booking": "Booking Platform",
+         "ai": "AI Customer Agent",
+         "dashboard": "Analytics Dashboard"
+-      }
++      },
++      "sceneLabel": "Interactive 3D model — drag with the mouse or use arrow keys to rotate"
+     }
+   },
+   "manifesto": {
+@@ -1257,7 +1258,9 @@
+       "inspect": "Inspect element",
+       "external": "External link",
+       "magnet": ""
+-    }
++    },
++    "close": "Close",
++    "notifications": "Notifications"
+   },
+   "apiErrors": {
+     "invalid": "Please check the highlighted fields and try again.",
+diff --git a/package.json b/package.json
+index dfb5d0e..54ac4de 100755
+--- a/package.json
++++ b/package.json
+@@ -10,9 +10,7 @@
+     "typecheck": "tsc --noEmit",
+     "db:push": "prisma db push",
+     "db:push:force": "prisma db push --accept-data-loss",
+-    "db:generate": "prisma generate",
+-    "db:migrate": "prisma migrate dev",
+-    "db:reset": "prisma migrate reset"
++    "db:generate": "prisma generate"
+   },
+   "dependencies": {
+     "@prisma/client": "^6.11.1",
+diff --git a/scripts/clean-leads.ts b/scripts/clean-leads.ts
+index 263970b..c4d4d33 100755
+--- a/scripts/clean-leads.ts
++++ b/scripts/clean-leads.ts
+@@ -2,10 +2,15 @@
+  * Lead maintenance script.
+  *
+  * Modes (run with bun):
+- *   bun scripts/clean-leads.ts                     # deletes ALL leads (pre-launch wipe)
+- *   bun scripts/clean-leads.ts --dry-run           # counts only (full wipe)
+- *   bun scripts/clean-leads.ts --purge-days=90     # deletes leads older than 90 days
+- *   bun scripts/clean-leads.ts --purge-days=90 --dry-run  # counts the purge only
++ *   bun scripts/clean-leads.ts --all                     # deletes ALL leads (explicit full wipe)
++ *   bun scripts/clean-leads.ts --all --dry-run           # counts only (full wipe)
++ *   bun scripts/clean-leads.ts --purge-days=90           # deletes leads older than 90 days
++ *   bun scripts/clean-leads.ts --purge-days=90 --dry-run # counts the purge only
++ *   bun scripts/clean-leads.ts                           # prints usage, exits 1 (no default wipe)
++ *
++ * The full wipe REQUIRES --all (L3 audit, R6): a bare run used to delete
++ * EVERY lead with no confirmation — an unguarded footgun next to the
++ * cron-scheduled purge mode. --purge-days keeps working unchanged.
+  *
+  * The purge mode implements the PII retention policy documented in README
+  * "Deployment" → "Data retention" (L1-A P2 fix): Lead rows carry
+@@ -17,6 +22,18 @@ import { PrismaClient } from '@prisma/client'
+ 
+ const prisma = new PrismaClient()
+ const dryRun = process.argv.includes('--dry-run')
++const wipeAll = process.argv.includes('--all')
++
++function usage(): never {
++  console.error(`Usage:
++  bun scripts/clean-leads.ts --all                      # deletes ALL leads (explicit full wipe)
++  bun scripts/clean-leads.ts --all --dry-run            # counts only (full wipe)
++  bun scripts/clean-leads.ts --purge-days=90            # deletes leads older than 90 days
++  bun scripts/clean-leads.ts --purge-days=90 --dry-run  # counts the purge only
++
++The full wipe requires --all — a bare run no longer deletes anything.`)
++  process.exit(1)
++}
+ 
+ /**
+  * Parses `--purge-days=<N>` (N ≥ 0) from argv — null when absent.
+@@ -53,8 +70,11 @@ async function main() {
+     return
+   }
+ 
+-  // Default: full wipe (Phase 3 pre-launch checklist — "no test data ships
+-  // to production").
++  // No --purge-days: the full wipe must be EXPLICIT. A bare run (with or
++  // without --dry-run alone) prints usage and fails — the pre-launch
++  // "no test data ships to production" wipe is `--all` (Phase 3 checklist).
++  if (!wipeAll) usage()
++
+   const count = await prisma.lead.count()
+   if (dryRun) {
+     console.log(`dry-run: ${count} lead(s) would be deleted`)
+diff --git a/scripts/verify-api.mjs b/scripts/verify-api.mjs
+index 2f8477c..1cd7d9e 100755
+--- a/scripts/verify-api.mjs
++++ b/scripts/verify-api.mjs
+@@ -274,8 +274,8 @@ try {
+       ? await prisma.lead.findFirst({ where: { email: 'valid-calc@test.dev' }, orderBy: { createdAt: 'desc' } })
+       : null
+     ok(
+-      '201 + reference (8 chars) + Prisma row',
+-      r.status === 201 && typeof ref === 'string' && ref.length === 8 && row !== null && row.id.startsWith(ref),
++      '201 + reference (10 chars) + Prisma row',
++      r.status === 201 && typeof ref === 'string' && ref.length === 10 && row !== null && row.reference === ref,
+       `ref=${ref}`
+     )
+ 
+diff --git a/scripts/verify-performance.mjs b/scripts/verify-performance.mjs
+index b8d46b9..dc59c83 100755
+--- a/scripts/verify-performance.mjs
++++ b/scripts/verify-performance.mjs
+@@ -149,7 +149,7 @@ const browser = await chromium.launch({ channel: 'chromium', headless: true })
+   ok('CSS KineticWords applied on section headings', kinetic > 0, `kinetic words=${kinetic}`)
+ 
+   const sensory = await page.evaluate(() => ({
+-    grain: !!document.querySelector('.elyra-grain'),
++    grain: !!document.querySelector('.grain-overlay'),
+     dot: !!document.querySelector('.elyra-cursor-dot'),
+     // Phase 4 moved the sound toggle from `fixed bottom-4 start-4` into
+     // the navbar — look for the navbar button via its aria-label text
+diff --git a/scripts/verify-sensory-negative.mjs b/scripts/verify-sensory-negative.mjs
+index 6cb7443..3ea81e8 100755
+--- a/scripts/verify-sensory-negative.mjs
++++ b/scripts/verify-sensory-negative.mjs
+@@ -128,7 +128,7 @@ const browser = await chromium.launch({ channel: 'chromium', headless: true })
+     await page.goto(`${BASE}${r}`, { waitUntil: 'networkidle' })
+     await page.waitForTimeout(600)
+     const hasToggle = await page.evaluate(() => !!document.querySelector('button[aria-label*="المؤثرات"], button[aria-label*="sound"]'))
+-    const hasGrain = await page.evaluate(() => !!document.querySelector('.elyra-grain'))
++    const hasGrain = await page.evaluate(() => !!document.querySelector('.grain-overlay'))
+     const hasCursor = await page.evaluate(() => !!document.querySelector('.elyra-cursor-dot'))
+     routeStatus.push(`${r}:${hasToggle && hasGrain && hasCursor ? 'ok' : 'MISSING'}`)
+     if (!hasToggle || !hasGrain || !hasCursor) allOk = false
+@@ -144,7 +144,7 @@ const browser = await chromium.launch({ channel: 'chromium', headless: true })
+     await page.waitForTimeout(600)
+     const hasAll = await page.evaluate(() =>
+       !!document.querySelector('button[aria-label*="المؤثرات"], button[aria-label*="sound"]') &&
+-      !!document.querySelector('.elyra-grain') &&
++      !!document.querySelector('.grain-overlay') &&
+       !!document.querySelector('.elyra-cursor-dot'))
+     arStatus.push(`${r}:${hasAll ? 'ok' : 'MISSING'}`)
+     if (!hasAll) arAllOk = false
+diff --git a/scripts/verify-sensory.mjs b/scripts/verify-sensory.mjs
+index bb41d7f..a74ba50 100755
+--- a/scripts/verify-sensory.mjs
++++ b/scripts/verify-sensory.mjs
+@@ -124,7 +124,7 @@ ok('cursor: native cursor CSS hidden', cursorProp === 'none', `body cursor: ${cu
+ 
+ // --- Grain ------------------------------------------------------------------
+ const grain = await page.evaluate(() => {
+-  const g = document.querySelector('.elyra-grain')
++  const g = document.querySelector('.grain-overlay')
+   if (!g) return null
+   const cs = getComputedStyle(g)
+   return {
+@@ -136,8 +136,8 @@ const grain = await page.evaluate(() => {
+     printHidden: !!Array.from(document.styleSheets).length,
+   }
+ })
+-ok('grain: fixed layer, 3.5% opacity, inert, SVG data-URI',
+-  grain && grain.pos === 'fixed' && grain.opacity === '0.035' &&
++ok('grain: fixed layer, 4.5% opacity, inert, SVG data-URI',
++  grain && grain.pos === 'fixed' && grain.opacity === '0.045' &&
+   grain.pe === 'none' && grain.ah === 'true' && grain.bg,
+   JSON.stringify(grain))
+ 
+diff --git a/src/app/[locale]/about/page.tsx b/src/app/[locale]/about/page.tsx
+index e668374..ed474e9 100755
+--- a/src/app/[locale]/about/page.tsx
++++ b/src/app/[locale]/about/page.tsx
+@@ -1,7 +1,7 @@
+ import type { Metadata } from 'next'
+ import { hasLocale } from 'next-intl'
+ import { notFound } from 'next/navigation'
+-import { getTranslations } from 'next-intl/server'
++import { getTranslations, setRequestLocale } from 'next-intl/server'
+ import { routing } from '@/i18n/routing'
+ import { Sparkles, Target, Bot, CalendarRange, Briefcase, Workflow, Users } from 'lucide-react'
+ import { PageHero } from '@/components/shared/page-hero'
+@@ -54,7 +54,17 @@ export async function generateMetadata({
+   })
+ }
+ 
+-export default async function AboutPage() {
++export default async function AboutPage({
++  params,
++}: {
++  params: Promise<{ locale: string }>
++}) {
++  const { locale } = await params
++  if (!hasLocale(routing.locales, locale)) notFound()
++  // Canonical next-intl pattern: pin the request locale so implicit-locale
++  // getTranslations in this page (and future metadata) never fall back to
++  // headers() and silently break prerendering.
++  setRequestLocale(locale)
+   const t = await getTranslations('pages.about')
+ 
+   return (
+diff --git a/src/app/[locale]/contact/page.tsx b/src/app/[locale]/contact/page.tsx
+index fb0e0ce..01d26cd 100755
+--- a/src/app/[locale]/contact/page.tsx
++++ b/src/app/[locale]/contact/page.tsx
+@@ -1,7 +1,7 @@
+ import type { Metadata } from 'next'
+ import { hasLocale } from 'next-intl'
+ import { notFound } from 'next/navigation'
+-import { getTranslations } from 'next-intl/server'
++import { getTranslations, setRequestLocale } from 'next-intl/server'
+ import { routing } from '@/i18n/routing'
+ import { Mail, MessageCircle, Send, Clock, Star, Quote } from 'lucide-react'
+ import { PageHero } from '@/components/shared/page-hero'
+@@ -65,17 +65,29 @@ function parsePrefill(
+ // The channel LIST itself is built inside the page because the WhatsApp
+ // href is now a click-to-chat deep link carrying the localized greeting
+ // (Batch 2 item 7e).
++// L3 (R6): the DISPLAYED value comes from SITE_CONTACT too — hrefs and
++// visible text now share the single source of truth, so the pre-launch
++// swap in site-config.ts updates both (the message catalogs own the
++// translated channel NAMES/titles, not the contact data).
+ const CHANNELS = [
+-  { key: 'email' as const, icon: Mail, href: `mailto:${SITE_CONTACT.email}`, external: false, chipClass: 'bg-primary/10 text-primary group-hover:bg-primary/15' },
+-  { key: 'whatsapp' as const, icon: MessageCircle, external: true, chipClass: 'bg-g-green/10 text-g-green group-hover:bg-g-green/15' },
+-  { key: 'telegram' as const, icon: Send, href: SITE_SOCIAL.telegram, external: true, chipClass: 'bg-g-blue/10 text-g-blue group-hover:bg-g-blue/15' },
++  { key: 'email' as const, icon: Mail, href: `mailto:${SITE_CONTACT.email}`, external: false, chipClass: 'bg-primary/10 text-primary group-hover:bg-primary/15', display: SITE_CONTACT.email },
++  { key: 'whatsapp' as const, icon: MessageCircle, external: true, chipClass: 'bg-g-green/10 text-g-green group-hover:bg-g-green/15', display: SITE_CONTACT.whatsappDisplay },
++  { key: 'telegram' as const, icon: Send, href: SITE_SOCIAL.telegram, external: true, chipClass: 'bg-g-blue/10 text-g-blue group-hover:bg-g-blue/15', display: `@${SITE_CONTACT.telegramHandle}` },
+ ]
+ 
+ export default async function ContactPage({
++  params,
+   searchParams,
+ }: {
++  params: Promise<{ locale: string }>
+   searchParams: Promise<Record<string, string | string[] | undefined>>
+ }) {
++  const { locale } = await params
++  if (!hasLocale(routing.locales, locale)) notFound()
++  // Canonical next-intl pattern: pin the request locale so implicit-locale
++  // getTranslations in this page (and future metadata) never fall back to
++  // headers() and silently break prerendering.
++  setRequestLocale(locale)
+   const t = await getTranslations('pages.contact')
+   // Testimonial + rating copy is reused from the existing catalog
+   // (Batch 2 item 7d) — no duplicated content.
+@@ -109,7 +121,7 @@ export default async function ContactPage({
+                 </h2>
+               </Reveal>
+               <ul className="mt-8 space-y-3">
+-                {channels.map(({ key, icon: Icon, href, external, chipClass }, i) => (
++                {channels.map(({ key, icon: Icon, href, external, chipClass, display }, i) => (
+                   /* li must be a direct child of ul — Reveal wraps the
+                      CONTENT inside the li (Lighthouse a11y: list-item). */
+                   <li key={key}>
+@@ -130,8 +142,11 @@ export default async function ContactPage({
+                               INNER inline span so the outer block keeps
+                               the page-direction (start) alignment — a
+                               dir on the block itself would left-align
+-                              the value under a right-aligned label. */}
+-                          <span className="block font-semibold"><span dir="ltr">{t(`channels.${key}.value`)}</span></span>
++                              the value under a right-aligned label.
++                              Value source: SITE_CONTACT (see CHANNELS) —
++                              the title stays translated, the contact
++                              datum does not. */}
++                          <span className="block font-semibold"><span dir="ltr">{display}</span></span>
+                         </span>
+                       </a>
+                     </Reveal>
+diff --git a/src/app/[locale]/error.tsx b/src/app/[locale]/error.tsx
+index a28e2d4..203c5be 100755
+--- a/src/app/[locale]/error.tsx
++++ b/src/app/[locale]/error.tsx
+@@ -26,7 +26,9 @@ export default function Error({
+         {t('errorTitle')}
+       </h1>
+       <p className="mt-4 text-muted-foreground">{t('errorDesc')}</p>
+-      <Button onClick={reset} className="mt-8 gap-2">
++      {/* h-11 overrides the Button's default h-9 (36px) — 44px is the
++          project's interactive-target standard (WCAG 2.1 AA). */}
++      <Button onClick={reset} className="mt-8 h-11 gap-2">
+         <RotateCcw className="size-4" aria-hidden="true" />
+         {t('retry')}
+       </Button>
+diff --git a/src/app/[locale]/layout.tsx b/src/app/[locale]/layout.tsx
+index 1c7fdc3..bf1cc94 100755
+--- a/src/app/[locale]/layout.tsx
++++ b/src/app/[locale]/layout.tsx
+@@ -159,6 +159,13 @@ export default async function LocaleLayout({
+   // Skip-link copy from the catalog (nav.skipToContent) — no hardcoded
+   // strings that can drift from the messages files.
+   const t = await getTranslations('nav')
++  // L3 FIX (R5): sonner's screen-reader labels are English-only defaults
++  // (containerAriaLabel 'Notifications'; per-toast close button 'Close
++  // toast'). Pass the catalog's translated labels so Arabic visitors get
++  // Arabic toast names. NOTE: in sonner 2.0.7 the close-button label is a
++  // TOAST option (forwarded to every toast from the Toaster via
++  // toastOptions), while containerAriaLabel is a Toaster-level prop.
++  const tCommon = await getTranslations({ locale, namespace: 'common' })
+ 
+   return (
+     <html
+@@ -204,7 +211,13 @@ export default async function LocaleLayout({
+           <GrainOverlay />
+           <CustomCursor />
+         </NextIntlClientProvider>
+-        <Toaster position="top-center" richColors closeButton />
++        <Toaster
++          position="top-center"
++          richColors
++          closeButton
++          containerAriaLabel={tCommon('notifications')}
++          toastOptions={{ closeButtonAriaLabel: tCommon('close') }}
++        />
+       </body>
+     </html>
+   )
+diff --git a/src/app/[locale]/opengraph-image.tsx b/src/app/[locale]/opengraph-image.tsx
+index c7407e9..d05c5d8 100755
+--- a/src/app/[locale]/opengraph-image.tsx
++++ b/src/app/[locale]/opengraph-image.tsx
+@@ -1,7 +1,10 @@
+ import { ImageResponse } from 'next/og'
++import { OG_IMAGE_ALT } from '@/lib/site-config'
+ 
+-export const alt =
+-  'Elyra — Stunning Websites & n8n Automation Systems'
++// Single source of truth (site-config.ts) — seo.ts, [locale]/layout.tsx and
++// [locale]/page.tsx already use OG_IMAGE_ALT; the file-convention export
++// must not carry its own divergent copy (L3 audit).
++export const alt = OG_IMAGE_ALT
+ export const size = { width: 1200, height: 630 }
+ export const contentType = 'image/png'
+ 
+diff --git a/src/app/[locale]/services/automation/page.tsx b/src/app/[locale]/services/automation/page.tsx
+index e1eeb41..b5ee4da 100755
+--- a/src/app/[locale]/services/automation/page.tsx
++++ b/src/app/[locale]/services/automation/page.tsx
+@@ -1,7 +1,7 @@
+ import type { Metadata } from 'next'
+ import { hasLocale } from 'next-intl'
+ import { notFound } from 'next/navigation'
+-import { getTranslations } from 'next-intl/server'
++import { getTranslations, setRequestLocale } from 'next-intl/server'
+ import { routing } from '@/i18n/routing'
+ import { type LucideIcon } from 'lucide-react'
+ import {
+@@ -42,7 +42,17 @@ export async function generateMetadata({
+   })
+ }
+ 
+-export default async function AutomationPage() {
++export default async function AutomationPage({
++  params,
++}: {
++  params: Promise<{ locale: string }>
++}) {
++  const { locale } = await params
++  if (!hasLocale(routing.locales, locale)) notFound()
++  // Canonical next-intl pattern: pin the request locale so implicit-locale
++  // getTranslations in this page (and future metadata) never fall back to
++  // headers() and silently break prerendering.
++  setRequestLocale(locale)
+   const t = await getTranslations('pages.automation')
+ 
+   return (
+diff --git a/src/app/[locale]/services/websites/page.tsx b/src/app/[locale]/services/websites/page.tsx
+index 42e7992..bb47c10 100755
+--- a/src/app/[locale]/services/websites/page.tsx
++++ b/src/app/[locale]/services/websites/page.tsx
+@@ -1,7 +1,7 @@
+ import type { Metadata } from 'next'
+ import { hasLocale } from 'next-intl'
+ import { notFound } from 'next/navigation'
+-import { getTranslations } from 'next-intl/server'
++import { getTranslations, setRequestLocale } from 'next-intl/server'
+ import { routing } from '@/i18n/routing'
+ import { Check, Globe, ShoppingCart, LayoutDashboard } from 'lucide-react'
+ import { PageHero } from '@/components/shared/page-hero'
+@@ -36,7 +36,17 @@ export async function generateMetadata({
+   })
+ }
+ 
+-export default async function WebsitesPage() {
++export default async function WebsitesPage({
++  params,
++}: {
++  params: Promise<{ locale: string }>
++}) {
++  const { locale } = await params
++  if (!hasLocale(routing.locales, locale)) notFound()
++  // Canonical next-intl pattern: pin the request locale so implicit-locale
++  // getTranslations in this page (and future metadata) never fall back to
++  // headers() and silently break prerendering.
++  setRequestLocale(locale)
+   const t = await getTranslations('pages.websites')
+ 
+   return (
+@@ -95,7 +105,7 @@ export default async function WebsitesPage() {
+                   {/* UI-5: hover depth on the journey rows — gentle lift +
+                       primary border tint; the number badge brightens. */}
+                   <div className="card-hover-lift group flex gap-4 rounded-2xl border border-border bg-card p-5 hover:border-primary/30 sm:gap-6 sm:p-6">
+-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary transition-colors duration-300 group-hover:bg-primary/15">
++                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary-strong transition-colors duration-300 group-hover:bg-primary/15">
+                       {String(i + 1).padStart(2, '0')}
+                     </div>
+                     <div>
+diff --git a/src/app/[locale]/work/page.tsx b/src/app/[locale]/work/page.tsx
+index 8fd7931..ca5e7ed 100755
+--- a/src/app/[locale]/work/page.tsx
++++ b/src/app/[locale]/work/page.tsx
+@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
+ import { hasLocale } from 'next-intl'
+ import { notFound } from 'next/navigation'
+ import { routing } from '@/i18n/routing'
++import { setRequestLocale } from 'next-intl/server'
+ import { PageHero } from '@/components/shared/page-hero'
+ import { CTA } from '@/components/shared/cta'
+ import { WorkGrid } from '@/components/pages/work-grid'
+@@ -23,7 +24,17 @@ export async function generateMetadata({
+   })
+ }
+ 
+-export default async function WorkPage() {
++export default async function WorkPage({
++  params,
++}: {
++  params: Promise<{ locale: string }>
++}) {
++  const { locale } = await params
++  if (!hasLocale(routing.locales, locale)) notFound()
++  // Canonical next-intl pattern: pin the request locale so implicit-locale
++  // getTranslations in this page's subtree (PageHero/CTA/WorkGrid and future
++  // metadata) never fall back to headers() and silently break prerendering.
++  setRequestLocale(locale)
+   return (
+     <>
+       <PageHero namespace="pages.work.hero" />
+diff --git a/src/app/api/leads/route.ts b/src/app/api/leads/route.ts
+index ed0967d..93ab55b 100755
+--- a/src/app/api/leads/route.ts
++++ b/src/app/api/leads/route.ts
+@@ -148,12 +148,21 @@ const leadSchema = z.discriminatedUnion('source', [
+  * OVERWRITES these headers with the real client address (the included
+  * Caddyfile does). Otherwise fail closed: all callers share the single
+  * 'anonymous' bucket.
++ *
++ * When X-Forwarded-For carries a LIST, the LAST element is used, never the
++ * first: appending proxies (nginx's default proxy_add_x_forwarded_for)
++ * grow the list rightward — spoofed client-supplied entries first, the
++ * proxy's own trusted observation LAST — so the first element is
++ * attacker-controlled and reading it would allow rate-limit bucket
++ * rotation. Under an overwriting proxy the list holds a single element,
++ * where first and last coincide. Appending proxies are not supported at
++ * all with TRUST_PROXY=true (see .env.example).
+  */
+ function clientIp(req: NextRequest): string {
+   if (process.env.TRUST_PROXY !== 'true') return 'anonymous'
+   const xff = req.headers.get('x-forwarded-for')
+-  const first = xff?.split(',')[0]?.trim()
+-  if (first) return first
++  const last = xff?.split(',').pop()?.trim()
++  if (last) return last
+   return req.headers.get('x-real-ip') ?? 'anonymous'
+ }
+ 
+diff --git a/src/app/globals.css b/src/app/globals.css
+index 63618a5..7db43a0 100755
+--- a/src/app/globals.css
++++ b/src/app/globals.css
+@@ -81,8 +81,11 @@
+   --popover: #FFFFFF;
+   --popover-foreground: #1D1D1F;
+   /* Brand primary — Apple blue #0071E3 (user request: revert to the blue
+-     palette). White text on #0071E3 = 4.52:1 → AA for button text; as text
+-     on #F5F5F7 it is 4.5:1 (AA even for small text) and on white 4.8:1. */
++     palette). White text on #0071E3 = 4.70:1 → AA for button text; as
++     text on the #F5F5F7 page background it is only 4.31:1 — BELOW the
++     4.5:1 AA small-text threshold, so primary-colored copy on light
++     surfaces is restricted to large display text (≥3:1); small text and
++     links must use --primary-strong (below). */
+   --primary: #0071E3;
+   --primary-foreground: #FFFFFF;
+   /* Accessible deep shade of the brand primary — #0066CC, same hue
+diff --git a/src/components/home/before-after.tsx b/src/components/home/before-after.tsx
+index 2361501..3c6a22d 100755
+--- a/src/components/home/before-after.tsx
++++ b/src/components/home/before-after.tsx
+@@ -1,6 +1,6 @@
+ 'use client'
+ 
+-import { useCallback, useId, useRef, useState } from 'react'
++import { useCallback, useEffect, useId, useRef, useState } from 'react'
+ import { useTranslations } from 'next-intl'
+ import {
+   Activity,
+@@ -1015,16 +1015,50 @@ export function BeforeAfter({
+     setPos(Math.max(2, Math.min(98, pct)))
+   }, [isRtl])
+ 
++  // L3 FIX (R5): rAF-coalesced drag (GlowCard pattern, bento.tsx) — the
++  // rect read + setState ran on EVERY pointermove (120+ re-renders/s on
++  // 120Hz hardware; every sibling surface coalesces). pointermove now just
++  // stores the latest clientX in a ref and schedules ONE frame that applies
++  // it; the queued frame is cancelled on unmount and on drag-end (which
++  // applies the final position synchronously so the reveal never lags the
++  // pointerup).
++  const pendingXRef = useRef(0)
++  const dragRafRef = useRef(0)
++  const schedulePosFromPending = useCallback(() => {
++    if (dragRafRef.current) return
++    dragRafRef.current = requestAnimationFrame(() => {
++      dragRafRef.current = 0
++      setFromClientX(pendingXRef.current)
++    })
++  }, [setFromClientX])
++  useEffect(
++    () => () => {
++      if (dragRafRef.current) cancelAnimationFrame(dragRafRef.current)
++    },
++    []
++  )
++
+   const onPointerDown = (e: React.PointerEvent) => {
+     dragging.current = true
+     ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+-    setFromClientX(e.clientX)
++    setFromClientX(e.clientX) // single event — apply synchronously
+   }
+   const onPointerMove = (e: React.PointerEvent) => {
+     if (!dragging.current) return
+-    setFromClientX(e.clientX)
++    pendingXRef.current = e.clientX
++    schedulePosFromPending()
++  }
++  const onPointerUp = () => {
++    dragging.current = false
++    // Drag-end: cancel any queued frame and apply the final pending
++    // position immediately (pre-fix behavior had every move applied by
++    // now — this preserves the final-position guarantee).
++    if (dragRafRef.current) {
++      cancelAnimationFrame(dragRafRef.current)
++      dragRafRef.current = 0
++      setFromClientX(pendingXRef.current)
++    }
+   }
+-  const onPointerUp = () => { dragging.current = false }
+ 
+   const onKeyDown = (e: React.KeyboardEvent) => {
+     const step = e.shiftKey ? 10 : 5
+diff --git a/src/components/home/bento.tsx b/src/components/home/bento.tsx
+index d05d0cb..97f7ddd 100755
+--- a/src/components/home/bento.tsx
++++ b/src/components/home/bento.tsx
+@@ -499,6 +499,13 @@ const CUBE_FACES: ReadonlyArray<{
+   { tr: 'rotateX(-90deg) translateZ(28px)', grad: 'linear-gradient(135deg, #FDF8ED, #D9CDAC)', icon: null, glyph: '◆', dark: true },
+ ]
+ 
++/* L3 FIX (R3): keyboard nudge magnitudes — one firm drag gesture at the
++   pointer drag's 0.5°/px mapping: ±0.15 rad (≈8.6°) yaw / ±0.1 rad
++   (≈5.7°) pitch per press ≈ a 17px drag, through the SAME (unclamped)
++   rotation space the drag writes. */
++const KEY_YAW_DEG = (0.15 * 180) / Math.PI
++const KEY_PITCH_DEG = (0.1 * 180) / Math.PI
++
+ function MiniCube() {
+   const t = useTranslations('bento.threeD.mini')
+   // Reduced motion: skip the CSS easing between drag rotations AND disable
+@@ -578,6 +585,34 @@ function MiniCube() {
+     armIdle()
+   }
+ 
++  // L3 FIX (R3): keyboard path for the pointer-only drag (three-d-section
++  // pattern). Arrow keys nudge the SAME rotation state the drag writes
++  // (setRot) with the same delta signs as a same-direction drag (right →
++  // +yaw, down → −pitch). preventDefault sits AFTER the switch, so only
++  // handled arrows are swallowed. A press counts as an interaction: it
++  // stops the idle spin and re-arms it, exactly like onDown/onUp do.
++  const onKeyDown = (e: React.KeyboardEvent) => {
++    switch (e.key) {
++      case 'ArrowLeft':
++        setRot((r) => ({ x: r.x, y: r.y - KEY_YAW_DEG }))
++        break
++      case 'ArrowRight':
++        setRot((r) => ({ x: r.x, y: r.y + KEY_YAW_DEG }))
++        break
++      case 'ArrowUp':
++        setRot((r) => ({ x: r.x + KEY_PITCH_DEG, y: r.y }))
++        break
++      case 'ArrowDown':
++        setRot((r) => ({ x: r.x - KEY_PITCH_DEG, y: r.y }))
++        break
++      default:
++        return
++    }
++    e.preventDefault()
++    stopSpin()
++    armIdle()
++  }
++
+   // Cheap floor-shadow approximation: an ellipse that squashes/shifts with
+   // the cube's yaw so the ground reads as reacting to the rotation.
+   const ryRad = (rot.y * Math.PI) / 180
+@@ -589,8 +624,21 @@ function MiniCube() {
+       <p className="text-[11px] text-muted-foreground">
+         {t('hint')} · {t('idle')}
+       </p>
++      {/* L3 FIX (R3): the STAGE is now the keyboard surface — role="img" +
++          aria-label + tabIndex + arrow keys mirror three-d-section's a11y
++          pattern (label moved here from the cube so it names the focusable
++          element; children of role="img" are presentational). NOT gated on
++          reduced motion, unlike three-d-section: MiniCube drags still work
++          for reduced users (only autonomous spin + the 0.2s easing are
++          disabled), so keyboard rotation stays available too — reduced
++          users get instant, un-eased nudges. Focus ring follows the
++          three-d-section convention (ring-ring offset elyra-dark). */}
+       <div
+-        className="relative mt-3 flex h-36 items-center justify-center overflow-hidden rounded-xl border border-border bg-elyra-dark/95 touch-none select-none"
++        role="img"
++        aria-label={`${t('hint')} — ${t('idle')}`}
++        tabIndex={0}
++        onKeyDown={onKeyDown}
++        className="relative mt-3 flex h-36 items-center justify-center overflow-hidden rounded-xl border border-border bg-elyra-dark/95 touch-none select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
+         style={{ perspective: '600px' }}
+       >
+         {/* faint accent point-glow behind the cube (depth) */}
+@@ -617,8 +665,6 @@ function MiniCube() {
+             transition: dragging || spinning || reduced ? 'none' : 'transform 0.2s ease-out',
+             willChange: 'transform',
+           }}
+-          role="img"
+-          aria-label={`${t('hint')} — ${t('idle')}`}
+         >
+           {CUBE_FACES.map((f, i) => {
+             const Icon = f.icon
+diff --git a/src/components/home/calculator.tsx b/src/components/home/calculator.tsx
+index e5493c9..0284105 100755
+--- a/src/components/home/calculator.tsx
++++ b/src/components/home/calculator.tsx
+@@ -1,6 +1,6 @@
+ 'use client'
+ 
+-import { useMemo, useRef, useState } from 'react'
++import { useEffect, useMemo, useRef, useState } from 'react'
+ import { useLocale, useTranslations } from 'next-intl'
+ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+ import { z } from 'zod'
+@@ -84,6 +84,17 @@ export function Calculator() {
+ 
+   const result = useMemo(() => computeEstimate(input), [input])
+ 
++  // L3 FIX (R5): on 201 the `done` branch swaps the form (whose focused
++  // submit button just disappeared) for the success panel — focus fell to
++  // <body> and nothing was announced. Move focus to the success heading
++  // (tabIndex={-1} = programmatically focusable, out of tab order). The
++  // effect runs after the swap commits, so the ref is attached when it
++  // fires; done can only flip at step 2 (the form lives there).
++  const successHeadingRef = useRef<HTMLHeadingElement>(null)
++  useEffect(() => {
++    if (done) successHeadingRef.current?.focus()
++  }, [done])
++
+   // Breakdown line labels — resolved once for type-safety (guide §4.6).
+   const breakdownLabels = {
+     base: t('result.base'),
+@@ -381,7 +392,7 @@ export function Calculator() {
+                             aria-pressed={active}
+                             className={cn(
+                               'inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors',
+-                              active ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-foreground/[0.02]'
++                              active ? 'border-primary bg-primary/10 text-primary-strong' : 'border-border hover:bg-foreground/[0.02]'
+                             )}
+                           >
+                             <span className={cn('flex size-4 items-center justify-center rounded-full border', active ? 'border-primary bg-primary text-primary-foreground' : 'border-border')}>
+@@ -435,7 +446,13 @@ export function Calculator() {
+                       <div className="flex size-16 items-center justify-center rounded-full bg-g-green/15 text-g-green">
+                         <Check className="size-8" aria-hidden="true" />
+                       </div>
+-                      <h3 className="mt-5 text-2xl font-semibold">{t('form.successTitle')}</h3>
++                      <h3
++                        ref={successHeadingRef}
++                        tabIndex={-1}
++                        className="mt-5 text-2xl font-semibold"
++                      >
++                        {t('form.successTitle')}
++                      </h3>
+                       <p className="mt-2 max-w-md text-muted-foreground">{t('form.successDesc')}</p>
+                       {reference ? (
+                         <p className="mt-3 rounded-full border border-g-green/30 bg-g-green/5 px-4 py-1.5 font-mono text-sm font-semibold tracking-wide text-g-green">
+@@ -606,7 +623,7 @@ export function Calculator() {
+                 onClick={goBack}
+                 disabled={step === 0}
+                 className={cn(
+-                  'inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors',
++                  'inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors',
+                   step === 0 ? 'cursor-not-allowed opacity-40' : 'hover:bg-foreground/5'
+                 )}
+               >
+@@ -618,7 +635,7 @@ export function Calculator() {
+                 type="button"
+                 data-cursor="magnet"
+                 onClick={goNext}
+-                className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform hover:scale-105"
++                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform hover:scale-105"
+               >
+                 {step === 1 ? t('calculate') : t('next')}
+                 {/* ArrowRight flips to point left ("forward") in RTL */}
+@@ -631,7 +648,7 @@ export function Calculator() {
+               <button
+                 type="button"
+                 onClick={goBack}
+-                className="inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors hover:bg-foreground/5"
++                className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors hover:bg-foreground/5"
+               >
+                 <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
+                 {t('back')}
+diff --git a/src/components/home/console-scene.tsx b/src/components/home/console-scene.tsx
+index 0b82821..d79e690 100755
+--- a/src/components/home/console-scene.tsx
++++ b/src/components/home/console-scene.tsx
+@@ -124,7 +124,9 @@ function buildPositions(config: PresetConfig): [number, number, number][] {
+ /** Shared radial-gradient glow texture — 64×64 white radial fade, generated
+  *  once per mount (component scope, this is a client-only dynamic import)
+  *  and reused by every node's SpriteMaterial. Material.dispose() never
+- *  frees textures, so this is disposed exactly once in the cleanup below. */
++ *  frees textures, so it is disposed exactly once — at unmount — by its
++ *  own disposal effect below (LOOP-3 FIX 2: previously it rode the tubes
++ *  effect and was disposed mid-mount on every preset switch). */
+ function makeGlowTexture(): THREE.CanvasTexture {
+   const size = 64
+   const canvas = document.createElement('canvas')
+@@ -303,6 +305,13 @@ function Nodes({
+     return () => registerGroup(null)
+   }, [registerGroup])
+ 
++  // LOOP-3 FIX 7: R3F resets clock.elapsedTime to 0 on every frameloop
++  // 'never'↔'always' transition (offscreen/visibility gating flips it
++  // constantly here), which would rewind the emissive/pulse phases every
++  // time the hero pauses this canvas. Accumulate scene-local time from
++  // delta instead — the same immune pattern hero-canvas uses for uTime.
++  const tRef = useRef(0)
++
+   // Slow rotation of the whole group — pauses while the visitor drags
+   // (capability-scene's approach), with the polar tilt clamped so neither
+   // drag nor drift alone can flip the console upside down.
+@@ -318,7 +327,8 @@ function Nodes({
+       )
+     }
+     if (reduced) return
+-    const t = state.clock.elapsedTime
++    tRef.current += delta
++    const t = tRef.current
+     nodeMatRefs.current.forEach((mat, i) => {
+       if (!mat) return
+       // gentle breathing glow, per-node phase offset so the constellation
+@@ -344,11 +354,12 @@ function Nodes({
+   // unmount the finally-mounted set IS disposed. Under StrictMode the
+   // dev double-invoke briefly disposes still-mounted geometries which
+   // three.js transparently re-uploads next frame — the same accepted
+-  // semantics as capability-scene's Centerpiece disposal. The glow
+-  // texture is shared by all (JSX-declared) sprite materials, and
+-  // Material.dispose() never frees textures — so it is disposed here,
+-  // exactly once. Node spheres / sprites / pulse meshes are JSX-declared
+-  // so R3F handles those.
++  // semantics as capability-scene's Centerpiece disposal. Node spheres /
++  // sprites / pulse meshes are JSX-declared so R3F handles those.
++  // LOOP-3 FIX 2: scoped to [tubes] ONLY — this effect previously disposed
++  // glowTexture too, so a preset switch (new tubes identity) fired
++  // glowTexture.dispose() mid-mount while the texture was still bound to
++  // every sprite material. The glow texture now has its own effect below.
+   useEffect(() => {
+     return () => {
+       for (const tube of tubes) {
+@@ -357,9 +368,17 @@ function Nodes({
+         if (Array.isArray(material)) material.forEach((m) => m.dispose())
+         else material.dispose()
+       }
+-      glowTexture.dispose()
+     }
+-  }, [tubes, glowTexture])
++  }, [tubes])
++
++  // Glow texture disposal — its own effect (LOOP-3 FIX 2). The memo above
++  // has stable [] deps, so glowTexture's identity never changes across
++  // preset switches: this cleanup fires exactly once, at unmount, never
++  // mid-mount. ([glowTexture] in the deps satisfies exhaustive-deps; the
++  // stable identity is what keeps it unmount-only.)
++  useEffect(() => {
++    return () => glowTexture.dispose()
++  }, [glowTexture])
+ 
+   return (
+     <group ref={groupRef}>
+@@ -472,10 +491,18 @@ export function ConsoleScene({
+    *  affordance. Callback prop (NOT a ref prop) per the react-compiler
+    *  discipline used across this codebase — the parent owns the flag. */
+   onDragStateChange,
++  /** Accessible name for the drag surface (LOOP-3 FIX 4) — the wrapper is
++   *  role="img" + tabIndex, so this label is what screen readers announce
++   * (hero-console passes hero.console.sceneLabel, present in both
++   *  catalogs: “نموذج ثلاثي الأبعاد تفاعلي — اسحب بالماوس أو استخدم مفاتيح
++   *  الأسهم للتدوير”). Optional — omitting it simply leaves the img role
++   *  unnamed (legacy behavior). */
++  sceneLabel,
+ }: {
+   preset: PresetId
+   active?: boolean
+   onDragStateChange?: (dragging: boolean) => void
++  sceneLabel?: string
+ }) {
+   const reduced = usePrefersReducedMotion()
+   const config = PRESET_CONFIG[preset] ?? PRESET_CONFIG.custom
+@@ -552,14 +579,64 @@ export function ConsoleScene({
+     }
+   }
+ 
++  // LOOP-3 FIX 4: keyboard path for the drag — mirrors three-d-section's
++  // pattern (role="img" + tabIndex + arrow keys + focus-visible ring).
++  // ArrowLeft/Right step the free yaw ±0.13 rad (~7.5°); ArrowUp/Down step
++  // the pitch ±0.07 rad clamped to ±MAX_TILT by the same clamp the pointer
++  // drag's pitch path uses. preventDefault sits AFTER the switch (default
++  // returns early) so only the four handled arrows swallow the page
++  // scroll. Null-guarded: before the lazy scene mounts, arrows scroll
++  // normally. Stable useCallback — mutations stay on the local groupRef.
++  const onKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
++    const group = groupRef.current
++    if (!group) return
++    switch (e.key) {
++      case 'ArrowLeft':
++        group.rotation.y -= 0.13
++        break
++      case 'ArrowRight':
++        group.rotation.y += 0.13
++        break
++      case 'ArrowUp':
++        group.rotation.x = THREE.MathUtils.clamp(
++          group.rotation.x - 0.07,
++          -MAX_TILT,
++          MAX_TILT
++        )
++        break
++      case 'ArrowDown':
++        group.rotation.x = THREE.MathUtils.clamp(
++          group.rotation.x + 0.07,
++          -MAX_TILT,
++          MAX_TILT
++        )
++        break
++      default:
++        return
++    }
++    e.preventDefault()
++  }, [])
++
+   return (
+     <div
+-      className="absolute inset-0"
++      className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
+       onPointerDown={onPointerDown}
+       onPointerMove={onPointerMove}
+       onPointerUp={endDrag}
+       onPointerCancel={endDrag}
+-      style={{ cursor: dragging ? 'grabbing' : 'grab' }}
++      onKeyDown={onKeyDown}
++      role="img"
++      aria-label={sceneLabel}
++      tabIndex={0}
++      style={{
++        cursor: dragging ? 'grabbing' : 'grab',
++        // LOOP-3 FIX 1: claim the gesture for the drag, not page scroll —
++        // without this, touch devices ≥768px (iPads that mount this scene)
++        // hand the pointer to native panning → pointercancel → the
++        // "اسحب للتدوير 360°" affordance is dead. Repo precedent:
++        // before-after.tsx (touch-none / touchAction:'none').
++        touchAction: 'none',
++      }}
+     >
+       <Canvas
+         camera={{ position: [0, 0, config.cameraZ], fov: 50 }}
+diff --git a/src/components/home/deconstructed-card.tsx b/src/components/home/deconstructed-card.tsx
+index 039f33b..06a9b6d 100755
+--- a/src/components/home/deconstructed-card.tsx
++++ b/src/components/home/deconstructed-card.tsx
+@@ -253,7 +253,11 @@ export function DeconstructedCard({ projectKey }: { projectKey: string }) {
+   const backShadow = `0 ${(8 + 12 * p).toFixed(1)}px ${(20 + 22 * p).toFixed(1)}px -10px rgba(52,168,83,${(0.24 + 0.12 * p).toFixed(2)})`
+ 
+   return (
+-    <div data-cursor="rotate" data-cursor-label={t('deconstructed.hint')}>
++    // L3 FIX (R3): no data-cursor here — this scene has ZERO pointer
++    // handlers (the explosion is 100% scroll-driven), so the rotate cursor
++    // + "drag to explore the layers" chip promised an interaction that
++    // never existed. Removed both attributes.
++    <div>
+       {/* Unified sticky scroll-driven scene — desktop AND mobile.
+           The outer div is 200vh so the pin lasts exactly (200vh − 100vh) =
+           100vh — one viewport of scroll travel (§8). */}
+diff --git a/src/components/home/hero-canvas.tsx b/src/components/home/hero-canvas.tsx
+index efdd022..ebbf9b0 100755
+--- a/src/components/home/hero-canvas.tsx
++++ b/src/components/home/hero-canvas.tsx
+@@ -1,9 +1,11 @@
+ 'use client'
+ 
+ import { Canvas, useFrame, useThree } from '@react-three/fiber'
+-import { useRef, useState, useEffect, useMemo, useSyncExternalStore } from 'react'
++import { useRef, useState, useEffect, useMemo } from 'react'
+ import * as THREE from 'three'
+ import { getHeroScroll } from '@/lib/hero-scroll'
++import { useMobileTier } from '@/lib/use-mobile-tier'
++import { probeWebGL } from '@/lib/use-webgl'
+ 
+ /**
+  * Elyra Hero Canvas — signature 3D (Batch 3 items 12/13/15).
+@@ -236,7 +238,10 @@ const PARTICLE_FRAGMENT = /* glsl */ `
+   void main() {
+     vec2 uv = gl_PointCoord - 0.5;
+     float d = length(uv);
+-    float a = smoothstep(0.5, 0.08, d);
++    // spec-defined form: smoothstep is undefined for edge0 >= edge1, so the
++    // old reversed-edge smoothstep(0.5, 0.08, d) is rewritten as its
++    // algebraically identical 1 - smoothstep(lo, hi, d) twin (LOOP-3 FIX 9)
++    float a = 1.0 - smoothstep(0.08, 0.5, d);
+     gl_FragColor = vec4(vColor, a * vAlpha * 0.9);
+   }
+ `
+@@ -441,19 +446,33 @@ function Particles({
+     // Three.js shader uniforms are mutated per-frame — the canonical R3F pattern.
+     // eslint-disable-next-line react-hooks/immutability
+     uniforms.uTime.value += delta
+-
+-    // Lerp mouse target into the actual mouse vector (smoothing)
+-    mouseVec.current.x += (mouse.current.tx - mouseVec.current.x) * 0.04
+-    mouseVec.current.y += (mouse.current.ty - mouseVec.current.y) * 0.04
++    // uPixelRatio live sync (LOOP-3 FIX 6): state.viewport.dpr is R3F's
++    // clamped actual dpr, so gl_PointSize always matches the render scale —
++    // even when the mobile tier flips the Canvas dpr prop mid-session (the
++    // initial memo value below is only the first-frame best guess). Covered
++    // by the uTime disable above (the immutability rule reports one finding
++    // per memoized value).
++    uniforms.uPixelRatio.value = state.viewport.dpr
++
++    // Lerp mouse target into the actual mouse vector (smoothing) —
++    // dt-compensated (was ×0.04/frame; k=-60·ln(1-0.04)≈2.454) so 120Hz
++    // displays don't double the easing speed (LOOP-3 FIX 10).
++    const mouseS = 1 - Math.exp(-2.454 * delta)
++    mouseVec.current.x += (mouse.current.tx - mouseVec.current.x) * mouseS
++    mouseVec.current.y += (mouse.current.ty - mouseVec.current.y) * mouseS
+     uniforms.uMouse.value.copy(mouseVec.current)
+ 
+-    // Scroll bridge (methodology section) → gentle flow swell, lerped.
++    // Scroll bridge (methodology section) → gentle flow swell, lerped —
++    // dt-compensated (was ×0.08/frame; k≈4.983).
+     const scrollTarget = getHeroScroll()
+-    uniforms.uScroll.value += (scrollTarget - uniforms.uScroll.value) * 0.08
+-
+-    // Gentle group tilt toward mouse
+-    pointsRef.current.rotation.y += ((mouseVec.current.x * 0.25) - pointsRef.current.rotation.y) * 0.05
+-    pointsRef.current.rotation.x += ((mouseVec.current.y * 0.15) - pointsRef.current.rotation.x) * 0.05
++    const scrollS = 1 - Math.exp(-4.983 * delta)
++    uniforms.uScroll.value += (scrollTarget - uniforms.uScroll.value) * scrollS
++
++    // Gentle group tilt toward mouse — dt-compensated (was ×0.05/frame;
++    // k≈3.079).
++    const tiltS = 1 - Math.exp(-3.079 * delta)
++    pointsRef.current.rotation.y += ((mouseVec.current.x * 0.25) - pointsRef.current.rotation.y) * tiltS
++    pointsRef.current.rotation.x += ((mouseVec.current.y * 0.15) - pointsRef.current.rotation.x) * tiltS
+   })
+ 
+   return (
+@@ -498,17 +517,21 @@ function SilkBackdrop({ mouse }: { mouse: React.MutableRefObject<{ x: number; y:
+ 
+     // Project the pointer onto the silk plane in world space (aspect-
+     // correct; numbers only — no per-frame allocations). The CPU lerp
+-    // smooths the vortex centre, so the stir glides instead of snapping.
++    // smooths the vortex centre, so the stir glides instead of snapping —
++    // dt-compensated (was ×0.05/frame; k≈3.079; LOOP-3 FIX 10).
+     const aspect = state.size.width / state.size.height
+     const halfH = Math.tan(CAMERA_FOV_RAD * 0.5) * SILK_PLANE_DIST
+-    mouseVec.current.x += (mouse.current.tx * halfH * aspect - mouseVec.current.x) * 0.05
+-    mouseVec.current.y += (mouse.current.ty * halfH - mouseVec.current.y) * 0.05
++    const silkS = 1 - Math.exp(-3.079 * delta)
++    mouseVec.current.x += (mouse.current.tx * halfH * aspect - mouseVec.current.x) * silkS
++    mouseVec.current.y += (mouse.current.ty * halfH - mouseVec.current.y) * silkS
+     uniforms.uMouse.value.copy(mouseVec.current)
+ 
+     // Scroll bridge (methodology section) → gentle silk swell, lerped
+-    // with the same pattern Particles uses.
++    // with the same pattern Particles uses — dt-compensated (was
++    // ×0.08/frame; k≈4.983).
+     const scrollTarget = getHeroScroll()
+-    uniforms.uScroll.value += (scrollTarget - uniforms.uScroll.value) * 0.08
++    const scrollS = 1 - Math.exp(-4.983 * delta)
++    uniforms.uScroll.value += (scrollTarget - uniforms.uScroll.value) * scrollS
+   })
+ 
+   return (
+@@ -546,9 +569,11 @@ function SilkBackdrop({ mouse }: { mouse: React.MutableRefObject<{ x: number; y:
+  *  units back as the methodology section's scroll progress (bridge)
+  *  goes 0→1 — a subtle pull-away, RTL-safe (pure view-axis motion). */
+ function ScrollDolly() {
+-  useFrame((state) => {
++  useFrame((state, delta) => {
+     const targetZ = BASE_CAMERA_Z + getHeroScroll() * 0.8
+-    state.camera.position.z += (targetZ - state.camera.position.z) * 0.05
++    // dt-compensated (was ×0.05/frame; k≈3.079; LOOP-3 FIX 10)
++    const dollyS = 1 - Math.exp(-3.079 * delta)
++    state.camera.position.z += (targetZ - state.camera.position.z) * dollyS
+   })
+   return null
+ }
+@@ -570,43 +595,9 @@ function ContextLossGuard() {
+   return null
+ }
+ 
+-/* Mobile tier (FIX(2-b), L1-D P2) via useSyncExternalStore — the exact
+- * pattern of use-reduced-motion.ts: one module-level MQL singleton
+- * (matchMedia allocates a fresh MediaQueryList on every call) + a false
+- * server snapshot (desktop tier during SSR; HeroCanvas is a client-only
+- * dynamic import anyway). Reactive by design: crossing the boundary
+- * mid-session swaps the dpr in place (R3F re-applies the pixel ratio
+- * without recreating the canvas/GL context) and remounts Particles via a
+- * key so the buffers resize to the new count — the canvas itself survives. */
+-let tierMql: MediaQueryList | null = null
+-
+-function getTierMql(): MediaQueryList | null {
+-  if (typeof window === 'undefined') return null
+-  if (!tierMql) {
+-    tierMql = window.matchMedia('(max-width: 767px), (pointer: coarse)')
+-  }
+-  return tierMql
+-}
+-
+-function subscribeTier(onChange: () => void): () => void {
+-  const mq = getTierMql()
+-  if (!mq) return () => {}
+-  mq.addEventListener('change', onChange)
+-  return () => mq.removeEventListener('change', onChange)
+-}
+-
+-function getTierSnapshot(): boolean {
+-  return getTierMql()?.matches ?? false
+-}
+-
+-function getTierServerSnapshot(): boolean {
+-  return false
+-}
+-
+-/** True on coarse-pointer or <768px viewports → lighter particle tier. */
+-function useMobileTier(): boolean {
+-  return useSyncExternalStore(subscribeTier, getTierSnapshot, getTierServerSnapshot)
+-}
++/* Mobile tier (FIX(2-b), L1-D P2): useSyncExternalStore MQL hook —
++ * extracted to src/lib/use-mobile-tier.ts (LOOP-3 FIX 5) so
++ * capability-scene shares the same singleton + tier semantics. */
+ 
+ interface HeroCanvasProps {
+   active: boolean
+@@ -622,16 +613,15 @@ export function HeroCanvas({ active }: HeroCanvasProps) {
+ 
+   useEffect(() => {
+     // WebGL feature detection — deferred to rAF so the setState isn't synchronous
+-    // inside the effect body (hydration-safe + lint-compliant).
++    // inside the effect body (hydration-safe + lint-compliant). LOOP-3 FIX 8:
++    // the inline createElement('canvas') probe now delegates to the shared
++    // module-memoized probeWebGL() (src/lib/use-webgl.ts) — identical timing
++    // semantics (true-first, flips false at the first rAF only on failure),
++    // one probe implementation for the whole app.
+     let cancelled = false
+     const id = requestAnimationFrame(() => {
+       if (cancelled) return
+-      try {
+-        const test = document.createElement('canvas').getContext('webgl2') ?? document.createElement('canvas').getContext('webgl')
+-        if (!test) setGlAvailable(false)
+-      } catch {
+-        setGlAvailable(false)
+-      }
++      if (!probeWebGL()) setGlAvailable(false)
+     })
+     return () => {
+       cancelled = true
+diff --git a/src/components/home/hero-console.tsx b/src/components/home/hero-console.tsx
+index b36e67d..6840162 100755
+--- a/src/components/home/hero-console.tsx
++++ b/src/components/home/hero-console.tsx
+@@ -160,6 +160,8 @@ export function HeroConsole({
+ 
+   // Shared helper for both entry paths (preset chip + free-text submit):
+   // after mounting the scene, scroll it into view if it landed offscreen.
++  // LOOP-3 FIX 3: reduced-motion visitors get behavior:'auto' — smooth
++  // scrolling is exactly what they asked the OS to opt out of.
+   const scrollSceneIntoView = useCallback(() => {
+     if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current)
+     scrollRaf.current = requestAnimationFrame(() => {
+@@ -169,11 +171,11 @@ export function HeroConsole({
+         const rect = container.getBoundingClientRect()
+         const inView = rect.top >= 0 && rect.top < window.innerHeight * 0.7
+         if (!inView) {
+-          container.scrollIntoView({ behavior: 'smooth', block: 'center' })
++          container.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' })
+         }
+       }
+     })
+-  }, [])
++  }, [reduced])
+ 
+   const select = useCallback(
+     (id: PresetId) => {
+@@ -294,7 +296,12 @@ export function HeroConsole({
+             }} customDesc={t('customDesc')} />
+           ) : (
+             <>
+-              <ConsoleScene preset={selected} active={active} onDragStateChange={reportDragState} />
++              <ConsoleScene
++                preset={selected}
++                active={active}
++                onDragStateChange={reportDragState}
++                sceneLabel={t('sceneLabel')}
++              />
+               {/* Scene label chip — visible text hint only (the preset name).
+                   Dead data-cursor attrs removed (FIX(2-b)); the rotate cursor
+                   affordance now lives on the draggable scene wrapper above. */}
+diff --git a/src/components/home/intro-overlay.tsx b/src/components/home/intro-overlay.tsx
+old mode 100644
+new mode 100755
+diff --git a/src/components/home/manifesto.tsx b/src/components/home/manifesto.tsx
+old mode 100644
+new mode 100755
+diff --git a/src/components/home/methodology.tsx b/src/components/home/methodology.tsx
+index e571cb9..c7b652a 100755
+--- a/src/components/home/methodology.tsx
++++ b/src/components/home/methodology.tsx
+@@ -89,7 +89,12 @@ function MethodologyStep({
+             {t(`steps.${step.key}.desc`)}
+           </p>
+         </div>
+-        <div className="hidden size-16 items-center justify-center rounded-full border border-dashed border-border text-xs text-muted-foreground sm:flex">
++        {/* L3 FIX (R3): decorative flow glyph — aria-hidden so SR users don't
++            hear a contextless "down arrow" / "check mark" per step. */}
++        <div
++          aria-hidden="true"
++          className="hidden size-16 items-center justify-center rounded-full border border-dashed border-border text-xs text-muted-foreground sm:flex"
++        >
+           {index < total - 1 ? '↓' : '✓'}
+         </div>
+       </div>
+diff --git a/src/components/home/trust-bar.tsx b/src/components/home/trust-bar.tsx
+index 27421b6..f3be8e0 100755
+--- a/src/components/home/trust-bar.tsx
++++ b/src/components/home/trust-bar.tsx
+@@ -57,9 +57,10 @@ function Counter({ value, suffix, durationMs = 1600 }: CounterProps) {
+   const reduced = usePrefersReducedMotion()
+   const [display, setDisplay] = useState(0)
+   // FIX(2-c/16): counts are formatted through next-intl's formatter — the
+-  // exact machinery the simulator's `stepOf` message uses — so AR pages
+-  // get Arabic-Indic digits ("١٢٠") instead of hardcoded en-US. Money
+-  // elsewhere stays Latin per the site's digit convention.
++  // exact machinery the simulator's `stepOf` message uses — so AR pages get
++  // Arabic-Indic digits ("١٢٠"). Digit convention (L3 reword): RUNTIME-formatted
++  // values (useFormatter/Intl — incl. formatMoney, clock, dates) follow the
++  // locale (Arabic-Indic in ar); only STATIC catalog strings keep Latin digits.
+   const format = useFormatter()
+ 
+   useEffect(() => {
+diff --git a/src/components/layout/live-clock.tsx b/src/components/layout/live-clock.tsx
+index 9d78b51..25f9ba5 100755
+--- a/src/components/layout/live-clock.tsx
++++ b/src/components/layout/live-clock.tsx
+@@ -53,7 +53,11 @@ export function LiveClock({ variant = 'on-dark' }: { variant?: 'on-dark' | 'on-l
+       title={t('localTime')}
+     >
+       <Clock className={onLight ? 'size-4 text-foreground/60' : 'size-4 text-white/60'} aria-hidden="true" />
+-      <span className={onLight ? 'text-foreground/70' : 'text-white/70'} aria-hidden="true">
++      {/* L3 FIX (R3): label exposed to AT — it used to be aria-hidden while
++          the value wasn't, so SR users heard a contextless "15:16 (GMT+3)".
++          Now "الوقت المحلي:" prefixes the value. Still no aria-live (the
++          per-minute noise decision above stands). */}
++      <span className={onLight ? 'text-foreground/70' : 'text-white/70'}>
+         {t('localTime')}:
+       </span>
+       <span className={onLight ? 'text-foreground' : 'text-white'}>
+diff --git a/src/components/layout/scroll-progress.tsx b/src/components/layout/scroll-progress.tsx
+old mode 100644
+new mode 100755
+diff --git a/src/components/pages/contact-form.tsx b/src/components/pages/contact-form.tsx
+index f82a86c..8b756e2 100755
+--- a/src/components/pages/contact-form.tsx
++++ b/src/components/pages/contact-form.tsx
+@@ -208,6 +208,12 @@ export function ContactForm({
+         toast.success(t('successTitle'), { description: t('successDesc') })
+         setValues({ name: '', email: '', whatsapp: '', message: '' })
+         setService(null)
++        // Sync the re-seed guard to the post-reset state (R5 P2): the
++        // effect below will next compute buildTemplate(null, prefillIdea)
++        // for service=null — without this sync it would see prev≠next and
++        // re-populate the just-cleared message textarea with the ideaOnly
++        // machine template on the primary conversion funnel.
++        lastTemplateRef.current = buildTemplate(null, prefillIdea)
+         return
+       }
+ 
+@@ -273,9 +279,9 @@ export function ContactForm({
+               aria-pressed={service === id}
+               data-cursor="magnet"
+               className={cn(
+-                'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
++                'inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                 service === id
+-                  ? 'border-primary bg-primary/10 text-primary'
++                  ? 'border-primary bg-primary/10 text-primary-strong'
+                   : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'
+               )}
+             >
+diff --git a/src/components/pages/work-grid.tsx b/src/components/pages/work-grid.tsx
+index 2d6e5c7..a373531 100755
+--- a/src/components/pages/work-grid.tsx
++++ b/src/components/pages/work-grid.tsx
+@@ -68,7 +68,7 @@ export function WorkGrid() {
+                 aria-pressed={active}
+                 onClick={() => setFilter(f.id)}
+                 className={cn(
+-                  'inline-flex h-10 items-center rounded-full px-5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
++                  'inline-flex min-h-11 items-center rounded-full px-5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                   active
+                     ? 'bg-primary text-primary-foreground'
+                     : 'border border-border hover:bg-foreground/5'
+diff --git a/src/components/sensory/custom-cursor.tsx b/src/components/sensory/custom-cursor.tsx
+old mode 100644
+new mode 100755
+diff --git a/src/components/sensory/grain-overlay.tsx b/src/components/sensory/grain-overlay.tsx
+old mode 100644
+new mode 100755
+diff --git a/src/components/three/capability-scene.tsx b/src/components/three/capability-scene.tsx
+index be26903..35b2fd7 100755
+--- a/src/components/three/capability-scene.tsx
++++ b/src/components/three/capability-scene.tsx
+@@ -12,6 +12,8 @@ import {
+ } from 'react'
+ import * as THREE from 'three'
+ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
++import { useMobileTier } from '@/lib/use-mobile-tier'
++import { probeWebGL } from '@/lib/use-webgl'
+ 
+ /**
+  * Interactive 3D capability scene for /services/websites.
+@@ -31,8 +33,10 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
+  * parallax lerp (FIX(2-b), L1-D P1: reads R3F's state.pointer NDC directly —
+  * the old manual e.currentTarget rect math was dead under R3F v9's
+  * pointer-capture shim), auto-spin when idle, arrow-key rotation via the
+- * imperative nudge handle (keyboard drag equivalent), DPR [1,2], frameloop
+- * gated on `active`, ContextLossGuard, WebGL feature detection, and explicit
++ * imperative nudge handle (keyboard drag equivalent), mobile-tier dpr clamp
++ * (LOOP-3 FIX 5: coarse-pointer/<768px runs dpr ≤ 1.5 via useMobileTier,
++ * matching hero-canvas), frameloop gated on `active`, ContextLossGuard,
++ * WebGL feature detection (shared probeWebGL, LOOP-3 FIX 8), and explicit
+  * disposal of every prop-passed geometry/material (R3F only disposes
+  * JSX-declared ones).
+  *
+@@ -302,7 +306,10 @@ const HALO_FRAGMENT = /* glsl */ `
+   void main() {
+     vec2 uv = gl_PointCoord - 0.5;
+     float d = length(uv);
+-    float a = smoothstep(0.5, 0.08, d);
++    // spec-defined form: smoothstep is undefined for edge0 >= edge1, so the
++    // old reversed-edge smoothstep(0.5, 0.08, d) is rewritten as its
++    // algebraically identical 1 - smoothstep(lo, hi, d) twin (LOOP-3 FIX 9)
++    float a = 1.0 - smoothstep(0.08, 0.5, d);
+     gl_FragColor = vec4(vColor, a * vAlpha);
+   }
+ `
+@@ -310,6 +317,7 @@ const HALO_FRAGMENT = /* glsl */ `
+ function Centerpiece({
+   dragging,
+   registerSpinner,
++  dprMax,
+ }: {
+   dragging: boolean
+   /** Hands the spinner group up to CapabilityScene so its imperative
+@@ -317,6 +325,11 @@ function Centerpiece({
+    *  drag/auto-spin mutates (a callback prop — never a ref prop — so the
+    *  react-compiler sees only local-ref mutations in BOTH components). */
+   registerSpinner: (g: THREE.Group | null) => void
++  /** Tier-dependent upper bound for the halo's uPixelRatio uniform — MUST
++   *  track the Canvas dpr prop (desktop 2 / mobile 1.5) or gl_PointSize
++   *  drifts oversize relative to the render scale (LOOP-3 FIX 6, same
++   *  dprMax prop hero-canvas's Particles takes). */
++  dprMax: number
+ }) {
+   // spinner: drag/auto-spin rotation. parallax: pointer-lerp position
+   // (parent of everything so halo + satellites drift together for depth).
+@@ -392,9 +405,13 @@ function Centerpiece({
+   const haloUniforms = useMemo(
+     () => ({
+       uTime: { value: 0 },
+-      uPixelRatio: { value: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, 2) },
++      // tier-aware initial clamp (LOOP-3 FIX 6) — matches hero-canvas's
++      // Particles dprMax pattern; the useFrame below then live-syncs it to
++      // R3F's actual clamped dpr every frame, so this is only the
++      // first-frame value.
++      uPixelRatio: { value: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, dprMax) },
+     }),
+-    []
++    [dprMax]
+   )
+   const haloMat = useMemo(
+     () =>
+@@ -429,13 +446,28 @@ function Centerpiece({
+     return () => registerSpinner(null)
+   }, [registerSpinner])
+ 
++  // LOOP-3 FIX 7: R3F resets clock.elapsedTime to 0 on every frameloop
++  // 'never'↔'always' transition (the `active` prop flips it whenever the
++  // section scrolls offscreen / the tab hides), which would rewind the blob
++  // shader's uTime, the halo twinkle phases and the satellite orbit angles
++  // on every resume. Accumulate scene-local time from delta instead — the
++  // same immune pattern hero-canvas uses for uTime.
++  const tRef = useRef(0)
++
+   useFrame((state, delta) => {
+-    const t = state.clock.elapsedTime
++    tRef.current += delta
++    const t = tRef.current
+     // Shader uniforms are owned three.js objects — canonical R3F pattern.
+     // eslint-disable-next-line react-hooks/immutability
+     blobUniforms.uTime.value = t
+     // eslint-disable-next-line react-hooks/immutability
+     haloUniforms.uTime.value = t
++    // uPixelRatio live sync (LOOP-3 FIX 6): state.viewport.dpr is R3F's
++    // clamped actual dpr, so gl_PointSize always matches the render scale —
++    // including when the mobile tier flips the Canvas dpr prop mid-session.
++    // Covered by the uTime disable above (the immutability rule reports one
++    // finding per memoized value).
++    haloUniforms.uPixelRatio.value = state.viewport.dpr
+ 
+     if (spinner.current && !dragging) {
+       // gentle auto-spin
+@@ -448,12 +480,14 @@ function Centerpiece({
+     // the NDC target never updated and this lerp chased (0,0) forever.
+     // state.pointer is R3F's own maintained NDC pointer (updated by its
+     // event pass), so no listener and no rect read are needed. ÷4 keeps
+-    // the drift subtle; same 0.04 easing as before.
++    // the drift subtle; dt-compensated easing (was ×0.04/frame; k≈2.454;
++    // LOOP-3 FIX 10) so 120Hz displays don't double the chase speed.
+     if (parallax.current) {
+       const tx = (state.pointer.x * viewport.width) / 4
+       const ty = (state.pointer.y * viewport.height) / 4
+-      parallax.current.position.x += (tx - parallax.current.position.x) * 0.04
+-      parallax.current.position.y += (ty - parallax.current.position.y) * 0.04
++      const parallaxS = 1 - Math.exp(-2.454 * delta)
++      parallax.current.position.x += (tx - parallax.current.position.x) * parallaxS
++      parallax.current.position.y += (ty - parallax.current.position.y) * parallaxS
+     }
+     // ambient halo drift — independent of the drag spinner so the dust
+     // cloud feels like environment, not part of the object
+@@ -602,6 +636,11 @@ export function CapabilityScene({
+ }) {
+   const [glAvailable, setGlAvailable] = useState(true)
+   const [dragging, setDragging] = useState(false)
++  // LOOP-3 FIX 5: mobile tier — coarse-pointer/<768px viewports cap the dpr
++  // at 1.5 (was a flat [1,2] for every device), matching hero-canvas's
++  // tier via the shared useMobileTier hook. The halo's uPixelRatio uniform
++  // gets the same ceiling through Centerpiece's dprMax prop.
++  const mobileTier = useMobileTier()
+   // The spinner group itself, registered up by Centerpiece (callback prop,
+   // not a ref prop — keeps every mutation on a component-local ref so the
+   // react-compiler stays quiet in both components).
+@@ -626,18 +665,15 @@ export function CapabilityScene({
+     []
+   )
+ 
++  // LOOP-3 FIX 8: the inline createElement('canvas') probe now delegates to
++  // the shared module-memoized probeWebGL() (src/lib/use-webgl.ts) —
++  // identical timing semantics (true-first, flips false at the first rAF
++  // only on failure), one probe implementation for the whole app.
+   useEffect(() => {
+     let cancelled = false
+     const id = requestAnimationFrame(() => {
+       if (cancelled) return
+-      try {
+-        const test =
+-          document.createElement('canvas').getContext('webgl2') ??
+-          document.createElement('canvas').getContext('webgl')
+-        if (!test) setGlAvailable(false)
+-      } catch {
+-        setGlAvailable(false)
+-      }
++      if (!probeWebGL()) setGlAvailable(false)
+     })
+     return () => {
+       cancelled = true
+@@ -653,10 +689,17 @@ export function CapabilityScene({
+       onPointerDown={() => setDragging(true)}
+       onPointerUp={() => setDragging(false)}
+       onPointerCancel={() => setDragging(false)}
+-      style={{ cursor: dragging ? 'grabbing' : 'grab' }}
++      style={{
++        cursor: dragging ? 'grabbing' : 'grab',
++        // LOOP-3 FIX 1: claim the gesture for the drag, not page scroll —
++        // without this, touch devices hand the pointer to native panning →
++        // pointercancel → the drag affordance is dead on tablets. Repo
++        // precedent: before-after.tsx (touch-none / touchAction:'none').
++        touchAction: 'none',
++      }}
+     >
+       <Canvas
+-        dpr={[1, 2]}
++        dpr={[1, mobileTier ? 1.5 : 2]}
+         frameloop={active ? 'always' : 'never'}
+         camera={{ position: [0, 0, 5], fov: 50 }}
+         gl={{ antialias: true, alpha: true }}
+@@ -666,7 +709,11 @@ export function CapabilityScene({
+           <pointLight key={i} color={l.color} position={l.pos} intensity={28} distance={12} />
+         ))}
+         <RoomEnv />
+-        <Centerpiece dragging={dragging} registerSpinner={registerSpinner} />
++        <Centerpiece
++          dragging={dragging}
++          registerSpinner={registerSpinner}
++          dprMax={mobileTier ? 1.5 : 2}
++        />
+         <ContextLossGuard />
+       </Canvas>
+     </div>
+diff --git a/src/lib/hero-scroll.ts b/src/lib/hero-scroll.ts
+old mode 100644
+new mode 100755
+diff --git a/src/lib/site-config.ts b/src/lib/site-config.ts
+index 04b6fcc..0df3ef6 100755
+--- a/src/lib/site-config.ts
++++ b/src/lib/site-config.ts
+@@ -17,7 +17,9 @@ export const SITE_CONTACT = {
+ } as const
+ 
+ export const SITE_SOCIAL = {
+-  telegram: 'https://t.me/elyra_agency',
++  // Derived from the handle — no duplicated hardcode to drift from the
++  // contact page's displayed @handle (L3 audit, R6).
++  telegram: `https://t.me/${SITE_CONTACT.telegramHandle}`,
+   whatsapp: `https://wa.me/${SITE_CONTACT.whatsappNumber}`,
+   instagram: 'https://instagram.com/elyra.agency',
+   linkedin: 'https://linkedin.com/company/elyra-agency',
+diff --git a/src/lib/use-cursor-velocity.ts b/src/lib/use-cursor-velocity.ts
+index 966f14e..56d9acc 100755
+--- a/src/lib/use-cursor-velocity.ts
++++ b/src/lib/use-cursor-velocity.ts
+@@ -17,6 +17,8 @@ import { usePrefersReducedMotion } from './use-reduced-motion'
+  *
+  * Guards (prompt §9):
+  *   · `pointer: fine` only — touch devices get static wght=700;
++ *   · per-event pointerType filter (mouse/pen) — hybrid touch screens
++ *     fire touch pointermove on a fine-pointer device;
+  *   · NOT `prefers-reduced-motion` — reduced-motion users get static
+  *     wght=700;
+  *   · client-only mount (the ref is null on the server).
+@@ -104,6 +106,11 @@ export function useCursorVelocity(
+     }
+ 
+     const onPointerMove = (e: PointerEvent) => {
++      // L3 FIX (R5): the (pointer: fine) media guard above still passes on
++      // hybrid devices (touchscreen laptops), where touch drags fire window
++      // pointermove too — same per-event filter as use-magnetic: only fine
++      // pointers may animate the font weight.
++      if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return
+       const now = performance.now()
+       const last = lastPos.current
+       lastPos.current = { x: e.clientX, y: e.clientY, t: now }
+diff --git a/src/lib/use-magnetic.ts b/src/lib/use-magnetic.ts
+old mode 100644
+new mode 100755
+diff --git a/src/lib/use-webgl.ts b/src/lib/use-webgl.ts
+old mode 100644
+new mode 100755
+diff --git a/src/proxy.ts b/src/proxy.ts
+index f7f733c..a2a5c9b 100755
+--- a/src/proxy.ts
++++ b/src/proxy.ts
+@@ -8,5 +8,7 @@ export const config = {
+   // Skip API routes, Next internals, the root icon metadata route (its
+   // content hash lives in the query string, not the path, so the `.*\\..*`
+   // extension guard can't catch it), and any file with an extension.
+-  matcher: '/((?!api|_next|_vercel|icon|.*\\..*).*)',
++  // `icon($|/)` anchors the exclusion to the exact /icon route — a bare
++  // `icon` prefix would also swallow real pages like /icons or /iconic.
++  matcher: '/((?!api|_next|_vercel|icon($|/)|.*\\..*).*)',
+ }
+diff --git a/tool-results/bash_1787839155063_2277b01199a1.txt b/tool-results/bash_1787839155063_2277b01199a1.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/bash_1787839155374_2277b01199a1.txt b/tool-results/bash_1787839155374_2277b01199a1.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/bash_1787842272614_4ae5de289e7f.txt b/tool-results/bash_1787842272614_4ae5de289e7f.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/bash_1787842282479_c9d60a3a9eed.txt b/tool-results/bash_1787842282479_c9d60a3a9eed.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/bash_1787842285379_ea6209814165.txt b/tool-results/bash_1787842285379_ea6209814165.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/grep_1787839734770_47ec78e002e0.txt b/tool-results/grep_1787839734770_47ec78e002e0.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787837806584_896933f98ce8.txt b/tool-results/read_1787837806584_896933f98ce8.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787837808084_896933f98ce8.txt b/tool-results/read_1787837808084_896933f98ce8.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787837809046_1e636c9a880a.txt b/tool-results/read_1787837809046_1e636c9a880a.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787837810197_4660804f24e5.txt b/tool-results/read_1787837810197_4660804f24e5.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787837811508_6aec4d5e382d.txt b/tool-results/read_1787837811508_6aec4d5e382d.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787837812507_5c15b0bb0c74.txt b/tool-results/read_1787837812507_5c15b0bb0c74.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787837815060_5c3ab1e9aeb9.txt b/tool-results/read_1787837815060_5c3ab1e9aeb9.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787837816832_0834ea927e7d.txt b/tool-results/read_1787837816832_0834ea927e7d.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787837818875_8b55675db195.txt b/tool-results/read_1787837818875_8b55675db195.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787837819289_706180217c73.txt b/tool-results/read_1787837819289_706180217c73.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787837821928_7eea127a00bb.txt b/tool-results/read_1787837821928_7eea127a00bb.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787837828983_6d35bb36db57.txt b/tool-results/read_1787837828983_6d35bb36db57.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787837976207_b21589728f7c.txt b/tool-results/read_1787837976207_b21589728f7c.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787838018548_c6b514c1c6a0.txt b/tool-results/read_1787838018548_c6b514c1c6a0.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787838059932_45ccfb61fb45.txt b/tool-results/read_1787838059932_45ccfb61fb45.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787839158793_ec483acf368f.txt b/tool-results/read_1787839158793_ec483acf368f.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787839159233_01849fefa556.txt b/tool-results/read_1787839159233_01849fefa556.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787839160711_01849fefa556.txt b/tool-results/read_1787839160711_01849fefa556.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787839162192_117150b79e87.txt b/tool-results/read_1787839162192_117150b79e87.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787839164235_ec483acf368f.txt b/tool-results/read_1787839164235_ec483acf368f.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787839164532_b25649046b57.txt b/tool-results/read_1787839164532_b25649046b57.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787839165654_c319a2b71f12.txt b/tool-results/read_1787839165654_c319a2b71f12.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787839167507_4992bf28408d.txt b/tool-results/read_1787839167507_4992bf28408d.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787839171461_9f1a0ba38b5f.txt b/tool-results/read_1787839171461_9f1a0ba38b5f.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787839173569_ca97bde3400c.txt b/tool-results/read_1787839173569_ca97bde3400c.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787839196410_45ccfb61fb45.txt b/tool-results/read_1787839196410_45ccfb61fb45.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787839204233_85e118bf3683.txt b/tool-results/read_1787839204233_85e118bf3683.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787839218542_b21589728f7c.txt b/tool-results/read_1787839218542_b21589728f7c.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787840434969_4639afe4211d.txt b/tool-results/read_1787840434969_4639afe4211d.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787840437663_ccb95ad9f2d6.txt b/tool-results/read_1787840437663_ccb95ad9f2d6.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787840440705_0064b86b90e7.txt b/tool-results/read_1787840440705_0064b86b90e7.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787840449832_622fba822344.txt b/tool-results/read_1787840449832_622fba822344.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787842259179_2cdaad8da091.txt b/tool-results/read_1787842259179_2cdaad8da091.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787842259663_2cdaad8da091.txt b/tool-results/read_1787842259663_2cdaad8da091.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787842262678_a712289a7bb7.txt b/tool-results/read_1787842262678_a712289a7bb7.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787842266195_7c03724b092f.txt b/tool-results/read_1787842266195_7c03724b092f.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787842272083_c63bb8454e16.txt b/tool-results/read_1787842272083_c63bb8454e16.txt
+old mode 100644
+new mode 100755
+diff --git a/tool-results/read_1787842277268_59a9f95aadf0.txt b/tool-results/read_1787842277268_59a9f95aadf0.txt
+old mode 100644
+new mode 100755
