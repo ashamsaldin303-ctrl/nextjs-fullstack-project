@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { hasLocale } from 'next-intl'
 import { notFound } from 'next/navigation'
-import { getTranslations } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { routing } from '@/i18n/routing'
 import { Mail, MessageCircle, Send, Clock, Star, Quote } from 'lucide-react'
 import { PageHero } from '@/components/shared/page-hero'
@@ -65,17 +65,29 @@ function parsePrefill(
 // The channel LIST itself is built inside the page because the WhatsApp
 // href is now a click-to-chat deep link carrying the localized greeting
 // (Batch 2 item 7e).
+// L3 (R6): the DISPLAYED value comes from SITE_CONTACT too — hrefs and
+// visible text now share the single source of truth, so the pre-launch
+// swap in site-config.ts updates both (the message catalogs own the
+// translated channel NAMES/titles, not the contact data).
 const CHANNELS = [
-  { key: 'email' as const, icon: Mail, href: `mailto:${SITE_CONTACT.email}`, external: false, chipClass: 'bg-primary/10 text-primary group-hover:bg-primary/15' },
-  { key: 'whatsapp' as const, icon: MessageCircle, external: true, chipClass: 'bg-g-green/10 text-g-green group-hover:bg-g-green/15' },
-  { key: 'telegram' as const, icon: Send, href: SITE_SOCIAL.telegram, external: true, chipClass: 'bg-g-blue/10 text-g-blue group-hover:bg-g-blue/15' },
+  { key: 'email' as const, icon: Mail, href: `mailto:${SITE_CONTACT.email}`, external: false, chipClass: 'bg-primary/10 text-primary group-hover:bg-primary/15', display: SITE_CONTACT.email },
+  { key: 'whatsapp' as const, icon: MessageCircle, external: true, chipClass: 'bg-g-green/10 text-g-green group-hover:bg-g-green/15', display: SITE_CONTACT.whatsappDisplay },
+  { key: 'telegram' as const, icon: Send, href: SITE_SOCIAL.telegram, external: true, chipClass: 'bg-g-blue/10 text-g-blue group-hover:bg-g-blue/15', display: `@${SITE_CONTACT.telegramHandle}` },
 ]
 
 export default async function ContactPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
+  const { locale } = await params
+  if (!hasLocale(routing.locales, locale)) notFound()
+  // Canonical next-intl pattern: pin the request locale so implicit-locale
+  // getTranslations in this page (and future metadata) never fall back to
+  // headers() and silently break prerendering.
+  setRequestLocale(locale)
   const t = await getTranslations('pages.contact')
   // Testimonial + rating copy is reused from the existing catalog
   // (Batch 2 item 7d) — no duplicated content.
@@ -109,7 +121,7 @@ export default async function ContactPage({
                 </h2>
               </Reveal>
               <ul className="mt-8 space-y-3">
-                {channels.map(({ key, icon: Icon, href, external, chipClass }, i) => (
+                {channels.map(({ key, icon: Icon, href, external, chipClass, display }, i) => (
                   /* li must be a direct child of ul — Reveal wraps the
                      CONTENT inside the li (Lighthouse a11y: list-item). */
                   <li key={key}>
@@ -130,8 +142,11 @@ export default async function ContactPage({
                               INNER inline span so the outer block keeps
                               the page-direction (start) alignment — a
                               dir on the block itself would left-align
-                              the value under a right-aligned label. */}
-                          <span className="block font-semibold"><span dir="ltr">{t(`channels.${key}.value`)}</span></span>
+                              the value under a right-aligned label.
+                              Value source: SITE_CONTACT (see CHANNELS) —
+                              the title stays translated, the contact
+                              datum does not. */}
+                          <span className="block font-semibold"><span dir="ltr">{display}</span></span>
                         </span>
                       </a>
                     </Reveal>

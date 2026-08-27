@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { hasLocale } from 'next-intl'
 import { notFound } from 'next/navigation'
 import { routing } from '@/i18n/routing'
+import { setRequestLocale } from 'next-intl/server'
 import { PageHero } from '@/components/shared/page-hero'
 import { CTA } from '@/components/shared/cta'
 import { WorkGrid } from '@/components/pages/work-grid'
@@ -23,7 +24,17 @@ export async function generateMetadata({
   })
 }
 
-export default async function WorkPage() {
+export default async function WorkPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}) {
+  const { locale } = await params
+  if (!hasLocale(routing.locales, locale)) notFound()
+  // Canonical next-intl pattern: pin the request locale so implicit-locale
+  // getTranslations in this page's subtree (PageHero/CTA/WorkGrid and future
+  // metadata) never fall back to headers() and silently break prerendering.
+  setRequestLocale(locale)
   return (
     <>
       <PageHero namespace="pages.work.hero" />

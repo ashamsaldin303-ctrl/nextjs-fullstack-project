@@ -160,6 +160,8 @@ export function HeroConsole({
 
   // Shared helper for both entry paths (preset chip + free-text submit):
   // after mounting the scene, scroll it into view if it landed offscreen.
+  // LOOP-3 FIX 3: reduced-motion visitors get behavior:'auto' — smooth
+  // scrolling is exactly what they asked the OS to opt out of.
   const scrollSceneIntoView = useCallback(() => {
     if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current)
     scrollRaf.current = requestAnimationFrame(() => {
@@ -169,11 +171,11 @@ export function HeroConsole({
         const rect = container.getBoundingClientRect()
         const inView = rect.top >= 0 && rect.top < window.innerHeight * 0.7
         if (!inView) {
-          container.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          container.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' })
         }
       }
     })
-  }, [])
+  }, [reduced])
 
   const select = useCallback(
     (id: PresetId) => {
@@ -294,7 +296,12 @@ export function HeroConsole({
             }} customDesc={t('customDesc')} />
           ) : (
             <>
-              <ConsoleScene preset={selected} active={active} onDragStateChange={reportDragState} />
+              <ConsoleScene
+                preset={selected}
+                active={active}
+                onDragStateChange={reportDragState}
+                sceneLabel={t('sceneLabel')}
+              />
               {/* Scene label chip — visible text hint only (the preset name).
                   Dead data-cursor attrs removed (FIX(2-b)); the rotate cursor
                   affordance now lives on the draggable scene wrapper above. */}

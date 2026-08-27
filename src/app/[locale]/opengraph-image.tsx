@@ -1,7 +1,10 @@
 import { ImageResponse } from 'next/og'
+import { OG_IMAGE_ALT } from '@/lib/site-config'
 
-export const alt =
-  'Elyra — Stunning Websites & n8n Automation Systems'
+// Single source of truth (site-config.ts) — seo.ts, [locale]/layout.tsx and
+// [locale]/page.tsx already use OG_IMAGE_ALT; the file-convention export
+// must not carry its own divergent copy (L3 audit).
+export const alt = OG_IMAGE_ALT
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 

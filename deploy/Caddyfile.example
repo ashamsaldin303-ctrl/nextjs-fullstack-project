@@ -12,29 +12,32 @@
 #   cp deploy/Caddyfile.example /etc/caddy/Caddyfile
 # =============================================================================
 elyra.example.com {
-	# TLS is automatic (Let's Encrypt) once the domain resolves here.
-	# For a local trial only: replace the site address with `:8443` and
-	# add a `tls internal` directive.
+        # TLS is automatic (Let's Encrypt) once the domain resolves here.
+        # For a local trial only: replace the site address with `:8443` and
+        # add a `tls internal` directive.
 
-	# Compression (zstd preferred, gzip fallback).
-	encode zstd gzip
+        # Compression (zstd preferred, gzip fallback).
+        encode zstd gzip
 
-	reverse_proxy 127.0.0.1:3000 {
-		# Overwrite — never append — client-supplied forwarding headers:
-		# the app trusts X-Forwarded-For only because the proxy replaces it.
-		header_up Host {host}
-		header_up X-Forwarded-For {remote_host}
-		header_up X-Forwarded-Proto {scheme}
-		header_up X-Real-IP {remote_host}
-	}
+        reverse_proxy 127.0.0.1:3000 {
+                # Overwrite — never append — client-supplied forwarding headers:
+                # the app trusts X-Forwarded-For only because the proxy replaces it.
+                # {host_port} (not {host}): keeps the port on non-443 trial
+                # deployments (e.g. :8443) so the app's Origin↔Host same-origin
+                # comparison still matches.
+                header_up Host {host_port}
+                header_up X-Forwarded-For {remote_host}
+                header_up X-Forwarded-Proto {scheme}
+                header_up X-Real-IP {remote_host}
+        }
 
-	# Optional backstop hardening — the app itself already sends its full
-	# security-header set (CSP, HSTS, COOP/CORP, ...) via next.config.ts;
-	# these lines just guarantee a sane floor if the app is ever swapped.
-	# header {
-	# 	Strict-Transport-Security "max-age=63072000; includeSubDomains"
-	# 	X-Content-Type-Options "nosniff"
-	# 	X-Frame-Options "DENY"
-	# 	Referrer-Policy "strict-origin-when-cross-origin"
-	# }
+        # Optional backstop hardening — the app itself already sends its full
+        # security-header set (CSP, HSTS, COOP/CORP, ...) via next.config.ts;
+        # these lines just guarantee a sane floor if the app is ever swapped.
+        # header {
+        #       Strict-Transport-Security "max-age=63072000; includeSubDomains"
+        #       X-Content-Type-Options "nosniff"
+        #       X-Frame-Options "DENY"
+        #       Referrer-Policy "strict-origin-when-cross-origin"
+        # }
 }

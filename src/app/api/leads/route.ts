@@ -148,12 +148,21 @@ const leadSchema = z.discriminatedUnion('source', [
  * OVERWRITES these headers with the real client address (the included
  * Caddyfile does). Otherwise fail closed: all callers share the single
  * 'anonymous' bucket.
+ *
+ * When X-Forwarded-For carries a LIST, the LAST element is used, never the
+ * first: appending proxies (nginx's default proxy_add_x_forwarded_for)
+ * grow the list rightward — spoofed client-supplied entries first, the
+ * proxy's own trusted observation LAST — so the first element is
+ * attacker-controlled and reading it would allow rate-limit bucket
+ * rotation. Under an overwriting proxy the list holds a single element,
+ * where first and last coincide. Appending proxies are not supported at
+ * all with TRUST_PROXY=true (see .env.example).
  */
 function clientIp(req: NextRequest): string {
   if (process.env.TRUST_PROXY !== 'true') return 'anonymous'
   const xff = req.headers.get('x-forwarded-for')
-  const first = xff?.split(',')[0]?.trim()
-  if (first) return first
+  const last = xff?.split(',').pop()?.trim()
+  if (last) return last
   return req.headers.get('x-real-ip') ?? 'anonymous'
 }
 

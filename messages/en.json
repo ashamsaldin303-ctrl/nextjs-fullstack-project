@@ -71,7 +71,8 @@
         "booking": "Booking Platform",
         "ai": "AI Customer Agent",
         "dashboard": "Analytics Dashboard"
-      }
+      },
+      "sceneLabel": "Interactive 3D model — drag with the mouse or use arrow keys to rotate"
     }
   },
   "manifesto": {
@@ -1165,17 +1166,14 @@
         "kicker": "Direct Channels",
         "title": "Talk to Us However You Prefer",
         "email": {
-          "title": "Email",
-          "value": "hello@elyra.agency"
+          "title": "Email"
         },
         "whatsapp": {
           "title": "WhatsApp",
-          "value": "+963 991 000 000",
           "greeting": "Hi Elyra! I'd like to talk about a project."
         },
         "telegram": {
-          "title": "Telegram",
-          "value": "@elyra_agency"
+          "title": "Telegram"
         },
         "responseNote": "We usually reply within two hours on business days"
       },
@@ -1257,7 +1255,9 @@
       "inspect": "Inspect element",
       "external": "External link",
       "magnet": ""
-    }
+    },
+    "close": "Close",
+    "notifications": "Notifications"
   },
   "apiErrors": {
     "invalid": "Please check the highlighted fields and try again.",

@@ -95,7 +95,7 @@
 |---|---|
 | `bun run lint` | ✓ 0 أخطاء / 0 تحذيرات (قواعد React 19 الصارمة مفعّلة) |
 | `bunx tsc --noEmit` | ✓ 0 أخطاء (مع `noUncheckedIndexedAccess`) |
-| تكافؤ i18n (ar/en) | ✓ 610 مفاتيح متطابقة |
+| تكافؤ i18n (ar/en) | ✓ 638 مفاتيح متطابقة |
 | جميع المسارات (×2 لغة) | ✓ 200 OK |
 | تحقق في المتصفح | ✓ رسم + تفاعلات + RTL/LTR + responsive + sticky footer |
 | أخطاء console/hydration | ✓ صفر |
@@ -223,7 +223,7 @@ docker build --build-arg NEXT_PUBLIC_SITE_URL=https://elyra.agency -t elyra .
 
 `TRUST_PROXY=true` (افتراضي مضمّن في ENV الخاص بـ Dockerfile): النشر خلف بروكسي عاكس **يطمس** `X-Forwarded-For` بحكم التعريف — وبدونه تشارك كل الطلبات حصة إرسال واحدة عالمية (5 طلبات/دقيقة للجميع)، فيستطيع سكربت واحد تعطيل النموذجين عن الجميع (إصلاح L1-A).
 
-راجع `.env.example` لكل المتغيرات وتوثيقها. **قبل أول إطلاق**: شغّل `bun scripts/clean-leads.ts` أو `--dry-run` لضمان خلو قاعدة البيانات من بيانات الاختبار.
+راجع `.env.example` لكل المتغيرات وتوثيقها. **قبل أول إطلاق**: شغّل `bun scripts/clean-leads.ts --all` أو `--all --dry-run` لضمان خلو قاعدة البيانات من بيانات الاختبار (المحو الكامل يتطلب `--all` صراحةً — التشغيل المجرد يطبع الاستخدام فقط).
 
 ### الاحتفاظ بالبيانات (Data retention)
 
@@ -233,6 +233,8 @@ docker build --build-arg NEXT_PUBLIC_SITE_URL=https://elyra.agency -t elyra .
 bun scripts/clean-leads.ts --purge-days=90          # حذف السجلات الأقدم من 90 يوماً
 bun scripts/clean-leads.ts --purge-days=90 --dry-run # عدّ فقط بلا حذف
 ```
+
+**ثابتة تصدير البيانات (CSV injection)**: قاعدة البيانات تخزّن القيم الخام كما وردت عمداً — أي مسار تصدير لبيانات العملاء المحتملين (CSV/جداول بيانات) يجب أن يعيد تطبيق معقّم حقن CSV (`neutralizeCsvInjection` في `src/lib/n8n-webhook.ts`) قبل إنتاج الملف.
 
 ### ⚠️ ملف Caddyfile الجذري — للصندوق الرمل فقط
 
@@ -250,7 +252,7 @@ bun scripts/verify-api.mjs               # التحقق الأمني الكام�
 node scripts/verify-performance.mjs      # فحص إصلاحات الأداء (10 فحوص)
 node scripts/verify-sensory.mjs          # فحص طبقة الإحساس (16 فحصاً)
 bash scripts/lighthouse-prod.sh          # قياس Lighthouse إنتاجي (بيئة تسمح بالبناء)
-bun scripts/clean-leads.ts [--dry-run|--purge-days=N]   # تنظيف بيانات الاختبار قبل النشر / تنقية دورية حسب العمر
+bun scripts/clean-leads.ts (--all|--purge-days=N)[ --dry-run]  # محو كامل صريح (--all) / تنقية دورية حسب العمر
 ```
 
 ## بنية المجلدات
@@ -277,7 +279,7 @@ src/
 │                          # seo, site-config, use-rtl, use-reduced-motion, db, utils
 ├── app/api/leads/route.ts # نقطة الكتابة الوحيدة (Zod + إعادة حساب + Prisma + 429)
 └── proxy.ts               # next-intl middleware (Next.js 16)
-messages/{ar,en}.json      # 610 مفاتيح متطابقة
+messages/{ar,en}.json      # 638 مفاتيح متطابقة
 ```
 
 ---

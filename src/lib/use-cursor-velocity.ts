@@ -17,6 +17,8 @@ import { usePrefersReducedMotion } from './use-reduced-motion'
  *
  * Guards (prompt §9):
  *   · `pointer: fine` only — touch devices get static wght=700;
+ *   · per-event pointerType filter (mouse/pen) — hybrid touch screens
+ *     fire touch pointermove on a fine-pointer device;
  *   · NOT `prefers-reduced-motion` — reduced-motion users get static
  *     wght=700;
  *   · client-only mount (the ref is null on the server).
@@ -104,6 +106,11 @@ export function useCursorVelocity(
     }
 
     const onPointerMove = (e: PointerEvent) => {
+      // L3 FIX (R5): the (pointer: fine) media guard above still passes on
+      // hybrid devices (touchscreen laptops), where touch drags fire window
+      // pointermove too — same per-event filter as use-magnetic: only fine
+      // pointers may animate the font weight.
+      if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return
       const now = performance.now()
       const last = lastPos.current
       lastPos.current = { x: e.clientX, y: e.clientY, t: now }

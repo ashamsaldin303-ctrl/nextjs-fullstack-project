@@ -124,7 +124,7 @@ ok('cursor: native cursor CSS hidden', cursorProp === 'none', `body cursor: ${cu
 
 // --- Grain ------------------------------------------------------------------
 const grain = await page.evaluate(() => {
-  const g = document.querySelector('.elyra-grain')
+  const g = document.querySelector('.grain-overlay')
   if (!g) return null
   const cs = getComputedStyle(g)
   return {
@@ -136,8 +136,8 @@ const grain = await page.evaluate(() => {
     printHidden: !!Array.from(document.styleSheets).length,
   }
 })
-ok('grain: fixed layer, 3.5% opacity, inert, SVG data-URI',
-  grain && grain.pos === 'fixed' && grain.opacity === '0.035' &&
+ok('grain: fixed layer, 4.5% opacity, inert, SVG data-URI',
+  grain && grain.pos === 'fixed' && grain.opacity === '0.045' &&
   grain.pe === 'none' && grain.ah === 'true' && grain.bg,
   JSON.stringify(grain))
 

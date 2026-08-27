@@ -128,7 +128,7 @@ const browser = await chromium.launch({ channel: 'chromium', headless: true })
     await page.goto(`${BASE}${r}`, { waitUntil: 'networkidle' })
     await page.waitForTimeout(600)
     const hasToggle = await page.evaluate(() => !!document.querySelector('button[aria-label*="المؤثرات"], button[aria-label*="sound"]'))
-    const hasGrain = await page.evaluate(() => !!document.querySelector('.elyra-grain'))
+    const hasGrain = await page.evaluate(() => !!document.querySelector('.grain-overlay'))
     const hasCursor = await page.evaluate(() => !!document.querySelector('.elyra-cursor-dot'))
     routeStatus.push(`${r}:${hasToggle && hasGrain && hasCursor ? 'ok' : 'MISSING'}`)
     if (!hasToggle || !hasGrain || !hasCursor) allOk = false
@@ -144,7 +144,7 @@ const browser = await chromium.launch({ channel: 'chromium', headless: true })
     await page.waitForTimeout(600)
     const hasAll = await page.evaluate(() =>
       !!document.querySelector('button[aria-label*="المؤثرات"], button[aria-label*="sound"]') &&
-      !!document.querySelector('.elyra-grain') &&
+      !!document.querySelector('.grain-overlay') &&
       !!document.querySelector('.elyra-cursor-dot'))
     arStatus.push(`${r}:${hasAll ? 'ok' : 'MISSING'}`)
     if (!hasAll) arAllOk = false

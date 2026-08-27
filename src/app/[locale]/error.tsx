@@ -26,7 +26,9 @@ export default function Error({
         {t('errorTitle')}
       </h1>
       <p className="mt-4 text-muted-foreground">{t('errorDesc')}</p>
-      <Button onClick={reset} className="mt-8 gap-2">
+      {/* h-11 overrides the Button's default h-9 (36px) — 44px is the
+          project's interactive-target standard (WCAG 2.1 AA). */}
+      <Button onClick={reset} className="mt-8 h-11 gap-2">
         <RotateCcw className="size-4" aria-hidden="true" />
         {t('retry')}
       </Button>

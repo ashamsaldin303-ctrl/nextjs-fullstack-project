@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { z } from 'zod'
@@ -83,6 +83,17 @@ export function Calculator() {
   const honeypotRef = useRef<HTMLInputElement>(null)
 
   const result = useMemo(() => computeEstimate(input), [input])
+
+  // L3 FIX (R5): on 201 the `done` branch swaps the form (whose focused
+  // submit button just disappeared) for the success panel — focus fell to
+  // <body> and nothing was announced. Move focus to the success heading
+  // (tabIndex={-1} = programmatically focusable, out of tab order). The
+  // effect runs after the swap commits, so the ref is attached when it
+  // fires; done can only flip at step 2 (the form lives there).
+  const successHeadingRef = useRef<HTMLHeadingElement>(null)
+  useEffect(() => {
+    if (done) successHeadingRef.current?.focus()
+  }, [done])
 
   // Breakdown line labels — resolved once for type-safety (guide §4.6).
   const breakdownLabels = {
@@ -381,7 +392,7 @@ export function Calculator() {
                             aria-pressed={active}
                             className={cn(
                               'inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors',
-                              active ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-foreground/[0.02]'
+                              active ? 'border-primary bg-primary/10 text-primary-strong' : 'border-border hover:bg-foreground/[0.02]'
                             )}
                           >
                             <span className={cn('flex size-4 items-center justify-center rounded-full border', active ? 'border-primary bg-primary text-primary-foreground' : 'border-border')}>
@@ -435,7 +446,13 @@ export function Calculator() {
                       <div className="flex size-16 items-center justify-center rounded-full bg-g-green/15 text-g-green">
                         <Check className="size-8" aria-hidden="true" />
                       </div>
-                      <h3 className="mt-5 text-2xl font-semibold">{t('form.successTitle')}</h3>
+                      <h3
+                        ref={successHeadingRef}
+                        tabIndex={-1}
+                        className="mt-5 text-2xl font-semibold"
+                      >
+                        {t('form.successTitle')}
+                      </h3>
                       <p className="mt-2 max-w-md text-muted-foreground">{t('form.successDesc')}</p>
                       {reference ? (
                         <p className="mt-3 rounded-full border border-g-green/30 bg-g-green/5 px-4 py-1.5 font-mono text-sm font-semibold tracking-wide text-g-green">
@@ -606,7 +623,7 @@ export function Calculator() {
                 onClick={goBack}
                 disabled={step === 0}
                 className={cn(
-                  'inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors',
+                  'inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors',
                   step === 0 ? 'cursor-not-allowed opacity-40' : 'hover:bg-foreground/5'
                 )}
               >
@@ -618,7 +635,7 @@ export function Calculator() {
                 type="button"
                 data-cursor="magnet"
                 onClick={goNext}
-                className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform hover:scale-105"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform hover:scale-105"
               >
                 {step === 1 ? t('calculate') : t('next')}
                 {/* ArrowRight flips to point left ("forward") in RTL */}
@@ -631,7 +648,7 @@ export function Calculator() {
               <button
                 type="button"
                 onClick={goBack}
-                className="inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors hover:bg-foreground/5"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors hover:bg-foreground/5"
               >
                 <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
                 {t('back')}

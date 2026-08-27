@@ -499,6 +499,13 @@ const CUBE_FACES: ReadonlyArray<{
   { tr: 'rotateX(-90deg) translateZ(28px)', grad: 'linear-gradient(135deg, #FDF8ED, #D9CDAC)', icon: null, glyph: '◆', dark: true },
 ]
 
+/* L3 FIX (R3): keyboard nudge magnitudes — one firm drag gesture at the
+   pointer drag's 0.5°/px mapping: ±0.15 rad (≈8.6°) yaw / ±0.1 rad
+   (≈5.7°) pitch per press ≈ a 17px drag, through the SAME (unclamped)
+   rotation space the drag writes. */
+const KEY_YAW_DEG = (0.15 * 180) / Math.PI
+const KEY_PITCH_DEG = (0.1 * 180) / Math.PI
+
 function MiniCube() {
   const t = useTranslations('bento.threeD.mini')
   // Reduced motion: skip the CSS easing between drag rotations AND disable
@@ -578,6 +585,34 @@ function MiniCube() {
     armIdle()
   }
 
+  // L3 FIX (R3): keyboard path for the pointer-only drag (three-d-section
+  // pattern). Arrow keys nudge the SAME rotation state the drag writes
+  // (setRot) with the same delta signs as a same-direction drag (right →
+  // +yaw, down → −pitch). preventDefault sits AFTER the switch, so only
+  // handled arrows are swallowed. A press counts as an interaction: it
+  // stops the idle spin and re-arms it, exactly like onDown/onUp do.
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    switch (e.key) {
+      case 'ArrowLeft':
+        setRot((r) => ({ x: r.x, y: r.y - KEY_YAW_DEG }))
+        break
+      case 'ArrowRight':
+        setRot((r) => ({ x: r.x, y: r.y + KEY_YAW_DEG }))
+        break
+      case 'ArrowUp':
+        setRot((r) => ({ x: r.x + KEY_PITCH_DEG, y: r.y }))
+        break
+      case 'ArrowDown':
+        setRot((r) => ({ x: r.x - KEY_PITCH_DEG, y: r.y }))
+        break
+      default:
+        return
+    }
+    e.preventDefault()
+    stopSpin()
+    armIdle()
+  }
+
   // Cheap floor-shadow approximation: an ellipse that squashes/shifts with
   // the cube's yaw so the ground reads as reacting to the rotation.
   const ryRad = (rot.y * Math.PI) / 180
@@ -589,8 +624,21 @@ function MiniCube() {
       <p className="text-[11px] text-muted-foreground">
         {t('hint')} · {t('idle')}
       </p>
+      {/* L3 FIX (R3): the STAGE is now the keyboard surface — role="img" +
+          aria-label + tabIndex + arrow keys mirror three-d-section's a11y
+          pattern (label moved here from the cube so it names the focusable
+          element; children of role="img" are presentational). NOT gated on
+          reduced motion, unlike three-d-section: MiniCube drags still work
+          for reduced users (only autonomous spin + the 0.2s easing are
+          disabled), so keyboard rotation stays available too — reduced
+          users get instant, un-eased nudges. Focus ring follows the
+          three-d-section convention (ring-ring offset elyra-dark). */}
       <div
-        className="relative mt-3 flex h-36 items-center justify-center overflow-hidden rounded-xl border border-border bg-elyra-dark/95 touch-none select-none"
+        role="img"
+        aria-label={`${t('hint')} — ${t('idle')}`}
+        tabIndex={0}
+        onKeyDown={onKeyDown}
+        className="relative mt-3 flex h-36 items-center justify-center overflow-hidden rounded-xl border border-border bg-elyra-dark/95 touch-none select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
         style={{ perspective: '600px' }}
       >
         {/* faint accent point-glow behind the cube (depth) */}
@@ -617,8 +665,6 @@ function MiniCube() {
             transition: dragging || spinning || reduced ? 'none' : 'transform 0.2s ease-out',
             willChange: 'transform',
           }}
-          role="img"
-          aria-label={`${t('hint')} — ${t('idle')}`}
         >
           {CUBE_FACES.map((f, i) => {
             const Icon = f.icon

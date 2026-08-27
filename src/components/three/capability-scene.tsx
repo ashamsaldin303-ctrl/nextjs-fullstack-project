@@ -12,6 +12,8 @@ import {
 } from 'react'
 import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
+import { useMobileTier } from '@/lib/use-mobile-tier'
+import { probeWebGL } from '@/lib/use-webgl'
 
 /**
  * Interactive 3D capability scene for /services/websites.
@@ -31,8 +33,10 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
  * parallax lerp (FIX(2-b), L1-D P1: reads R3F's state.pointer NDC directly —
  * the old manual e.currentTarget rect math was dead under R3F v9's
  * pointer-capture shim), auto-spin when idle, arrow-key rotation via the
- * imperative nudge handle (keyboard drag equivalent), DPR [1,2], frameloop
- * gated on `active`, ContextLossGuard, WebGL feature detection, and explicit
+ * imperative nudge handle (keyboard drag equivalent), mobile-tier dpr clamp
+ * (LOOP-3 FIX 5: coarse-pointer/<768px runs dpr ≤ 1.5 via useMobileTier,
+ * matching hero-canvas), frameloop gated on `active`, ContextLossGuard,
+ * WebGL feature detection (shared probeWebGL, LOOP-3 FIX 8), and explicit
  * disposal of every prop-passed geometry/material (R3F only disposes
  * JSX-declared ones).
  *
@@ -302,7 +306,10 @@ const HALO_FRAGMENT = /* glsl */ `
   void main() {
     vec2 uv = gl_PointCoord - 0.5;
     float d = length(uv);
-    float a = smoothstep(0.5, 0.08, d);
+    // spec-defined form: smoothstep is undefined for edge0 >= edge1, so the
+    // old reversed-edge smoothstep(0.5, 0.08, d) is rewritten as its
+    // algebraically identical 1 - smoothstep(lo, hi, d) twin (LOOP-3 FIX 9)
+    float a = 1.0 - smoothstep(0.08, 0.5, d);
     gl_FragColor = vec4(vColor, a * vAlpha);
   }
 `
@@ -310,6 +317,7 @@ const HALO_FRAGMENT = /* glsl */ `
 function Centerpiece({
   dragging,
   registerSpinner,
+  dprMax,
 }: {
   dragging: boolean
   /** Hands the spinner group up to CapabilityScene so its imperative
@@ -317,6 +325,11 @@ function Centerpiece({
    *  drag/auto-spin mutates (a callback prop — never a ref prop — so the
    *  react-compiler sees only local-ref mutations in BOTH components). */
   registerSpinner: (g: THREE.Group | null) => void
+  /** Tier-dependent upper bound for the halo's uPixelRatio uniform — MUST
+   *  track the Canvas dpr prop (desktop 2 / mobile 1.5) or gl_PointSize
+   *  drifts oversize relative to the render scale (LOOP-3 FIX 6, same
+   *  dprMax prop hero-canvas's Particles takes). */
+  dprMax: number
 }) {
   // spinner: drag/auto-spin rotation. parallax: pointer-lerp position
   // (parent of everything so halo + satellites drift together for depth).
@@ -392,9 +405,13 @@ function Centerpiece({
   const haloUniforms = useMemo(
     () => ({
       uTime: { value: 0 },
-      uPixelRatio: { value: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, 2) },
+      // tier-aware initial clamp (LOOP-3 FIX 6) — matches hero-canvas's
+      // Particles dprMax pattern; the useFrame below then live-syncs it to
+      // R3F's actual clamped dpr every frame, so this is only the
+      // first-frame value.
+      uPixelRatio: { value: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, dprMax) },
     }),
-    []
+    [dprMax]
   )
   const haloMat = useMemo(
     () =>
@@ -429,13 +446,28 @@ function Centerpiece({
     return () => registerSpinner(null)
   }, [registerSpinner])
 
+  // LOOP-3 FIX 7: R3F resets clock.elapsedTime to 0 on every frameloop
+  // 'never'↔'always' transition (the `active` prop flips it whenever the
+  // section scrolls offscreen / the tab hides), which would rewind the blob
+  // shader's uTime, the halo twinkle phases and the satellite orbit angles
+  // on every resume. Accumulate scene-local time from delta instead — the
+  // same immune pattern hero-canvas uses for uTime.
+  const tRef = useRef(0)
+
   useFrame((state, delta) => {
-    const t = state.clock.elapsedTime
+    tRef.current += delta
+    const t = tRef.current
     // Shader uniforms are owned three.js objects — canonical R3F pattern.
     // eslint-disable-next-line react-hooks/immutability
     blobUniforms.uTime.value = t
     // eslint-disable-next-line react-hooks/immutability
     haloUniforms.uTime.value = t
+    // uPixelRatio live sync (LOOP-3 FIX 6): state.viewport.dpr is R3F's
+    // clamped actual dpr, so gl_PointSize always matches the render scale —
+    // including when the mobile tier flips the Canvas dpr prop mid-session.
+    // Covered by the uTime disable above (the immutability rule reports one
+    // finding per memoized value).
+    haloUniforms.uPixelRatio.value = state.viewport.dpr
 
     if (spinner.current && !dragging) {
       // gentle auto-spin
@@ -448,12 +480,14 @@ function Centerpiece({
     // the NDC target never updated and this lerp chased (0,0) forever.
     // state.pointer is R3F's own maintained NDC pointer (updated by its
     // event pass), so no listener and no rect read are needed. ÷4 keeps
-    // the drift subtle; same 0.04 easing as before.
+    // the drift subtle; dt-compensated easing (was ×0.04/frame; k≈2.454;
+    // LOOP-3 FIX 10) so 120Hz displays don't double the chase speed.
     if (parallax.current) {
       const tx = (state.pointer.x * viewport.width) / 4
       const ty = (state.pointer.y * viewport.height) / 4
-      parallax.current.position.x += (tx - parallax.current.position.x) * 0.04
-      parallax.current.position.y += (ty - parallax.current.position.y) * 0.04
+      const parallaxS = 1 - Math.exp(-2.454 * delta)
+      parallax.current.position.x += (tx - parallax.current.position.x) * parallaxS
+      parallax.current.position.y += (ty - parallax.current.position.y) * parallaxS
     }
     // ambient halo drift — independent of the drag spinner so the dust
     // cloud feels like environment, not part of the object
@@ -602,6 +636,11 @@ export function CapabilityScene({
 }) {
   const [glAvailable, setGlAvailable] = useState(true)
   const [dragging, setDragging] = useState(false)
+  // LOOP-3 FIX 5: mobile tier — coarse-pointer/<768px viewports cap the dpr
+  // at 1.5 (was a flat [1,2] for every device), matching hero-canvas's
+  // tier via the shared useMobileTier hook. The halo's uPixelRatio uniform
+  // gets the same ceiling through Centerpiece's dprMax prop.
+  const mobileTier = useMobileTier()
   // The spinner group itself, registered up by Centerpiece (callback prop,
   // not a ref prop — keeps every mutation on a component-local ref so the
   // react-compiler stays quiet in both components).
@@ -626,18 +665,15 @@ export function CapabilityScene({
     []
   )
 
+  // LOOP-3 FIX 8: the inline createElement('canvas') probe now delegates to
+  // the shared module-memoized probeWebGL() (src/lib/use-webgl.ts) —
+  // identical timing semantics (true-first, flips false at the first rAF
+  // only on failure), one probe implementation for the whole app.
   useEffect(() => {
     let cancelled = false
     const id = requestAnimationFrame(() => {
       if (cancelled) return
-      try {
-        const test =
-          document.createElement('canvas').getContext('webgl2') ??
-          document.createElement('canvas').getContext('webgl')
-        if (!test) setGlAvailable(false)
-      } catch {
-        setGlAvailable(false)
-      }
+      if (!probeWebGL()) setGlAvailable(false)
     })
     return () => {
       cancelled = true
@@ -653,10 +689,17 @@ export function CapabilityScene({
       onPointerDown={() => setDragging(true)}
       onPointerUp={() => setDragging(false)}
       onPointerCancel={() => setDragging(false)}
-      style={{ cursor: dragging ? 'grabbing' : 'grab' }}
+      style={{
+        cursor: dragging ? 'grabbing' : 'grab',
+        // LOOP-3 FIX 1: claim the gesture for the drag, not page scroll —
+        // without this, touch devices hand the pointer to native panning →
+        // pointercancel → the drag affordance is dead on tablets. Repo
+        // precedent: before-after.tsx (touch-none / touchAction:'none').
+        touchAction: 'none',
+      }}
     >
       <Canvas
-        dpr={[1, 2]}
+        dpr={[1, mobileTier ? 1.5 : 2]}
         frameloop={active ? 'always' : 'never'}
         camera={{ position: [0, 0, 5], fov: 50 }}
         gl={{ antialias: true, alpha: true }}
@@ -666,7 +709,11 @@ export function CapabilityScene({
           <pointLight key={i} color={l.color} position={l.pos} intensity={28} distance={12} />
         ))}
         <RoomEnv />
-        <Centerpiece dragging={dragging} registerSpinner={registerSpinner} />
+        <Centerpiece
+          dragging={dragging}
+          registerSpinner={registerSpinner}
+          dprMax={mobileTier ? 1.5 : 2}
+        />
         <ContextLossGuard />
       </Canvas>
     </div>

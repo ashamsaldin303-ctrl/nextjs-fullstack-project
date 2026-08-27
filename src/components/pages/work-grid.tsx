@@ -68,7 +68,7 @@ export function WorkGrid() {
                 aria-pressed={active}
                 onClick={() => setFilter(f.id)}
                 className={cn(
-                  'inline-flex h-10 items-center rounded-full px-5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                  'inline-flex min-h-11 items-center rounded-full px-5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                   active
                     ? 'bg-primary text-primary-foreground'
                     : 'border border-border hover:bg-foreground/5'

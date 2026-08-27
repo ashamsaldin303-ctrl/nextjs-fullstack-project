@@ -208,6 +208,12 @@ export function ContactForm({
         toast.success(t('successTitle'), { description: t('successDesc') })
         setValues({ name: '', email: '', whatsapp: '', message: '' })
         setService(null)
+        // Sync the re-seed guard to the post-reset state (R5 P2): the
+        // effect below will next compute buildTemplate(null, prefillIdea)
+        // for service=null — without this sync it would see prev≠next and
+        // re-populate the just-cleared message textarea with the ideaOnly
+        // machine template on the primary conversion funnel.
+        lastTemplateRef.current = buildTemplate(null, prefillIdea)
         return
       }
 
@@ -273,9 +279,9 @@ export function ContactForm({
               aria-pressed={service === id}
               data-cursor="magnet"
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                'inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 service === id
-                  ? 'border-primary bg-primary/10 text-primary'
+                  ? 'border-primary bg-primary/10 text-primary-strong'
                   : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'
               )}
             >

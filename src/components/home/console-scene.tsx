@@ -124,7 +124,9 @@ function buildPositions(config: PresetConfig): [number, number, number][] {
 /** Shared radial-gradient glow texture — 64×64 white radial fade, generated
  *  once per mount (component scope, this is a client-only dynamic import)
  *  and reused by every node's SpriteMaterial. Material.dispose() never
- *  frees textures, so this is disposed exactly once in the cleanup below. */
+ *  frees textures, so it is disposed exactly once — at unmount — by its
+ *  own disposal effect below (LOOP-3 FIX 2: previously it rode the tubes
+ *  effect and was disposed mid-mount on every preset switch). */
 function makeGlowTexture(): THREE.CanvasTexture {
   const size = 64
   const canvas = document.createElement('canvas')
@@ -303,6 +305,13 @@ function Nodes({
     return () => registerGroup(null)
   }, [registerGroup])
 
+  // LOOP-3 FIX 7: R3F resets clock.elapsedTime to 0 on every frameloop
+  // 'never'↔'always' transition (offscreen/visibility gating flips it
+  // constantly here), which would rewind the emissive/pulse phases every
+  // time the hero pauses this canvas. Accumulate scene-local time from
+  // delta instead — the same immune pattern hero-canvas uses for uTime.
+  const tRef = useRef(0)
+
   // Slow rotation of the whole group — pauses while the visitor drags
   // (capability-scene's approach), with the polar tilt clamped so neither
   // drag nor drift alone can flip the console upside down.
@@ -318,7 +327,8 @@ function Nodes({
       )
     }
     if (reduced) return
-    const t = state.clock.elapsedTime
+    tRef.current += delta
+    const t = tRef.current
     nodeMatRefs.current.forEach((mat, i) => {
       if (!mat) return
       // gentle breathing glow, per-node phase offset so the constellation
@@ -344,11 +354,12 @@ function Nodes({
   // unmount the finally-mounted set IS disposed. Under StrictMode the
   // dev double-invoke briefly disposes still-mounted geometries which
   // three.js transparently re-uploads next frame — the same accepted
-  // semantics as capability-scene's Centerpiece disposal. The glow
-  // texture is shared by all (JSX-declared) sprite materials, and
-  // Material.dispose() never frees textures — so it is disposed here,
-  // exactly once. Node spheres / sprites / pulse meshes are JSX-declared
-  // so R3F handles those.
+  // semantics as capability-scene's Centerpiece disposal. Node spheres /
+  // sprites / pulse meshes are JSX-declared so R3F handles those.
+  // LOOP-3 FIX 2: scoped to [tubes] ONLY — this effect previously disposed
+  // glowTexture too, so a preset switch (new tubes identity) fired
+  // glowTexture.dispose() mid-mount while the texture was still bound to
+  // every sprite material. The glow texture now has its own effect below.
   useEffect(() => {
     return () => {
       for (const tube of tubes) {
@@ -357,9 +368,17 @@ function Nodes({
         if (Array.isArray(material)) material.forEach((m) => m.dispose())
         else material.dispose()
       }
-      glowTexture.dispose()
     }
-  }, [tubes, glowTexture])
+  }, [tubes])
+
+  // Glow texture disposal — its own effect (LOOP-3 FIX 2). The memo above
+  // has stable [] deps, so glowTexture's identity never changes across
+  // preset switches: this cleanup fires exactly once, at unmount, never
+  // mid-mount. ([glowTexture] in the deps satisfies exhaustive-deps; the
+  // stable identity is what keeps it unmount-only.)
+  useEffect(() => {
+    return () => glowTexture.dispose()
+  }, [glowTexture])
 
   return (
     <group ref={groupRef}>
@@ -472,10 +491,18 @@ export function ConsoleScene({
    *  affordance. Callback prop (NOT a ref prop) per the react-compiler
    *  discipline used across this codebase — the parent owns the flag. */
   onDragStateChange,
+  /** Accessible name for the drag surface (LOOP-3 FIX 4) — the wrapper is
+   *  role="img" + tabIndex, so this label is what screen readers announce
+   * (hero-console passes hero.console.sceneLabel, present in both
+   *  catalogs: “نموذج ثلاثي الأبعاد تفاعلي — اسحب بالماوس أو استخدم مفاتيح
+   *  الأسهم للتدوير”). Optional — omitting it simply leaves the img role
+   *  unnamed (legacy behavior). */
+  sceneLabel,
 }: {
   preset: PresetId
   active?: boolean
   onDragStateChange?: (dragging: boolean) => void
+  sceneLabel?: string
 }) {
   const reduced = usePrefersReducedMotion()
   const config = PRESET_CONFIG[preset] ?? PRESET_CONFIG.custom
@@ -552,14 +579,70 @@ export function ConsoleScene({
     }
   }
 
+  // LOOP-3 FIX 4: keyboard path for the drag — mirrors three-d-section's
+  // pattern (role="img" + tabIndex + arrow keys + focus-visible ring).
+  // ArrowLeft/Right step the free yaw ±0.13 rad (~7.5°); ArrowUp/Down step
+  // the pitch ±0.07 rad clamped to ±MAX_TILT by the same clamp the pointer
+  // drag's pitch path uses. preventDefault sits AFTER the switch (default
+  // returns early) so only the four handled arrows swallow the page
+  // scroll. Null-guarded: before the lazy scene mounts, arrows scroll
+  // normally. Stable useCallback — mutations stay on the local groupRef.
+  const onKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    const group = groupRef.current
+    if (!group) return
+    switch (e.key) {
+      case 'ArrowLeft':
+        group.rotation.y -= 0.13
+        break
+      case 'ArrowRight':
+        group.rotation.y += 0.13
+        break
+      case 'ArrowUp':
+        group.rotation.x = THREE.MathUtils.clamp(
+          group.rotation.x - 0.07,
+          -MAX_TILT,
+          MAX_TILT
+        )
+        break
+      case 'ArrowDown':
+        group.rotation.x = THREE.MathUtils.clamp(
+          group.rotation.x + 0.07,
+          -MAX_TILT,
+          MAX_TILT
+        )
+        break
+      default:
+        return
+    }
+    e.preventDefault()
+  }, [])
+
   return (
     <div
-      className="absolute inset-0"
+      // LOOP-3 FIX 4: focus ring — three-d-section's pattern (ring-2 on the
+      // ring token), but the INSET variant: this wrapper is inset-0 inside
+      // hero-console's overflow-hidden scene frame, so an outward ring +
+      // offset (three-d-section's exact classes) would be clipped away by
+      // the parent's overflow-hidden and never seen. The inset ring draws
+      // the same 2px indicator just inside the scene edge — visible.
+      className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
-      style={{ cursor: dragging ? 'grabbing' : 'grab' }}
+      onKeyDown={onKeyDown}
+      role="img"
+      aria-label={sceneLabel}
+      tabIndex={0}
+      style={{
+        cursor: dragging ? 'grabbing' : 'grab',
+        // LOOP-3 FIX 1: claim the gesture for the drag, not page scroll —
+        // without this, touch devices ≥768px (iPads that mount this scene)
+        // hand the pointer to native panning → pointercancel → the
+        // "اسحب للتدوير 360°" affordance is dead. Repo precedent:
+        // before-after.tsx (touch-none / touchAction:'none').
+        touchAction: 'none',
+      }}
     >
       <Canvas
         camera={{ position: [0, 0, config.cameraZ], fov: 50 }}

@@ -1,9 +1,11 @@
 'use client'
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useRef, useState, useEffect, useMemo, useSyncExternalStore } from 'react'
+import { useRef, useState, useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { getHeroScroll } from '@/lib/hero-scroll'
+import { useMobileTier } from '@/lib/use-mobile-tier'
+import { probeWebGL } from '@/lib/use-webgl'
 
 /**
  * Elyra Hero Canvas — signature 3D (Batch 3 items 12/13/15).
@@ -236,7 +238,10 @@ const PARTICLE_FRAGMENT = /* glsl */ `
   void main() {
     vec2 uv = gl_PointCoord - 0.5;
     float d = length(uv);
-    float a = smoothstep(0.5, 0.08, d);
+    // spec-defined form: smoothstep is undefined for edge0 >= edge1, so the
+    // old reversed-edge smoothstep(0.5, 0.08, d) is rewritten as its
+    // algebraically identical 1 - smoothstep(lo, hi, d) twin (LOOP-3 FIX 9)
+    float a = 1.0 - smoothstep(0.08, 0.5, d);
     gl_FragColor = vec4(vColor, a * vAlpha * 0.9);
   }
 `
@@ -441,19 +446,33 @@ function Particles({
     // Three.js shader uniforms are mutated per-frame — the canonical R3F pattern.
     // eslint-disable-next-line react-hooks/immutability
     uniforms.uTime.value += delta
+    // uPixelRatio live sync (LOOP-3 FIX 6): state.viewport.dpr is R3F's
+    // clamped actual dpr, so gl_PointSize always matches the render scale —
+    // even when the mobile tier flips the Canvas dpr prop mid-session (the
+    // memoized initial value above is only the first-frame best guess).
+    // Covered by the uTime disable above (the immutability rule reports one
+    // finding per memoized value).
+    uniforms.uPixelRatio.value = state.viewport.dpr
 
-    // Lerp mouse target into the actual mouse vector (smoothing)
-    mouseVec.current.x += (mouse.current.tx - mouseVec.current.x) * 0.04
-    mouseVec.current.y += (mouse.current.ty - mouseVec.current.y) * 0.04
+    // Lerp mouse target into the actual mouse vector (smoothing) —
+    // dt-compensated (was ×0.04/frame; k=-60·ln(1-0.04)≈2.454) so 120Hz
+    // displays don't double the easing speed (LOOP-3 FIX 10).
+    const mouseS = 1 - Math.exp(-2.454 * delta)
+    mouseVec.current.x += (mouse.current.tx - mouseVec.current.x) * mouseS
+    mouseVec.current.y += (mouse.current.ty - mouseVec.current.y) * mouseS
     uniforms.uMouse.value.copy(mouseVec.current)
 
-    // Scroll bridge (methodology section) → gentle flow swell, lerped.
+    // Scroll bridge (methodology section) → gentle flow swell, lerped —
+    // dt-compensated (was ×0.08/frame; k≈4.983).
     const scrollTarget = getHeroScroll()
-    uniforms.uScroll.value += (scrollTarget - uniforms.uScroll.value) * 0.08
+    const scrollS = 1 - Math.exp(-4.983 * delta)
+    uniforms.uScroll.value += (scrollTarget - uniforms.uScroll.value) * scrollS
 
-    // Gentle group tilt toward mouse
-    pointsRef.current.rotation.y += ((mouseVec.current.x * 0.25) - pointsRef.current.rotation.y) * 0.05
-    pointsRef.current.rotation.x += ((mouseVec.current.y * 0.15) - pointsRef.current.rotation.x) * 0.05
+    // Gentle group tilt toward mouse — dt-compensated (was ×0.05/frame;
+    // k≈3.079).
+    const tiltS = 1 - Math.exp(-3.079 * delta)
+    pointsRef.current.rotation.y += ((mouseVec.current.x * 0.25) - pointsRef.current.rotation.y) * tiltS
+    pointsRef.current.rotation.x += ((mouseVec.current.y * 0.15) - pointsRef.current.rotation.x) * tiltS
   })
 
   return (
@@ -498,17 +517,21 @@ function SilkBackdrop({ mouse }: { mouse: React.MutableRefObject<{ x: number; y:
 
     // Project the pointer onto the silk plane in world space (aspect-
     // correct; numbers only — no per-frame allocations). The CPU lerp
-    // smooths the vortex centre, so the stir glides instead of snapping.
+    // smooths the vortex centre, so the stir glides instead of snapping —
+    // dt-compensated (was ×0.05/frame; k≈3.079; LOOP-3 FIX 10).
     const aspect = state.size.width / state.size.height
     const halfH = Math.tan(CAMERA_FOV_RAD * 0.5) * SILK_PLANE_DIST
-    mouseVec.current.x += (mouse.current.tx * halfH * aspect - mouseVec.current.x) * 0.05
-    mouseVec.current.y += (mouse.current.ty * halfH - mouseVec.current.y) * 0.05
+    const silkS = 1 - Math.exp(-3.079 * delta)
+    mouseVec.current.x += (mouse.current.tx * halfH * aspect - mouseVec.current.x) * silkS
+    mouseVec.current.y += (mouse.current.ty * halfH - mouseVec.current.y) * silkS
     uniforms.uMouse.value.copy(mouseVec.current)
 
     // Scroll bridge (methodology section) → gentle silk swell, lerped
-    // with the same pattern Particles uses.
+    // with the same pattern Particles uses — dt-compensated (was
+    // ×0.08/frame; k≈4.983).
     const scrollTarget = getHeroScroll()
-    uniforms.uScroll.value += (scrollTarget - uniforms.uScroll.value) * 0.08
+    const scrollS = 1 - Math.exp(-4.983 * delta)
+    uniforms.uScroll.value += (scrollTarget - uniforms.uScroll.value) * scrollS
   })
 
   return (
@@ -546,9 +569,11 @@ function SilkBackdrop({ mouse }: { mouse: React.MutableRefObject<{ x: number; y:
  *  units back as the methodology section's scroll progress (bridge)
  *  goes 0→1 — a subtle pull-away, RTL-safe (pure view-axis motion). */
 function ScrollDolly() {
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const targetZ = BASE_CAMERA_Z + getHeroScroll() * 0.8
-    state.camera.position.z += (targetZ - state.camera.position.z) * 0.05
+    // dt-compensated (was ×0.05/frame; k≈3.079; LOOP-3 FIX 10)
+    const dollyS = 1 - Math.exp(-3.079 * delta)
+    state.camera.position.z += (targetZ - state.camera.position.z) * dollyS
   })
   return null
 }
@@ -570,43 +595,9 @@ function ContextLossGuard() {
   return null
 }
 
-/* Mobile tier (FIX(2-b), L1-D P2) via useSyncExternalStore — the exact
- * pattern of use-reduced-motion.ts: one module-level MQL singleton
- * (matchMedia allocates a fresh MediaQueryList on every call) + a false
- * server snapshot (desktop tier during SSR; HeroCanvas is a client-only
- * dynamic import anyway). Reactive by design: crossing the boundary
- * mid-session swaps the dpr in place (R3F re-applies the pixel ratio
- * without recreating the canvas/GL context) and remounts Particles via a
- * key so the buffers resize to the new count — the canvas itself survives. */
-let tierMql: MediaQueryList | null = null
-
-function getTierMql(): MediaQueryList | null {
-  if (typeof window === 'undefined') return null
-  if (!tierMql) {
-    tierMql = window.matchMedia('(max-width: 767px), (pointer: coarse)')
-  }
-  return tierMql
-}
-
-function subscribeTier(onChange: () => void): () => void {
-  const mq = getTierMql()
-  if (!mq) return () => {}
-  mq.addEventListener('change', onChange)
-  return () => mq.removeEventListener('change', onChange)
-}
-
-function getTierSnapshot(): boolean {
-  return getTierMql()?.matches ?? false
-}
-
-function getTierServerSnapshot(): boolean {
-  return false
-}
-
-/** True on coarse-pointer or <768px viewports → lighter particle tier. */
-function useMobileTier(): boolean {
-  return useSyncExternalStore(subscribeTier, getTierSnapshot, getTierServerSnapshot)
-}
+/* Mobile tier (FIX(2-b), L1-D P2): useSyncExternalStore MQL hook —
+ * extracted to src/lib/use-mobile-tier.ts (LOOP-3 FIX 5) so
+ * capability-scene shares the same singleton + tier semantics. */
 
 interface HeroCanvasProps {
   active: boolean
@@ -622,16 +613,15 @@ export function HeroCanvas({ active }: HeroCanvasProps) {
 
   useEffect(() => {
     // WebGL feature detection — deferred to rAF so the setState isn't synchronous
-    // inside the effect body (hydration-safe + lint-compliant).
+    // inside the effect body (hydration-safe + lint-compliant). LOOP-3 FIX 8:
+    // the inline createElement('canvas') probe now delegates to the shared
+    // module-memoized probeWebGL() (src/lib/use-webgl.ts) — identical timing
+    // semantics (true-first, flips false at the first rAF only on failure),
+    // one probe implementation for the whole app.
     let cancelled = false
     const id = requestAnimationFrame(() => {
       if (cancelled) return
-      try {
-        const test = document.createElement('canvas').getContext('webgl2') ?? document.createElement('canvas').getContext('webgl')
-        if (!test) setGlAvailable(false)
-      } catch {
-        setGlAvailable(false)
-      }
+      if (!probeWebGL()) setGlAvailable(false)
     })
     return () => {
       cancelled = true

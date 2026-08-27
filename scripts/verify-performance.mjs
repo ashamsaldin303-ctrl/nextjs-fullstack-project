@@ -149,7 +149,7 @@ const browser = await chromium.launch({ channel: 'chromium', headless: true })
   ok('CSS KineticWords applied on section headings', kinetic > 0, `kinetic words=${kinetic}`)
 
   const sensory = await page.evaluate(() => ({
-    grain: !!document.querySelector('.elyra-grain'),
+    grain: !!document.querySelector('.grain-overlay'),
     dot: !!document.querySelector('.elyra-cursor-dot'),
     // Phase 4 moved the sound toggle from `fixed bottom-4 start-4` into
     // the navbar — look for the navbar button via its aria-label text

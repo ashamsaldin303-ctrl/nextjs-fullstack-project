@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
-import { getTranslations } from 'next-intl/server'
+import { hasLocale } from 'next-intl'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
+import { notFound } from 'next/navigation'
 import { Hero } from '@/components/home/hero'
 import { IntroOverlay } from '@/components/home/intro-overlay'
 import { TrustBar } from '@/components/home/trust-bar'
@@ -11,6 +13,7 @@ import { MethodologyLazy } from '@/components/home/methodology-lazy'
 import { Testimonials } from '@/components/home/testimonials'
 import { CalculatorLazy } from '@/components/home/calculator-lazy'
 import { HomeJsonLd } from '@/components/seo/home-json-ld'
+import { routing } from '@/i18n/routing'
 import { SITE_URL } from '@/lib/seo'
 import { OG_IMAGE_ALT } from '@/lib/site-config'
 
@@ -63,7 +66,17 @@ export async function generateMetadata({
   }
 }
 
-export default function HomePage() {
+export default async function HomePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}) {
+  const { locale } = await params
+  if (!hasLocale(routing.locales, locale)) notFound()
+  // Canonical next-intl pattern: pin the request locale so any future
+  // implicit-locale getTranslations in this page (or its metadata) never
+  // falls back to headers() and silently breaks prerendering.
+  setRequestLocale(locale)
   return (
     <>
       <HomeJsonLd />

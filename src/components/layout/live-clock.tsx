@@ -53,7 +53,11 @@ export function LiveClock({ variant = 'on-dark' }: { variant?: 'on-dark' | 'on-l
       title={t('localTime')}
     >
       <Clock className={onLight ? 'size-4 text-foreground/60' : 'size-4 text-white/60'} aria-hidden="true" />
-      <span className={onLight ? 'text-foreground/70' : 'text-white/70'} aria-hidden="true">
+      {/* L3 FIX (R3): label exposed to AT — it used to be aria-hidden while
+          the value wasn't, so SR users heard a contextless "15:16 (GMT+3)".
+          Now "الوقت المحلي:" prefixes the value. Still no aria-live (the
+          per-minute noise decision above stands). */}
+      <span className={onLight ? 'text-foreground/70' : 'text-white/70'}>
         {t('localTime')}:
       </span>
       <span className={onLight ? 'text-foreground' : 'text-white'}>

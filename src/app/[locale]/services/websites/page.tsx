@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { hasLocale } from 'next-intl'
 import { notFound } from 'next/navigation'
-import { getTranslations } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { routing } from '@/i18n/routing'
 import { Check, Globe, ShoppingCart, LayoutDashboard } from 'lucide-react'
 import { PageHero } from '@/components/shared/page-hero'
@@ -36,7 +36,17 @@ export async function generateMetadata({
   })
 }
 
-export default async function WebsitesPage() {
+export default async function WebsitesPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}) {
+  const { locale } = await params
+  if (!hasLocale(routing.locales, locale)) notFound()
+  // Canonical next-intl pattern: pin the request locale so implicit-locale
+  // getTranslations in this page (and future metadata) never fall back to
+  // headers() and silently break prerendering.
+  setRequestLocale(locale)
   const t = await getTranslations('pages.websites')
 
   return (
@@ -95,7 +105,7 @@ export default async function WebsitesPage() {
                   {/* UI-5: hover depth on the journey rows — gentle lift +
                       primary border tint; the number badge brightens. */}
                   <div className="card-hover-lift group flex gap-4 rounded-2xl border border-border bg-card p-5 hover:border-primary/30 sm:gap-6 sm:p-6">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary transition-colors duration-300 group-hover:bg-primary/15">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary-strong transition-colors duration-300 group-hover:bg-primary/15">
                       {String(i + 1).padStart(2, '0')}
                     </div>
                     <div>

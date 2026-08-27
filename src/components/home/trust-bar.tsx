@@ -57,9 +57,10 @@ function Counter({ value, suffix, durationMs = 1600 }: CounterProps) {
   const reduced = usePrefersReducedMotion()
   const [display, setDisplay] = useState(0)
   // FIX(2-c/16): counts are formatted through next-intl's formatter — the
-  // exact machinery the simulator's `stepOf` message uses — so AR pages
-  // get Arabic-Indic digits ("١٢٠") instead of hardcoded en-US. Money
-  // elsewhere stays Latin per the site's digit convention.
+  // exact machinery the simulator's `stepOf` message uses — so AR pages get
+  // Arabic-Indic digits ("١٢٠"). Digit convention (L3 reword): RUNTIME-formatted
+  // values (useFormatter/Intl — incl. formatMoney, clock, dates) follow the
+  // locale (Arabic-Indic in ar); only STATIC catalog strings keep Latin digits.
   const format = useFormatter()
 
   useEffect(() => {

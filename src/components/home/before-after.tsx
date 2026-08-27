@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   Activity,
@@ -1015,16 +1015,50 @@ export function BeforeAfter({
     setPos(Math.max(2, Math.min(98, pct)))
   }, [isRtl])
 
+  // L3 FIX (R5): rAF-coalesced drag (GlowCard pattern, bento.tsx) — the
+  // rect read + setState ran on EVERY pointermove (120+ re-renders/s on
+  // 120Hz hardware; every sibling surface coalesces). pointermove now just
+  // stores the latest clientX in a ref and schedules ONE frame that applies
+  // it; the queued frame is cancelled on unmount and on drag-end (which
+  // applies the final position synchronously so the reveal never lags the
+  // pointerup).
+  const pendingXRef = useRef(0)
+  const dragRafRef = useRef(0)
+  const schedulePosFromPending = useCallback(() => {
+    if (dragRafRef.current) return
+    dragRafRef.current = requestAnimationFrame(() => {
+      dragRafRef.current = 0
+      setFromClientX(pendingXRef.current)
+    })
+  }, [setFromClientX])
+  useEffect(
+    () => () => {
+      if (dragRafRef.current) cancelAnimationFrame(dragRafRef.current)
+    },
+    []
+  )
+
   const onPointerDown = (e: React.PointerEvent) => {
     dragging.current = true
     ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
-    setFromClientX(e.clientX)
+    setFromClientX(e.clientX) // single event — apply synchronously
   }
   const onPointerMove = (e: React.PointerEvent) => {
     if (!dragging.current) return
-    setFromClientX(e.clientX)
+    pendingXRef.current = e.clientX
+    schedulePosFromPending()
   }
-  const onPointerUp = () => { dragging.current = false }
+  const onPointerUp = () => {
+    dragging.current = false
+    // Drag-end: cancel any queued frame and apply the final pending
+    // position immediately (pre-fix behavior had every move applied by
+    // now — this preserves the final-position guarantee).
+    if (dragRafRef.current) {
+      cancelAnimationFrame(dragRafRef.current)
+      dragRafRef.current = 0
+      setFromClientX(pendingXRef.current)
+    }
+  }
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     const step = e.shiftKey ? 10 : 5

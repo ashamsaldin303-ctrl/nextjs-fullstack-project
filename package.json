@@ -10,9 +10,7 @@
     "typecheck": "tsc --noEmit",
     "db:push": "prisma db push",
     "db:push:force": "prisma db push --accept-data-loss",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:reset": "prisma migrate reset"
+    "db:generate": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.11.1",

@@ -159,6 +159,13 @@ export default async function LocaleLayout({
   // Skip-link copy from the catalog (nav.skipToContent) — no hardcoded
   // strings that can drift from the messages files.
   const t = await getTranslations('nav')
+  // L3 FIX (R5): sonner's screen-reader labels are English-only defaults
+  // (containerAriaLabel 'Notifications'; per-toast close button 'Close
+  // toast'). Pass the catalog's translated labels so Arabic visitors get
+  // Arabic toast names. NOTE: in sonner 2.0.7 the close-button label is a
+  // TOAST option (forwarded to every toast from the Toaster via
+  // toastOptions), while containerAriaLabel is a Toaster-level prop.
+  const tCommon = await getTranslations({ locale, namespace: 'common' })
 
   return (
     <html
@@ -204,7 +211,13 @@ export default async function LocaleLayout({
           <GrainOverlay />
           <CustomCursor />
         </NextIntlClientProvider>
-        <Toaster position="top-center" richColors closeButton />
+        <Toaster
+          position="top-center"
+          richColors
+          closeButton
+          containerAriaLabel={tCommon('notifications')}
+          toastOptions={{ closeButtonAriaLabel: tCommon('close') }}
+        />
       </body>
     </html>
   )

@@ -274,8 +274,8 @@ try {
       ? await prisma.lead.findFirst({ where: { email: 'valid-calc@test.dev' }, orderBy: { createdAt: 'desc' } })
       : null
     ok(
-      '201 + reference (8 chars) + Prisma row',
-      r.status === 201 && typeof ref === 'string' && ref.length === 8 && row !== null && row.id.startsWith(ref),
+      '201 + reference (10 chars) + Prisma row',
+      r.status === 201 && typeof ref === 'string' && ref.length === 10 && row !== null && row.reference === ref,
       `ref=${ref}`
     )
 

@@ -253,7 +253,11 @@ export function DeconstructedCard({ projectKey }: { projectKey: string }) {
   const backShadow = `0 ${(8 + 12 * p).toFixed(1)}px ${(20 + 22 * p).toFixed(1)}px -10px rgba(52,168,83,${(0.24 + 0.12 * p).toFixed(2)})`
 
   return (
-    <div data-cursor="rotate" data-cursor-label={t('deconstructed.hint')}>
+    // L3 FIX (R3): no data-cursor here — this scene has ZERO pointer
+    // handlers (the explosion is 100% scroll-driven), so the rotate cursor
+    // + "drag to explore the layers" chip promised an interaction that
+    // never existed. Removed both attributes.
+    <div>
       {/* Unified sticky scroll-driven scene — desktop AND mobile.
           The outer div is 200vh so the pin lasts exactly (200vh − 100vh) =
           100vh — one viewport of scroll travel (§8). */}

@@ -81,13 +81,17 @@
   --popover: #FFFFFF;
   --popover-foreground: #1D1D1F;
   /* Brand primary — Apple blue #0071E3 (user request: revert to the blue
-     palette). White text on #0071E3 = 4.52:1 → AA for button text; as text
-     on #F5F5F7 it is 4.5:1 (AA even for small text) and on white 4.8:1. */
+     palette). White text on #0071E3 = 4.70:1 → AA for button text; as
+     text on the #F5F5F7 page background it is only 4.31:1 — BELOW the
+     4.5:1 AA small-text threshold, so primary-colored copy on light
+     surfaces is restricted to large display text (≥3:1); small text and
+     links must use --primary-strong (below). */
   --primary: #0071E3;
   --primary-foreground: #FFFFFF;
   /* Accessible deep shade of the brand primary — #0066CC, same hue
      family, meets WCAG AA for small text/links on light surfaces:
-     #0066CC ≈ 5.4:1 on #F5F5F7, 5.8:1 on white. */
+     #0066CC ≈ 5.11:1 on #F5F5F7, 5.57:1 on white (machine-computed,
+     L3-1c correction — was misquoted 5.4/5.8). */
   --primary-strong: #0066CC;
   --secondary: #E8E8ED;
   --secondary-foreground: #1D1D1F;

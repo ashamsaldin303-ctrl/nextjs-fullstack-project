@@ -89,7 +89,12 @@ function MethodologyStep({
             {t(`steps.${step.key}.desc`)}
           </p>
         </div>
-        <div className="hidden size-16 items-center justify-center rounded-full border border-dashed border-border text-xs text-muted-foreground sm:flex">
+        {/* L3 FIX (R3): decorative flow glyph — aria-hidden so SR users don't
+            hear a contextless "down arrow" / "check mark" per step. */}
+        <div
+          aria-hidden="true"
+          className="hidden size-16 items-center justify-center rounded-full border border-dashed border-border text-xs text-muted-foreground sm:flex"
+        >
           {index < total - 1 ? '↓' : '✓'}
         </div>
       </div>

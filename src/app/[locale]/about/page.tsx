@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { hasLocale } from 'next-intl'
 import { notFound } from 'next/navigation'
-import { getTranslations } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { routing } from '@/i18n/routing'
 import { Sparkles, Target, Bot, CalendarRange, Briefcase, Workflow, Users } from 'lucide-react'
 import { PageHero } from '@/components/shared/page-hero'
@@ -54,7 +54,17 @@ export async function generateMetadata({
   })
 }
 
-export default async function AboutPage() {
+export default async function AboutPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}) {
+  const { locale } = await params
+  if (!hasLocale(routing.locales, locale)) notFound()
+  // Canonical next-intl pattern: pin the request locale so implicit-locale
+  // getTranslations in this page (and future metadata) never fall back to
+  // headers() and silently break prerendering.
+  setRequestLocale(locale)
   const t = await getTranslations('pages.about')
 
   return (

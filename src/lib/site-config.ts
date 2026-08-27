@@ -17,7 +17,9 @@ export const SITE_CONTACT = {
 } as const
 
 export const SITE_SOCIAL = {
-  telegram: 'https://t.me/elyra_agency',
+  // Derived from the handle — no duplicated hardcode to drift from the
+  // contact page's displayed @handle (L3 audit, R6).
+  telegram: `https://t.me/${SITE_CONTACT.telegramHandle}`,
   whatsapp: `https://wa.me/${SITE_CONTACT.whatsappNumber}`,
   instagram: 'https://instagram.com/elyra.agency',
   linkedin: 'https://linkedin.com/company/elyra-agency',

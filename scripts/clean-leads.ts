@@ -2,10 +2,15 @@
  * Lead maintenance script.
  *
  * Modes (run with bun):
- *   bun scripts/clean-leads.ts                     # deletes ALL leads (pre-launch wipe)
- *   bun scripts/clean-leads.ts --dry-run           # counts only (full wipe)
- *   bun scripts/clean-leads.ts --purge-days=90     # deletes leads older than 90 days
- *   bun scripts/clean-leads.ts --purge-days=90 --dry-run  # counts the purge only
+ *   bun scripts/clean-leads.ts --all                     # deletes ALL leads (explicit full wipe)
+ *   bun scripts/clean-leads.ts --all --dry-run           # counts only (full wipe)
+ *   bun scripts/clean-leads.ts --purge-days=90           # deletes leads older than 90 days
+ *   bun scripts/clean-leads.ts --purge-days=90 --dry-run # counts the purge only
+ *   bun scripts/clean-leads.ts                           # prints usage, exits 1 (no default wipe)
+ *
+ * The full wipe REQUIRES --all (L3 audit, R6): a bare run used to delete
+ * EVERY lead with no confirmation — an unguarded footgun next to the
+ * cron-scheduled purge mode. --purge-days keeps working unchanged.
  *
  * The purge mode implements the PII retention policy documented in README
  * "Deployment" → "Data retention" (L1-A P2 fix): Lead rows carry
@@ -17,6 +22,18 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 const dryRun = process.argv.includes('--dry-run')
+const wipeAll = process.argv.includes('--all')
+
+function usage(): never {
+  console.error(`Usage:
+  bun scripts/clean-leads.ts --all                      # deletes ALL leads (explicit full wipe)
+  bun scripts/clean-leads.ts --all --dry-run            # counts only (full wipe)
+  bun scripts/clean-leads.ts --purge-days=90            # deletes leads older than 90 days
+  bun scripts/clean-leads.ts --purge-days=90 --dry-run  # counts the purge only
+
+The full wipe requires --all — a bare run no longer deletes anything.`)
+  process.exit(1)
+}
 
 /**
  * Parses `--purge-days=<N>` (N ≥ 0) from argv — null when absent.
@@ -53,8 +70,11 @@ async function main() {
     return
   }
 
-  // Default: full wipe (Phase 3 pre-launch checklist — "no test data ships
-  // to production").
+  // No --purge-days: the full wipe must be EXPLICIT. A bare run (with or
+  // without --dry-run alone) prints usage and fails — the pre-launch
+  // "no test data ships to production" wipe is `--all` (Phase 3 checklist).
+  if (!wipeAll) usage()
+
   const count = await prisma.lead.count()
   if (dryRun) {
     console.log(`dry-run: ${count} lead(s) would be deleted`)
