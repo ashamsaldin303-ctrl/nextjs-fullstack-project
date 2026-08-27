@@ -59,7 +59,7 @@
 
 13. **المؤشر المغناطيسي — rAF واحد بلا إعادة رسم React**: الطبقتان (نقطة 6px + حلقة 32px بـ lerp 0.2) تُحرّكان بتعديل DOM مباشر عبر refs داخل حلقة `requestAnimationFrame` واحدة على مستوى التطبيق. الجذب نحو مراكز عناصر `data-cursor="magnet"` (مسافة، لا جهة — RTL/LTR محايد). يُخفى المؤشر الأصلي فقط عند (`pointer: fine` + بلا reduced-motion) بحارس CSS مزدوج، والطبقات فوق Sheet/Dialog (z-200) لأن الأصلي مخفي، و`mix-blend-difference` يضمن الرؤية على الفاتح والداكن.
 
-14. **الحبيبات السينمائية — CSS خالص ثابت**: طبقة `feTurbulence` SVG واحدة كـ data-URI (0 JS) على مستوى الـ layout، شفافية 3.5%، ثابتة غير متحركة (قرار أداء نهائي)، تُخفى عند الطباعة، وتحمل z-90 فوق كل المحتوى لأن الغرين السينمائي موحد فوق كل شيء.
+14. **الحبيبات السينمائية — CSS خالص ثابت**: طبقة `feTurbulence` SVG واحدة كـ data-URI (0 JS) على مستوى الـ layout، شفافية 4.5% مع وميض خفيف (grain-flicker بـ 8 خطوات 0.4s — يُلغى تلقائياً عند تفضيل تقليل الحركة)، تُخفى عند الطباعة، وتحمل z-90 فوق كل المحتوى لأن الغرين السينمائي موحد فوق كل شيء.
 
 15. **Audio UX — Web Audio API فقط بلا ملفات**: أصوات مركّبة (oscillators + envelopes) بمكوّن `lib/sound.ts` — مطفأة افتراضاً مع `localStorage` (`elyra:sound`) عبر external store، وAudioContext كسول عند أول إيماءة، وفشل هادئ دائماً. الأصوات لأحداث المؤشر فقط (`pointerover`/`pointerdown` مندّمان على مستوى المستند) — لا صوت للوحة المفاتيح أبداً.
 
@@ -95,7 +95,7 @@
 |---|---|
 | `bun run lint` | ✓ 0 أخطاء / 0 تحذيرات (قواعد React 19 الصارمة مفعّلة) |
 | `bunx tsc --noEmit` | ✓ 0 أخطاء (مع `noUncheckedIndexedAccess`) |
-| تكافؤ i18n (ar/en) | ✓ 634 مفاتيح متطابقة |
+| تكافؤ i18n (ar/en) | ✓ 620 مفاتيح متطابقة |
 | جميع المسارات (×2 لغة) | ✓ 200 OK |
 | تحقق في المتصفح | ✓ رسم + تفاعلات + RTL/LTR + responsive + sticky footer |
 | أخطاء console/hydration | ✓ صفر |
@@ -213,7 +213,11 @@ module.exports = function verify(req) {
 docker build --build-arg NEXT_PUBLIC_SITE_URL=https://elyra.agency -t elyra .
 
 # التشغيل — قاعدة البيانات في volume
- docker run -p 3000:3000 \
+# ⚠️ اربط المنفذ بالـ loopback فقط (127.0.0.1): TRUST_PROXY=true يثق
+# بآخر عنصر X-Forwarded-For — أي وصول مباشر للمنفذ 3000 من خارج
+# البروكسي يتيح تزوير عناصر IP والالتفاف على حد المعدل. البروكسي
+# (deploy/Caddyfile.example) هو الطريق الوحيد المسموح للتطبيق.
+ docker run -p 127.0.0.1:3000:3000 \
   -e DATABASE_URL=file:/app/db/custom.db \
   -e N8N_WEBHOOK_URL=https://n8n.example.com/webhook/elyra-leads \
   -e N8N_WEBHOOK_SECRET=<openssl rand -hex 32> \
@@ -276,10 +280,13 @@ src/
 │   └── seo/               # home-json-ld
 ├── i18n/                  # routing, request, navigation
 ├── lib/                   # calculator, sound, rate-limit, n8n-webhook, api-i18n,
-│                          # seo, site-config, use-rtl, use-reduced-motion, db, utils
+│                          # lead-fields, seo, site-config, hero-scroll, use-rtl,
+│                          # use-reduced-motion, use-webgl, use-mobile-tier,
+│                          # use-near-viewport, use-magnetic, use-cursor-velocity,
+│                          # db, utils
 ├── app/api/leads/route.ts # نقطة الكتابة الوحيدة (Zod + إعادة حساب + Prisma + 429)
 └── proxy.ts               # next-intl middleware (Next.js 16)
-messages/{ar,en}.json      # 634 مفاتيح متطابقة
+messages/{ar,en}.json      # 620 مفاتيح متطابقة
 ```
 
 ---

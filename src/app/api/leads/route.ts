@@ -403,7 +403,12 @@ export async function POST(req: NextRequest) {
   // ('c' + base-36 chars, like Prisma's cuid) — so the discard path is not
   // fingerprintable by reference alphabet or length (verification L2-A).
   const input = parsed.data
-  if (input.companyWebsite !== undefined && input.companyWebsite.trim() !== '') {
+  // L4 R1 P3: short-circuit on RAW presence — the schema is unknown-typed,
+  // so any honeypot payload (short string, oversized string, wrong type,
+  // null) reaches this check and gets the SAME fake 201. Only undefined or
+  // an empty/whitespace string (what the real forms send) proceeds.
+  const hp = input.companyWebsite
+  if (hp !== undefined && (typeof hp !== 'string' || hp.trim() !== '')) {
     return NextResponse.json({ reference: randomReference() }, { status: 201 })
   }
 

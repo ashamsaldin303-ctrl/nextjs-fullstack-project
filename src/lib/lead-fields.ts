@@ -79,6 +79,9 @@ export const leadMessageSchema = z
   })
 
 /** Honeypot: hidden `companyWebsite` input that real users never fill
- *  but bots tend to complete. Validated, NEVER persisted — the API
- *  short-circuits non-empty values to a fake 201. */
-export const honeypotSchema = z.string().max(200).optional()
+ *  but bots tend to complete. NEVER validated (L4 R1 P3) — accepting ANY
+ *  value (any type, any length) keeps the trap indistinguishable: a bot
+ *  probing with an oversized/typed honeypot gets the same fake 201 as one
+ *  sending a short string, never a 400 that fingerprints the field. The
+ *  API short-circuits non-empty values to a fake 201; never persisted. */
+export const honeypotSchema = z.unknown().optional()

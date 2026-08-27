@@ -316,10 +316,16 @@ const HALO_FRAGMENT = /* glsl */ `
 
 function Centerpiece({
   dragging,
+  keyboardActive,
   registerSpinner,
   dprMax,
 }: {
   dragging: boolean
+  /** L4 R4 P3: while true (an arrow-key nudge landed <900ms ago) the
+   *  useFrame auto-spin pauses — same semantics console-scene's keyboard
+   *  drift-pause got in L3-2 — so an ArrowLeft step (−0.16 rad) isn't
+   *  counter-rotated by the +0.25 rad/s spin in ~0.64s. */
+  keyboardActive: boolean
   /** Hands the spinner group up to CapabilityScene so its imperative
    *  keyboard-nudge handle can rotate the same group this component's
    *  drag/auto-spin mutates (a callback prop — never a ref prop — so the
@@ -473,7 +479,7 @@ function Centerpiece({
     // finding per memoized value).
     haloUniforms.uPixelRatio.value = state.viewport.dpr
 
-    if (spinner.current && !dragging) {
+    if (spinner.current && !dragging && !keyboardActive) {
       // gentle auto-spin
       spinner.current.rotation.y += delta * 0.25
     }
@@ -653,6 +659,19 @@ export function CapabilityScene({
     spinnerGroup.current = g
   }, [])
 
+  // L4 R4 P3: keyboard-nudge idle pause — a nudge counts as an
+  // interaction: Centerpiece's auto-spin pauses for 900ms after each
+  // arrow-key step (each repeat re-arms; unmount clears the timer), so
+  // the +0.25 rad/s spin doesn't visibly unwind keyboard rotation.
+  const [keyboardActive, setKeyboardActive] = useState(false)
+  const keyIdleTimer = useRef<number | null>(null)
+  useEffect(
+    () => () => {
+      if (keyIdleTimer.current !== null) window.clearTimeout(keyIdleTimer.current)
+    },
+    []
+  )
+
   // FIX(2-b, L1-D P3): arrow-key rotation — same ±0.01 rad/px mapping the
   // pointer drag uses, applied to the same spinner group, so keys rotate
   // blob + satellites + rings exactly like an equivalent drag.
@@ -664,6 +683,12 @@ export function CapabilityScene({
         if (!spinner) return
         spinner.rotation.y += dx * 0.01
         spinner.rotation.x += dy * 0.01
+        setKeyboardActive(true)
+        if (keyIdleTimer.current !== null) window.clearTimeout(keyIdleTimer.current)
+        keyIdleTimer.current = window.setTimeout(() => {
+          keyIdleTimer.current = null
+          setKeyboardActive(false)
+        }, 900)
       },
     }),
     []
@@ -715,6 +740,7 @@ export function CapabilityScene({
         <RoomEnv />
         <Centerpiece
           dragging={dragging}
+          keyboardActive={keyboardActive}
           registerSpinner={registerSpinner}
           dprMax={mobileTier ? 1.5 : 2}
         />

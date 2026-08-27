@@ -567,9 +567,7 @@
     "subtitle": "Customize your project step by step and get an instant budget and timeline estimate.",
     "step": "Step {current} of {total}",
     "steps": {
-      "service": "Service Type",
-      "features": "Features & Scale",
-      "result": "Your Result"
+      "service": "Service Type"
     },
     "services": {
       "website": {
@@ -822,11 +820,6 @@
         },
         "badge": "Try the calculator and watch the flow"
       },
-      "simulator": {
-        "kicker": "Extended Simulator",
-        "title": "Pick a Scenario and Watch It Run",
-        "subtitle": "Three real flows we build for clients — click a scenario and watch it work step by step."
-      },
       "cta": {
         "title": "Your Routine Deserves Better Automation",
         "subtitle": "Calculate your automation system's cost in under a minute.",
@@ -860,7 +853,6 @@
       "projects": {
         "p1": {
           "title": "Lamsa Fashion Store",
-          "category": "Websites",
           "type": "E-commerce",
           "desc": "From a sluggish off-the-shelf template to a boutique-grade shopping experience — even on mobile.",
           "services": [
@@ -901,7 +893,6 @@
         },
         "p2": {
           "title": "Aqar Plus Platform",
-          "category": "Websites",
           "type": "Real-estate Platform",
           "desc": "A cluttered listings board became a smooth discovery platform with live maps and filters that understand buyers.",
           "services": [
@@ -941,7 +932,6 @@
         },
         "p3": {
           "title": "Masar Academy",
-          "category": "Websites",
           "type": "Education Platform",
           "desc": "From scattered PDFs to a full digital academy managing learning end to end — enrollment to certificates.",
           "services": [
@@ -982,7 +972,6 @@
         },
         "p4": {
           "title": "Beit Al-Sham Restaurant",
-          "category": "Websites",
           "type": "Site + Bookings & Orders",
           "desc": "A paper menu and phone-only bookings became a complete digital experience: instant reservations, orders straight to the kitchen.",
           "services": [
@@ -1022,7 +1011,6 @@
         },
         "p5": {
           "title": "Smart Invoicing System",
-          "category": "Automation",
           "type": "SaaS Billing System",
           "desc": "Manual invoicing that ate a full day is now a self-running system: it issues, tracks, and reminds — with zero human touch.",
           "services": [
@@ -1041,7 +1029,6 @@
         },
         "p6": {
           "title": "Bassam Creative Studio",
-          "category": "Automation",
           "type": "Creative Agency Automation",
           "desc": "A design agency drowning in messages and approvals got a digital production line — brief to delivery, fully managed.",
           "services": [
@@ -1210,10 +1197,6 @@
           "serviceOnly": "I'd like to build: {service}."
         }
       },
-      "calculator": {
-        "kicker": "The Fast Lane",
-        "title": "Or Calculate Your Project Instantly"
-      },
       "socialProof": {
         "metrics": {
           "lamsa": {
@@ -1231,7 +1214,6 @@
     }
   },
   "common": {
-    "viewAll": "View All",
     "backToHome": "Back to Home",
     "loading": "Loading...",
     "errorTitle": "An Unexpected Error Occurred",

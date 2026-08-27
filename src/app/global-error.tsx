@@ -85,6 +85,7 @@ export default function GlobalError({
               alignItems: 'center',
               gap: '0.5rem',
               padding: '0.625rem 1.25rem',
+              minHeight: '2.75rem', // 44px touch target (L4 R5 P3)
               borderRadius: '9999px',
               background: '#0071E3',
               color: 'white',

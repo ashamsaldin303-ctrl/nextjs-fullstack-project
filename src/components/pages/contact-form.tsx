@@ -351,7 +351,7 @@ export function ContactForm({
         />
         {errors.message ? <p id="cf-message-err" role="alert" className="mt-1 text-xs text-destructive">{errors.message}</p> : null}
       </div>
-      <Button type="submit" data-cursor="magnet" disabled={submitting} className={cn('w-full gap-2 sm:w-auto')}>
+      <Button type="submit" data-cursor="magnet" disabled={submitting} className={cn('h-11 w-full gap-2 sm:w-auto')}>
         {submitting ? (
           <>
             <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true" />

@@ -224,7 +224,11 @@ export function Calculator() {
                   className="h-full rounded-full bg-primary"
                   initial={false}
                   animate={{ width: step >= s ? '100%' : '0%' }}
-                  transition={{ duration: 0.4 }}
+                  // L4 R3 P3: framer-motion animates on its own JS clock —
+                  // the global CSS reduced-motion kill-switch can't reach
+                  // it. Gate the tween duration like the file's own
+                  // slideVariants discipline.
+                  transition={reduced ? { duration: 0 } : { duration: 0.4 }}
                 />
               </div>
             ))}
@@ -593,7 +597,7 @@ export function Calculator() {
                             ) : null}
                           </div>
                         </div>
-                        <Button type="submit" data-cursor="magnet" disabled={submitting} className="mt-6 w-full gap-2">
+                        <Button type="submit" data-cursor="magnet" disabled={submitting} className="mt-6 h-11 w-full gap-2">
                           {submitting ? (
                             <>
                               <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true" />

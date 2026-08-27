@@ -538,6 +538,13 @@ export function ConsoleScene({
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     setDragging(true)
+    pointerHeld.current = true
+    // L4 R3/R4 P2: the pointer now owns the dragging flag — cancel any
+    // pending keyboard idle timer so it can't fire mid-drag.
+    if (keyIdleTimer.current !== null) {
+      window.clearTimeout(keyIdleTimer.current)
+      keyIdleTimer.current = null
+    }
     onDragStateChange?.(true)
     last.current.x = e.clientX
     last.current.y = e.clientY
@@ -570,6 +577,7 @@ export function ConsoleScene({
 
   const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
     setDragging(false)
+    pointerHeld.current = false
     onDragStateChange?.(false)
     // capture auto-releases on up/cancel per spec — explicit release for
     // clarity, guarded so an unpinned pointer can never throw.
@@ -595,6 +603,29 @@ export function ConsoleScene({
   // onDragStateChange — keyboard rotation must never postpone the hero's
   // pending payoff navigation (that flag stays pointer-drag-only).
   const keyIdleTimer = useRef<number | null>(null)
+  // L4 R3/R4 P2: while the pointer owns the gesture, the keyboard idle
+  // timer must not fire — a mid-drag keypress re-arms the 900ms timer and
+  // its callback would setDragging(false) under the HELD pointer (dead
+  // drag rotation + auto-drift fighting the user until release+re-press).
+  // pointerHeld is the belt-and-braces guard; onPointerDown also cancels
+  // any pending timer outright (pointer takes ownership of the flag).
+  const pointerHeld = useRef(false)
+  // Timer-arm helper — mirrors hero-console's goToContact/navigate shape
+  // (outer stable callback assigns the timer; inner named function reads
+  // the sibling pointerHeld ref) — the compiler-clean nesting for an
+  // async callback that must consult another ref.
+  const armKeyIdlePause = useCallback(() => {
+    const release = () => {
+      keyIdleTimer.current = null
+      // L4 R3/R4 P2 belt-and-braces: never release the dragging flag
+      // under a held pointer (onPointerDown cancels the timer too, but a
+      // keypress arriving MID-drag re-arms it — this guard is the second
+      // line of defense).
+      if (!pointerHeld.current) setDragging(false)
+    }
+    if (keyIdleTimer.current !== null) window.clearTimeout(keyIdleTimer.current)
+    keyIdleTimer.current = window.setTimeout(release, 900)
+  }, [])
   useEffect(
     () => () => {
       if (keyIdleTimer.current !== null) window.clearTimeout(keyIdleTimer.current)
@@ -630,12 +661,8 @@ export function ConsoleScene({
     }
     e.preventDefault()
     setDragging(true)
-    if (keyIdleTimer.current !== null) window.clearTimeout(keyIdleTimer.current)
-    keyIdleTimer.current = window.setTimeout(() => {
-      keyIdleTimer.current = null
-      setDragging(false)
-    }, 900)
-  }, [])
+    armKeyIdlePause()
+  }, [armKeyIdlePause])
 
   return (
     <div

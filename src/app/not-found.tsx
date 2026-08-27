@@ -121,6 +121,7 @@ export default function RootNotFound() {
               display: 'inline-block',
               marginTop: '2rem',
               padding: '0.625rem 1.5rem',
+              minHeight: '2.75rem', // 44px touch target (L4 R5 P3)
               borderRadius: '9999px',
               background: '#0071E3',
               color: '#FFFFFF',

@@ -610,7 +610,12 @@ function MiniCube() {
     }
     e.preventDefault()
     stopSpin()
-    armIdle()
+    // L4 R3/R4 P3: only re-arm the idle spin when the pointer isn't
+    // holding the cube — a mid-drag keypress would otherwise arm the 2.5s
+    // timer while the pointer is still down (spin loop + absolute drag
+    // writes fight over rot → jitter under a held-still pointer).
+    // onPointerUp re-arms idle after every real drag anyway.
+    if (!dragging) armIdle()
   }
 
   // Cheap floor-shadow approximation: an ellipse that squashes/shifts with
