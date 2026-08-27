@@ -13,18 +13,31 @@ datasource db {
 }
 
 // PRIVACY NOTE (audit P2-8): `ipAddress` / `userAgent` are collected for
-// abuse tracing only. Define a retention policy before real production use
-// (e.g., purge Lead rows older than 90 days) — see README "Deployment".
+// abuse tracing only. A retention policy now ships (L1 fix 2-c): run
+// `bun scripts/clean-leads.ts --purge-days=90` on a schedule (cron /
+// systemd timer) — see README "Deployment" → "Data retention" (the
+// recommended 90-day purge).
 //
 // Captured calculator estimates & contact inquiries (audit P1-3).
 // `integrations` is a JSON-serialized array of IntegrationKey values —
 // SQLite has no scalar list type, so we serialize (guide code-style rule).
 model Lead {
   id              String   @id @default(cuid())
+  // Customer-facing reference ('c' + 9 base-36 chars, e.g. "c5tr8p13xb")
+  // shown in the success UI and sent on the webhook. Generated BEFORE the
+  // create in /api/leads and PERSISTED here (L1-B P2 fix: it used to be
+  // minted only for the 201 response, so a shown reference was untraceable).
+  // Unique — the API regenerates and retries on a P2002 collision
+  // (odds ~1e-14 per draw).
+  reference       String   @unique
   name            String
   email           String
   whatsapp        String?
   message         String?  // Contact-form inquiry text (calculator leads: null)
+  // SENTINEL (L1-B): calculator leads store the chosen enum ('website' |
+  // 'automation' | 'full'), while contact-form leads store the literal
+  // 'contact' (set in toStoredLead, route.ts) — it never collides with the
+  // calculator enum and marks rows with no estimate (zeros, pages 0).
   service         String
   pages           Int
   languages       String

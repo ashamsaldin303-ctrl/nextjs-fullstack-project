@@ -6,6 +6,7 @@ import { hasLocale, NextIntlClientProvider } from 'next-intl'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { routing, getDir } from '@/i18n/routing'
 import { SITE_URL } from '@/lib/seo'
+import { OG_IMAGE_ALT } from '@/lib/site-config'
 import { Navbar } from '@/components/layout/navbar'
 import { Footer } from '@/components/layout/footer'
 import { ScrollProgress } from '@/components/layout/scroll-progress'
@@ -85,7 +86,9 @@ export async function generateMetadata({
         : `${SITE_URL}/en/opengraph-image`,
     width: 1200,
     height: 630,
-    alt: 'Elyra — Stunning Websites & n8n Automation Systems',
+    // Shared alt constant (L1-B P3) — identical to buildPageMetadata's
+    // card in lib/seo.ts (single source in site-config.ts).
+    alt: OG_IMAGE_ALT,
     type: 'image/png',
   }
 
@@ -95,9 +98,9 @@ export async function generateMetadata({
       template: `%s — Elyra`,
     },
     description: t('description'),
-    metadataBase: new URL(
-      process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
-    ),
+    // L1-B P3: reuse the SITE_URL imported above instead of re-deriving
+    // the env fallback — one source of truth (lib/seo.ts) for both.
+    metadataBase: new URL(SITE_URL),
     alternates: {
       canonical: canonicalPath,
       // P2-3: hreflang set incl. x-default (default Arabic locale).

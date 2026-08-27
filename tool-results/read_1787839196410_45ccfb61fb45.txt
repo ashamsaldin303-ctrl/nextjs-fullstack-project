@@ -1,0 +1,643 @@
+     1→'use client'
+     2→
+     3→import { useMemo, useRef, useState } from 'react'
+     4→import { useLocale, useTranslations } from 'next-intl'
+     5→import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+     6→import { z } from 'zod'
+     7→import {
+     8→  Globe, Workflow, Boxes, Check, ArrowLeft, ArrowRight,
+     9→  Send, RotateCw, AlertCircle,
+    10→} from 'lucide-react'
+    11→import {
+    12→  Slider,
+    13→} from '@/components/ui/slider'
+    14→import { Input } from '@/components/ui/input'
+    15→import { Label } from '@/components/ui/label'
+    16→import { Button } from '@/components/ui/button'
+    17→import { cn } from '@/lib/utils'
+    18→import { SectionHeading } from '@/components/shared/section-heading'
+    19→import { leadEmailSchema, leadNameSchema, leadWhatsappSchema } from '@/lib/lead-fields'
+    20→import { playSuccess } from '@/lib/sound'
+    21→import { toast } from 'sonner'
+    22→import { RingGauge } from './ring-gauge'
+    23→import {
+    24→  computeEstimate, formatMoney,
+    25→  type CalculatorInput, type ServiceType, type IntegrationKey,
+    26→  type AutomationLevel, type LanguageOption, type ThreeDOption, type Locale,
+    27→} from '@/lib/calculator'
+    28→
+    29→type Step = 0 | 1 | 2
+    30→
+    31→const SERVICES: { id: ServiceType; icon: typeof Globe }[] = [
+    32→  { id: 'website', icon: Globe },
+    33→  { id: 'automation', icon: Workflow },
+    34→  { id: 'full', icon: Boxes },
+    35→]
+    36→
+    37→const INTEGRATIONS: IntegrationKey[] = ['crm', 'invoicing', 'email', 'telegram', 'sheets', 'ai']
+    38→
+    39→// Shared lead-field schemas (R2-MED-1 / R6-LOW-3): the SAME rules the
+    40→// API enforces — name 2–100, email ≤254, whatsapp 5–30 + phone pattern —
+    41→// so a client-side rejection can never diverge from a server-side one.
+    42→const leadSchema = z.object({
+    43→  name: leadNameSchema,
+    44→  email: leadEmailSchema,
+    45→  whatsapp: leadWhatsappSchema,
+    46→})
+    47→
+    48→type LeadForm = z.infer<typeof leadSchema>
+    49→
+    50→const INITIAL_INPUT: CalculatorInput = {
+    51→  service: 'website',
+    52→  pages: 6,
+    53→  languages: 'bilingual',
+    54→  threeD: 'no',
+    55→  integrations: [],
+    56→  automationLevel: 'essential',
+    57→}
+    58→
+    59→export function Calculator() {
+    60→  const t = useTranslations('calculator')
+    61→  // Whatsapp has no local calculator.errors key — reuse the API's own
+    62→  // translated field copy (apiErrors.fields.whatsapp) so client and
+    63→  // server rejections read identically (same rule, same message).
+    64→  const tApiFields = useTranslations('apiErrors.fields')
+    65→  // useLocale() returns a broad `string`; narrow to the routing union
+    66→  // (unknown values fall back to `ar`, the site default) so formatMoney's
+    67→  // tightened `Locale` param type-checks.
+    68→  const localeRaw = useLocale()
+    69→  const locale: Locale = localeRaw === 'en' ? 'en' : 'ar'
+    70→  const reduced = useReducedMotion()
+    71→
+    72→  const [step, setStep] = useState<Step>(0)
+    73→  const [dir, setDir] = useState<1 | -1>(1)
+    74→  const [input, setInput] = useState<CalculatorInput>(INITIAL_INPUT)
+    75→  const [form, setForm] = useState<LeadForm>({ name: '', email: '', whatsapp: '' })
+    76→  const [errors, setErrors] = useState<{ name?: string; email?: string; whatsapp?: string }>({})
+    77→  const [submitting, setSubmitting] = useState(false)
+    78→  const [done, setDone] = useState(false)
+    79→  const [reference, setReference] = useState<string | null>(null)
+    80→  // FIX(2-c/18): honeypot trap — bots autofill hidden "companyWebsite"
+    81→  // fields; humans never see it. The value rides along in the JSON body
+    82→  // and the API silently discards bot submissions with a fake success.
+    83→  const honeypotRef = useRef<HTMLInputElement>(null)
+    84→
+    85→  const result = useMemo(() => computeEstimate(input), [input])
+    86→
+    87→  // Breakdown line labels — resolved once for type-safety (guide §4.6).
+    88→  const breakdownLabels = {
+    89→    base: t('result.base'),
+    90→    pages: t('result.pages'),
+    91→    bilingual: t('result.bilingual'),
+    92→    threeD: t('result.threeD'),
+    93→    integrations: t('result.integrations'),
+    94→    advanced: t('result.advanced'),
+    95→  } as const
+    96→
+    97→  const goNext = () => { setDir(1); setStep((s) => Math.min(2, s + 1) as Step) }
+    98→  const goBack = () => { setDir(-1); setStep((s) => Math.max(0, s - 1) as Step) }
+    99→
+   100→  const toggleIntegration = (key: IntegrationKey) => {
+   101→    setInput((p) => ({
+   102→      ...p,
+   103→      integrations: p.integrations.includes(key)
+   104→        ? p.integrations.filter((k) => k !== key)
+   105→        : [...p.integrations, key],
+   106→    }))
+   107→  }
+   108→
+   109→  const onSubmit = async (e: React.FormEvent) => {
+   110→    e.preventDefault()
+   111→    const parsed = leadSchema.safeParse(form)
+   112→    if (!parsed.success) {
+   113→      const fe: { name?: string; email?: string; whatsapp?: string } = {}
+   114→      for (const issue of parsed.error.issues) {
+   115→        const path = issue.path[0]
+   116→        if (path === 'name') fe.name = t('errors.name')
+   117→        if (path === 'email') fe.email = t('errors.email')
+   118→        if (path === 'whatsapp') fe.whatsapp = tApiFields('whatsapp')
+   119→      }
+   120→      setErrors(fe)
+   121→      return
+   122→    }
+   123→    setErrors({})
+   124→    setSubmitting(true)
+   125→    // Phase 3: real storage — the server recomputes the estimate from the
+   126→    // wizard options and returns a reference (guide §2.9). Client numbers
+   127→    // are never sent: only the option set travels.
+   128→    try {
+   129→      const res = await fetch('/api/leads', {
+   130→        method: 'POST',
+   131→        headers: {
+   132→          'Content-Type': 'application/json',
+   133→          'x-elyra-locale': locale,
+   134→        },
+   135→        body: JSON.stringify({
+   136→          source: 'calculator',
+   137→          companyWebsite: honeypotRef.current?.value ?? '',
+   138→          name: parsed.data.name,
+   139→          email: parsed.data.email,
+   140→          whatsapp: parsed.data.whatsapp || undefined,
+   141→          service: input.service,
+   142→          pages: input.pages,
+   143→          languages: input.languages,
+   144→          threeD: input.threeD,
+   145→          integrations: input.integrations,
+   146→          automationLevel: input.automationLevel,
+   147→        }),
+   148→      })
+   149→
+   150→      if (res.status === 201) {
+   151→        const data = (await res.json()) as { reference?: string }
+   152→        setReference(data.reference ?? null)
+   153→        setDone(true)
+   154→        playSuccess() // Phase 2 sensory feedback — fires on REAL success only
+   155→        return
+   156→      }
+   157→
+   158→      // Server rejected: surface translated server-side messages.
+   159→      const data = (await res.json().catch(() => null)) as
+   160→        | { message?: string; fields?: Record<string, string> }
+   161→        | null
+   162→      if (res.status === 400 && data?.fields) {
+   163→        const fe: { name?: string; email?: string; whatsapp?: string } = {}
+   164→        if (data.fields.name) fe.name = data.fields.name
+   165→        if (data.fields.email) fe.email = data.fields.email
+   166→        if (data.fields.whatsapp) fe.whatsapp = data.fields.whatsapp
+   167→        setErrors(fe)
+   168→      }
+   169→      toast.error(t('form.errorTitle'), {
+   170→        description: data?.message ?? t('form.errorNetwork'),
+   171→      })
+   172→    } catch {
+   173→      // Network failure — data stays in the form for a retry.
+   174→      toast.error(t('form.errorTitle'), { description: t('form.errorNetwork') })
+   175→    } finally {
+   176→      setSubmitting(false)
+   177→    }
+   178→  }
+   179→
+   180→  const slideVariants = reduced
+   181→    ? undefined
+   182→    : {
+   183→        enter: (d: number) => ({ opacity: 0, x: d * 30 }),
+   184→        center: { opacity: 1, x: 0 },
+   185→        exit: (d: number) => ({ opacity: 0, x: -d * 30 }),
+   186→      }
+   187→
+   188→  return (
+   189→    <section id="calculator" className="bg-background py-20 sm:py-28" aria-labelledby="calc-title" aria-label={t('kicker')}>
+   190→      <div className="elyra-container max-w-5xl">
+   191→        <SectionHeading
+   192→          kicker={t('kicker')}
+   193→          title={t('title')}
+   194→          subtitle={t('subtitle')}
+   195→          titleId="calc-title"
+   196→        />
+   197→
+   198→        {/* Progress */}
+   199→        <div className="mt-10 flex items-center justify-between gap-4">
+   200→          <p className="text-sm text-muted-foreground">
+   201→            {t('step', { current: step + 1, total: 3 })}
+   202→          </p>
+   203→          <div className="flex flex-1 gap-2">
+   204→            {[0, 1, 2].map((s) => (
+   205→              <div
+   206→                key={s}
+   207→                className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"
+   208→                aria-hidden="true"
+   209→              >
+   210→                <motion.div
+   211→                  className="h-full rounded-full bg-primary"
+   212→                  initial={false}
+   213→                  animate={{ width: step >= s ? '100%' : '0%' }}
+   214→                  transition={{ duration: 0.4 }}
+   215→                />
+   216→              </div>
+   217→            ))}
+   218→          </div>
+   219→        </div>
+   220→
+   221→        <div className="relative mt-8 overflow-hidden rounded-3xl border border-border bg-card p-6 sm:p-10">
+   222→          {/* UI-5 (visual-only): gradient hairline accent along the wizard
+   223→              card's top edge — decorative, no logic/state/pricing impact. */}
+   224→          <span
+   225→            aria-hidden="true"
+   226→            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent"
+   227→          />
+   228→          <AnimatePresence mode="wait" custom={dir}>
+   229→            <motion.div
+   230→              key={step}
+   231→              custom={dir}
+   232→              variants={slideVariants}
+   233→              initial="enter"
+   234→              animate="center"
+   235→              exit="exit"
+   236→              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+   237→            >
+   238→              {/* STEP 0 — Service type */}
+   239→              {step === 0 ? (
+   240→                <div>
+   241→                  <h3 className="text-lg font-semibold">{t('steps.service')}</h3>
+   242→                  <div className="mt-6 grid gap-4 sm:grid-cols-3">
+   243→                    {SERVICES.map(({ id, icon: Icon }) => {
+   244→                      const active = input.service === id
+   245→                      const isFull = id === 'full'
+   246→                      return (
+   247→                        <button
+   248→                          key={id}
+   249→                          type="button"
+   250→                          data-cursor="magnet"
+   251→                          onClick={() => setInput((p) => ({ ...p, service: id }))}
+   252→                          aria-pressed={active}
+   253→                          className={cn(
+   254→                            'group relative overflow-hidden rounded-2xl border p-5 text-start transition-all',
+   255→                            active
+   256→                              ? 'border-primary bg-primary/5 shadow-[0_0_0_1px_var(--color-primary)]'
+   257→                              : 'border-border hover:border-primary/40 hover:bg-foreground/[0.02]'
+   258→                          )}
+   259→                        >
+   260→                          {isFull ? (
+   261→                            <span className="absolute end-3 top-3 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
+   262→                              {t('services.full.popular')}
+   263→                            </span>
+   264→                          ) : null}
+   265→                          <div className={cn(
+   266→                            'flex size-11 items-center justify-center rounded-xl transition-colors',
+   267→                            active ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'
+   268→                          )}>
+   269→                            <Icon className="size-5" aria-hidden="true" />
+   270→                          </div>
+   271→                          <p className="mt-3 font-semibold">{t(`services.${id}.title`)}</p>
+   272→                          <p className="mt-1 text-sm text-muted-foreground">{t(`services.${id}.desc`)}</p>
+   273→                          {active ? (
+   274→                            <span className="absolute -end-2 -top-2 flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
+   275→                              <Check className="size-3.5" aria-hidden="true" />
+   276→                            </span>
+   277→                          ) : null}
+   278→                        </button>
+   279→                      )
+   280→                    })}
+   281→                  </div>
+   282→                </div>
+   283→              ) : null}
+   284→
+   285→              {/* STEP 1 — Features */}
+   286→              {step === 1 ? (
+   287→                <div className="space-y-8">
+   288→                  <div>
+   289→                    <div className="flex items-center justify-between">
+   290→                      <h3 className="text-lg font-semibold">{t('pages')}</h3>
+   291→                      <span className="text-sm font-medium text-primary tabular-nums">
+   292→                        {t('pagesValue', { count: input.pages })}
+   293→                      </span>
+   294→                    </div>
+   295→                    <div className="mt-4 px-1">
+   296→                      <Slider
+   297→                        value={[input.pages]}
+   298→                        onValueChange={(v) => setInput((p) => ({ ...p, pages: v[0] ?? p.pages }))}
+   299→                        min={1}
+   300→                        max={20}
+   301→                        step={1}
+   302→                        aria-label={t('pages')}
+   303→                      />
+   304→                      <div className="mt-2 flex justify-between text-xs text-muted-foreground">
+   305→                        <span>1</span><span>20</span>
+   306→                      </div>
+   307→                    </div>
+   308→                  </div>
+   309→
+   310→                  <div>
+   311→                    <h3 className="text-lg font-semibold">{t('languages')}</h3>
+   312→                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+   313→                      {(['single', 'bilingual'] as LanguageOption[]).map((opt) => {
+   314→                        const active = input.languages === opt
+   315→                        return (
+   316→                          <button
+   317→                            key={opt}
+   318→                            type="button"
+   319→                            onClick={() => setInput((p) => ({ ...p, languages: opt }))}
+   320→                            aria-pressed={active}
+   321→                            className={cn(
+   322→                              'rounded-xl border px-4 py-3 text-start transition-colors',
+   323→                              active ? 'border-primary bg-primary/5' : 'border-border hover:bg-foreground/[0.02]'
+   324→                            )}
+   325→                          >
+   326→                            <span className="flex items-center gap-2">
+   327→                              <span className={cn('flex size-5 items-center justify-center rounded-full border', active ? 'border-primary bg-primary text-primary-foreground' : 'border-border')}>
+   328→                                {active ? <Check className="size-3" aria-hidden="true" /> : null}
+   329→                              </span>
+   330→                              <span className="text-sm font-medium">{t(`languagesOptions.${opt}`)}</span>
+   331→                            </span>
+   332→                          </button>
+   333→                        )
+   334→                      })}
+   335→                    </div>
+   336→                  </div>
+   337→
+   338→                  <div>
+   339→                    <h3 className="text-lg font-semibold">{t('threeD')}</h3>
+   340→                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+   341→                      {(['yes', 'no'] as ThreeDOption[]).map((opt) => {
+   342→                        const active = input.threeD === opt
+   343→                        const disabled = input.service === 'automation'
+   344→                        return (
+   345→                          <button
+   346→                            key={opt}
+   347→                            type="button"
+   348→                            disabled={disabled}
+   349→                            onClick={() => setInput((p) => ({ ...p, threeD: opt }))}
+   350→                            aria-pressed={active}
+   351→                            className={cn(
+   352→                              'rounded-xl border px-4 py-3 text-start transition-colors',
+   353→                              disabled && 'opacity-50',
+   354→                              active ? 'border-primary bg-primary/5' : 'border-border hover:bg-foreground/[0.02]'
+   355→                            )}
+   356→                          >
+   357→                            <span className="flex items-center gap-2">
+   358→                              <span className={cn('flex size-5 items-center justify-center rounded-full border', active ? 'border-primary bg-primary text-primary-foreground' : 'border-border')}>
+   359→                                {active ? <Check className="size-3" aria-hidden="true" /> : null}
+   360→                              </span>
+   361→                              <span className="text-sm font-medium">{t(`threeDOptions.${opt}`)}</span>
+   362→                            </span>
+   363→                          </button>
+   364→                        )
+   365→                      })}
+   366→                    </div>
+   367→                  </div>
+   368→
+   369→                  <div>
+   370→                    <h3 className="text-lg font-semibold">{t('integrations')}</h3>
+   371→                    <div className="mt-3 flex flex-wrap gap-2">
+   372→                      {INTEGRATIONS.map((key) => {
+   373→                        const active = input.integrations.includes(key)
+   374→                        return (
+   375→                          <button
+   376→                            key={key}
+   377→                            type="button"
+   378→                            onClick={() => toggleIntegration(key)}
+   379→                            aria-pressed={active}
+   380→                            className={cn(
+   381→                              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors',
+   382→                              active ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-foreground/[0.02]'
+   383→                            )}
+   384→                          >
+   385→                            <span className={cn('flex size-4 items-center justify-center rounded-full border', active ? 'border-primary bg-primary text-primary-foreground' : 'border-border')}>
+   386→                              {active ? <Check className="size-2.5" aria-hidden="true" /> : null}
+   387→                            </span>
+   388→                            {t(`integrationsOptions.${key}`)}
+   389→                          </button>
+   390→                        )
+   391→                      })}
+   392→                    </div>
+   393→                  </div>
+   394→
+   395→                  <div>
+   396→                    <h3 className="text-lg font-semibold">{t('automationLevel')}</h3>
+   397→                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+   398→                      {(['essential', 'advanced'] as AutomationLevel[]).map((opt) => {
+   399→                        const active = input.automationLevel === opt
+   400→                        const disabled = input.service === 'website'
+   401→                        return (
+   402→                          <button
+   403→                            key={opt}
+   404→                            type="button"
+   405→                            disabled={disabled}
+   406→                            onClick={() => setInput((p) => ({ ...p, automationLevel: opt }))}
+   407→                            aria-pressed={active}
+   408→                            className={cn(
+   409→                              'rounded-xl border px-4 py-3 text-start transition-colors',
+   410→                              disabled && 'opacity-50',
+   411→                              active ? 'border-primary bg-primary/5' : 'border-border hover:bg-foreground/[0.02]'
+   412→                            )}
+   413→                          >
+   414→                            <span className="flex items-center gap-2">
+   415→                              <span className={cn('flex size-5 items-center justify-center rounded-full border', active ? 'border-primary bg-primary text-primary-foreground' : 'border-border')}>
+   416→                                {active ? <Check className="size-3" aria-hidden="true" /> : null}
+   417→                              </span>
+   418→                              <span className="text-sm font-medium">{t(`automationLevelOptions.${opt}`)}</span>
+   419→                            </span>
+   420→                          </button>
+   421→                        )
+   422→                      })}
+   423→                    </div>
+   424→                  </div>
+   425→                </div>
+   426→              ) : null}
+   427→
+   428→              {/* STEP 2 — Result */}
+   429→              {step === 2 ? (
+   430→                <div>
+   431→                  {done ? (
+   432→                    <div className="flex flex-col items-center py-8 text-center">
+   433→                      <div className="flex size-16 items-center justify-center rounded-full bg-g-green/15 text-g-green">
+   434→                        <Check className="size-8" aria-hidden="true" />
+   435→                      </div>
+   436→                      <h3 className="mt-5 text-2xl font-semibold">{t('form.successTitle')}</h3>
+   437→                      <p className="mt-2 max-w-md text-muted-foreground">{t('form.successDesc')}</p>
+   438→                      {reference ? (
+   439→                        <p className="mt-3 rounded-full border border-g-green/30 bg-g-green/5 px-4 py-1.5 font-mono text-sm font-semibold tracking-wide text-g-green">
+   440→                          {t('form.successReference', { reference })}
+   441→                        </p>
+   442→                      ) : null}
+   443→                      <button
+   444→                        type="button"
+   445→                        onClick={() => { setDone(false); setReference(null); setStep(0); setInput(INITIAL_INPUT); setForm({ name: '', email: '', whatsapp: '' }) }}
+   446→                        className="mt-6 inline-flex h-11 items-center gap-2 rounded-full border border-border px-5 text-sm font-medium hover:bg-foreground/5"
+   447→                      >
+   448→                        <RotateCw className="size-4" aria-hidden="true" />
+   449→                        {t('form.successRestart')}
+   450→                      </button>
+   451→                    </div>
+   452→                  ) : (
+   453→                    <div className="grid gap-8 lg:grid-cols-2">
+   454→                      <div>
+   455→                        <div className="rounded-2xl border border-border bg-gradient-to-br from-primary/5 to-transparent p-6">
+   456→                          {/* WS-4: animated SVG ring gauges */}
+   457→                          <div className="mb-6 flex items-center justify-center gap-12">
+   458→                            <RingGauge
+   459→                              fraction={Math.min(1, result.max / 20000)}
+   460→                              value={result.max}
+   461→                              formatValue={(n) => formatMoney(Math.round(n), locale)}
+   462→                              label={t('result.budget')}
+   463→                              color="#0071E3"
+   464→                              isRtl={locale === 'ar'}
+   465→                            />
+   466→                            <RingGauge
+   467→                              fraction={Math.min(1, result.weeksMax / 12)}
+   468→                              value={result.weeksMax}
+   469→                              formatValue={(n) => `${Math.round(n)}`}
+   470→                              label={t('result.duration')}
+   471→                              color="#34A853"
+   472→                              isRtl={locale === 'ar'}
+   473→                            />
+   474→                          </div>
+   475→                          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+   476→                            {t('result.budget')}
+   477→                          </p>
+   478→                          <p className="mt-2 text-3xl font-bold tracking-tight text-primary sm:text-4xl">
+   479→                            {formatMoney(result.min, locale)} – {formatMoney(result.max, locale)}
+   480→                          </p>
+   481→                          <p className="mt-4 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+   482→                            {t('result.duration')}
+   483→                          </p>
+   484→                          <p className="mt-1 text-xl font-semibold">
+   485→                            {t('result.weeks', { min: result.weeksMin, max: result.weeksMax })}
+   486→                          </p>
+   487→                        </div>
+   488→
+   489→                        <div className="mt-4">
+   490→                          <p className="text-sm font-semibold">{t('result.breakdownTitle')}</p>
+   491→                          <ul className="mt-2 space-y-1.5 text-sm">
+   492→                            {result.breakdown.map((line) => (
+   493→                              <li key={line.labelKey} className="flex items-center justify-between gap-2">
+   494→                                <span className="text-muted-foreground">{breakdownLabels[line.labelKey as keyof typeof breakdownLabels]}</span>
+   495→                                <span className="tabular-nums">
+   496→                                  {formatMoney(line.min, locale)} – {formatMoney(line.max, locale)}
+   497→                                </span>
+   498→                              </li>
+   499→                            ))}
+   500→                          </ul>
+   501→                        </div>
+   502→                        <p className="mt-4 flex items-start gap-1.5 text-xs text-muted-foreground">
+   503→                          <AlertCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+   504→                          {t('result.disclaimer')}
+   505→                        </p>
+   506→                      </div>
+   507→
+   508→                      <form onSubmit={onSubmit} className="rounded-2xl border border-border p-6" noValidate>
+   509→                        <h3 className="text-lg font-semibold">{t('form.title')}</h3>
+   510→                        {/* Honeypot — bots fill it, humans never see it (API silently discards) */}
+   511→                        <input
+   512→                          ref={honeypotRef}
+   513→                          type="text"
+   514→                          name="companyWebsite"
+   515→                          tabIndex={-1}
+   516→                          autoComplete="off"
+   517→                          aria-hidden="true"
+   518→                          className="pointer-events-none absolute -left-[9999px] h-px w-px overflow-hidden"
+   519→                        />
+   520→                        <div className="mt-4 space-y-4">
+   521→                          <div>
+   522→                            <Label htmlFor="calc-name" className="text-sm">{t('form.name')}</Label>
+   523→                            <Input
+   524→                              id="calc-name"
+   525→                              value={form.name}
+   526→                              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+   527→                              autoComplete="name"
+   528→                              required
+   529→                              aria-required="true"
+   530→                              aria-invalid={!!errors.name}
+   531→                              aria-describedby={errors.name ? 'calc-name-err' : undefined}
+   532→                              className="mt-1.5"
+   533→                            />
+   534→                            {errors.name ? (
+   535→                              <p id="calc-name-err" role="alert" className="mt-1 text-xs text-destructive">{errors.name}</p>
+   536→                            ) : null}
+   537→                          </div>
+   538→                          <div>
+   539→                            <Label htmlFor="calc-email" className="text-sm">{t('form.email')}</Label>
+   540→                            <Input
+   541→                              id="calc-email"
+   542→                              type="email"
+   543→                              value={form.email}
+   544→                              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+   545→                              autoComplete="email"
+   546→                              required
+   547→                              aria-required="true"
+   548→                              aria-invalid={!!errors.email}
+   549→                              aria-describedby={errors.email ? 'calc-email-err' : undefined}
+   550→                              className="mt-1.5"
+   551→                            />
+   552→                            {errors.email ? (
+   553→                              <p id="calc-email-err" role="alert" className="mt-1 text-xs text-destructive">{errors.email}</p>
+   554→                            ) : null}
+   555→                          </div>
+   556→                          <div>
+   557→                            <Label htmlFor="calc-wa" className="text-sm">{t('form.whatsapp')}</Label>
+   558→                            <Input
+   559→                              id="calc-wa"
+   560→                              type="tel"
+   561→                              value={form.whatsapp ?? ''}
+   562→                              onChange={(e) => setForm((f) => ({ ...f, whatsapp: e.target.value }))}
+   563→                              autoComplete="tel"
+   564→                              aria-invalid={!!errors.whatsapp}
+   565→                              aria-describedby={errors.whatsapp ? 'calc-wa-err' : undefined}
+   566→                              className="mt-1.5"
+   567→                            />
+   568→                            {errors.whatsapp ? (
+   569→                              <p id="calc-wa-err" role="alert" className="mt-1 text-xs text-destructive">{errors.whatsapp}</p>
+   570→                            ) : null}
+   571→                          </div>
+   572→                        </div>
+   573→                        <Button type="submit" data-cursor="magnet" disabled={submitting} className="mt-6 w-full gap-2">
+   574→                          {submitting ? (
+   575→                            <>
+   576→                              <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true" />
+   577→                              {t('form.sending')}
+   578→                            </>
+   579→                          ) : (
+   580→                            <>
+   581→                              <Send className="size-4" aria-hidden="true" />
+   582→                              {t('form.submit')}
+   583→                            </>
+   584→                          )}
+   585→                        </Button>
+   586→                      </form>
+   587→                    </div>
+   588→                  )}
+   589→                </div>
+   590→              ) : null}
+   591→            </motion.div>
+   592→          </AnimatePresence>
+   593→
+   594→          {/* Controls */}
+   595→          {!done && step < 2 ? (
+   596→            <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
+   597→              <button
+   598→                type="button"
+   599→                data-cursor="magnet"
+   600→                onClick={goBack}
+   601→                disabled={step === 0}
+   602→                className={cn(
+   603→                  'inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors',
+   604→                  step === 0 ? 'cursor-not-allowed opacity-40' : 'hover:bg-foreground/5'
+   605→                )}
+   606→              >
+   607→                {/* Single-flip arrows: ArrowLeft flips to point right ("back") in RTL */}
+   608→                <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
+   609→                {t('back')}
+   610→              </button>
+   611→              <button
+   612→                type="button"
+   613→                data-cursor="magnet"
+   614→                onClick={goNext}
+   615→                className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform hover:scale-105"
+   616→              >
+   617→                {step === 1 ? t('calculate') : t('next')}
+   618→                {/* ArrowRight flips to point left ("forward") in RTL */}
+   619→                <ArrowRight className="size-4 rtl:rotate-180" aria-hidden="true" />
+   620→              </button>
+   621→            </div>
+   622→          ) : null}
+   623→          {!done && step === 2 ? (
+   624→            <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
+   625→              <button
+   626→                type="button"
+   627→                onClick={goBack}
+   628→                className="inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors hover:bg-foreground/5"
+   629→              >
+   630→                <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
+   631→                {t('back')}
+   632→              </button>
+   633→              <span className="text-sm text-muted-foreground">
+   634→                {t('result.disclaimer')}
+   635→              </span>
+   636→            </div>
+   637→          ) : null}
+   638→        </div>
+   639→      </div>
+   640→    </section>
+   641→  )
+   642→}
+   643→

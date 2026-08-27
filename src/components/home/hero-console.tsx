@@ -7,6 +7,7 @@ import { Search, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRouter } from '@/i18n/navigation'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
+import { useWebGLSupport } from '@/lib/use-webgl'
 import { playSuccess } from '@/lib/sound'
 
 const ConsoleScene = dynamic(
@@ -68,6 +69,8 @@ function guessPreset(text: string): Exclude<PresetId, 'custom'> | null {
  *
  * Mobile (<768px): WebGL is forbidden (§9.3) — an SVG node diagram replaces
  * the scene. Reduced-motion: static SVG diagram + text description.
+ * No-WebGL browsers (FIX(2-b): actual context-creation probe via
+ * @/lib/use-webgl, not API presence): SVG diagram too.
  */
 export function HeroConsole({
   /** FIX(2-c/2): while false (hero offscreen / tab hidden) the WebGL
@@ -79,6 +82,11 @@ export function HeroConsole({
   const t = useTranslations('hero.console')
   const router = useRouter()
   const reduced = usePrefersReducedMotion()
+  // FIX(2-b), L1-C/L1-D P3: probe ACTUAL WebGL context creation (memoized,
+  // rAF-deferred — src/lib/use-webgl.ts) instead of API presence — a
+  // driver-blocklisted browser still exposes WebGLRenderingContext but
+  // would have shown a silent empty canvas instead of the SVG fallback.
+  const webglSupported = useWebGLSupport()
   const [selected, setSelected] = useState<PresetId | null>(null)
   const [input, setInput] = useState('')
   const [mounted, setMounted] = useState(false)
@@ -88,6 +96,17 @@ export function HeroConsole({
   // (e.g. the user scrolls on before the beat ends) and so a second
   // submit while one is already scheduled can never double-push.
   const navTimer = useRef<number | undefined>(undefined)
+  // LOOP-1 E2E fix: while the visitor is dragging the console scene, the
+  // pending navigation is postponed (see goToContact) — the drag affordance
+  // ("اسحب للتدوير 360°") must be usable within the payoff beat, not a
+  // false promise that vanishes after 800ms.
+  const dragActiveRef = useRef(false)
+  // Stable reporter — ConsoleScene calls it on pointer down/up; mutating the
+  // LOCAL ref from a useCallback keeps react-compiler quiet (same register-
+  // callback discipline as the scene's registerGroup).
+  const reportDragState = useCallback((dragging: boolean) => {
+    dragActiveRef.current = dragging
+  }, [])
   useEffect(
     () => () => {
       if (navTimer.current) window.clearTimeout(navTimer.current)
@@ -108,11 +127,19 @@ export function HeroConsole({
       if (service) params.set('service', service)
       if (idea) params.set('idea', idea)
       const qs = params.toString()
+      const navigate = () => {
+        // LOOP-1 E2E fix: a visitor actively dragging the scene is playing
+        // with the payoff — postpone (never cancel) until they let go, so
+        // the conversion still lands but the affordance stays truthful.
+        if (dragActiveRef.current) {
+          navTimer.current = window.setTimeout(navigate, 400)
+          return
+        }
+        navTimer.current = undefined // allow a later intent (e.g. via Back)
+        router.push(qs ? `/contact?${qs}` : '/contact')
+      }
       navTimer.current = window.setTimeout(
-        () => {
-          navTimer.current = undefined // allow a later intent (e.g. via Back)
-          router.push(qs ? `/contact?${qs}` : '/contact')
-        },
+        navigate,
         // Reduced-motion visitors opted out of the show — near-immediate.
         reduced ? 250 : 800
       )
@@ -194,7 +221,7 @@ export function HeroConsole({
     return () => mq.removeEventListener('change', update)
   }, [])
 
-  const showSvg = mounted && (isMobile || reduced || !('WebGLRenderingContext' in window))
+  const showSvg = mounted && (isMobile || reduced || !webglSupported)
 
   return (
     <div className="hero-enter hero-enter-5 mt-8 w-full">
@@ -228,7 +255,7 @@ export function HeroConsole({
             data-cursor="magnet"
             aria-pressed={selected === id}
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all',
+              'inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all',
               selected === id
                 /* MED-2: the brand blue accent carried by the legacy g-blue
                    token (#4285F4) on the g-blue/15 tint over #08080A
@@ -243,11 +270,19 @@ export function HeroConsole({
         ))}
       </div>
 
-      {/* Scene layer — mounts ONLY after interaction */}
+      {/* Scene layer — mounts ONLY after interaction.
+          data-cursor="rotate" on the wrapper only while the draggable WebGL
+          scene is mounted (FIX(2-b), L1-C P3): the custom-cursor engine now
+          matches this hit-testable wrapper — no explicit data-cursor-label,
+          so the engine resolves the "rotate" context label from
+          common.cursor.rotate ("اسحب للتدوير 360°" / "Drag to rotate 360°").
+          The old attrs sat on the pointer-events-none chip below and could
+          never match. */}
       {mounted && selected ? (
         <div
           id="hero-console-scene"
           className="relative mt-6 min-h-[280px] overflow-hidden rounded-2xl border border-white/10 bg-elyra-deep"
+          data-cursor={showSvg ? undefined : 'rotate'}
         >
           {showSvg ? (
             <ConsoleSvgDiagram preset={selected} reduced={reduced} labels={{
@@ -259,11 +294,12 @@ export function HeroConsole({
             }} customDesc={t('customDesc')} />
           ) : (
             <>
-              <ConsoleScene preset={selected} active={active} />
+              <ConsoleScene preset={selected} active={active} onDragStateChange={reportDragState} />
+              {/* Scene label chip — visible text hint only (the preset name).
+                  Dead data-cursor attrs removed (FIX(2-b)); the rotate cursor
+                  affordance now lives on the draggable scene wrapper above. */}
               <div
                 className="pointer-events-none absolute bottom-3 start-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs text-white/80 backdrop-blur-sm"
-                data-cursor="rotate"
-                data-cursor-label={t('placeholder')}
               >
                 <Sparkles className="size-3.5" aria-hidden="true" />
                 {selected === 'custom' ? t('custom') : t(`presets.${selected}` as 'presets.store' | 'presets.booking' | 'presets.ai' | 'presets.dashboard')}
@@ -304,7 +340,7 @@ function ConsoleSvgDiagram({
                   y1={y}
                   x2={150 + Math.cos(((i + 1) / nodes) * Math.PI * 2) * 70}
                   y2={100 + Math.sin(((i + 1) / nodes) * Math.PI * 2) * 50}
-                  stroke="rgba(217,119,6,0.3)"
+                  stroke="rgba(0,113,227,0.3)"
                   strokeWidth="1.5"
                 />
               ) : null}
@@ -312,8 +348,8 @@ function ConsoleSvgDiagram({
                 cx={x}
                 cy={y}
                 r="12"
-                fill="rgba(217,119,6,0.15)"
-                stroke="rgba(217,119,6,0.6)"
+                fill="rgba(0,113,227,0.15)"
+                stroke="rgba(0,113,227,0.6)"
                 strokeWidth="1.5"
               >
                 {!reduced ? (

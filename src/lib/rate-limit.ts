@@ -24,6 +24,10 @@ const WINDOW_MS = 60_000
 const MAX_HITS_STRICT = 5
 const MAX_HITS_LENIENT = 30
 const SWEEP_INTERVAL_MS = 60_000
+/** Hard cap on tracked keys — see evictOverCap() (audit P1-1). */
+const MAX_KEYS = 5_000
+/** How many oldest keys to drop once the cap is exceeded. */
+const EVICT_BATCH = 1_000
 
 /** Bucket selector — see the module doc above for the semantics. */
 export type RateLimitBucket = 'strict' | 'lenient'
@@ -33,24 +37,36 @@ export type RateLimitBucket = 'strict' | 'lenient'
 const hits = new Map<string, number[]>()
 let lastSweep = 0
 
-function sweep(now: number): void {
-  if (now - lastSweep < SWEEP_INTERVAL_MS) return
-  lastSweep = now
+/** Drops expired timestamps (and now-empty keys) — the time-based half. */
+function sweepExpired(now: number): void {
   for (const [key, timestamps] of hits) {
     const fresh = timestamps.filter((t) => now - t < WINDOW_MS)
     if (fresh.length === 0) hits.delete(key)
     else hits.set(key, fresh)
   }
-  // Hard cap against key-flooding (audit P1-1): a spoofed-header client
-  // can mint unlimited distinct keys, so bound the Map's memory growth.
-  // Map preserves insertion order — drop the oldest 1_000 entries past cap.
-  if (hits.size > 5_000) {
-    let toDelete = 1_000
+}
+
+/**
+ * Hard cap against key-flooding (audit P1-1): a spoofed-header client
+ * can mint unlimited distinct keys, so bound the Map's memory growth.
+ * Map preserves insertion order — drop the oldest EVICT_BATCH entries
+ * past cap.
+ */
+function evictOverCap(): void {
+  if (hits.size > MAX_KEYS) {
+    let toDelete = EVICT_BATCH
     for (const key of hits.keys()) {
       if (toDelete-- <= 0) break
       hits.delete(key)
     }
   }
+}
+
+function sweep(now: number): void {
+  if (now - lastSweep < SWEEP_INTERVAL_MS) return
+  lastSweep = now
+  sweepExpired(now)
+  evictOverCap()
 }
 
 export interface RateLimitResult {
@@ -72,7 +88,8 @@ export function rateLimit(
   sweep(now)
   const mapKey = bucket === 'strict' ? `s:${key}` : `l:${key}`
   const maxHits = bucket === 'strict' ? MAX_HITS_STRICT : MAX_HITS_LENIENT
-  const windowHits = (hits.get(mapKey) ?? []).filter((t) => now - t < WINDOW_MS)
+  const existing = hits.get(mapKey)
+  const windowHits = (existing ?? []).filter((t) => now - t < WINDOW_MS)
 
   if (windowHits.length >= maxHits) {
     const oldest = windowHits.at(0) ?? now
@@ -80,7 +97,41 @@ export function rateLimit(
     return { allowed: false, retryAfterSec }
   }
 
+  // Inline size guard (L1-A P3 fix): the throttled sweep above can let
+  // the Map grow for up to SWEEP_INTERVAL_MS between runs. If this hit
+  // would INSERT a brand-new key while the Map is at/over the cap, run
+  // the cleanup inline right now — the freshly-minted flood keys are the
+  // oldest entries, so eviction here bounds the steady-state size
+  // without waiting for the next sweep. (Worst case the Map overshoots
+  // MAX_KEYS by one when it sits exactly at the cap — harmless.)
+  if (existing === undefined && hits.size >= MAX_KEYS) {
+    sweepExpired(now)
+    evictOverCap()
+  }
+
   windowHits.push(now)
   hits.set(mapKey, windowHits)
   return { allowed: true, retryAfterSec: 0 }
+}
+
+/**
+ * Refunds the NEWEST hit recorded for `key` in `bucket` (L1-B P3 fix):
+ * the leads route burns the strict slot BEFORE `db.lead.create`, so a
+ * failed write would otherwise leave the visitor one submission poorer
+ * out of only 5/min. Removes only the most recent timestamp — this
+ * module is synchronous and the runtime single-threaded, so the newest
+ * hit is exactly the one the caller just recorded unless a concurrent
+ * same-key request interleaved (worst case: that request gets a free
+ * slot — a bounded one-hit over-refund on a rare failure path).
+ */
+export function refundRateLimit(
+  key: string,
+  bucket: RateLimitBucket = 'strict',
+  now = Date.now()
+): void {
+  const mapKey = bucket === 'strict' ? `s:${key}` : `l:${key}`
+  const fresh = (hits.get(mapKey) ?? []).filter((t) => now - t < WINDOW_MS)
+  fresh.pop()
+  if (fresh.length === 0) hits.delete(mapKey)
+  else hits.set(mapKey, fresh)
 }

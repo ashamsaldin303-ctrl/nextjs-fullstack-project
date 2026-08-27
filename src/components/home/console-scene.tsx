@@ -1,7 +1,7 @@
 'use client'
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 
@@ -13,8 +13,13 @@ import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
  * light connections forming the selected system's architecture.
  *
  * Reuses the existing three/R3F in the project — no new libraries.
- * Drag to rotate (clamped). No wheel zoom / no scroll hijack (§4).
- * DPR ≤ 2, frameloop paused when offscreen (§9.4).
+ * Drag to rotate (FIX(2-b), L1-C/L1-D P2 — now actually implemented):
+ * throttled ~60Hz pointer drag on the scene wrapper with pointer capture,
+ * mirroring capability-scene's proven pattern; yaw is free (the 360°
+ * affordance) while pitch is clamped to ±MAX_TILT so the console can never
+ * flip upside down, and the auto-drift pauses while dragging. No wheel
+ * zoom / no scroll hijack (§4). DPR ≤ 2, frameloop paused when offscreen
+ * (§9.4), plus a ContextLossGuard like the other two canvases.
  *
  * Phase 5 fix (P0-1): the original implementation used `<line>` JSX which
  * collides with SVG's `<line>` element in R3F v9 + React 19, silently
@@ -143,6 +148,10 @@ function makeGlowTexture(): THREE.CanvasTexture {
 const UP = new THREE.Vector3(0, 1, 0)
 const WHITE = new THREE.Color('#FFFFFF')
 
+/** Polar tilt clamp for drag + auto-drift — the console banks up to ~±29°
+ *  but can never flip upside down (the "clamped" in the drag affordance). */
+const MAX_TILT = 0.5
+
 /** Build the curved connection path between two nodes — a quadratic bezier
  *  whose midpoint is lifted ~0.6 units perpendicular to the chord, so links
  *  read as elegant arcs instead of straight wires. */
@@ -185,8 +194,25 @@ interface PulseSpec {
   initial: [number, number, number]
 }
 
-function Nodes({ preset, active }: { preset: PresetId; active: boolean }) {
-  const groupRef = useRef<THREE.Group>(null)
+function Nodes({
+  preset,
+  active,
+  dragging,
+  registerGroup,
+}: {
+  preset: PresetId
+  active: boolean
+  /** While true the auto-drift pauses — the visitor's drag owns rotation
+   *  (capability-scene's approach, kept for consistency). */
+  dragging: boolean
+  /** Hands the rotation group up to ConsoleScene so its DOM-level drag
+   *  handler can rotate the same group this component's useFrame drifts
+   *  (callback prop, not a ref prop — keeps every mutation on a
+   *  component-local ref so the react-compiler stays quiet in both
+   *  components). */
+  registerGroup: (g: THREE.Group | null) => void
+}) {
+  const groupRef = useRef<THREE.Group | null>(null)
   const reduced = usePrefersReducedMotion()
   const config = PRESET_CONFIG[preset] ?? PRESET_CONFIG.custom
 
@@ -269,13 +295,27 @@ function Nodes({ preset, active }: { preset: PresetId; active: boolean }) {
     return { positions, colors, tubes, pulses }
   }, [config])
 
-  // Slow rotation of the whole group — no user hijack, just camera drift.
+  // FIX(2-b): publish the rotation group to the parent's DOM drag handler.
+  // Refs attach before effects run, and the group persists across preset
+  // switches (the JSX group is unkeyed) — register once per mount cycle.
+  useEffect(() => {
+    registerGroup(groupRef.current)
+    return () => registerGroup(null)
+  }, [registerGroup])
+
+  // Slow rotation of the whole group — pauses while the visitor drags
+  // (capability-scene's approach), with the polar tilt clamped so neither
+  // drag nor drift alone can flip the console upside down.
   // Node emissive pulses out of phase; connection pulses travel their arcs.
   useFrame((state, delta) => {
     if (!groupRef.current) return
-    if (active && !reduced) {
+    if (active && !reduced && !dragging) {
       groupRef.current.rotation.y += delta * 0.08
-      groupRef.current.rotation.x += delta * 0.02
+      groupRef.current.rotation.x = THREE.MathUtils.clamp(
+        groupRef.current.rotation.x + delta * 0.02,
+        -MAX_TILT,
+        MAX_TILT
+      )
     }
     if (reduced) return
     const t = state.clock.elapsedTime
@@ -401,34 +441,134 @@ function InitialRenderSafety() {
   return null
 }
 
+/** Context-loss guard (FIX(2-b): parity with hero-canvas.tsx /
+ *  capability-scene.tsx, L1-C P2) — `preventDefault()` marks the event as
+ *  handled so the browser keeps the canvas alive for a possible restore
+ *  (and stops the default console error spam); we log once for
+ *  diagnostics. */
+function ContextLossGuard() {
+  const gl = useThree((s) => s.gl)
+  useEffect(() => {
+    const canvas = gl.domElement
+    const onLost = (e: Event) => {
+      e.preventDefault()
+      console.warn('[ConsoleScene] WebGL context lost')
+    }
+    canvas.addEventListener('webglcontextlost', onLost)
+    return () => canvas.removeEventListener('webglcontextlost', onLost)
+  }, [gl])
+  return null
+}
+
 export function ConsoleScene({
   preset,
   /** While false the Canvas frameloop pauses entirely (§9.4) — the hero
    *  threads its IntersectionObserver + visibility state here so the
    *  scene never burns GPU frames while offscreen or the tab is hidden. */
   active = true,
+  /** LOOP-1 E2E fix: the hero's pending "payoff beat" navigation reads a
+   *  drag flag — while the visitor is dragging, navigation is POSTPONED
+   *  (never cancelled) so "اسحب للتدوير 360°" is a truthful, usable
+   *  affordance. Callback prop (NOT a ref prop) per the react-compiler
+   *  discipline used across this codebase — the parent owns the flag. */
+  onDragStateChange,
 }: {
   preset: PresetId
   active?: boolean
+  onDragStateChange?: (dragging: boolean) => void
 }) {
   const reduced = usePrefersReducedMotion()
   const config = PRESET_CONFIG[preset] ?? PRESET_CONFIG.custom
 
+  // FIX(2-b, L1-C/L1-D P2): the promised clamped drag — capability-scene's
+  // throttled pointer pattern applied at the DOM wrapper so the WHOLE scene
+  // box is a drag surface (R3F raycast handlers would only start a drag on
+  // a node/sprite hit, leaving presses on empty space dead — the ray targets
+  // are sparse in this scene).
+  const [dragging, setDragging] = useState(false)
+  // The rotation group itself, registered up by Nodes (callback prop, not
+  // a ref prop — keeps every mutation on a component-local ref so the
+  // react-compiler stays quiet in both components).
+  const groupRef = useRef<THREE.Group | null>(null)
+  const registerGroup = useCallback((g: THREE.Group | null) => {
+    groupRef.current = g
+  }, [])
+  const last = useRef({ x: 0, y: 0 })
+  const lastPointerTs = useRef(0)
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    setDragging(true)
+    onDragStateChange?.(true)
+    last.current.x = e.clientX
+    last.current.y = e.clientY
+    // capture so the drag keeps tracking after the pointer leaves the box
+    e.currentTarget.setPointerCapture?.(e.pointerId)
+  }
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    // FIX(2-c/4 pattern): ~60Hz throttle; early return BEFORE updating
+    // `last` keeps drag deltas accumulation-correct.
+    const now = performance.now()
+    if (now - lastPointerTs.current < 16) return
+    lastPointerTs.current = now
+    const group = groupRef.current
+    if (dragging && group) {
+      const dx = e.clientX - last.current.x
+      const dy = e.clientY - last.current.y
+      // yaw free (the 360° affordance); pitch clamped — mutating the
+      // Three.js Object3D directly, same as capability-scene's drag.
+      group.rotation.y += dx * 0.008
+      group.rotation.x = THREE.MathUtils.clamp(
+        group.rotation.x + dy * 0.008,
+        -MAX_TILT,
+        MAX_TILT
+      )
+    }
+    last.current.x = e.clientX
+    last.current.y = e.clientY
+  }
+
+  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    setDragging(false)
+    onDragStateChange?.(false)
+    // capture auto-releases on up/cancel per spec — explicit release for
+    // clarity, guarded so an unpinned pointer can never throw.
+    const el = e.currentTarget
+    if (el.hasPointerCapture?.(e.pointerId)) {
+      el.releasePointerCapture?.(e.pointerId)
+    }
+  }
+
   return (
-    <Canvas
-      camera={{ position: [0, 0, config.cameraZ], fov: 50 }}
-      dpr={[1, 2]}
-      frameloop={reduced || !active ? 'never' : 'always'}
-      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-      style={{ position: 'absolute', inset: 0, cursor: 'grab' }}
+    <div
+      className="absolute inset-0"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      style={{ cursor: dragging ? 'grabbing' : 'grab' }}
     >
-      {/* Lighting: brighter to ensure glowing nodes pop visually */}
-      <ambientLight intensity={0.5} />
-      <pointLight position={[5, 5, 5]} intensity={1.2} color="#ffffff" />
-      <pointLight position={[-5, -3, 4]} intensity={0.7} color="#4285F4" />
-      <pointLight position={[0, 5, -5]} intensity={0.4} color="#34A853" />
-      <Nodes preset={preset} active={!reduced && active} />
-      <InitialRenderSafety />
-    </Canvas>
+      <Canvas
+        camera={{ position: [0, 0, config.cameraZ], fov: 50 }}
+        dpr={[1, 2]}
+        frameloop={reduced || !active ? 'never' : 'always'}
+        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+        style={{ position: 'absolute', inset: 0 }}
+      >
+        {/* Lighting: brighter to ensure glowing nodes pop visually */}
+        <ambientLight intensity={0.5} />
+        <pointLight position={[5, 5, 5]} intensity={1.2} color="#ffffff" />
+        <pointLight position={[-5, -3, 4]} intensity={0.7} color="#4285F4" />
+        <pointLight position={[0, 5, -5]} intensity={0.4} color="#34A853" />
+        <Nodes
+          preset={preset}
+          active={!reduced && active}
+          dragging={dragging}
+          registerGroup={registerGroup}
+        />
+        <InitialRenderSafety />
+        <ContextLossGuard />
+      </Canvas>
+    </div>
   )
 }

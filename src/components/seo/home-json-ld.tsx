@@ -51,7 +51,11 @@ export function HomeJsonLd() {
               // exist anywhere in the app (no search implementation).
             },
           ],
-        }),
+        })
+          // Escape `<` → \u003c (L1-A P3 hardening): JSON.stringify does
+          // NOT escape `</script>`, so without this a future dynamic
+          // value could break out of the inline script element.
+          .replace(/</g, '\\u003c'),
       }}
     />
   )

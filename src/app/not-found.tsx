@@ -45,7 +45,7 @@ export default function RootNotFound() {
             an inline <style> ships with the page, so it is as guaranteed
             as the inline styles (no globals.css dependency). */}
         <style>{`
-          .nf-chip:hover { background: rgba(255, 255, 255, 0.10); border-color: rgba(245, 158, 11, 0.5); }
+          .nf-chip:hover { background: rgba(255, 255, 255, 0.10); border-color: rgba(0, 113, 227, 0.5); }
           .nf-chip:focus-visible { outline: 2px solid #4285F4; outline-offset: 2px; }
         `}</style>
       </head>
@@ -57,7 +57,7 @@ export default function RootNotFound() {
           alignItems: 'center',
           justifyContent: 'center',
           background:
-            'radial-gradient(60% 50% at 50% 0%, rgba(245, 158, 11, 0.16), transparent 70%), #0F172A',
+            'radial-gradient(60% 50% at 50% 0%, rgba(0, 113, 227, 0.16), transparent 70%), #0F172A',
           color: '#F1F5F9',
           fontFamily:
             'system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif',
@@ -133,10 +133,11 @@ export default function RootNotFound() {
 
           {/* Batch 3 item 16: recovery nav (root-level, bilingual
               hardcoded — no next-intl context exists here). Plain <a>
-              hrefs: the proxy locale-detects and redirects on the
-              subsequent full navigation, exactly like the home CTA
-              above. Semantic <nav> labelled by its heading; RTL-safe
-              (wrap + gap, no directional offsets). */}
+              hrefs are safe: routing has localeDetection:false, so
+              unmatched paths deterministically serve the default Arabic
+              locale — no locale-detect/redirect dance — exactly like the
+              home CTA above. Semantic <nav> labelled by its heading;
+              RTL-safe (wrap + gap, no directional offsets). */}
           <nav
             aria-labelledby="nf-root-recovery"
             style={{ marginTop: '2.5rem', width: '100%' }}

@@ -7,7 +7,9 @@
 # Build:
 #   docker build --build-arg NEXT_PUBLIC_SITE_URL=https://elyra.agency -t elyra .
 #
-# Run (HOSTNAME=0.0.0.0 — see README "Deployment" for the 127.0.0.1 trap):
+# Run (HOSTNAME=0.0.0.0 — see README "Deployment" for the 127.0.0.1 trap;
+# TRUST_PROXY=true is baked into the ENV block below — the deployment sits
+# behind the overwriting reverse proxy by definition):
 #   docker run -p 3000:3000 \
 #     -e DATABASE_URL=file:/app/db/custom.db \
 #     -e N8N_WEBHOOK_URL=... -e N8N_WEBHOOK_SECRET=... \
@@ -58,7 +60,13 @@ ENV NODE_ENV=production \
     # has no literal fallback — without this, the container boots healthy
     # but every lead insert 500s (closing verification V-A-1). An operator
     # -e DATABASE_URL=... overrides this default.
-    DATABASE_URL=file:/app/db/custom.db
+    DATABASE_URL=file:/app/db/custom.db \
+    # L1-A P2 fix: rate limiting must bucket per real client IP. The
+    # deployment is behind the overwriting reverse proxy by definition
+    # (deploy/Caddyfile.example) — trusting X-Forwarded-For is safe ONLY
+    # there. Left unset, ALL visitors share one global 30/5-per-minute
+    # bucket, so a single curl loop could 429 the whole site.
+    TRUST_PROXY=true
 
 # Standalone server + already-copied static assets & public dir
 COPY --from=build /app/.next/standalone ./

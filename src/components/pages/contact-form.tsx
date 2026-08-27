@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { z } from 'zod'
 import { toast } from 'sonner'
@@ -91,19 +91,23 @@ export function ContactForm({
 
   /** Localized message template seeded from the arriving intent (7a):
    *  chip-only → service sentence; free text → idea sentence; both →
-   *  combined. The template is a STARTING POINT the visitor edits. */
-  const buildTemplate = (
-    service: ContactServiceId | null,
-    idea: string | undefined
-  ): string => {
-    const serviceLabel = service ? t(SERVICE_LABEL_KEYS[service]) : undefined
-    if (serviceLabel && idea) {
-      return t('prefill.serviceIdea', { service: serviceLabel, idea })
-    }
-    if (idea) return t('prefill.ideaOnly', { idea })
-    if (serviceLabel) return t('prefill.serviceOnly', { service: serviceLabel })
-    return ''
-  }
+   *  combined. The template is a STARTING POINT the visitor edits.
+   *  useCallback on [t] so the re-seed effect below can depend on it —
+   *  `t` (hence this callback) changes identity exactly when the active
+   *  locale does, which is what re-seeds the message on a soft locale
+   *  switch. */
+  const buildTemplate = useCallback(
+    (service: ContactServiceId | null, idea: string | undefined): string => {
+      const serviceLabel = service ? t(SERVICE_LABEL_KEYS[service]) : undefined
+      if (serviceLabel && idea) {
+        return t('prefill.serviceIdea', { service: serviceLabel, idea })
+      }
+      if (idea) return t('prefill.ideaOnly', { idea })
+      if (serviceLabel) return t('prefill.serviceOnly', { service: serviceLabel })
+      return ''
+    },
+    [t],
+  )
 
   const initialService = prefillService ?? null
   const [service, setService] = useState<ContactServiceId | null>(initialService)
@@ -113,6 +117,30 @@ export function ContactForm({
     whatsapp: '',
     message: buildTemplate(initialService, prefillIdea),
   }))
+  // L1-C P3 (fix 2-d): the template above is computed ONCE by the useState
+  // initializer. A soft re-navigation — a client-side locale switch on
+  // /contact?service=… keeps this component mounted — would leave the
+  // textarea holding the OLD language's template. The effect below
+  // re-seeds it, guarded by the LAST template this component generated
+  // (seed or chip re-seed): while the message still equals that template
+  // (or is empty — the same edit-protection as onToggleService) it is
+  // machine text and may be replaced; the visitor's own edits are never
+  // clobbered. Triggers: the arriving intent (prefillService/prefillIdea),
+  // the locale (via buildTemplate's `t`), and chip toggles (service —
+  // already re-seeded synchronously by onToggleService, which keeps
+  // lastTemplateRef in sync, so those runs are no-ops via the guard).
+  const lastTemplateRef = useRef(buildTemplate(initialService, prefillIdea))
+  useEffect(() => {
+    const prevTemplate = lastTemplateRef.current
+    const nextTemplate = buildTemplate(service, prefillIdea)
+    lastTemplateRef.current = nextTemplate
+    if (prevTemplate === nextTemplate) return
+    setValues((v) =>
+      v.message === prevTemplate || v.message.trim() === ''
+        ? { ...v, message: nextTemplate }
+        : v,
+    )
+  }, [prefillService, prefillIdea, locale, service, buildTemplate])
   const [errors, setErrors] = useState<FormErrors>({})
   const [submitting, setSubmitting] = useState(false)
   // FIX(2-c/18): honeypot trap — bots autofill hidden "companyWebsite"
@@ -127,13 +155,13 @@ export function ContactForm({
   const onToggleService = (id: ContactServiceId) => {
     const next = service === id ? null : id
     setService(next)
-    setValues((v) => {
-      const prevTemplate = buildTemplate(service, prefillIdea)
-      if (v.message === prevTemplate || v.message.trim() === '') {
-        return { ...v, message: buildTemplate(next, prefillIdea) }
-      }
-      return v
-    })
+    const prevTemplate = buildTemplate(service, prefillIdea)
+    const nextTemplate = buildTemplate(next, prefillIdea)
+    const reseed = values.message === prevTemplate || values.message.trim() === ''
+    // Keep the re-seed guard's source of truth in sync (fix 2-d): the
+    // effect above compares against the LAST generated template.
+    if (reseed) lastTemplateRef.current = nextTemplate
+    setValues((v) => (reseed ? { ...v, message: nextTemplate } : v))
   }
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -216,7 +244,11 @@ export function ContactForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
-      {/* Honeypot — bots fill it, humans never see it (API silently discards) */}
+      {/* Honeypot — bots fill it, humans never see it (API silently discards).
+          L1-C P3 (fix 2-d): logical inset + fixed positioning — the old
+          physical `-left-[9999px]` absolute offset inflated the RTL body
+          scrollWidth (documented UI-5 note); fixed removes it from the
+          scroll container entirely. */}
       <input
         ref={honeypotRef}
         type="text"
@@ -224,7 +256,7 @@ export function ContactForm({
         tabIndex={-1}
         autoComplete="off"
         aria-hidden="true"
-        className="pointer-events-none absolute -left-[9999px] h-px w-px overflow-hidden"
+        className="pointer-events-none fixed -start-[9999px] h-px w-px overflow-hidden"
       />
 
       {/* Project-type quick chips (Batch 2 item 7c) — single-select toggles

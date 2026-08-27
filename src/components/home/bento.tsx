@@ -72,11 +72,11 @@ const SITE_PALETTE = ['#0071E3', '#34A853', '#EA4335', '#4285F4'] as const
    identical on server & client, so no hydration risk).
    The mini-site CTA / badges render WHITE text on the accent and several
    strings render as accent-colored TEXT on the dark browser panel — neither
-   strings render as accent-colored TEXT on the dark browser panel — neither
-   pair passes WCAG AA for every swatch (amber being the worst offender:
-   white on #4285F4 is ~3.1:1). Instead of a blanket dark overlay, each fixed
-   palette entry is mixed toward black (white-text surfaces) or toward white
-   (accent text) in 2% steps until the pair clears 4.54:1 (AA + margin). */
+   pair passes WCAG AA for every swatch (the lighter swatches being the
+   worst offenders: white on #4285F4 is ~3.1:1). Instead of a blanket dark
+   overlay, each fixed palette entry is mixed toward black (white-text
+   surfaces) or toward white (accent text) in 2% steps until the pair clears
+   4.54:1 (AA + margin). */
 
 function hexToRgb(hex: string): [number, number, number] {
   const n = parseInt(hex.slice(1), 16)
@@ -415,7 +415,7 @@ function MiniFlow() {
                       // reduced-motion gets a static shadow instead.
                       <span
                         className={cn('absolute inset-0 rounded-full', !reduced && 'elyra-pulse')}
-                        style={reduced ? { boxShadow: '0 0 0 4px rgba(217,119,6,0.35)' } : undefined}
+                        style={reduced ? { boxShadow: '0 0 0 4px rgba(0,113,227,0.35)' } : undefined}
                       />
                     ) : null}
                   </div>
@@ -444,7 +444,7 @@ function MiniFlow() {
                     {swept(i) && !reduced ? (
                       <span
                         key={`dot-${runId}-${i}`}
-                        className="absolute top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_6px_rgba(217,119,6,0.9)]"
+                        className="absolute top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_6px_rgba(0,113,227,0.9)]"
                         style={{ animation: 'elyra-flow-dot 550ms ease-in-out 80ms forwards' }}
                       />
                     ) : null}
@@ -470,7 +470,7 @@ function MiniFlow() {
         type="button"
         data-cursor="magnet"
         onClick={run}
-        className="mt-3 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
         {state === 'done' ? <RotateCw className="size-3.5" aria-hidden="true" /> : <Play className="size-3.5" aria-hidden="true" />}
         {state === 'done' ? t('done') : t('title')}
@@ -597,7 +597,7 @@ function MiniCube() {
         <div
           aria-hidden="true"
           className="absolute inset-0"
-          style={{ background: 'radial-gradient(130px 90px at 50% 44%, rgba(217,119,6,0.28), transparent 70%)' }}
+          style={{ background: 'radial-gradient(130px 90px at 50% 44%, rgba(0,113,227,0.28), transparent 70%)' }}
         />
         {/* soft elliptical floor shadow */}
         <div
@@ -748,7 +748,7 @@ function MiniAgent() {
           type="button"
           data-cursor="magnet"
           onClick={ask}
-          className="flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-start text-xs text-white/80 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex min-h-11 w-full items-start gap-2 rounded-lg px-2 py-1.5 text-start text-xs text-white/80 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Bot className="mt-0.5 size-3.5 shrink-0 text-primary" aria-hidden="true" />
           <span>{t('prompt')}</span>
@@ -816,12 +816,12 @@ function MiniAgent() {
             onChange={(e) => setIdea(e.target.value)}
             placeholder={t('inputPlaceholder')}
             autoComplete="off"
-            className="h-9 min-w-0 flex-1 rounded-lg border border-white/10 bg-white/5 px-2.5 text-xs text-white transition-colors placeholder:text-white/40 focus:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="min-h-11 min-w-0 flex-1 rounded-lg border border-white/10 bg-white/5 px-2.5 text-xs text-white transition-colors placeholder:text-white/40 focus:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           <button
             type="submit"
             data-cursor="magnet"
-            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Send className="size-3.5" aria-hidden="true" />
             {t('convertCta')}

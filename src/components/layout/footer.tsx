@@ -143,7 +143,10 @@ export function Footer({ className }: { className?: string }) {
                 </a>
               </li>
             </ul>
-            <ul className="mt-4 flex gap-3">
+            {/* L1-D P3 (fix 2-d): 44px touch targets (size-9 → size-11)
+                matching the navbar/CTA standard; gap-3 → gap-2.5 compensates
+                so the 5-icon row grows only 32px inside the connect column. */}
+            <ul className="mt-4 flex gap-2.5">
               <li>
                 <a
                   href={SITE_SOCIAL.telegram}
@@ -151,7 +154,7 @@ export function Footer({ className }: { className?: string }) {
                   rel="noopener noreferrer"
                   aria-label={t('footer.social.telegram')}
                   data-cursor="external"
-                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-g-blue/20 hover:text-white"
+                  className="inline-flex size-11 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-g-blue/20 hover:text-white"
                 >
                   <Send className="size-4" aria-hidden="true" />
                 </a>
@@ -163,7 +166,7 @@ export function Footer({ className }: { className?: string }) {
                   rel="noopener noreferrer"
                   aria-label={t('footer.social.whatsapp')}
                   data-cursor="external"
-                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-g-green/20 hover:text-white"
+                  className="inline-flex size-11 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-g-green/20 hover:text-white"
                 >
                   <MessageCircle className="size-4" aria-hidden="true" />
                 </a>
@@ -175,7 +178,7 @@ export function Footer({ className }: { className?: string }) {
                   rel="noopener noreferrer"
                   aria-label={t('footer.social.instagram')}
                   data-cursor="external"
-                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-g-red/20 hover:text-white"
+                  className="inline-flex size-11 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-g-red/20 hover:text-white"
                 >
                   <Instagram className="size-4" aria-hidden="true" />
                 </a>
@@ -187,7 +190,7 @@ export function Footer({ className }: { className?: string }) {
                   rel="noopener noreferrer"
                   aria-label={t('footer.social.linkedin')}
                   data-cursor="external"
-                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-primary/20 hover:text-white"
+                  className="inline-flex size-11 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-primary/20 hover:text-white"
                 >
                   <Linkedin className="size-4" aria-hidden="true" />
                 </a>
@@ -199,7 +202,7 @@ export function Footer({ className }: { className?: string }) {
                   rel="noopener noreferrer"
                   aria-label={t('footer.social.github')}
                   data-cursor="external"
-                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
+                  className="inline-flex size-11 items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
                 >
                   <Github className="size-4" aria-hidden="true" />
                 </a>

@@ -118,7 +118,7 @@
 
 | الحالة | المعنى |
 |---|---|
-| `201` | خُزّن. الرد: `{ "reference": "cuid8" }` — أول 8 محارف من معرّف السجل |
+| `201` | خُزّن. الرد: `{ "reference": "c5tr8p13xb" }` — مرجع عشوائي ('c' + 9 محارف base-36) يُخزّن الآن في عمود `reference` الفريد بالسجل نفسه (إصلاح L1-B) |
 | `400` | فشل Zod — أخطاء الحقول مترجمة (اعتماداً على `x-elyra-locale`) |
 | `403` | طلب عابر للمواقع مرفوض — فشل تحقق Origin/`Sec-Fetch-Site` (حماية CSRF) |
 | `413` | جسم الطلب أكبر من 64 كيلوبايت (بوابة content-length قبل التحليل) |
@@ -217,24 +217,40 @@ docker build --build-arg NEXT_PUBLIC_SITE_URL=https://elyra.agency -t elyra .
   -e DATABASE_URL=file:/app/db/custom.db \
   -e N8N_WEBHOOK_URL=https://n8n.example.com/webhook/elyra-leads \
   -e N8N_WEBHOOK_SECRET=<openssl rand -hex 32> \
+  -e TRUST_PROXY=true \
   -v elyra-db:/app/db elyra
 ```
 
+`TRUST_PROXY=true` (افتراضي مضمّن في ENV الخاص بـ Dockerfile): النشر خلف بروكسي عاكس **يطمس** `X-Forwarded-For` بحكم التعريف — وبدونه تشارك كل الطلبات حصة إرسال واحدة عالمية (5 طلبات/دقيقة للجميع)، فيستطيع سكربت واحد تعطيل النموذجين عن الجميع (إصلاح L1-A).
+
 راجع `.env.example` لكل المتغيرات وتوثيقها. **قبل أول إطلاق**: شغّل `bun scripts/clean-leads.ts` أو `--dry-run` لضمان خلو قاعدة البيانات من بيانات الاختبار.
+
+### الاحتفاظ بالبيانات (Data retention)
+
+كل سجل Lead يخزّن بيانات شخصية: `ipAddress` و`userAgent` و`email` و`whatsapp` و`message` (نص الاستفسار كاملاً). لا تحتفظ بها إلى الأبد — نظّف السجلات القديمة دورياً (90 يوماً موصى بها) عبر cron أو systemd timer:
+
+```bash
+bun scripts/clean-leads.ts --purge-days=90          # حذف السجلات الأقدم من 90 يوماً
+bun scripts/clean-leads.ts --purge-days=90 --dry-run # عدّ فقط بلا حذف
+```
+
+### ⚠️ ملف Caddyfile الجذري — للصندوق الرمل فقط
+
+الملف `Caddyfile` في جذر المستودع **خاص ببيئة المعاينة (sandbox) حصراً**: يحتوي عمداً على `?XTransformPort` (وكيل مفتوح/بدائيّة SSRF لأداة المعاينة). **لا تنسخه أبداً إلى الإنتاج.** استخدم بدلاً منه [`deploy/Caddyfile.example`](deploy/Caddyfile.example) — نسخة إنتاجية آمنة: TLS تلقائي، لا توجيه بالاستعلام، و`X-Forwarded-For` يُطمس من البروكسي (وهذا شرط صحة `TRUST_PROXY=true` أعلاه).
 
 ## الأوامر
 
 ```bash
 bun run dev                              # خادم التطوير (المنفذ 3000)
 bun run lint                             # فحص الجودة (القواعد الصارمة)
-bunx tsc --noEmit                        # فحص الأنواع
+bun run typecheck                       # فحص الأنواع (tsc --noEmit)
 node scripts/check-i18n-parity.js        # فحص تكافؤ الترجمات
 bun run db:push                          # دفع schema
 bun scripts/verify-api.mjs               # التحقق الأمني الكامل للـ API (13 فحصاً)
 node scripts/verify-performance.mjs      # فحص إصلاحات الأداء (10 فحوص)
 node scripts/verify-sensory.mjs          # فحص طبقة الإحساس (16 فحصاً)
 bash scripts/lighthouse-prod.sh          # قياس Lighthouse إنتاجي (بيئة تسمح بالبناء)
-bun scripts/clean-leads.ts [--dry-run]   # تنظيف بيانات الاختبار قبل النشر
+bun scripts/clean-leads.ts [--dry-run|--purge-days=N]   # تنظيف بيانات الاختبار قبل النشر / تنقية دورية حسب العمر
 ```
 
 ## بنية المجلدات

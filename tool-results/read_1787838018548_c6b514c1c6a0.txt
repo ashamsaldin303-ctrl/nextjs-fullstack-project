@@ -1,0 +1,1126 @@
+     1→'use client'
+     2→
+     3→import { useCallback, useId, useRef, useState } from 'react'
+     4→import { useTranslations } from 'next-intl'
+     5→import {
+     6→  Activity,
+     7→  BarChart3,
+     8→  Bell,
+     9→  ImageOff,
+    10→  LayoutDashboard,
+    11→  MoveHorizontal,
+    12→  Search,
+    13→  Settings,
+    14→  ShoppingBag,
+    15→  Smile,
+    16→  TriangleAlert,
+    17→  Users,
+    18→  X,
+    19→} from 'lucide-react'
+    20→import { cn } from '@/lib/utils'
+    21→import { useIsRtl } from '@/lib/use-rtl'
+    22→import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
+    23→
+    24→type SceneVariant = 'site-old' | 'site-new' | 'dashboard-old' | 'dashboard-new'
+    25→
+    26→/**
+    27→ * Per-project mock content for the "after" scenes. Resolved by the parents
+    28→ * (featured-work.tsx / work-grid.tsx) via t.raw(...) and narrowed through
+    29→ * toMockContent(). Every field is optional — scenes degrade to neutral
+    30→ * placeholders when a parent passes nothing.
+    31→ */
+    32→export interface MockContent {
+    33→  brand?: string
+    34→  kicker?: string
+    35→  title?: string
+    36→  sub?: string
+    37→  cta?: string
+    38→  cards?: { name: string; price: string; old?: string }[]
+    39→}
+    40→
+    41→/* --------------------------------------------------------------------------
+    42→   t.raw() narrowing helpers (no `any` — eslint forbids it)
+    43→   -------------------------------------------------------------------------- */
+    44→
+    45→type UnknownRecord = Record<string, unknown>
+    46→
+    47→function isRecord(value: unknown): value is UnknownRecord {
+    48→  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    49→}
+    50→
+    51→function asString(value: unknown): string {
+    52→  return typeof value === 'string' ? value : ''
+    53→}
+    54→
+    55→function asStringArray(value: unknown): string[] {
+    56→  return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string') : []
+    57→}
+    58→
+    59→interface Kpi {
+    60→  label: string
+    61→  value: string
+    62→  delta: string
+    63→}
+    64→
+    65→interface SheetRow {
+    66→  ref: string
+    67→  party: string
+    68→  amount: string
+    69→  status: string
+    70→}
+    71→
+    72→function asKpis(value: unknown): Kpi[] {
+    73→  if (!Array.isArray(value)) return []
+    74→  return value
+    75→    .filter(isRecord)
+    76→    .map((r) => ({ label: asString(r.label), value: asString(r.value), delta: asString(r.delta) }))
+    77→    .filter((k) => k.label !== '' || k.value !== '')
+    78→}
+    79→
+    80→function asRows(value: unknown): SheetRow[] {
+    81→  if (!Array.isArray(value)) return []
+    82→  return value
+    83→    .filter(isRecord)
+    84→    .map((r) => ({
+    85→      ref: asString(r.ref),
+    86→      party: asString(r.party),
+    87→      amount: asString(r.amount),
+    88→      status: asString(r.status),
+    89→    }))
+    90→    .filter((r) => r.ref !== '' || r.party !== '')
+    91→}
+    92→
+    93→/** Narrow a next-intl t.raw() catalog value into MockContent. */
+    94→export function toMockContent(raw: unknown): MockContent | undefined {
+    95→  if (!isRecord(raw)) return undefined
+    96→  const cards = Array.isArray(raw.cards)
+    97→    ? raw.cards
+    98→        .filter(isRecord)
+    99→        .map((c) => ({
+   100→          name: asString(c.name),
+   101→          price: asString(c.price),
+   102→          old: asString(c.old) || undefined,
+   103→        }))
+   104→        .filter((c) => c.name !== '' || c.price !== '')
+   105→    : undefined
+   106→  return {
+   107→    brand: asString(raw.brand) || undefined,
+   108→    kicker: asString(raw.kicker) || undefined,
+   109→    title: asString(raw.title) || undefined,
+   110→    sub: asString(raw.sub) || undefined,
+   111→    cta: asString(raw.cta) || undefined,
+   112→    cards: cards && cards.length > 0 ? cards : undefined,
+   113→  }
+   114→}
+   115→
+   116→/* --------------------------------------------------------------------------
+   117→   Color helpers — accents arrive as hex strings per project
+   118→   -------------------------------------------------------------------------- */
+   119→
+   120→const FALLBACK_RGB: [number, number, number] = [0, 113, 227] // #0071E3 (brand blue)
+   121→
+   122→function hexToRgb(hex: string): [number, number, number] {
+   123→  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim())
+   124→  const digits = m?.[1]
+   125→  if (!digits) return FALLBACK_RGB
+   126→  const n = Number.parseInt(digits, 16)
+   127→  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+   128→}
+   129→
+   130→function rgba(hex: string, alpha: number): string {
+   131→  const [r, g, b] = hexToRgb(hex)
+   132→  return `rgba(${r},${g},${b},${alpha})`
+   133→}
+   134→
+   135→/** Mix toward black by `amount` (0..1). */
+   136→function shadeColor(hex: string, amount: number): string {
+   137→  const [r, g, b] = hexToRgb(hex)
+   138→  const f = (c: number) => Math.round(c * (1 - amount))
+   139→  return `rgb(${f(r)},${f(g)},${f(b)})`
+   140→}
+   141→
+   142→/** Mix toward white by `amount` (0..1). */
+   143→function tintColor(hex: string, amount: number): string {
+   144→  const [r, g, b] = hexToRgb(hex)
+   145→  const f = (c: number) => Math.round(c + (255 - c) * amount)
+   146→  return `rgb(${f(r)},${f(g)},${f(b)})`
+   147→}
+   148→
+   149→function luminance(hex: string): number {
+   150→  const ch = (c: number) => {
+   151→    const s = c / 255
+   152→    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4
+   153→  }
+   154→  const [r, g, b] = hexToRgb(hex)
+   155→  return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
+   156→}
+   157→
+   158→const isLightColor = (hex: string) => luminance(hex) > 0.55
+   159→
+   160→/** Readable ink on top of a solid accent fill (white on dark accents,
+   161→ *  darkened accent on light ones like the gold #FBBC05). */
+   162→const onAccentColor = (hex: string) => (isLightColor(hex) ? shadeColor(hex, 0.6) : '#ffffff')
+   163→
+   164→/** Readable ink on top of an accent TINT (announcement bar, chips). */
+   165→const accentInkColor = (hex: string) => shadeColor(hex, isLightColor(hex) ? 0.5 : 0.15)
+   166→
+   167→/** "−18%"-style discount derived from the price pair (null → no badge). */
+   168→function discountPct(price: string, old: string | undefined): number | null {
+   169→  if (!old) return null
+   170→  const p = Number.parseInt(price.replace(/[^0-9]/g, ''), 10)
+   171→  const o = Number.parseInt(old.replace(/[^0-9]/g, ''), 10)
+   172→  if (!Number.isFinite(p) || !Number.isFinite(o) || o <= 0 || p >= o) return null
+   173→  return Math.round((1 - p / o) * 100)
+   174→}
+   175→
+   176→const MONO_STACK = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+   177→
+   178→/* --------------------------------------------------------------------------
+   179→   Static scene data
+   180→   -------------------------------------------------------------------------- */
+   181→
+   182→/** 12 believable upward-trending points for the dashboard area chart. */
+   183→const CHART_POINTS: ReadonlyArray<readonly [number, number]> = [
+   184→  [2, 30],
+   185→  [10.7, 27],
+   186→  [19.5, 29],
+   187→  [28.2, 23],
+   188→  [36.9, 25],
+   189→  [45.6, 19],
+   190→  [54.4, 21],
+   191→  [63.1, 14],
+   192→  [71.8, 17],
+   193→  [80.5, 10],
+   194→  [89.3, 12],
+   195→  [98, 5],
+   196→]
+   197→
+   198→function smoothLinePath(pts: ReadonlyArray<readonly [number, number]>): string {
+   199→  const first = pts[0]
+   200→  if (pts.length < 2 || !first) return ''
+   201→  let d = `M ${first[0]} ${first[1]}`
+   202→  for (let i = 1; i < pts.length - 1; i++) {
+   203→    const cur = pts[i]
+   204→    const next = pts[i + 1]
+   205→    if (!cur || !next) break
+   206→    d += ` Q ${cur[0]} ${cur[1]} ${(cur[0] + next[0]) / 2} ${(cur[1] + next[1]) / 2}`
+   207→  }
+   208→  const last = pts[pts.length - 1]
+   209→  if (!last) return d
+   210→  d += ` L ${last[0]} ${last[1]}`
+   211→  return d
+   212→}
+   213→
+   214→const CHART_LINE = smoothLinePath(CHART_POINTS)
+   215→const CHART_LAST: readonly [number, number] = CHART_POINTS.at(-1) ?? ([98, 5] as const)
+   216→const CHART_AREA = `${CHART_LINE} L ${CHART_LAST[0]} 40 L ${CHART_POINTS[0]?.[0] ?? 2} 40 Z`
+   217→
+   218→const DASH_ICONS = [LayoutDashboard, Activity, Users, BarChart3, Settings] as const
+   219→
+   220→/** Literal tabular data for the old spreadsheet (sanctioned mock data —
+   221→ *  an Arabic business's sheet; dates/amounts are locale-neutral digits). */
+   222→interface OldSheetRow {
+   223→  date: string
+   224→  name: string
+   225→  amount: string
+   226→  /** render the localized "pending" status in red */
+   227→  pending?: boolean
+   228→  /** classic broken-spreadsheet artifacts */
+   229→  error?: 'ref' | 'hash'
+   230→}
+   231→
+   232→const OLD_SHEET_ROWS: OldSheetRow[] = [
+   233→  { date: '03/11', name: 'احمد', amount: '14250', pending: true },
+   234→  { date: '03/11', name: 'شركة الأمل', amount: '8900' },
+   235→  { date: '02/11', name: 'منى', amount: '23100', pending: true },
+   236→  { date: '02/11', name: 'مؤسسة النور', amount: '#REF!', error: 'ref' },
+   237→  { date: '01/11', name: 'سامي', amount: '####', error: 'hash' },
+   238→  { date: '01/11', name: 'متجر الواحة', amount: '5400', pending: true },
+   239→  { date: '31/10', name: 'ليلى', amount: '12750' },
+   240→  { date: '30/10', name: 'شركة الري', amount: '9800', pending: true },
+   241→]
+   242→
+   243→const SHEET_COLS = 'grid-cols-[10px_1.1fr_1fr_0.72fr_0.95fr]'
+   244→
+   245→/* Local keyframes for the 2005 blinking announcement dots. The global
+   246→   prefers-reduced-motion kill-switch in globals.css freezes this. */
+   247→const SCENE_KEYFRAMES =
+   248→  '@keyframes ba-scene-blink{0%,100%{opacity:1}50%{opacity:.2}}.ba-scene-blink{animation:ba-scene-blink 1.3s ease-in-out infinite}'
+   249→
+   250→/* --------------------------------------------------------------------------
+   251→   Scene 1 — "site-new": modern e-commerce storefront
+   252→   -------------------------------------------------------------------------- */
+   253→
+   254→/** Three distinct CSS-only "product photo" silhouettes so the row reads
+   255→ *  like a real catalog rather than three identical boxes. */
+   256→function ProductArt({ i }: { i: number }) {
+   257→  if (i === 0) {
+   258→    return (
+   259→      <>
+   260→        <div className="absolute left-1/2 top-1/2 h-[62%] w-[62%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/20" />
+   261→        <div className="absolute left-1/2 top-1/2 h-[46%] w-[36%] -translate-x-1/2 -translate-y-1/2 rounded-[45%] bg-white/45" />
+   262→        <div className="absolute left-1/2 top-[36%] h-[9%] w-[13%] -translate-x-1/2 rounded-full bg-white/65" />
+   263→      </>
+   264→    )
+   265→  }
+   266→  if (i === 1) {
+   267→    return (
+   268→      <>
+   269→        <div className="absolute inset-x-[31%] top-[24%] h-[7%] rounded-[2px] bg-white/55" />
+   270→        <div className="absolute inset-x-[24%] bottom-[16%] top-[34%] rounded-t-[38%] rounded-b-[14%] bg-white/40" />
+   271→        <div className="absolute inset-x-[40%] top-[40%] h-[11%] rounded-full bg-white/55" />
+   272→      </>
+   273→    )
+   274→  }
+   275→  return (
+   276→    <>
+   277→      <div className="absolute inset-x-[38%] top-[16%] h-[15%] rounded-t-full border-[2px] border-b-0 border-white/50" />
+   278→      <div className="absolute inset-x-[26%] top-[30%] bottom-[18%] rounded-[3px] bg-white/40" />
+   279→      <div className="absolute inset-x-[32%] top-[38%] h-[9%] rounded-[2px] bg-white/60" />
+   280→    </>
+   281→  )
+   282→}
+   283→
+   284→function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) {
+   285→  const t = useTranslations('workSection.scenes')
+   286→  const nav = asStringArray(t.raw('site.nav'))
+   287→  const footerLinks = asStringArray(t.raw('site.footerLinks'))
+   288→  const cards = mock?.cards && mock.cards.length > 0 ? mock.cards.slice(0, 3) : null
+   289→  const onAccent = onAccentColor(accent)
+   290→  const accentInk = accentInkColor(accent)
+   291→
+   292→  return (
+   293→    <div className="flex h-full flex-col overflow-hidden bg-white text-stone-900">
+   294→      {/* announcement bar (accent-tinted) */}
+   295→      <div
+   296→        className="flex h-[13px] shrink-0 items-center justify-center px-14"
+   297→        style={{ background: rgba(accent, 0.12) }}
+   298→      >
+   299→        <span className="truncate text-[6px] font-semibold tracking-wide" style={{ color: accentInk }}>
+   300→          {t('site.announce')}
+   301→        </span>
+   302→      </div>
+   303→
+   304→      {/* navbar: brand • links • search pill • cart with badge */}
+   305→      <div className="flex h-[22px] shrink-0 items-center justify-between gap-2 border-b border-stone-200 bg-white px-2 pe-[52px]">
+   306→        <div className="flex min-w-0 items-center gap-1">
+   307→          <span className="size-[6px] shrink-0 rounded-full" style={{ background: accent }} />
+   308→          <span className="truncate text-[8px] font-extrabold tracking-tight">{mock?.brand ?? ''}</span>
+   309→        </div>
+   310→        <nav className="flex min-w-0 items-center gap-1.5 overflow-hidden">
+   311→          {nav.map((l) => (
+   312→            <span key={l} className="whitespace-nowrap text-[6px] font-medium text-stone-500">
+   313→              {l}
+   314→            </span>
+   315→          ))}
+   316→        </nav>
+   317→        <div className="flex shrink-0 items-center gap-1.5">
+   318→          <span className="flex items-center gap-0.5 rounded-full border border-stone-200 bg-stone-50 px-1.5 py-px">
+   319→            <Search className="size-[7px] shrink-0 text-stone-400" />
+   320→            <span className="whitespace-nowrap text-[6px] text-stone-400">{t('site.search')}</span>
+   321→          </span>
+   322→          <span className="relative block text-stone-700">
+   323→            <ShoppingBag className="size-[11px]" />
+   324→            <span
+   325→              className="absolute -end-1 -top-[3px] flex size-[9px] items-center justify-center rounded-full text-[5px] font-bold leading-none"
+   326→              style={{ background: accent, color: onAccent }}
+   327→            >
+   328→              2
+   329→            </span>
+   330→          </span>
+   331→        </div>
+   332→      </div>
+   333→
+   334→      {/* hero: copy side + layered "photo" side */}
+   335→      <div className="grid min-h-0 flex-1 grid-cols-[1.05fr_0.95fr] gap-1.5 px-2 py-1.5">
+   336→        <div className="flex min-h-0 min-w-0 flex-col justify-center gap-[3px]">
+   337→          {mock?.kicker ? (
+   338→            <span
+   339→              className="w-fit max-w-full truncate rounded-full px-1.5 py-px text-[6px] font-bold leading-none"
+   340→              style={{ background: rgba(accent, 0.14), color: accentInk }}
+   341→            >
+   342→              {mock.kicker}
+   343→            </span>
+   344→          ) : null}
+   345→          {mock?.title ? (
+   346→            <p className="text-[10px] font-extrabold leading-[1.15] tracking-tight">{mock.title}</p>
+   347→          ) : (
+   348→            <div className="h-[11px] w-4/5 rounded bg-stone-200" />
+   349→          )}
+   350→          {mock?.sub ? (
+   351→            <p className="line-clamp-2 text-[7px] leading-[1.3] text-stone-500">{mock.sub}</p>
+   352→          ) : (
+   353→            <div className="h-[7px] w-3/5 rounded bg-stone-200" />
+   354→          )}
+   355→          <div className="mt-[3px] flex min-w-0 items-center gap-1.5">
+   356→            {mock?.cta ? (
+   357→              <span
+   358→                className="shrink-0 rounded-md px-2 py-[3px] text-[7px] font-bold leading-none shadow-sm"
+   359→                style={{ background: accent, color: onAccent }}
+   360→              >
+   361→                {mock.cta}
+   362→              </span>
+   363→            ) : null}
+   364→            <span className="flex min-w-0 items-center gap-[3px]">
+   365→              <span className="size-[4px] shrink-0 animate-pulse rounded-full bg-emerald-500" />
+   366→              <span className="truncate text-[6px] font-medium text-stone-500 underline decoration-stone-300 underline-offset-[3px]">
+   367→                {t('site.viewers')}
+   368→              </span>
+   369→            </span>
+   370→          </div>
+   371→        </div>
+   372→
+   373→        {/* hero image — accent gradient + layered CSS silhouettes + shine */}
+   374→        <div
+   375→          className="relative min-h-0 overflow-hidden rounded-lg"
+   376→          style={{ background: `linear-gradient(135deg, ${accent} 0%, ${shadeColor(accent, 0.35)} 100%)` }}
+   377→        >
+   378→          <div className="absolute -top-[25%] start-[8%] size-[80%] rounded-full bg-white/15 blur-[5px]" />
+   379→          <div className="absolute inset-0 flex items-center justify-center">
+   380→            <div className="relative h-[58%] w-[42%]">
+   381→              <div className="absolute inset-x-[24%] top-[-6%] h-[28%] rounded-t-full border-[2.5px] border-b-0 border-white/55" />
+   382→              <div className="absolute inset-x-0 top-[16%] bottom-0 rounded-[24%] bg-white/40 shadow-[inset_0_-5px_8px_rgba(0,0,0,0.12)]" />
+   383→              <div className="absolute inset-x-[20%] top-[26%] h-[13%] rounded-[30%] bg-white/65" />
+   384→            </div>
+   385→          </div>
+   386→          <div className="absolute inset-y-[-25%] start-[60%] w-[14%] rotate-[16deg] bg-white/20 blur-[2px]" />
+   387→          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/25" />
+   388→        </div>
+   389→      </div>
+   390→
+   391→      {/* product row */}
+   392→      <div className="grid h-[27%] shrink-0 grid-cols-3 gap-1 px-2">
+   393→        {cards ? (
+   394→          cards.map((card, i) => {
+   395→            const off = discountPct(card.price, card.old)
+   396→            return (
+   397→              <div
+   398→                key={`${card.name}-${i}`}
+   399→                className="relative flex min-h-0 min-w-0 flex-col rounded-md border border-stone-200/90 bg-white p-[3px] shadow-[0_1px_2px_rgba(15,23,42,0.05)]"
+   400→              >
+   401→                <div
+   402→                  className="relative min-h-0 flex-1 overflow-hidden rounded-[4px]"
+   403→                  style={{
+   404→                    background: `linear-gradient(160deg, ${rgba(accent, 0.3)} 0%, ${rgba(accent, 0.1)} 100%)`,
+   405→                  }}
+   406→                >
+   407→                  <ProductArt i={i} />
+   408→                  {off !== null && (
+   409→                    <span
+   410→                      className="absolute start-[3px] top-[3px] rounded-[2px] px-[3px] py-px text-[5px] font-bold leading-none"
+   411→                      style={{ background: accent, color: onAccent }}
+   412→                    >
+   413→                      {`−${off}%`}
+   414→                    </span>
+   415→                  )}
+   416→                </div>
+   417→                <div className="mt-[2px] truncate text-[6px] font-medium leading-tight text-stone-800">
+   418→                  {card.name}
+   419→                </div>
+   420→                <div className="flex items-center justify-between gap-0.5">
+   421→                  <div className="flex min-w-0 items-baseline gap-0.5">
+   422→                    <span className="truncate text-[7px] font-bold leading-none text-stone-900">
+   423→                      {card.price}
+   424→                    </span>
+   425→                    {card.old && (
+   426→                      <span className="shrink-0 text-[5.5px] leading-none text-stone-400 line-through">
+   427→                        {card.old}
+   428→                      </span>
+   429→                    )}
+   430→                  </div>
+   431→                  <span
+   432→                    className="shrink-0 rounded-[3px] px-[4px] py-[1px] text-[6px] font-bold leading-none"
+   433→                    style={{ background: rgba(accent, 0.15), color: accentInk }}
+   434→                  >
+   435→                    {t('site.addToCart')}
+   436→                  </span>
+   437→                </div>
+   438→                {i === 1 && (
+   439→                  <div className="mt-[1px] flex min-w-0 items-center gap-[3px] overflow-hidden">
+   440→                    <span className="shrink-0 text-[6px] leading-none text-amber-400">★★★★★</span>
+   441→                    <span className="shrink-0 text-[6px] font-bold leading-none text-stone-700">
+   442→                      {t('site.rating')}
+   443→                    </span>
+   444→                    <span className="truncate text-[6px] leading-none text-stone-400">
+   445→                      {t('site.reviews')}
+   446→                    </span>
+   447→                  </div>
+   448→                )}
+   449→              </div>
+   450→            )
+   451→          })
+   452→        ) : (
+   453→          // defensive fallback (no mock data) — keep the row visually stable
+   454→          [0, 1, 2].map((i) => (
+   455→            <div
+   456→              key={i}
+   457→              className="flex min-h-0 flex-col rounded-md border border-stone-200/90 bg-white p-[3px]"
+   458→            >
+   459→              <div className="min-h-0 flex-1 rounded-[4px] bg-stone-100" />
+   460→              <div className="mt-[2px] h-[5px] w-3/4 rounded-full bg-stone-200" />
+   461→              <div className="mt-[3px] h-[6px] w-1/2 rounded-full bg-stone-200" />
+   462→            </div>
+   463→          ))
+   464→        )}
+   465→      </div>
+   466→
+   467→      {/* footer */}
+   468→      <div className="shrink-0 border-t border-stone-200 bg-white px-2 pb-[3px] pt-[2px]">
+   469→        <div className="flex items-center justify-center gap-2">
+   470→          {footerLinks.map((l) => (
+   471→            <span key={l} className="whitespace-nowrap text-[6px] font-medium text-stone-500">
+   472→              {l}
+   473→            </span>
+   474→          ))}
+   475→        </div>
+   476→        <div className="mt-px truncate text-center text-[6px] text-stone-400">
+   477→          {`© ${mock?.brand ? `${mock.brand} — ` : ''}${t('site.footerNote')}`}
+   478→        </div>
+   479→      </div>
+   480→    </div>
+   481→  )
+   482→}
+   483→
+   484→/* --------------------------------------------------------------------------
+   485→   Scene 2 — "site-old": a 2005 time capsule (ugly on purpose)
+   486→   -------------------------------------------------------------------------- */
+   487→
+   488→function SiteOldScene() {
+   489→  const t = useTranslations('workSection.scenes')
+   490→  const nav = asStringArray(t.raw('old.nav'))
+   491→  const items = asStringArray(t.raw('old.items'))
+   492→
+   493→  return (
+   494→    <div className="flex h-full flex-col overflow-hidden bg-stone-100 font-serif text-stone-800">
+   495→      {/* garish all-caps announcement strip (blinking dots, marquee feel) */}
+   496→      <div className="flex h-[13px] shrink-0 items-center justify-center gap-1 bg-yellow-300 px-14">
+   497→        <span className="ba-scene-blink size-[4px] shrink-0 rounded-full bg-red-600" />
+   498→        <span className="truncate text-[6px] font-bold uppercase tracking-wider text-red-700">
+   499→          {t('old.announce')}
+   500→        </span>
+   501→        <span className="ba-scene-blink size-[4px] shrink-0 rounded-full bg-red-600" />
+   502→      </div>
+   503→
+   504→      {/* dense underlined link farm navbar */}
+   505→      <div className="flex h-[15px] shrink-0 flex-wrap items-center justify-center gap-x-1 overflow-hidden border-b border-stone-300 bg-stone-200 px-2">
+   506→        {nav.map((l, i) => (
+   507→          <span key={l} className="flex items-center gap-1">
+   508→            {i > 0 && <span className="text-[6px] leading-none text-stone-400">|</span>}
+   509→            <span className="whitespace-nowrap text-[6.5px] leading-none text-blue-700 underline">
+   510→              {l}
+   511→            </span>
+   512→          </span>
+   513→        ))}
+   514→      </div>
+   515→
+   516→      {/* welcome box + beveled Win98 button */}
+   517→      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-2 py-1">
+   518→        <div className="w-full max-w-[88%] rounded-[2px] border-2 border-stone-400 bg-white p-1 text-center shadow-[2px_2px_0_rgba(0,0,0,0.10)]">
+   519→          <div className="flex items-start justify-center gap-1">
+   520→            <Smile className="mt-px size-3 shrink-0 text-yellow-500" />
+   521→            <p className="text-[7px] leading-snug text-stone-800">{t('old.welcome')}</p>
+   522→          </div>
+   523→          <span className="mt-1 inline-block border-2 border-t-white border-l-white border-b-stone-500 border-r-stone-500 bg-stone-300 px-2 py-[2px] text-[7px] font-bold leading-none text-red-700 shadow-[1px_1px_0_rgba(0,0,0,0.25)]">
+   524→            {t('old.clickHere')}
+   525→          </span>
+   526→        </div>
+   527→      </div>
+   528→
+   529→      {/* product table with broken-image thumbnails */}
+   530→      <div className="mx-2 shrink-0 overflow-hidden rounded-[2px] border border-stone-400 bg-white">
+   531→        {items.map((it, i) => (
+   532→          <div
+   533→            key={it}
+   534→            className={cn('flex items-center gap-1 px-1 py-[2px]', i > 0 && 'border-t border-stone-300')}
+   535→          >
+   536→            <span className="flex size-4 shrink-0 items-center justify-center border border-stone-400 bg-stone-200">
+   537→              <ImageOff className="size-2 text-stone-400" />
+   538→            </span>
+   539→            <span className="min-w-0 flex-1 truncate text-[6px] leading-none">{it}</span>
+   540→            <span className="h-[5px] w-8 shrink-0 rounded-[1px] bg-stone-300" />
+   541→          </div>
+   542→        ))}
+   543→      </div>
+   544→
+   545→      {/* footer junk: hit counter + under-construction + best-viewed */}
+   546→      <div className="flex shrink-0 flex-col items-center gap-[3px] px-2 py-1">
+   547→        <span
+   548→          className="rounded-[2px] bg-black px-1 py-px text-[6px] leading-none tracking-wider text-lime-400 shadow-[1px_1px_0_rgba(0,0,0,0.35)]"
+   549→          style={{ fontFamily: MONO_STACK }}
+   550→        >
+   551→          {t('old.counter')}
+   552→        </span>
+   553→        <div className="flex h-[11px] w-full items-stretch overflow-hidden rounded-[2px] border border-stone-400">
+   554→          <span
+   555→            className="w-[6px] shrink-0"
+   556→            style={{
+   557→              background: 'repeating-linear-gradient(45deg, #facc15 0 3px, #1c1917 3px 6px)',
+   558→            }}
+   559→          />
+   560→          <span className="min-w-0 flex-1 truncate bg-yellow-100 px-1 text-[6px] font-bold leading-none text-stone-800">
+   561→            {t('old.construction')}
+   562→          </span>
+   563→          <span
+   564→            className="w-[6px] shrink-0"
+   565→            style={{
+   566→              background: 'repeating-linear-gradient(45deg, #facc15 0 3px, #1c1917 3px 6px)',
+   567→            }}
+   568→          />
+   569→        </div>
+   570→        <p className="truncate text-[6px] italic leading-none text-stone-500">{t('old.bestViewed')}</p>
+   571→      </div>
+   572→    </div>
+   573→  )
+   574→}
+   575→
+   576→/* --------------------------------------------------------------------------
+   577→   Scene 3 — "dashboard-new": modern dark SaaS console
+   578→   -------------------------------------------------------------------------- */
+   579→
+   580→function DashNewScene({ accent, brand }: { accent: string; brand?: string }) {
+   581→  const t = useTranslations('workSection.scenes')
+   582→  const nav = asStringArray(t.raw('dash.nav'))
+   583→  const kpis = asKpis(t.raw('dash.kpis'))
+   584→  const tableHead = asStringArray(t.raw('dash.tableHead'))
+   585→  const rows = asRows(t.raw('dash.rows'))
+   586→  // unique per-instance gradient id (several sliders can share a page)
+   587→  const gid = `ba-chart-${useId().replace(/[^a-zA-Z0-9]/g, '')}`
+   588→  const welcome = t('dash.welcome')
+   589→  const initial = welcome.trim().split(/\s+/).pop()?.charAt(0) ?? ''
+   590→  const TABLE_COLS = 'grid-cols-[1fr_1.3fr_0.7fr_0.85fr]'
+   591→
+   592→  return (
+   593→    <div className="flex h-full overflow-hidden bg-elyra-dark text-elyra-on-dark">
+   594→      {/* sidebar */}
+   595→      <aside className="flex w-[27%] shrink-0 flex-col gap-1 border-e border-white/10 bg-white/[0.03] p-1">
+   596→        <div
+   597→          className="flex min-w-0 items-center gap-1 rounded-md px-1 py-[3px]"
+   598→          style={{ background: rgba(accent, 0.2) }}
+   599→        >
+   600→          <span className="size-[6px] shrink-0 rounded-full" style={{ background: accent }} />
+   601→          <span className="truncate text-[7px] font-bold leading-none">{brand ?? ''}</span>
+   602→        </div>
+   603→        <nav className="flex flex-col gap-[2px]">
+   604→          {nav.map((item, i) => {
+   605→            const Icon = DASH_ICONS[i % DASH_ICONS.length] ?? LayoutDashboard
+   606→            const active = i === 0
+   607→            return (
+   608→              <span
+   609→                key={item}
+   610→                className={cn(
+   611→                  'flex min-w-0 items-center gap-1 rounded-[4px] px-1 py-[3px] text-[6px] font-semibold leading-none',
+   612→                  active ? 'text-white' : 'text-white/55'
+   613→                )}
+   614→                style={active ? { background: rgba(accent, 0.22) } : undefined}
+   615→              >
+   616→                <Icon
+   617→                  className="size-[9px] shrink-0"
+   618→                  style={active ? { color: accent } : undefined}
+   619→                />
+   620→                <span className="truncate">{item}</span>
+   621→              </span>
+   622→            )
+   623→          })}
+   624→        </nav>
+   625→        {/* user chip */}
+   626→        <div className="mt-auto flex min-w-0 items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-1 py-[3px]">
+   627→          <span
+   628→            className="size-3 shrink-0 rounded-full"
+   629→            style={{ background: `linear-gradient(135deg, ${accent}, ${tintColor(accent, 0.45)})` }}
+   630→          />
+   631→          <div className="flex min-w-0 flex-col gap-[2px]">
+   632→            <span className="h-[3px] w-full rounded-full bg-white/40" />
+   633→            <span className="h-[2px] w-2/3 rounded-full bg-white/20" />
+   634→          </div>
+   635→        </div>
+   636→      </aside>
+   637→
+   638→      {/* main column */}
+   639→      <div className="flex min-w-0 flex-1 flex-col">
+   640→        {/* topbar: welcome • search • bell • avatar */}
+   641→        <div className="flex h-[22px] shrink-0 items-center justify-between gap-1 border-b border-white/10 bg-white/[0.03] px-1.5 pe-[52px]">
+   642→          <span className="min-w-0 truncate text-[6px] font-semibold leading-none text-white/85">
+   643→            {welcome}
+   644→          </span>
+   645→          <div className="flex shrink-0 items-center gap-1">
+   646→            <span className="flex min-w-0 items-center gap-0.5 rounded-full border border-white/10 bg-white/5 px-1 py-px">
+   647→              <Search className="size-[8px] shrink-0 text-white/40" />
+   648→              <span className="max-w-[64px] truncate text-[6px] leading-none text-white/40">
+   649→                {t('dash.search')}
+   650→              </span>
+   651→            </span>
+   652→            <span className="relative block">
+   653→              <Bell className="size-[10px] text-white/60" />
+   654→              <span className="absolute -end-px -top-px size-[4px] rounded-full bg-red-500" />
+   655→            </span>
+   656→            <span className="max-w-[70px] truncate text-[6px] leading-none text-white/45">
+   657→              {t('dash.notifications')}
+   658→            </span>
+   659→            <span
+   660→              className="flex size-[13px] shrink-0 items-center justify-center rounded-full border border-white/25 text-[5px] font-bold leading-none"
+   661→              style={{ background: `linear-gradient(135deg, ${accent}, ${shadeColor(accent, 0.35)})` }}
+   662→            >
+   663→              {initial}
+   664→            </span>
+   665→          </div>
+   666→        </div>
+   667→
+   668→        {/* content: KPIs • chart • table */}
+   669→        <div className="flex min-h-0 flex-1 flex-col gap-1 p-1.5">
+   670→          <div className="grid shrink-0 grid-cols-4 gap-1">
+   671→            {kpis.map((k) => {
+   672→              const up = k.delta.trim().startsWith('+')
+   673→              return (
+   674→                <div
+   675→                  key={k.label}
+   676→                  className="min-w-0 rounded-md border border-white/10 bg-white/[0.04] px-1 py-[3px]"
+   677→                >
+   678→                  <div className="truncate text-[6px] leading-none text-white/50">{k.label}</div>
+   679→                  <div className="mt-[3px] flex items-baseline justify-between gap-0.5">
+   680→                    <span className="min-w-0 truncate text-[8px] font-bold leading-none tabular-nums">
+   681→                      {k.value}
+   682→                    </span>
+   683→                    <span
+   684→                      className={cn(
+   685→                        'shrink-0 rounded-full px-[3px] py-[1px] text-[5px] font-bold leading-none tabular-nums',
+   686→                        up ? 'bg-emerald-400/15 text-emerald-300' : 'bg-red-400/15 text-red-300'
+   687→                      )}
+   688→                    >
+   689→                      {k.delta}
+   690→                    </span>
+   691→                  </div>
+   692→                </div>
+   693→              )
+   694→            })}
+   695→          </div>
+   696→
+   697→          {/* area chart */}
+   698→          <div className="flex min-h-0 flex-1 flex-col rounded-md border border-white/10 bg-white/[0.04] p-1">
+   699→            <div className="flex shrink-0 items-center justify-between gap-1">
+   700→              <span className="min-w-0 truncate text-[6px] font-semibold leading-none">
+   701→                {t('dash.chartTitle')}
+   702→              </span>
+   703→              <span className="flex shrink-0 items-center gap-[3px] rounded-full bg-emerald-400/10 px-1 py-[2px] text-[6px] font-bold leading-none text-emerald-300">
+   704→                <span className="size-[3px] animate-pulse rounded-full bg-emerald-400" />
+   705→                {t('dash.live')}
+   706→              </span>
+   707→            </div>
+   708→            <svg
+   709→              className="mt-1 min-h-0 w-full flex-1"
+   710→              viewBox="0 0 100 40"
+   711→              preserveAspectRatio="none"
+   712→            >
+   713→              <defs>
+   714→                <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+   715→                  <stop offset="0%" stopColor={accent} stopOpacity="0.35" />
+   716→                  <stop offset="100%" stopColor={accent} stopOpacity="0" />
+   717→                </linearGradient>
+   718→              </defs>
+   719→              {[10, 20, 30].map((y) => (
+   720→                <line
+   721→                  key={y}
+   722→                  x1="0"
+   723→                  y1={y}
+   724→                  x2="100"
+   725→                  y2={y}
+   726→                  stroke="rgba(255,255,255,0.08)"
+   727→                  strokeWidth="0.4"
+   728→                />
+   729→              ))}
+   730→              <path d={CHART_AREA} fill={`url(#${gid})`} />
+   731→              <path
+   732→                d={CHART_LINE}
+   733→                fill="none"
+   734→                stroke={accent}
+   735→                strokeWidth="1.4"
+   736→                strokeLinecap="round"
+   737→                vectorEffect="non-scaling-stroke"
+   738→              />
+   739→              <circle
+   740→                cx={CHART_LAST[0]}
+   741→                cy={CHART_LAST[1]}
+   742→                r="1.6"
+   743→                fill={accent}
+   744→                stroke="#ffffff"
+   745→                strokeWidth="0.5"
+   746→              />
+   747→            </svg>
+   748→          </div>
+   749→
+   750→          {/* latest operations table */}
+   751→          <div className="shrink-0 overflow-hidden rounded-md border border-white/10 bg-white/[0.04]">
+   752→            <div className="border-b border-white/10 px-1 py-[3px] text-[6px] font-semibold leading-none">
+   753→              {t('dash.tableTitle')}
+   754→            </div>
+   755→            <div className={cn('grid gap-1 border-b border-white/5 px-1 py-[3px]', TABLE_COLS)}>
+   756→              {tableHead.map((h) => (
+   757→                <span key={h} className="min-w-0 truncate text-[6px] leading-none text-white/40">
+   758→                  {h}
+   759→                </span>
+   760→              ))}
+   761→            </div>
+   762→            {rows.map((r) => {
+   763→              const done = /مكتمل|completed/i.test(r.status)
+   764→              return (
+   765→                <div
+   766→                  key={r.ref}
+   767→                  className={cn(
+   768→                    'grid items-center gap-1 border-b border-white/5 px-1 py-[3px] last:border-b-0',
+   769→                    TABLE_COLS
+   770→                  )}
+   771→                >
+   772→                  <span
+   773→                    dir="ltr"
+   774→                    className="min-w-0 truncate text-[6px] leading-none text-white/60"
+   775→                    style={{ fontFamily: MONO_STACK }}
+   776→                  >
+   777→                    {r.ref}
+   778→                  </span>
+   779→                  <span className="min-w-0 truncate text-[6px] leading-none text-white/85">
+   780→                    {r.party}
+   781→                  </span>
+   782→                  <span dir="ltr" className="min-w-0 truncate text-[6px] leading-none tabular-nums text-white/85">
+   783→                    {r.amount}
+   784→                  </span>
+   785→                  <span
+   786→                    className={cn(
+   787→                      'min-w-0 truncate rounded-full px-[4px] py-[1px] text-[6px] font-semibold leading-none',
+   788→                      done ? 'bg-emerald-400/15 text-emerald-300' : 'bg-blue-400/15 text-blue-300'
+   789→                    )}
+   790→                  >
+   791→                    {r.status}
+   792→                  </span>
+   793→                </div>
+   794→              )
+   795→            })}
+   796→          </div>
+   797→        </div>
+   798→      </div>
+   799→    </div>
+   800→  )
+   801→}
+   802→
+   803→/* --------------------------------------------------------------------------
+   804→   Scene 4 — "dashboard-old": spreadsheet misery
+   805→   -------------------------------------------------------------------------- */
+   806→
+   807→function OldCell({
+   808→  children,
+   809→  className,
+   810→  innerClassName,
+   811→  innerStyle,
+   812→  dir,
+   813→}: {
+   814→  children: React.ReactNode
+   815→  className?: string
+   816→  innerClassName?: string
+   817→  innerStyle?: React.CSSProperties
+   818→  dir?: 'ltr' | 'rtl'
+   819→}) {
+   820→  return (
+   821→    <span
+   822→      className={cn(
+   823→        'flex min-w-0 items-center border-e border-stone-400 px-[3px] last:border-e-0',
+   824→        className
+   825→      )}
+   826→    >
+   827→      <span
+   828→        dir={dir}
+   829→        className={cn('min-w-0 truncate text-[6px] leading-none', innerClassName)}
+   830→        style={innerStyle}
+   831→      >
+   832→        {children}
+   833→      </span>
+   834→    </span>
+   835→  )
+   836→}
+   837→
+   838→function DashOldScene() {
+   839→  const t = useTranslations('workSection.scenes')
+   840→  const cols = asStringArray(t.raw('oldDash.cols'))
+   841→
+   842→  return (
+   843→    <div className="relative flex h-full flex-col overflow-hidden bg-stone-200 text-stone-800">
+   844→      {/* window title strip (file name centered, beveled buttons) */}
+   845→      <div className="relative flex h-[14px] shrink-0 items-center justify-center border-b border-stone-500 bg-stone-300 px-14">
+   846→        <span className="min-w-0 truncate font-serif text-[6px] leading-none text-stone-800">
+   847→          {t('oldDash.file')}
+   848→        </span>
+   849→        <span className="absolute end-1 flex items-center gap-[2px]">
+   850→          {[0, 1].map((i) => (
+   851→            <span
+   852→              key={i}
+   853→              className="size-[9px] border border-t-white border-l-white border-b-stone-500 border-r-stone-500 bg-stone-200"
+   854→            />
+   855→          ))}
+   856→          <span className="flex size-[9px] items-center justify-center border border-t-white border-l-white border-b-stone-500 border-r-stone-500 bg-stone-200">
+   857→            <X className="size-[7px] text-stone-700" />
+   858→          </span>
+   859→        </span>
+   860→      </div>
+   861→
+   862→      {/* toolbar with beveled buttons */}
+   863→      <div className="flex h-[13px] shrink-0 items-center gap-[2px] border-b border-stone-400 bg-stone-100 px-1">
+   864→        {['B', 'I', 'U'].map((ch) => (
+   865→          <span
+   866→            key={ch}
+   867→            className={cn(
+   868→              'flex size-[10px] items-center justify-center border border-t-white border-l-white border-b-stone-500 border-r-stone-500 bg-stone-300 text-[5px] leading-none text-stone-800',
+   869→              ch === 'B' && 'font-bold',
+   870→              ch === 'I' && 'italic',
+   871→              ch === 'U' && 'underline'
+   872→            )}
+   873→          >
+   874→            {ch}
+   875→          </span>
+   876→        ))}
+   877→        <span className="mx-[2px] h-[10px] w-px shrink-0 bg-stone-400" />
+   878→        {[0, 1, 2, 3].map((i) => (
+   879→          <span
+   880→            key={i}
+   881→            className="size-[10px] border border-t-white border-l-white border-b-stone-500 border-r-stone-500 bg-stone-300"
+   882→          />
+   883→        ))}
+   884→      </div>
+   885→
+   886→      {/* formula bar */}
+   887→      <div className="flex h-[12px] shrink-0 items-center gap-1 border-b border-stone-400 bg-stone-100 px-1">
+   888→        <span className="shrink-0 font-serif text-[6px] italic leading-none text-stone-600">fx</span>
+   889→        <span className="h-[8px] w-px shrink-0 bg-stone-400" />
+   890→        <span
+   891→          dir="ltr"
+   892→          className="min-w-0 flex-1 truncate text-[6px] leading-none text-stone-800"
+   893→          style={{ fontFamily: MONO_STACK }}
+   894→        >
+   895→          {t('oldDash.formula')}
+   896→        </span>
+   897→      </div>
+   898→
+   899→      {/* sheet: header row + dense cell grid */}
+   900→      <div className="flex min-h-0 flex-1 flex-col">
+   901→        <div className={cn('grid shrink-0 border-b-2 border-stone-500 bg-stone-300', SHEET_COLS)}>
+   902→          <span className="border-e border-stone-400" />
+   903→          {cols.map((c) => (
+   904→            <OldCell key={c} className="py-[2px]" innerClassName="font-bold text-stone-700">
+   905→              {c}
+   906→            </OldCell>
+   907→          ))}
+   908→        </div>
+   909→        {OLD_SHEET_ROWS.map((r, i) => (
+   910→          <div
+   911→            key={`${r.date}-${i}`}
+   912→            className={cn(
+   913→              'grid min-h-0 flex-1 border-b border-stone-400 bg-white last:border-b-0',
+   914→              SHEET_COLS
+   915→            )}
+   916→          >
+   917→            <span className="flex items-center justify-center border-e border-stone-400 bg-stone-100 text-[5px] leading-none tabular-nums text-stone-500">
+   918→              {i + 1}
+   919→            </span>
+   920→            <OldCell dir="ltr" innerClassName="tabular-nums text-stone-700">
+   921→              {r.date}
+   922→            </OldCell>
+   923→            <OldCell>{r.name}</OldCell>
+   924→            {/* last row's amount cell is the formula's selected cell */}
+   925→            <OldCell
+   926→              dir="ltr"
+   927→              className={i === OLD_SHEET_ROWS.length - 1 ? 'relative z-10' : undefined}
+   928→              innerClassName={cn(
+   929→                'tabular-nums',
+   930→                r.error === 'ref'
+   931→                  ? 'font-bold text-red-700'
+   932→                  : r.error === 'hash'
+   933→                    ? 'text-stone-500'
+   934→                    : 'text-stone-800'
+   935→              )}
+   936→              innerStyle={
+   937→                i === OLD_SHEET_ROWS.length - 1
+   938→                  ? { boxShadow: 'inset 0 0 0 1.5px #b45309' }
+   939→                  : undefined
+   940→              }
+   941→            >
+   942→              {r.amount}
+   943→            </OldCell>
+   944→            <OldCell innerClassName={cn(r.pending && 'font-semibold text-red-700')}>
+   945→              {r.pending ? t('oldDash.status') : ''}
+   946→            </OldCell>
+   947→          </div>
+   948→        ))}
+   949→      </div>
+   950→
+   951→      {/* unsaved-changes warning dialog overlay */}
+   952→      <div className="absolute bottom-1.5 start-1.5 end-1.5 z-10 flex items-center gap-1 rounded-[2px] border border-red-700 bg-yellow-300 px-1 py-[3px] shadow-[3px_3px_0_rgba(0,0,0,0.3)]">
+   953→        <TriangleAlert className="size-[10px] shrink-0 text-red-700" />
+   954→        <span className="min-w-0 flex-1 truncate text-[6px] font-bold leading-none text-red-700">
+   955→          {t('oldDash.warning')}
+   956→        </span>
+   957→      </div>
+   958→    </div>
+   959→  )
+   960→}
+   961→
+   962→/* --------------------------------------------------------------------------
+   963→   Scene dispatcher — purely decorative content (aria-hidden); the slider
+   964→   itself carries its own accessible name/controls.
+   965→   -------------------------------------------------------------------------- */
+   966→
+   967→function Scene({ variant, accent, mock }: { variant: SceneVariant; accent: string; mock?: MockContent }) {
+   968→  return (
+   969→    <div className="size-full" aria-hidden="true">
+   970→      {variant === 'site-new' && <SiteNewScene accent={accent} mock={mock} />}
+   971→      {variant === 'site-old' && <SiteOldScene />}
+   972→      {variant === 'dashboard-new' && <DashNewScene accent={accent} brand={mock?.brand} />}
+   973→      {variant === 'dashboard-old' && <DashOldScene />}
+   974→    </div>
+   975→  )
+   976→}
+   977→
+   978→interface BeforeAfterProps {
+   979→  variant: SceneVariant
+   980→  accent?: string
+   981→  className?: string
+   982→  /** aria label prefix — REQUIRED (FIX 2-c/17): every call site passes a
+   983→   *  localized project title; no untranslated default literal. */
+   984→  label: string
+   985→  /** Per-project mock content for the "after" scene (see MockContent). */
+   986→  mock?: MockContent
+   987→}
+   988→
+   989→export function BeforeAfter({
+   990→  variant,
+   991→  accent = '#0071E3',
+   992→  className,
+   993→  label,
+   994→  mock,
+   995→}: BeforeAfterProps) {
+   996→  const t = useTranslations('workSection')
+   997→  const tc = useTranslations('common') // WS-2: cursor context label
+   998→  const reduced = usePrefersReducedMotion()
+   999→  const isRtl = useIsRtl()
+  1000→  const containerRef = useRef<HTMLDivElement>(null)
+  1001→  const [pos, setPos] = useState(50) // 0-100
+  1002→  const dragging = useRef(false)
+  1003→
+  1004→  const beforeVariant: SceneVariant = variant.includes('site') ? 'site-old' : 'dashboard-old'
+  1005→  const afterVariant = variant
+  1006→
+  1007→  const setFromClientX = useCallback((clientX: number) => {
+  1008→    const el = containerRef.current
+  1009→    if (!el) return
+  1010→    const rect = el.getBoundingClientRect()
+  1011→    // pos is measured from the START edge (left in LTR, right in RTL) so the
+  1012→    // reveal direction follows the reading direction (audit P1-13).
+  1013→    const x = isRtl ? rect.right - clientX : clientX - rect.left
+  1014→    const pct = (x / rect.width) * 100
+  1015→    setPos(Math.max(2, Math.min(98, pct)))
+  1016→  }, [isRtl])
+  1017→
+  1018→  const onPointerDown = (e: React.PointerEvent) => {
+  1019→    dragging.current = true
+  1020→    ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+  1021→    setFromClientX(e.clientX)
+  1022→  }
+  1023→  const onPointerMove = (e: React.PointerEvent) => {
+  1024→    if (!dragging.current) return
+  1025→    setFromClientX(e.clientX)
+  1026→  }
+  1027→  const onPointerUp = () => { dragging.current = false }
+  1028→
+  1029→  const onKeyDown = (e: React.KeyboardEvent) => {
+  1030→    const step = e.shiftKey ? 10 : 5
+  1031→    if (e.key === 'ArrowLeft') {
+  1032→      e.preventDefault()
+  1033→      setPos((p) => Math.max(2, p - (isRtl ? -step : step)))
+  1034→    } else if (e.key === 'ArrowRight') {
+  1035→      e.preventDefault()
+  1036→      setPos((p) => Math.min(98, p + (isRtl ? -step : step)))
+  1037→    } else if (e.key === 'Home') {
+  1038→      e.preventDefault()
+  1039→      setPos(2)
+  1040→    } else if (e.key === 'End') {
+  1041→      e.preventDefault()
+  1042→      setPos(98)
+  1043→    }
+  1044→  }
+  1045→
+  1046→  // Clip is mirrored in RTL: pos counts from the START edge (right), so the
+  1047→  // "after" layer reveals from the LEFT — matching RTL reading order where
+  1048→  // "before" sits on the right and "after" on the left (audit P1-13).
+  1049→  const clipAfter = isRtl ? `inset(0 ${pos}% 0 0)` : `inset(0 0 0 ${pos}%)`
+  1050→
+  1051→  return (
+  1052→    <div
+  1053→      ref={containerRef}
+  1054→      data-cursor="drag"
+  1055→      data-cursor-label={tc('cursor.drag')}
+  1056→      className={cn(
+  1057→        'relative aspect-[16/10] w-full select-none overflow-hidden rounded-2xl border border-border bg-card touch-none',
+  1058→        className
+  1059→      )}
+  1060→      onPointerDown={onPointerDown}
+  1061→      onPointerMove={onPointerMove}
+  1062→      onPointerUp={onPointerUp}
+  1063→      onPointerCancel={onPointerUp}
+  1064→    >
+  1065→      {/* scene-local keyframes (frozen by the global reduced-motion switch) */}
+  1066→      <style>{SCENE_KEYFRAMES}</style>
+  1067→
+  1068→      {/* before layer (bottom) */}
+  1069→      <div className="absolute inset-0">
+  1070→        <Scene variant={beforeVariant} accent={accent} />
+  1071→        <span className="absolute start-2 top-2 rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+  1072→          {t('before')}
+  1073→        </span>
+  1074→      </div>
+  1075→
+  1076→      {/* after layer (top, clipped) */}
+  1077→      <div
+  1078→        className="absolute inset-0"
+  1079→        style={{ clipPath: clipAfter, WebkitClipPath: clipAfter }}
+  1080→      >
+  1081→        <Scene variant={afterVariant} accent={accent} mock={mock} />
+  1082→        <span className="absolute end-2 top-2 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground backdrop-blur-sm">
+  1083→          {t('after')}
+  1084→        </span>
+  1085→      </div>
+  1086→
+  1087→      {/* handle — anchored to the START edge (right in RTL) */}
+  1088→      <div
+  1089→        className="absolute inset-y-0 z-10 w-0.5 bg-white/80"
+  1090→        style={isRtl ? { right: `${pos}%` } : { left: `${pos}%` }}
+  1091→        aria-hidden="true"
+  1092→      >
+  1093→        <div className="absolute top-1/2 left-1/2 flex size-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-white/90 text-elyra-dark shadow-lg">
+  1094→          <MoveHorizontal className="size-4" />
+  1095→        </div>
+  1096→      </div>
+  1097→
+  1098→      {/* accessible slider control (invisible but focusable) — bounds
+  1099→          match the actual clamp range (FIX 2-c/17: was 0–100 while the
+  1100→          pointer/keyboard logic clamps to 2–98). */}
+  1101→      <div
+  1102→        role="slider"
+  1103→        tabIndex={0}
+  1104→        aria-valuemin={2}
+  1105→        aria-valuemax={98}
+  1106→        aria-valuenow={Math.round(pos)}
+  1107→        aria-label={`${label}: ${t('dragHint')}`}
+  1108→        aria-valuetext={`${Math.round(pos)}%`}
+  1109→        onKeyDown={onKeyDown}
+  1110→        className="absolute inset-y-0 z-20 w-2 cursor-ew-resize focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+  1111→        style={{
+  1112→          ...(isRtl ? { right: `calc(${pos}% - 4px)` } : { left: `calc(${pos}% - 4px)` }),
+  1113→          touchAction: 'none',
+  1114→        }}
+  1115→      />
+  1116→
+  1117→      {/* hint — CSS keyframes cycle (.ba-hint), framer-free (§4.3) */}
+  1118→      {reduced ? null : (
+  1119→        <div className="ba-hint pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-2.5 py-1 text-[10px] text-white/90 backdrop-blur-sm">
+  1120→          {t('dragHint')}
+  1121→        </div>
+  1122→      )}
+  1123→    </div>
+  1124→  )
+  1125→}
+  1126→

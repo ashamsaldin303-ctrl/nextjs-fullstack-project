@@ -185,8 +185,10 @@ export function Calculator() {
         exit: (d: number) => ({ opacity: 0, x: -d * 30 }),
       }
 
+  // L1-C P3 (fix 2-d): aria-label REMOVED — it overrode aria-labelledby
+  // and named the landmark by the short kicker instead of the full h2.
   return (
-    <section id="calculator" className="bg-background py-20 sm:py-28" aria-labelledby="calc-title" aria-label={t('kicker')}>
+    <section id="calculator" className="bg-background py-20 sm:py-28" aria-labelledby="calc-title">
       <div className="elyra-container max-w-5xl">
         <SectionHeading
           kicker={t('kicker')}
@@ -378,7 +380,7 @@ export function Calculator() {
                             onClick={() => toggleIntegration(key)}
                             aria-pressed={active}
                             className={cn(
-                              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors',
+                              'inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors',
                               active ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:bg-foreground/[0.02]'
                             )}
                           >
@@ -507,7 +509,11 @@ export function Calculator() {
 
                       <form onSubmit={onSubmit} className="rounded-2xl border border-border p-6" noValidate>
                         <h3 className="text-lg font-semibold">{t('form.title')}</h3>
-                        {/* Honeypot — bots fill it, humans never see it (API silently discards) */}
+                        {/* Honeypot — bots fill it, humans never see it (API silently discards).
+                            L1-C P3 (fix 2-d): logical inset + fixed positioning — the old
+                            physical `-left-[9999px]` absolute offset inflated the RTL body
+                            scrollWidth (documented UI-5 note); fixed removes it from the
+                            scroll container entirely. */}
                         <input
                           ref={honeypotRef}
                           type="text"
@@ -515,7 +521,7 @@ export function Calculator() {
                           tabIndex={-1}
                           autoComplete="off"
                           aria-hidden="true"
-                          className="pointer-events-none absolute -left-[9999px] h-px w-px overflow-hidden"
+                          className="pointer-events-none fixed -start-[9999px] h-px w-px overflow-hidden"
                         />
                         <div className="mt-4 space-y-4">
                           <div>

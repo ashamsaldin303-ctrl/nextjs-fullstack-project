@@ -18,11 +18,14 @@ export function LiveClock({ variant = 'on-dark' }: { variant?: 'on-dark' | 'on-l
   useEffect(() => {
     const update = () => {
       const now = new Date()
+      // L1-D P3 (fix 2-d): NO `timeZoneName` here — the formatter's own
+      // short zone ("15:16 GMT+3" / the cryptic ar "غ") duplicated the
+      // manual GMT±N label below ("15:16 GMT+3 (GMT+3)"). The explicit
+      // label is locale-stable and stays the single zone indicator.
       const intl = new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en-US', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: false,
-        timeZoneName: 'short',
       })
       setTime(intl.format(now))
 

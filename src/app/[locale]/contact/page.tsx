@@ -93,12 +93,15 @@ export default async function ContactPage({
     <>
       <PageHero namespace="pages.contact.hero" />
 
-      {/* Channels + classic form */}
-      <section className="bg-background py-20 sm:py-28" aria-labelledby="channels-title">
+      {/* L1-C P3 (fix 2-d): landmark split — the outer wrapper is now a
+          plain div; each grid column is its own named <section> (channels /
+          classic form) so SR landmark navigation doesn't bury the form
+          inside a region labelled only "channels". */}
+      <div className="bg-background py-20 sm:py-28">
         <div className="elyra-container max-w-container">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
             {/* Channels */}
-            <div>
+            <section aria-labelledby="channels-title">
               <Reveal>
                 <span className="kicker">{t('channels.kicker')}</span>
                 <h2 id="channels-title" className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -141,13 +144,13 @@ export default async function ContactPage({
                   {t('channels.responseNote')}
                 </p>
               </Reveal>
-            </div>
+            </section>
 
             {/* Classic form */}
-            <div>
+            <section aria-labelledby="contact-form-title">
               <Reveal>
                 <span className="kicker">{t('form.kicker')}</span>
-                <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{t('form.title')}</h2>
+                <h2 id="contact-form-title" className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{t('form.title')}</h2>
               </Reveal>
 
               {/* Social proof next to the form (Batch 2 item 7d) — one
@@ -199,10 +202,10 @@ export default async function ContactPage({
                   <ContactForm prefillService={service} prefillIdea={idea} />
                 </div>
               </Reveal>
-            </div>
+            </section>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* Calculator as the fast lane — directly embedded, no separate
           dark CTA band needed (the Calculator component already renders

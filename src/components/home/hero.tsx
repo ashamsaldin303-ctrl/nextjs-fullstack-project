@@ -63,7 +63,10 @@ function OrbitBadge({ label }: { label: string }) {
       href="/work"
       aria-label={label}
       data-cursor="magnet"
-      className="group relative hidden size-28 shrink-0 items-center justify-center rounded-full sm:inline-flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-deep"
+      /* L1-C P3 (fix 2-d): ring-offset-elyra-deep never compiled (no
+         --color-elyra-deep token exists) — elyra-dark matches the hero
+         CTA pattern below and actually resolves. */
+      className="group relative hidden size-28 shrink-0 items-center justify-center rounded-full sm:inline-flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
     >
       <svg
         viewBox="0 0 100 100"

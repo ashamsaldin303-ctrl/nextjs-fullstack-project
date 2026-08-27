@@ -167,12 +167,8 @@
     -webkit-backdrop-filter: blur(14px);
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
-  .glass-light {
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-  }
+  /* L1-D P2 (fix 2-d): .glass-light deleted — zero TSX references since the
+     Phase-2 glass pass; only .glass-dark (navbar) survives. */
 
   /* Cinematic dark gradient fallback for 3D/WebGL heroes — blue + green
      radials over the dark base (palette revert: blue glows are back). */
@@ -200,11 +196,8 @@
     @apply text-g-blue;
   }
 
-  /* Reverse typography — mix-blend-difference section titles over visuals */
-  .blend-difference {
-    mix-blend-mode: difference;
-    color: #FFFFFF;
-  }
+  /* L1-D P2 (fix 2-d): .blend-difference deleted — zero TSX references
+     (the R7-b cursor blends via its own mix-blend-mode rules below). */
 
   /* Subtle radial glow that follows the cursor (cards set --mx / --my in px) */
   .glow-cursor::before {
@@ -620,14 +613,13 @@ html[data-intro] .hero-rail-dot {
 }
 
 /* --- Arabic typography precision (§3.3) ---------------------------------
-   Arabic text needs looser line-height, zero letter-spacing, and a max
-   line length for readability. Cairo headings 700-900 at 1.3. */
+   Arabic text needs looser line-height and zero letter-spacing for
+   readability. Cairo headings 700-900 at 1.3. */
 :lang(ar) {
   --ar-lh: 1.8;
   /* 1.25 → 1.3 (Batch 1 item 2): tashkeel/diacritic breathing room for
      Cairo 700-900 headings at text-7xl/8xl display sizes. */
   --ar-lh-heading: 1.3;
-  --ar-max-prose: 42rem;
 }
 :lang(ar) p,
 :lang(ar) li,
@@ -649,11 +641,8 @@ html[data-intro] .hero-rail-dot {
 :lang(ar) *:not([lang="en"]):not([dir="ltr"]) {
   letter-spacing: normal !important;
 }
-/* Constrain prose blocks for Arabic readability (applied where the
-   utility class .prose-ar-max is used — opt-in, not global). */
-:lang(ar) .prose-ar-max {
-  max-width: var(--ar-max-prose);
-}
+/* L1-D P2 (fix 2-d): .prose-ar-max + the --ar-max-prose var deleted —
+   zero TSX references since the Phase-4 layout pass. */
 
 /* --- Card depth tokens (§3.4) --------------------------------------------
    Transparent white 8-10% border over dark + multi-layer shadow + 1px
@@ -740,102 +729,24 @@ html[data-intro] .hero-rail-dot {
 }
 
 /* =========================================================================
-   Phase 2 — Sensory Polish Layer
+   L1-D P2 (fix 2-d): the entire Phase 2 "Sensory Polish Layer" block was
+   DELETED here (~86 lines): .elyra-grain, the .elyra-cursor base selector,
+   the Phase-2 .elyra-cursor-dot/-ring pair, .elyra-cursor-chip,
+   .elyra-cursor--visible and the duplicate `cursor: none` rule. Those
+   components (film-grain.tsx / magnetic-cursor.tsx) were unmounted in R7-b
+   — grep across src/ returns ZERO TSX references — and the R7-b block at
+   the end of this file owns the live .grain-overlay / .elyra-cursor-*
+   styles, the html.elyra-cursor-active cursor:none rule (JS-guarded for
+   fine pointers + reduced motion) and the sensory print hygiene.
    ========================================================================= */
-
-/* --- Film Grain (prompt §4) --------------------------------------------
-   Static SVG feTurbulence noise as a data-URI. One layer, fixed, 3.5%
-   opacity (WCAG-safe), inert, and hidden when printing. URL-encoded for
-   the CSP-safe `data:` URI scheme (img-src already allows data:). */
-.elyra-grain {
-  position: fixed;
-  inset: 0;
-  z-index: 90;
-  pointer-events: none;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-}
-
-/* --- Magnetic Cursor (prompt §3) ----------------------------------------
-   The two layers are positioned by JS (translate3d) inside a single rAF
-   loop — never via these properties. `mix-blend-difference` keeps them
-   visible over both light and dark sections without extra colors. */
-.elyra-cursor {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 200; /* above Sheet/Dialog overlays (z-50) — native cursor is hidden */
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.25s ease;
-  will-change: transform;
-}
-
-.elyra-cursor-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 9999px;
-  background: #ffffff;
-  mix-blend-mode: difference;
-}
-
-.elyra-cursor-ring {
-  width: 32px;
-  height: 32px;
-  border-radius: 9999px;
-  border: 1.5px solid rgba(255, 255, 255, 0.85);
-  mix-blend-mode: difference;
-}
-
-/* WS-2: contextual text chip — positioned by JS via transform */
-.elyra-cursor-chip {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 200;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  padding: 4px 10px;
-  border-radius: 9999px;
-  background: rgba(0, 0, 0, 0.7);
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.4;
-  white-space: nowrap;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  will-change: transform, opacity;
-}
-
-.elyra-cursor--visible {
-  opacity: 1;
-}
-
-/* Hide the native cursor ONLY for fine-pointer users without a
-   reduced-motion preference (defense-in-depth for the JS guard —
-   magnetic-cursor.tsx only adds this class under the same conditions). */
-@media (pointer: fine) {
-  @media (prefers-reduced-motion: no-preference) {
-    .elyra-cursor-active,
-    .elyra-cursor-active * {
-      cursor: none;
-    }
-  }
-}
 
 /* =========================================================================
    Print hygiene — paper wants content, not chrome
    ========================================================================= */
 @media print {
-  /* Fixed chrome: navbar (incl. the sound toggle inside it), film grain,
-     magnetic-cursor layers, toast notifications. */
+  /* Fixed chrome: navbar (incl. the sound toggle inside it) and toast
+     notifications. (The R7-b sensory layer has its own print block.) */
   body > header,
-  .elyra-grain,
-  .elyra-cursor,
-  .elyra-cursor-chip,
   [data-sonner-toaster] {
     display: none !important;
   }
@@ -1029,10 +940,10 @@ html[data-intro] .hero-rail-dot {
 
 /* =========================================================================
    ===== R7-b — Sensory layer (cursor / grain) =====
-   Supersedes the Phase 2 MagneticCursor/FilmGrain pair (unmounted from the
-   [locale] layout; their rules above are inert). The new layer owns the
-   shared `.elyra-cursor-dot/-ring` names via explicit resets below, so this
-   block is fully self-sufficient regardless of what precedes it.
+   Superseded the Phase 2 MagneticCursor/FilmGrain pair — those components
+   were unmounted in R7-b and their orphaned rules were DELETED (L1-D P2,
+   fix 2-d), so this block is now the single, self-sufficient owner of
+   every class name it uses (layer / positioners / cores / label / active).
    Z-order (see the intro-overlay comment above): grain 90, cursor 200.
    ========================================================================= */
 
@@ -1076,8 +987,12 @@ html[data-intro] .hero-rail-dot {
    element's own transform never isolates its own blending) and inverts the
    whole group — core + label — over any background, dark or light.
 
-   The width/height/background/border resets neutralize the Phase 2 rules
-   that share the positioner class names above. */
+   The positioners are zero-footprint anchor points: absolutely positioned
+   at 0,0, sized by nothing (their only children are the absolutely
+   positioned cores + label, which contribute no in-flow width). The old
+   width/height/background/border resets that neutralized the deleted
+   Phase-2 rules were removed with them (L1-D P2, fix 2-d) — every visual
+   property lives on the -core rules below. */
 .elyra-cursor-layer {
   position: fixed;
   inset: 0;
@@ -1089,10 +1004,6 @@ html[data-intro] .hero-rail-dot {
   position: absolute;
   top: 0;
   left: 0;
-  width: 0;
-  height: 0;
-  background: transparent;
-  border: 0;
   opacity: 1;
   transition: opacity 0.2s ease;
   will-change: transform;

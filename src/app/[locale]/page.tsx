@@ -12,6 +12,7 @@ import { Testimonials } from '@/components/home/testimonials'
 import { CalculatorLazy } from '@/components/home/calculator-lazy'
 import { HomeJsonLd } from '@/components/seo/home-json-ld'
 import { SITE_URL } from '@/lib/seo'
+import { OG_IMAGE_ALT } from '@/lib/site-config'
 
 /**
  * Home-level metadata exists for ONE reason (final-board R5-LOW-1,
@@ -38,7 +39,9 @@ export async function generateMetadata({
       locale === 'ar' ? `${SITE_URL}/opengraph-image` : `${SITE_URL}/en/opengraph-image`,
     width: 1200,
     height: 630,
-    alt: 'Elyra — Stunning Websites & n8n Automation Systems',
+    // Shared alt constant (L1-B P3) — identical to the layout's and
+    // buildPageMetadata's cards (single source in site-config.ts).
+    alt: OG_IMAGE_ALT,
     type: 'image/png',
   }
   return {

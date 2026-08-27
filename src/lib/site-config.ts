@@ -25,6 +25,15 @@ export const SITE_SOCIAL = {
 } as const
 
 /**
+ * Single source of truth for the OG/Twitter card image alt text (L1-B P3,
+ * fix 2-d): seo.ts, [locale]/layout.tsx and [locale]/page.tsx all reference
+ * the SAME per-locale opengraph-image asset — one shared constant prevents
+ * the two divergent alt strings the audit found ("… · n8n Automation ·
+ * Digital Studio" vs "… & n8n Automation Systems").
+ */
+export const OG_IMAGE_ALT = 'Elyra — Stunning Websites · n8n Automation · Digital Studio'
+
+/**
  * WhatsApp click-to-chat deep link with a prefilled, URL-encoded greeting
  * (Batch 2 item 7e — hero→contact conversion wave). The greeting copy is
  * owned by the caller (i18n: pages.contact.channels.whatsapp.greeting) so

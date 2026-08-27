@@ -7,7 +7,9 @@
  *   2. value types match (array vs string vs number),
  *   3. array values have equal length,
  *   4. ICU placeholder sets match ({name} tokens, incl. the argument of
- *      {count, plural, …} / {x, select, …} — arm text is ignored).
+ *      {count, plural, …} / {x, select, …} — arm text is ignored),
+ *   5. no accidentally blanked strings (empty values must be allowlisted),
+ *   6. advisory: identical ar/en string values (untranslated-copy risk).
  * Run in CI / pre-delivery.
  */
 const fs = require('fs')
@@ -56,6 +58,48 @@ const placeholderMismatches = []
 let stringKeysChecked = 0
 let arrayKeysChecked = 0
 
+// --- Check 5 (L1-B P3, fix 2-d): intentional-empty allowlist -------------
+// An accidentally blanked string would silently pass every check above
+// (presence ✓ type ✓ placeholders ✓). Any empty string OUTSIDE this list
+// fails the gate. Verified against the current catalogs: besides
+// common.cursor.magnet (data-cursor="magnet" maps to "" — no label), the
+// two numeric stat suffixes are empty BY DESIGN in both locales — their
+// consumers render {value}{suffix} inline and these stats carry no unit.
+const EMPTY_STRING_ALLOWED = new Set([
+  'common.cursor.magnet',
+  'stats.hours.suffix',
+  'pages.about.numbers.years.suffix',
+])
+const emptyViolations = []
+for (const k of arKeys) {
+  if (arFlat[k] === '' && !EMPTY_STRING_ALLOWED.has(k)) emptyViolations.push(`${k} (ar.json)`)
+}
+for (const k of enKeys) {
+  if (enFlat[k] === '' && !EMPTY_STRING_ALLOWED.has(k)) emptyViolations.push(`${k} (en.json)`)
+}
+
+// --- Check 6 (L1-B P3, fix 2-d): identical ar/en string values (advisory) --
+// Identical strings are usually legitimate (brand names, contact values,
+// the CRM acronym, placeholder-style numerals) but can also be an
+// untranslated string — so they are COUNTED and LISTED as a warning while
+// the exit code stays 0. Numbers are excluded: ar/en numeric equality is
+// expected (durations, stats). Today's catalogs carry ~19 identical
+// strings + 23 identical numbers (the 42 legitimate values L1-B verified).
+//
+// NOT IMPLEMENTED (deliberate decision, fix 2-d): an unused-key scan.
+// Deriving key usage from t()-call literals across src/ is too fragile —
+// dynamic keys such as t(`services.${id}.title`) defeat a literal scan and
+// would produce false positives that make the gate untrustworthy. Dead
+// catalog keys are tracked by the manual audits instead (L1-B P3 lists
+// the current 8: nav.services, common.back/next/close/getStarted/explore,
+// common.reduceMotionNote, hero.canvasFallback).
+const identicalStringKeys = []
+for (const k of arKeys) {
+  if (k in enFlat && typeof arFlat[k] === 'string' && arFlat[k] === enFlat[k]) {
+    identicalStringKeys.push(k)
+  }
+}
+
 for (const k of arKeys) {
   if (!(k in enFlat)) continue
   const a = arFlat[k]
@@ -94,7 +138,8 @@ const failed =
   enOnly.length ||
   typeMismatches.length ||
   arrayLengthMismatches.length ||
-  placeholderMismatches.length
+  placeholderMismatches.length ||
+  emptyViolations.length
 
 if (failed) {
   console.error('PARITY FAIL')
@@ -103,8 +148,19 @@ if (failed) {
   if (typeMismatches.length) console.error('  Type mismatches:', typeMismatches)
   if (arrayLengthMismatches.length) console.error('  Array length mismatches:', arrayLengthMismatches)
   if (placeholderMismatches.length) console.error('  Placeholder mismatches:', placeholderMismatches)
+  if (emptyViolations.length) console.error('  Empty string values (not in allowlist):', emptyViolations)
   process.exit(1)
 }
 
 console.log(`Parity OK: ${arKeys.length} keys matched across ar.json and en.json`)
 console.log(`  ICU placeholders verified on ${stringKeysChecked} string keys · array lengths verified on ${arrayKeysChecked} array keys`)
+console.log(`  Empty-string check: ${EMPTY_STRING_ALLOWED.size} allowlisted keys, no accidental blanks`)
+if (identicalStringKeys.length) {
+  console.log(
+    `  ⚠ ${identicalStringKeys.length} identical ar/en string values (usually legitimate — brand names/contact values — but review for untranslated copy):`,
+  )
+  for (const k of identicalStringKeys.slice(0, 10)) console.log(`      ${k}`)
+  if (identicalStringKeys.length > 10) {
+    console.log(`      … and ${identicalStringKeys.length - 10} more`)
+  }
+}

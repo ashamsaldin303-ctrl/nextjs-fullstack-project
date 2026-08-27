@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import type { Locale } from '@/i18n/routing'
+import { OG_IMAGE_ALT } from '@/lib/site-config'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -47,7 +48,9 @@ export async function buildPageMetadata({
     url: ogImageUrl,
     width: 1200,
     height: 630,
-    alt: 'Elyra — Stunning Websites · n8n Automation · Digital Studio',
+    // Shared alt constant (L1-B P3): layout.tsx + [locale]/page.tsx pin the
+    // same image and must describe it identically — see site-config.ts.
+    alt: OG_IMAGE_ALT,
     type: 'image/png',
   }
 

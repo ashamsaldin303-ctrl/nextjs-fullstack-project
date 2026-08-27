@@ -8,9 +8,9 @@ export const contentType = 'image/png'
 /**
  * Shared OG/Twitter card for every page under [locale] (file-convention
  * bubbling: pages without their own opengraph-image inherit this one).
- * Mirrors the icon.tsx E-mark + quad-dot brand language (amber/gold/
- * red/green — palette law: no blue) on the dark hero surface
- * (#0F172A + amber glow).
+ * Mirrors the icon.tsx E-mark + quad-dot brand language (blue/green/
+ * red/yellow — Google-family palette; primary #0071E3, accent #4285F4)
+ * on the dark hero surface (#0F172A + brand-blue glow).
  *
  * FONT DECISION: text is English-only on purpose. ImageResponse's default
  * font has no Arabic glyphs (renders tofu), and the repo ships no font
@@ -35,13 +35,13 @@ export default function OpengraphImage() {
         }}
       >
         {/* Primary glow — same radial treatment as the page heroes
-            (amber, was blue) */}
+            (brand blue #0071E3) */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
             backgroundImage:
-              'radial-gradient(circle 700px at 50% 0%, rgba(245, 158, 11, 0.35), rgba(15, 23, 42, 0) 100%)',
+              'radial-gradient(circle 700px at 50% 0%, rgba(0, 113, 227, 0.35), rgba(15, 23, 42, 0) 100%)',
           }}
         />
 

@@ -136,9 +136,13 @@ function ResultsContent({
   return (
     <div className="text-center">
       <TrendingUp className="mx-auto size-9 text-g-green" aria-hidden="true" />
-      <p className="mt-2 font-bold leading-snug text-primary-strong tabular-nums text-3xl md:text-4xl">
-        {metric}
-      </p>
+      {/* L1-C P3 (fix 2-d): metric line renders ONLY when the catalog
+          provides one — no hardcoded Latin '+140%' fallback on the AR site. */}
+      {metric ? (
+        <p className="mt-2 font-bold leading-snug text-primary-strong tabular-nums text-3xl md:text-4xl">
+          {metric}
+        </p>
+      ) : null}
       {sub ? <p className="mt-1 text-sm text-muted-foreground md:text-base">{sub}</p> : null}
     </div>
   )
@@ -160,7 +164,7 @@ export function DeconstructedCard({ projectKey }: { projectKey: string }) {
   const [size, setSize] = useState({ w: 480, h: 288 })
 
   const metrics = t.raw(`${projectKey}.metrics`) as string[] | undefined
-  const metricMain = metrics?.[0] ?? '+140%'
+  const metricMain = metrics?.[0] ?? ''
   const metricSub = metrics?.[1] ?? ''
 
   // Viewport-height damp — on short viewports (landscape phones, small

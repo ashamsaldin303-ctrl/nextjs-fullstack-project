@@ -121,7 +121,9 @@ export default async function AboutPage() {
                   {/* UI-5: hover depth on team cards — lift + primary border
                       tint + avatar nudge. */}
                   <article className="card-hover-lift group flex h-full flex-col items-center rounded-3xl border border-border bg-card p-6 text-center hover:border-primary/30">
-                    <div className={`flex size-20 items-center justify-center rounded-full bg-gradient-to-br ${AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length] ?? 'from-primary to-g-blue'} text-2xl font-bold text-white transition-transform duration-300 group-hover:scale-105`}>
+                    {/* L1-C P3 (fix 2-d): dropped the unreachable `??` — a modulo
+                        over a non-empty const array always yields a defined entry. */}
+                    <div className={`flex size-20 items-center justify-center rounded-full bg-gradient-to-br ${AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length]} text-2xl font-bold text-white transition-transform duration-300 group-hover:scale-105`}>
                       {initials}
                     </div>
                     <h3 className="mt-4 font-semibold">{name}</h3>

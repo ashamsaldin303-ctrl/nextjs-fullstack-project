@@ -1,13 +1,14 @@
 import crypto from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import {
   computeEstimate,
   type IntegrationKey,
   type CalculatorInput,
 } from '@/lib/calculator'
-import { rateLimit } from '@/lib/rate-limit'
+import { rateLimit, refundRateLimit } from '@/lib/rate-limit'
 import {
   leadNameSchema,
   leadEmailSchema,
@@ -39,6 +40,8 @@ import { getApiT } from '@/lib/api-i18n'
  *        cuid-shaped but collision-proof (final-board R1 — the previous
  *        id.slice(0, 8) was 'c' + 7 base-36 TIMESTAMP digits, so two
  *        leads created within the same ~36 ms bucket shared one).
+ *        The same value is PERSISTED on the row (unique `reference`
+ *        column, L1-B fix) so support can map it back to the lead.
  *        (Also the honeypot path: bot submissions get the same 201 shape
  *        but are silently discarded — see the POST handler.)
  *
@@ -174,6 +177,17 @@ function randomReference(): string {
   return 'c' + Array.from({ length: 9 }, () => crypto.randomInt(36).toString(36)).join('')
 }
 
+/**
+ * Prisma P2002 (unique-constraint violation). The only realistic source
+ * is the `reference` unique index (collision odds ~1e-14 per draw) — the
+ * create path regenerates and retries on it (L1-B fix).
+ */
+function isUniqueViolation(err: unknown): boolean {
+  return (
+    err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002'
+  )
+}
+
 const KNOWN_FIELDS = new Set([
   'name', 'email', 'whatsapp', 'message', 'source', 'service', 'pages',
   'languages', 'threeD', 'integrations', 'automationLevel',
@@ -284,6 +298,11 @@ export async function POST(req: NextRequest) {
 
   // 2) Cheap header gates BEFORE any body parsing (audit P1-2) — never
   // allocate a parser for oversized or non-JSON requests.
+  // Framing assumption (L1-A P3): both size gates below key off
+  // Content-Length / Transfer-Encoding — the shipped HTTP/1.1 standalone
+  // server (and its h1 fronting proxy) always emits one of the two, so
+  // the cap holds; length-less h2 DATA forwarding would bypass it
+  // (unreachable in this deployment — never expose the app over h2/h2c).
   const contentLengthHeader = req.headers.get('content-length')
   const contentLength =
     contentLengthHeader === null ? 0 : Number(contentLengthHeader)
@@ -383,6 +402,8 @@ export async function POST(req: NextRequest) {
   //    before the write, so ONLY requests that actually reach a
   //    persisted lead consume it. Everything above (413/415/403/400
   //    and the honeypot discard) stays on the lenient bucket alone.
+  //    If the write below still FAILS, its catch refunds this hit
+  //    (L1-B fix) — a storage error must not cost the visitor a slot.
   const strict = rateLimit(ip, 'strict')
   if (!strict.allowed) {
     return NextResponse.json(
@@ -401,33 +422,49 @@ export async function POST(req: NextRequest) {
   const userAgent = req.headers.get('user-agent')
   const ipForRecord = ip === 'anonymous' ? null : ip
 
-  try {
-    await db.lead.create({
-      data: {
-        name: input.name,
-        email: input.email,
-        whatsapp: input.whatsapp ?? null,
-        // Persisted since final-board R1/R6 — previously the inquiry text
-        // only rode the (optional) webhook and was silently lost.
-        message: stored.message,
-        service: stored.service,
-        pages: stored.pages,
-        languages: stored.languages,
-        threeD: stored.threeD,
-        integrations: stored.integrationsJson,
-        automationLevel: stored.automationLevel,
-        minBudget: stored.estimate.minBudget,
-        maxBudget: stored.estimate.maxBudget,
-        weeksMin: stored.estimate.weeksMin,
-        weeksMax: stored.estimate.weeksMax,
-        ipAddress: ipForRecord,
-        userAgent,
-      },
-    })
+  // Generated BEFORE the create and PERSISTED on the row (L1-B P2 fix):
+  // the reference used to be minted only for the 201 response/webhook, so
+  // the value shown in the success UI was untraceable — the team could
+  // never map "c5tr8p13xb" back to a stored lead.
+  let reference = randomReference()
 
-    // Collision-proof reference (final-board R1) — random, NOT derived
-    // from the row id (timestamp prefix collided within ~36 ms).
-    const reference = randomReference()
+  try {
+    // Unique-index collision (P2002 on `reference`, odds ~1e-14 per
+    // draw) regenerates and retries — max 3 attempts, then the generic 500.
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await db.lead.create({
+          data: {
+            reference,
+            name: input.name,
+            email: input.email,
+            whatsapp: input.whatsapp ?? null,
+            // Persisted since final-board R1/R6 — previously the inquiry text
+            // only rode the (optional) webhook and was silently lost.
+            message: stored.message,
+            service: stored.service,
+            pages: stored.pages,
+            languages: stored.languages,
+            threeD: stored.threeD,
+            integrations: stored.integrationsJson,
+            automationLevel: stored.automationLevel,
+            minBudget: stored.estimate.minBudget,
+            maxBudget: stored.estimate.maxBudget,
+            weeksMin: stored.estimate.weeksMin,
+            weeksMax: stored.estimate.weeksMax,
+            ipAddress: ipForRecord,
+            userAgent,
+          },
+        })
+        break
+      } catch (err) {
+        if (attempt < 3 && isUniqueViolation(err)) {
+          reference = randomReference()
+          continue
+        }
+        throw err
+      }
+    }
 
     // 8) Webhook — fire-and-forget, never blocks or fails the 201.
     const payload: LeadWebhookPayload = {
@@ -461,6 +498,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ reference }, { status: 201 })
   } catch (err) {
+    // Refund the strict slot burned in step 6 (L1-B P3 fix): the write
+    // failed, so this request never became a persisted lead — the visitor
+    // must not lose one of only 5 submissions/min to a storage failure.
+    // (The lenient hit stays counted: the request did reach the server.)
+    refundRateLimit(ip, 'strict')
     // Details to the server log only — never to the client (§3.1).
     console.error('[elyra:api/leads] storage failed:', err instanceof Error ? err.message : err)
     return NextResponse.json(

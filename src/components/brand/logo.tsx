@@ -9,8 +9,9 @@ interface LogoProps {
 
 /**
  * Elyra wordmark — clean «Elyra» text with a distinctive E
- * and a 4-color brand dot in the amber/green family (palette law:
- * no blue). Pure SVG — zero asset weight.
+ * and the intentional Google quad-dot brand mark (blue/green/red/yellow:
+ * #4285F4/#34A853/#EA4335/#FBBC05 — deliberately outside the token
+ * system). Pure SVG — zero asset weight.
  */
 export function Logo({
   className,

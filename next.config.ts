@@ -43,6 +43,12 @@ const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  // Cross-origin isolation (L1-A P2 fix): COOP cuts window.opener access
+  // from cross-origin popups; CORP stops our resources from being embedded
+  // by arbitrary cross-origin pages. Both are no-ops for the app's own
+  // functionality (no popups, same-origin assets only).
+  { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+  { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
   {
     key: 'Strict-Transport-Security',
     // No preload: submit to hstspreload.org first (preload is hard to undo).

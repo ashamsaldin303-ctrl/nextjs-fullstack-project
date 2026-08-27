@@ -27,7 +27,6 @@
   },
   "nav": {
     "home": "Home",
-    "services": "Services",
     "websites": "Website Building",
     "automation": "Automation",
     "work": "Work",
@@ -51,7 +50,6 @@
     "ctaPrimary": "Start Your Project",
     "ctaSecondary": "See Our Work",
     "scroll": "Scroll to explore",
-    "canvasFallback": "Elegant gradient background",
     "location": "Damascus",
     "watermark": "ELYRA",
     "marquee": [
@@ -139,7 +137,7 @@
           "Cobalt",
           "Emerald",
           "Coral",
-          "Amber"
+          "Sky"
         ],
         "activeLabel": "Current identity",
         "products": [
@@ -1238,12 +1236,7 @@
     }
   },
   "common": {
-    "back": "Back",
-    "next": "Next",
-    "close": "Close",
     "viewAll": "View All",
-    "getStarted": "Get Started",
-    "explore": "Explore",
     "backToHome": "Back to Home",
     "loading": "Loading...",
     "errorTitle": "An Unexpected Error Occurred",
@@ -1252,7 +1245,6 @@
     "notFoundTitle": "Page Not Found",
     "notFoundDesc": "Looks like you've reached an old or incorrect link — no worries, the road home is short.",
     "notFoundRecoveryTitle": "Where would you like to go?",
-    "reduceMotionNote": "Animations reduced in respect for your device settings",
     "sound": {
       "enable": "Enable sound effects",
       "disable": "Mute sound effects"

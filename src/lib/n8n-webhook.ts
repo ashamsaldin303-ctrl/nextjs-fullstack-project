@@ -91,9 +91,11 @@ function isConfigured(): { url: string; secret: string } | null {
   return { url, secret }
 }
 
+/** Transport only — signing happens in attemptDelivery, so the secret
+ * never propagates into this call frame (L1-A/L1-B P3 fix: the parameter
+ * used to be accepted here and silently ignored). */
 async function deliver(
   url: string,
-  secret: string,
   body: string,
   headers: Record<string, string>
 ): Promise<boolean> {
@@ -176,7 +178,7 @@ export async function sendLeadWebhook(
       'X-Elyra-Timestamp': timestamp,
       'X-Elyra-Nonce': nonce,
     }
-    return deliver(config.url, config.secret, body, headers)
+    return deliver(config.url, body, headers)
   }
 
   // One retry on network failure only (prompt §3.3).

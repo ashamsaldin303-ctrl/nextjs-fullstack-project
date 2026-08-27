@@ -1,0 +1,40 @@
+# =============================================================================
+# Production example — the root Caddyfile is sandbox-only.
+#
+# The repo-root ./Caddyfile intentionally ships an open-proxy/SSRF primitive
+# (?XTransformPort → arbitrary localhost ports) for the preview tooling.
+# NEVER copy that file to production. This example is the production-safe
+# shape: automatic TLS, no query-based routing, and X-Forwarded-For /
+# X-Real-IP OVERWRITTEN with the real client address — which is exactly why
+# the app runs with TRUST_PROXY=true (baked into the Dockerfile ENV block).
+#
+# Usage: copy to your Caddy config dir, edit the site address, `caddy reload`.
+#   cp deploy/Caddyfile.example /etc/caddy/Caddyfile
+# =============================================================================
+elyra.example.com {
+	# TLS is automatic (Let's Encrypt) once the domain resolves here.
+	# For a local trial only: replace the site address with `:8443` and
+	# add a `tls internal` directive.
+
+	# Compression (zstd preferred, gzip fallback).
+	encode zstd gzip
+
+	reverse_proxy 127.0.0.1:3000 {
+		# Overwrite — never append — client-supplied forwarding headers:
+		# the app trusts X-Forwarded-For only because the proxy replaces it.
+		header_up Host {host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+	}
+
+	# Optional backstop hardening — the app itself already sends its full
+	# security-header set (CSP, HSTS, COOP/CORP, ...) via next.config.ts;
+	# these lines just guarantee a sane floor if the app is ever swapped.
+	# header {
+	# 	Strict-Transport-Security "max-age=63072000; includeSubDomains"
+	# 	X-Content-Type-Options "nosniff"
+	# 	X-Frame-Options "DENY"
+	# 	Referrer-Policy "strict-origin-when-cross-origin"
+	# }
+}

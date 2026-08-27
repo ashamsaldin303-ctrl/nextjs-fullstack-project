@@ -390,7 +390,7 @@ export function AutomationSimulator({
                 aria-pressed={scenario === s}
                 onClick={() => setScenario(s)}
                 className={cn(
-                  'inline-flex h-10 items-center rounded-full px-4 text-sm font-medium transition-colors',
+                  'inline-flex min-h-11 items-center rounded-full px-4 text-sm font-medium transition-colors',
                   scenario === s
                     ? 'bg-primary text-primary-foreground'
                     : 'border border-white/15 bg-white/5 text-white/80 hover:bg-white/10'
@@ -438,7 +438,7 @@ export function AutomationSimulator({
                 const x2 = ((positions[i + 1] ?? 0) / 100) * VIEW_W
                 const edgeActive = currentStep === i + 1
                 const edgeDone = currentStep > i + 1 || (completed.includes(i) && completed.includes(i + 1)) || (status === 'completed' && completed.includes(i))
-                const stroke = edgeActive ? 'url(#elyra-edge)' : edgeDone ? 'rgba(217,119,6,0.45)' : 'rgba(255,255,255,0.10)'
+                const stroke = edgeActive ? 'url(#elyra-edge)' : edgeDone ? 'rgba(66,133,244,0.45)' : 'rgba(255,255,255,0.10)'
                 return (
                   <line
                     key={i}
@@ -508,7 +508,7 @@ export function AutomationSimulator({
                     <span
                       key={`packet-${i}`}
                       aria-hidden="true"
-                      className="elyra-packet absolute top-1/2 size-2 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_12px_rgba(217,119,6,0.95)]"
+                      className="elyra-packet absolute top-1/2 size-2 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_12px_rgba(0,113,227,0.95)]"
                       style={{ '--from': `${from}%`, '--to': `${to}%` } as CSSProperties}
                     />
                   )
@@ -541,7 +541,7 @@ export function AutomationSimulator({
                   <div
                     className={cn(
                       'relative flex size-16 items-center justify-center rounded-2xl border backdrop-blur-md transition-all duration-300',
-                      isActive && 'border-primary bg-primary/20 shadow-[0_0_28px_rgba(217,119,6,0.55)]',
+                      isActive && 'border-primary bg-primary/20 shadow-[0_0_28px_rgba(0,113,227,0.55)]',
                       isDone && 'border-g-green/70 bg-g-green/15',
                       !isActive && !isDone && 'border-white/15 bg-white/5',
                       status === 'completed' && !reduced && 'elyra-node-flash'
@@ -550,7 +550,7 @@ export function AutomationSimulator({
                     {isActive && !reduced ? (
                       <motion.span
                         className="absolute inset-0 rounded-2xl border-2 border-primary/50"
-                        animate={{ boxShadow: ['0 0 0 0 rgba(217,119,6,0.5)', '0 0 0 12px rgba(217,119,6,0)'] }}
+                        animate={{ boxShadow: ['0 0 0 0 rgba(0,113,227,0.5)', '0 0 0 12px rgba(0,113,227,0)'] }}
                         transition={{ duration: 1, repeat: Infinity }}
                       />
                     ) : null}
@@ -740,7 +740,7 @@ export function AutomationSimulator({
           className={cn(
             'mt-4 overflow-hidden rounded-2xl border bg-black/40 backdrop-blur-md transition-[border-color,box-shadow] duration-700',
             payloadFlash ? 'border-primary/60' : 'border-white/10',
-            payloadFlash && !reduced && 'shadow-[0_0_32px_rgba(217,119,6,0.28)]'
+            payloadFlash && !reduced && 'shadow-[0_0_32px_rgba(0,113,227,0.28)]'
           )}
         >
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-3">

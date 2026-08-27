@@ -1,7 +1,7 @@
 'use client'
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useRef, useState, useEffect, useMemo } from 'react'
+import { useRef, useState, useEffect, useMemo, useSyncExternalStore } from 'react'
 import * as THREE from 'three'
 import { getHeroScroll } from '@/lib/hero-scroll'
 
@@ -29,14 +29,21 @@ import { getHeroScroll } from '@/lib/hero-scroll'
  *
  * Preserved performance architecture: deferred chunk (parent handles
  * requestIdleCallback/2.5s), IntersectionObserver-gated frameloop
- * ("never"/"always"), document-visibility pause, dpr [1,2] clamps,
- * pointer-lerp tilt + mouse attraction, gradient fallback for
- * no-WebGL/reduced-motion (parent handles), additive blending + soft
- * round sprites, single draw call (one THREE.Points), R3F JSX disposal,
- * context-loss guard.
+ * ("never"/"always"), document-visibility pause, dpr [1,2] clamps on
+ * desktop (mobile tier — FIX(2-b), L1-D P2: coarse-pointer/<768px
+ * viewports run 1800 particles + dpr [1,1.5], resolved reactively
+ * without canvas re-creation), pointer-lerp tilt + mouse attraction,
+ * gradient fallback for no-WebGL/reduced-motion (parent handles),
+ * additive blending + soft round sprites, single draw call (one
+ * THREE.Points), R3F JSX disposal, context-loss guard.
  */
 
-const PARTICLE_COUNT = 4500
+// Particle budget (FIX(2-b), L1-D P2): the curl vertex cost is per-particle
+// (curlNoise = 6 × snoiseVec3 = 18 snoise/vertex), so coarse-pointer/<768px
+// viewports run a lighter tier — 1800 particles — alongside the capped dpr
+// below. Desktop numbers stay byte-identical (4500 / dpr [1,2]).
+const PARTICLE_COUNT_DESKTOP = 4500
+const PARTICLE_COUNT_MOBILE = 1800
 // Brand family only — blues / green / cool-white (palette revert: blue
 // is back — Google/Apple blue family with the brand green as counterpoint).
 const COLORS = [
@@ -370,7 +377,15 @@ const SILK_FRAGMENT = /* glsl */ `
   }
 `
 
-function Particles({ mouse }: { mouse: React.MutableRefObject<{ x: number; y: number; tx: number; ty: number }> }) {
+function Particles({
+  mouse,
+  count,
+}: {
+  mouse: React.MutableRefObject<{ x: number; y: number; tx: number; ty: number }>
+  /** Tier-dependent particle budget (desktop 4500 / mobile 1800) — the
+   *  parent keys the component on it, so a tier flip rebuilds the buffers. */
+  count: number
+}) {
   const pointsRef = useRef<THREE.Points>(null)
   const mouseVec = useRef(new THREE.Vector3(0, 0, 0))
 
@@ -378,11 +393,11 @@ function Particles({ mouse }: { mouse: React.MutableRefObject<{ x: number; y: nu
   // call that React 19 only permits inside a lazy state initializer (never in
   // render body or useMemo factories). See react-hooks/purity.
   const [buffers] = useState(() => {
-    const positions = new Float32Array(PARTICLE_COUNT * 3)
-    const scales = new Float32Array(PARTICLE_COUNT)
-    const speeds = new Float32Array(PARTICLE_COUNT)
-    const colors = new Float32Array(PARTICLE_COUNT * 3)
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const positions = new Float32Array(count * 3)
+    const scales = new Float32Array(count)
+    const speeds = new Float32Array(count)
+    const colors = new Float32Array(count * 3)
+    for (let i = 0; i < count; i++) {
       // Spread in a wide box around the camera
       const radius = 4 + Math.random() * 9
       const theta = Math.random() * Math.PI * 2
@@ -489,7 +504,11 @@ function SilkBackdrop({ mouse }: { mouse: React.MutableRefObject<{ x: number; y:
 
   return (
     <mesh position={[0, 0, SILK_PLANE_Z]} renderOrder={-1} frustumCulled={false}>
-      <planeGeometry args={[64, 32]} />
+      {/* 80 wide covers 32:9 ultrawides (FIX(2-b), L1-D P3): the visible
+          half-width at the dolly's farthest z (dist 15.8, aspect 3.56) is
+          ≈39.4 world units < 40 — one fullscreen 1-segment quad, so the
+          extra width is cost-free. Height stays 32 (vertical fov). */}
+      <planeGeometry args={[80, 32]} />
       {/* True additive over the PAGE, not just over the framebuffer: the
           canvas is transparent, so plain AdditiveBlending (SRC_ALPHA, ONE)
           would accumulate alpha≈1 across the fullscreen plane and hide the
@@ -542,6 +561,44 @@ function ContextLossGuard() {
   return null
 }
 
+/* Mobile tier (FIX(2-b), L1-D P2) via useSyncExternalStore — the exact
+ * pattern of use-reduced-motion.ts: one module-level MQL singleton
+ * (matchMedia allocates a fresh MediaQueryList on every call) + a false
+ * server snapshot (desktop tier during SSR; HeroCanvas is a client-only
+ * dynamic import anyway). Reactive by design: crossing the boundary
+ * mid-session swaps the dpr in place (R3F re-applies the pixel ratio
+ * without recreating the canvas/GL context) and remounts Particles via a
+ * key so the buffers resize to the new count — the canvas itself survives. */
+let tierMql: MediaQueryList | null = null
+
+function getTierMql(): MediaQueryList | null {
+  if (typeof window === 'undefined') return null
+  if (!tierMql) {
+    tierMql = window.matchMedia('(max-width: 767px), (pointer: coarse)')
+  }
+  return tierMql
+}
+
+function subscribeTier(onChange: () => void): () => void {
+  const mq = getTierMql()
+  if (!mq) return () => {}
+  mq.addEventListener('change', onChange)
+  return () => mq.removeEventListener('change', onChange)
+}
+
+function getTierSnapshot(): boolean {
+  return getTierMql()?.matches ?? false
+}
+
+function getTierServerSnapshot(): boolean {
+  return false
+}
+
+/** True on coarse-pointer or <768px viewports → lighter particle tier. */
+function useMobileTier(): boolean {
+  return useSyncExternalStore(subscribeTier, getTierSnapshot, getTierServerSnapshot)
+}
+
 interface HeroCanvasProps {
   active: boolean
 }
@@ -549,6 +606,10 @@ interface HeroCanvasProps {
 export function HeroCanvas({ active }: HeroCanvasProps) {
   const mouse = useRef({ x: 0, y: 0, tx: 0, ty: 0 })
   const [glAvailable, setGlAvailable] = useState(true)
+  // FIX(2-b), L1-D P2: mobile tier — coarse-pointer/<768px viewports get
+  // 1800 particles + dpr ≤ 1.5 (was: full-fat 4500 + dpr ≤ 2 on phones).
+  const mobileTier = useMobileTier()
+  const particleCount = mobileTier ? PARTICLE_COUNT_MOBILE : PARTICLE_COUNT_DESKTOP
 
   useEffect(() => {
     // WebGL feature detection — deferred to rAF so the setState isn't synchronous
@@ -583,14 +644,17 @@ export function HeroCanvas({ active }: HeroCanvasProps) {
   return (
     <div className="absolute inset-0 -z-0">
       <Canvas
-        dpr={[1, 2]}
+        dpr={mobileTier ? [1, 1.5] : [1, 2]}
         frameloop={active ? 'always' : 'never'}
         gl={{ antialias: false, alpha: true, powerPreference: 'high-performance' }}
         camera={{ position: [0, 0, BASE_CAMERA_Z], fov: 70 }}
         style={{ background: 'transparent' }}
       >
         <SilkBackdrop mouse={mouse} />
-        <Particles mouse={mouse} />
+        {/* key: the buffers are sized once per mount in the lazy useState
+            initializer, so a tier flip remounts the Points with the new
+            count — the Canvas/GL context itself survives the change */}
+        <Particles key={particleCount} mouse={mouse} count={particleCount} />
         <ScrollDolly />
         <ContextLossGuard />
       </Canvas>

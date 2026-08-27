@@ -56,6 +56,12 @@ function SheetContent({
       <SheetOverlay />
       <SheetPrimitive.Content
         data-slot="sheet-content"
+        // L1-D P3 (fix 2-d): Radix dev-warns on a role=dialog without a
+        // Description. The only consumer (navbar sheet) passes none — and
+        // the stock built-in close/description was removed (LOW-10) — so
+        // opt the dialog out explicitly. Declared BEFORE {...props} so a
+        // future consumer can still override it with a real description id.
+        aria-describedby={undefined}
         className={cn(
           "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
           side === "right" &&

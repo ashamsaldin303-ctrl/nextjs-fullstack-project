@@ -437,7 +437,7 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
                 </div>
                 {i === 1 && (
                   <div className="mt-[1px] flex min-w-0 items-center gap-[3px] overflow-hidden">
-                    <span className="shrink-0 text-[6px] leading-none text-amber-400">★★★★★</span>
+                    <span className="shrink-0 text-[6px] leading-none text-g-blue">★★★★★</span>
                     <span className="shrink-0 text-[6px] font-bold leading-none text-stone-700">
                       {t('site.rating')}
                     </span>
@@ -935,7 +935,7 @@ function DashOldScene() {
               )}
               innerStyle={
                 i === OLD_SHEET_ROWS.length - 1
-                  ? { boxShadow: 'inset 0 0 0 1.5px #b45309' }
+                  ? { boxShadow: 'inset 0 0 0 1.5px #1d4ed8' }
                   : undefined
               }
             >

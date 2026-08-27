@@ -1,7 +1,15 @@
 'use client'
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type Ref,
+} from 'react'
 import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 
@@ -20,9 +28,13 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
  *
  * Kept from the previous architecture: PMREM/RoomEnvironment IBL, ambient +
  * 4 brand-colored point lights, drag-to-rotate with pointer capture, mouse
- * parallax lerp, auto-spin when idle, DPR [1,2], frameloop gated on `active`,
- * ContextLossGuard, WebGL feature detection, and explicit disposal of every
- * prop-passed geometry/material (R3F only disposes JSX-declared ones).
+ * parallax lerp (FIX(2-b), L1-D P1: reads R3F's state.pointer NDC directly —
+ * the old manual e.currentTarget rect math was dead under R3F v9's
+ * pointer-capture shim), auto-spin when idle, arrow-key rotation via the
+ * imperative nudge handle (keyboard drag equivalent), DPR [1,2], frameloop
+ * gated on `active`, ContextLossGuard, WebGL feature detection, and explicit
+ * disposal of every prop-passed geometry/material (R3F only disposes
+ * JSX-declared ones).
  *
  * React 19 note: react-hooks/immutability disallows mutating plain useRef
  * objects inside useFrame — we mutate only attached object refs (group
@@ -295,15 +307,24 @@ const HALO_FRAGMENT = /* glsl */ `
   }
 `
 
-function Centerpiece({ dragging }: { dragging: boolean }) {
-  // spinner: drag/auto-spin rotation. parallax: mouse-lerp position (parent
-  // of everything so halo + satellites drift together for depth).
-  const spinner = useRef<THREE.Group>(null)
+function Centerpiece({
+  dragging,
+  registerSpinner,
+}: {
+  dragging: boolean
+  /** Hands the spinner group up to CapabilityScene so its imperative
+   *  keyboard-nudge handle can rotate the same group this component's
+   *  drag/auto-spin mutates (a callback prop — never a ref prop — so the
+   *  react-compiler sees only local-ref mutations in BOTH components). */
+  registerSpinner: (g: THREE.Group | null) => void
+}) {
+  // spinner: drag/auto-spin rotation. parallax: pointer-lerp position
+  // (parent of everything so halo + satellites drift together for depth).
+  const spinner = useRef<THREE.Group | null>(null)
   const parallax = useRef<THREE.Group>(null)
   const haloRef = useRef<THREE.Points>(null)
   const satRefs = useRef<(THREE.Mesh | null)[]>([])
   const last = useRef({ x: 0, y: 0 })
-  const mouse = useRef({ tx: 0, ty: 0 })
   // FIX(2-c/4): R3F pointer events can't be rAF-coalesced (they fire inside
   // the render loop's event pass), so throttle to ~60Hz with a timestamp
   // guard — early return when the last processed event was <16ms ago.
@@ -400,6 +421,14 @@ function Centerpiece({ dragging }: { dragging: boolean }) {
     }
   }, [blobGeo, blobMat, haloGeo, haloMat])
 
+  // FIX(2-b): publish the spinner group to the parent's imperative nudge
+  // handle (keyboard rotation). Refs attach before effects run, and the
+  // group persists across renders — register once per mount cycle.
+  useEffect(() => {
+    registerSpinner(spinner.current)
+    return () => registerSpinner(null)
+  }, [registerSpinner])
+
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime
     // Shader uniforms are owned three.js objects — canonical R3F pattern.
@@ -412,10 +441,17 @@ function Centerpiece({ dragging }: { dragging: boolean }) {
       // gentle auto-spin
       spinner.current.rotation.y += delta * 0.25
     }
-    // mouse parallax (lerp position toward mouse target)
+    // mouse parallax (lerp position toward the pointer target). FIX(2-b,
+    // L1-D P1): the old pointermove handler read
+    // e.currentTarget.getBoundingClientRect, but R3F v9 replaces
+    // e.currentTarget with a pointer-capture shim that has no DOM API —
+    // the NDC target never updated and this lerp chased (0,0) forever.
+    // state.pointer is R3F's own maintained NDC pointer (updated by its
+    // event pass), so no listener and no rect read are needed. ÷4 keeps
+    // the drift subtle; same 0.04 easing as before.
     if (parallax.current) {
-      const tx = (mouse.current.tx * viewport.width) / 4
-      const ty = (mouse.current.ty * viewport.height) / 4
+      const tx = (state.pointer.x * viewport.width) / 4
+      const ty = (state.pointer.y * viewport.height) / 4
       parallax.current.position.x += (tx - parallax.current.position.x) * 0.04
       parallax.current.position.y += (ty - parallax.current.position.y) * 0.04
     }
@@ -444,9 +480,9 @@ function Centerpiece({ dragging }: { dragging: boolean }) {
         ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
       }}
       onPointerMove={(e) => {
-        // FIX(2-c/4): ~60Hz throttle — skips the rect read + drag delta
-        // math for sub-frame events. Early return BEFORE updating
-        // `last` keeps drag deltas accumulation-correct.
+        // FIX(2-c/4): ~60Hz throttle — skips the drag delta math for
+        // sub-frame events. Early return BEFORE updating `last` keeps
+        // drag deltas accumulation-correct.
         const now = performance.now()
         if (now - lastPointerTs.current < 16) return
         lastPointerTs.current = now
@@ -459,11 +495,6 @@ function Centerpiece({ dragging }: { dragging: boolean }) {
         }
         last.current.x = e.clientX
         last.current.y = e.clientY
-        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect?.()
-        if (rect) {
-          mouse.current.tx = ((e.clientX - rect.left) / rect.width) * 2 - 1
-          mouse.current.ty = -(((e.clientY - rect.top) / rect.height) * 2 - 1)
-        }
       }}
     >
       <group ref={spinner}>
@@ -552,9 +583,48 @@ function ContextLossGuard() {
   return null
 }
 
-export function CapabilityScene({ active }: { active: boolean }) {
+/** Imperative rotation handle (React 19 ref-as-prop, FIX(2-b) for L1-D P3)
+ *  — the keyboard path for the drag in three-d-section.tsx. Deltas are in
+ *  "drag pixels": the same ×0.01 rad/px mapping the pointer drag applies. */
+export interface CapabilitySceneHandle {
+  nudge: (dx: number, dy: number) => void
+}
+
+export function CapabilityScene({
+  active,
+  ref,
+}: {
+  active: boolean
+  /** Keyboard rotation handle — passes through next/dynamic → React.lazy
+   *  because ref is a regular prop in React 19. Optional (no keyboard
+   *  consumer → simply omit it). */
+  ref?: Ref<CapabilitySceneHandle>
+}) {
   const [glAvailable, setGlAvailable] = useState(true)
   const [dragging, setDragging] = useState(false)
+  // The spinner group itself, registered up by Centerpiece (callback prop,
+  // not a ref prop — keeps every mutation on a component-local ref so the
+  // react-compiler stays quiet in both components).
+  const spinnerGroup = useRef<THREE.Group | null>(null)
+  const registerSpinner = useCallback((g: THREE.Group | null) => {
+    spinnerGroup.current = g
+  }, [])
+
+  // FIX(2-b, L1-D P3): arrow-key rotation — same ±0.01 rad/px mapping the
+  // pointer drag uses, applied to the same spinner group, so keys rotate
+  // blob + satellites + rings exactly like an equivalent drag.
+  useImperativeHandle(
+    ref,
+    () => ({
+      nudge: (dx: number, dy: number) => {
+        const spinner = spinnerGroup.current
+        if (!spinner) return
+        spinner.rotation.y += dx * 0.01
+        spinner.rotation.x += dy * 0.01
+      },
+    }),
+    []
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -596,7 +666,7 @@ export function CapabilityScene({ active }: { active: boolean }) {
           <pointLight key={i} color={l.color} position={l.pos} intensity={28} distance={12} />
         ))}
         <RoomEnv />
-        <Centerpiece dragging={dragging} />
+        <Centerpiece dragging={dragging} registerSpinner={registerSpinner} />
         <ContextLossGuard />
       </Canvas>
     </div>
