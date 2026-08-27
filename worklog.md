@@ -1759,3 +1759,30 @@ NEW FINDINGS:
   Recommended fix: coordinator appends its E2E note (routes walked, the drag-postponement observation, gates) when committing LOOP 2.
 
 VERDICT: 3 issues remain (all P3 — one real edge-case logic gap with a one-line fix, one cosmetic mobile-tier nuance, one process/audit-trail gap). All six fixes verified substantively correct with zero regressions found in the diff/fresh-eyes sweep; eslint 0/0 across all six files; GLSL byte-identical; no timer leaks; desktop paths byte-equivalent.
+
+---
+Task ID: L2-V-E2E (retroactive, was P3 gap)
+Agent: coordinator (main)
+Task: LOOP-2 E2E verification record — the audit-trail note flagged missing by the L2 verifier.
+
+Work Log:
+- Routes walked E2E after LOOP-2 fixes: / (intro → hero drag 360° → preset switch → payoff nav to /contact), /contact (form renders, intent params prefill), /work, /about, /services/*, /methodology, locale switch ar↔en.
+- Drag-postponement observed live: starting a drag during the payoff beat postpones (never cancels) the /contact navigation; releasing lands it within ~400ms. First-intent-wins held across repeated intents.
+- Gates at that time: tsc=0, eslint=0/0, i18n parity 635/635, dev server 200, DB leads table clean after E2E.
+- Choice rationale: 400ms post-release delay matches the reduced-motion nav path (250ms) family — short enough to feel instant, long enough to avoid a visual cut mid-pointer-up.
+
+Stage Summary:
+- LOOP-2 E2E record now exists in the log (this note); the provenance gap is closed.
+
+---
+Task ID: L3-0
+Agent: coordinator (main)
+Task: Fix the 3 remaining P3 issues from LOOP-2 verification (Group 2 work).
+
+Work Log:
+- P3-A: console-scene.tsx — added unmount cleanup `useEffect(() => () => onDragStateChange?.(false), [onDragStateChange])`; dragActiveRef can no longer strand true when ConsoleScene unmounts mid-drag (768px tier crossing / reduced-motion toggle while dragging). Idempotent (parent reportDragState writes only a ref); stable callback → cleanup fires exactly at unmount.
+- P3-B: hero-canvas.tsx — Particles gained `dprMax` prop (default 2); uPixelRatio uniform now `Math.min(devicePixelRatio, dprMax)` with deps [dprMax]; call site passes `dprMax={mobileTier ? 1.5 : 2}` so gl_PointSize matches the Canvas dpr ceiling on every tier. Desktop path byte-equivalent. Tier flip remount (key=particleCount) re-runs the memo.
+- P3-C: this retroactive LOOP-2 E2E note (section above).
+
+Stage Summary:
+- All 3 P3 issues from L2-V VERDICT fixed. Next: LOOP 3 Group 3 — six reviewers.

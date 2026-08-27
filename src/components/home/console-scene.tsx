@@ -496,6 +496,19 @@ export function ConsoleScene({
   const last = useRef({ x: 0, y: 0 })
   const lastPointerTs = useRef(0)
 
+  // FIX(L2-V P3): if this subtree unmounts MID-DRAG (viewport crossing the
+  // 768px tier boundary or an OS reduced-motion toggle while dragging —
+  // webglSupported can only flip false→true, never back), pointerup never
+  // fires on a removed element, so endDrag's report is lost. Report the
+  // release on unmount so the hero's dragActiveRef can't strand true and
+  // postpone a pending payoff navigation (or block later intents) forever.
+  // Idempotent by design: the parent's reportDragState only writes a ref.
+  // It's a stable useCallback, so this cleanup fires exactly once at unmount.
+  useEffect(
+    () => () => onDragStateChange?.(false),
+    [onDragStateChange]
+  )
+
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     setDragging(true)
     onDragStateChange?.(true)

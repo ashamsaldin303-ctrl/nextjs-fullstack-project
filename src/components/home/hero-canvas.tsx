@@ -380,11 +380,17 @@ const SILK_FRAGMENT = /* glsl */ `
 function Particles({
   mouse,
   count,
+  dprMax = 2,
 }: {
   mouse: React.MutableRefObject<{ x: number; y: number; tx: number; ty: number }>
   /** Tier-dependent particle budget (desktop 4500 / mobile 1800) — the
    *  parent keys the component on it, so a tier flip rebuilds the buffers. */
   count: number
+  /** Tier-dependent upper bound for the uPixelRatio uniform — MUST track the
+   *  Canvas dpr prop (desktop 2 / mobile 1.5) or gl_PointSize drifts ~33%
+   *  oversize on retina phones (FIX L2-V P3). The parent's key remount on
+   *  tier flip re-runs the uniforms memo below. */
+  dprMax?: number
 }) {
   const pointsRef = useRef<THREE.Points>(null)
   const mouseVec = useRef(new THREE.Vector3(0, 0, 0))
@@ -421,10 +427,13 @@ function Particles({
     () => ({
       uTime: { value: 0 },
       uMouse: { value: new THREE.Vector3(0, 0, 0) },
-      uPixelRatio: { value: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, 2) },
+      // FIX(L2-V P3): tier-aware — clamped to the SAME ceiling the renderer
+      // uses (dprMax), so gl_PointSize matches the actual render scale on
+      // every tier. Desktop path is byte-equivalent (min(dpr, 2)).
+      uPixelRatio: { value: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, dprMax) },
       uScroll: { value: 0 },
     }),
-    []
+    [dprMax]
   )
 
   useFrame((state, delta) => {
@@ -654,7 +663,7 @@ export function HeroCanvas({ active }: HeroCanvasProps) {
         {/* key: the buffers are sized once per mount in the lazy useState
             initializer, so a tier flip remounts the Points with the new
             count — the Canvas/GL context itself survives the change */}
-        <Particles key={particleCount} mouse={mouse} count={particleCount} />
+        <Particles key={particleCount} mouse={mouse} count={particleCount} dprMax={mobileTier ? 1.5 : 2} />
         <ScrollDolly />
         <ContextLossGuard />
       </Canvas>
