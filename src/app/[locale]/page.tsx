@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server'
 import { Hero } from '@/components/home/hero'
 import { IntroOverlay } from '@/components/home/intro-overlay'
 import { TrustBar } from '@/components/home/trust-bar'
+import { Manifesto } from '@/components/home/manifesto'
 import { ServicesBento } from '@/components/home/bento'
 import { SimulatorLazy } from '@/components/home/simulator-lazy'
 import { FeaturedWork } from '@/components/home/featured-work'
@@ -66,6 +67,9 @@ export default function HomePage() {
       <IntroOverlay />
       <Hero />
       <TrustBar />
+      {/* R7 manifesto — the scroll-lit editorial statement bridging the
+          proof (stats) into the offer (services bento). */}
+      <Manifesto />
       <ServicesBento />
       {/* Hotfix H-4: simulator loads/hydrates only near the viewport —
           cuts homepage TBT (was 690ms prod) without touching LCP. */}

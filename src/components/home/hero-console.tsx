@@ -197,7 +197,7 @@ export function HeroConsole({
   const showSvg = mounted && (isMobile || reduced || !('WebGLRenderingContext' in window))
 
   return (
-    <div className="hero-enter hero-enter-2 mt-8 w-full max-w-2xl">
+    <div className="hero-enter hero-enter-5 mt-8 w-full">
       {/* Command bar — instant HTML/CSS, protects LCP */}
       <form onSubmit={on_submit} className="group relative">
         <div className="flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-4 py-3 backdrop-blur-md transition-colors focus-within:border-primary/50">
@@ -219,7 +219,7 @@ export function HeroConsole({
       </form>
 
       {/* Preset chips */}
-      <div className="mt-3 flex flex-wrap justify-center gap-2">
+      <div className="mt-3 flex flex-wrap justify-start gap-2">
         {PRESETS.map(({ id, key }) => (
           <button
             key={id}

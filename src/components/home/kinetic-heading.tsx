@@ -2,38 +2,30 @@
 
 import { useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
+import { Sparkles } from 'lucide-react'
 import { useCursorVelocity } from '@/lib/use-cursor-velocity'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 import { cn } from '@/lib/utils'
 
 /**
- * Kinetic heading (Phase 5 WS-6, prompt §9).
+ * Kinetic heading — R7 editorial rework.
  *
- * The hero h1 (and optionally the primary CTA) binds to a CSS custom
- * property `--wght` whose value is driven by the cursor's velocity.
- * Variable-font Inter (Latin) + Cairo (Arabic) honor
- * `font-variation-settings: "wght" var(--wght, 700)`.
+ * The hero h1 renders as an editorial display block: each LINE lives in an
+ * overflow-hidden mask (`.hr-line`) and each WORD rises out of that mask
+ * (`.hr-word`, translateY 125% → 0) with a per-word stagger — the classic
+ * award-site reveal. The accent line carries a brand gradient + a spinning
+ * star mark, and the three lines are staggered with inline-start indents
+ * for a broken-grid, editorial rhythm.
  *
- * Velocity mapping (prompt §9):
- *   · idle (no movement for 200ms) → wght 700 (the static default);
- *   · slow cursor (<2.5 px/ms)     → wght interpolated 600→800;
- *   · fast cursor (>2.5 px/ms)    → wght 800 (saturated).
+ * Kept from the previous version:
+ *   · the cursor-velocity → `--wght` variable-font binding (Inter/Cairo);
+ *   · per-word inline-block isolation (Arabic shaping stays whole — each
+ *     word is one shaping run, joining never crosses spans);
+ *   · LCP-safety: server-rendered words + CSS-only entrance, no JS wait.
  *
- * Per-word spans (prompt §9):
- *   · Arabic shaping benefits from per-word isolation — each word
- *     becomes its own inline-block so the font's complex-contextual
- *     shaping doesn't bleed across the whole line. For Latin the
- *     split is purely visual (each word gets its own variation
- *     instance, but the difference is sub-perceptual).
- *
- * Activation guards:
- *   · `pointer: fine` + NOT `prefers-reduced-motion` + client-side
- *     mount — otherwise the heading renders with the static `wght 700`
- *     default and never installs the pointer listener.
- *
- * LCP-safe: the heading is server-rendered with the static wght 700.
- * The hook attaches AFTER hydration and only writes a CSS variable —
- * no flash, no layout shift, no React re-render per frame.
+ * Arabic diacritics (damma/shadda rise above the em box) survive the mask
+ * via `.hr-line { padding-block: .18em; margin-block: -.18em }` — the pad
+ * widens the visible clip box, the negative margin cancels the layout gap.
  */
 
 interface KineticHeadingProps {
@@ -50,16 +42,13 @@ interface KineticHeadingProps {
   className?: string
 }
 
-/** Split a string into per-word spans. For RTL Arabic each word
- *  becomes its own inline-block so the font's complex-contextual
- *  shaping doesn't bleed across the whole line. */
+/** Split a string into per-word spans (whitespace tokens preserved). */
 function splitToWords(text: string): { word: string; key: number }[] {
-  const words = text.split(/(\s+)/) // keep whitespace tokens
+  const words = text.split(/(\s+)/)
   let key = 0
   return words
     .filter((w) => w.length > 0)
     .map((w) => {
-      // Whitespace tokens: render as a literal space (no span).
       if (/^\s+$/.test(w)) return { word: w, key: -1 }
       return { word: w, key: key++ }
     })
@@ -79,9 +68,6 @@ export function KineticHeading({
   const reduced = usePrefersReducedMotion()
   const headingRef = useRef<HTMLHeadingElement>(null)
 
-  // Only attach the cursor-velocity hook when motion is allowed. The
-  // hook itself also checks the same guards — we skip the call site
-  // entirely so the ref is unused during SSR + reduced-motion.
   useCursorVelocity(headingRef, {
     minWght,
     maxWght,
@@ -90,11 +76,13 @@ export function KineticHeading({
     idleMs: 200,
   })
 
+  // Per-line reveal choreography: each line's words start after the
+  // previous line has largely landed, words inside a line chase at 70ms.
   const lines = useMemo(
     () => [
-      { text: t(titleTopKey), accent: false },
-      { text: t(titleAccentKey), accent: true },
-      { text: t(titleBottomKey), accent: false },
+      { text: t(titleTopKey), accent: false, base: 0.05, indent: '' },
+      { text: t(titleAccentKey), accent: true, base: 0.3, indent: 'ms-[7vw] md:ms-[9vw]' },
+      { text: t(titleBottomKey), accent: false, base: 0.55, indent: 'ms-[1.5vw]' },
     ],
     [t, titleTopKey, titleAccentKey, titleBottomKey],
   )
@@ -103,7 +91,13 @@ export function KineticHeading({
     <h1
       ref={headingRef}
       id={id}
-      className={cn('hero-enter mt-8 text-balance text-5xl font-bold leading-[1.05] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl', className)}
+      className={cn(
+        // flex-col: flex containers never collapse the .hr-line negative
+        // margins (block siblings would, costing ~2×0.18em per line) —
+        // the padding/negative-margin mask trick stays net-zero.
+        'mt-6 flex flex-col text-[clamp(2.7rem,9vw,8.5rem)] font-extrabold leading-[1.04] ltr:tracking-tight',
+        className,
+      )}
       // Bind font-variation-settings to --wght (default 700 when the
       // hook hasn't written anything — covers SSR + touch + reduced).
       style={{
@@ -113,25 +107,52 @@ export function KineticHeading({
       {lines.map((line, lineIdx) => (
         <span
           key={lineIdx}
-          className={cn('block', line.accent && 'text-primary')}
+          className={cn('hr-line block', line.indent)}
         >
-          {splitToWords(line.text).map(({ word, key }) =>
-            // Whitespace token → render as plain string (no wrapper).
-            key === -1 ? (
-              word
-            ) : (
+          {line.accent ? (
+            <span className="hr-accent-words">
+              {splitToWords(line.text).map(({ word, key }, wi) =>
+                key === -1 ? (
+                  word
+                ) : (
+                  <span
+                    key={key}
+                    className="hr-word inline-block"
+                    style={{ animationDelay: `${(line.base + wi * 0.07).toFixed(2)}s` }}
+                  >
+                    {word}
+                  </span>
+                ),
+              )}
+              {/* Spinning star mark — the editorial "asterisk" flourish
+                  that trails the accent word. Decorative, joins the same
+                  mask-reveal choreography. */}
               <span
-                key={key}
-                className="inline-block"
-                // Per-word wght: each word can carry its own --wght
-                // inheritance. For now all words share the parent's
-                // --wght (the hook writes to the h1). Future per-word
-                // velocity is a one-line extension (set --wght on
-                // each span based on cursor distance to that word).
+                className="hr-word hr-star inline-flex align-baseline"
+                style={{ animationDelay: `${(line.base + 0.14).toFixed(2)}s` }}
+                aria-hidden="true"
               >
-                {word}
+                <Sparkles
+                  className="motion-safe:animate-[spin_9s_linear_infinite] text-g-green"
+                  strokeWidth={1.5}
+                  style={{ width: '0.62em', height: '0.62em' }}
+                />
               </span>
-            ),
+            </span>
+          ) : (
+            splitToWords(line.text).map(({ word, key }, wi) =>
+              key === -1 ? (
+                word
+              ) : (
+                <span
+                  key={key}
+                  className="hr-word inline-block"
+                  style={{ animationDelay: `${(line.base + wi * 0.07).toFixed(2)}s` }}
+                >
+                  {word}
+                </span>
+              ),
+            )
           )}
         </span>
       ))}

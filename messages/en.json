@@ -52,6 +52,17 @@
     "ctaSecondary": "See Our Work",
     "scroll": "Scroll to explore",
     "canvasFallback": "Elegant gradient background",
+    "location": "Damascus",
+    "watermark": "ELYRA",
+    "marquee": [
+      "Award-grade websites",
+      "Immersive 3D",
+      "Intelligent n8n automation",
+      "AI agents that work for you",
+      "Stores that sell more",
+      "99/100 performance",
+      "Apple-grade design"
+    ],
     "console": {
       "placeholder": "Describe your project in one word…",
       "enterHint": "Press Enter to build",
@@ -64,6 +75,11 @@
         "dashboard": "Analytics Dashboard"
       }
     }
+  },
+  "manifesto": {
+    "kicker": "Philosophy",
+    "body": "We don't build pages to be browsed — we build moments to be told. Every pixel is deliberate, every motion carries meaning; because beauty isn't decoration, it's the shortest path to trust.",
+    "signature": "— Elyra"
   },
   "stats": {
     "kicker": "Why Elyra",

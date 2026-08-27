@@ -273,7 +273,10 @@ html[data-intro-off] .intro-overlay {
 }
 html[data-intro] .hero-enter,
 html[data-intro] .hero-scroll-hint,
-html[data-intro] .kinetic-word {
+html[data-intro] .kinetic-word,
+html[data-intro] .hr-word,
+html[data-intro] .hero-marquee-track,
+html[data-intro] .hero-rail-dot {
   animation-play-state: paused !important;
 }
 
@@ -872,4 +875,338 @@ html[data-intro] .kinetic-word {
   box-shadow:
     0 4px 12px -4px rgba(0, 0, 0, 0.08),
     0 16px 40px -16px rgba(0, 113, 227, 0.22);
+}
+
+/* =========================================================================
+   R7 — Editorial-cinematic hero (Elyra signature rework)
+   Masked word rises, outlined watermark, vertical scroll rail with a
+   traveling drop, and the infinite service marquee edge.
+   NOTE: the global prefers-reduced-motion override at the top of this
+   file collapses every animation below to a static, readable state.
+   ========================================================================= */
+
+/* Extended entrance stagger for the editorial hero column. */
+.hero-enter-3 { animation-delay: 0.6s; }
+.hero-enter-4 { animation-delay: 0.75s; }
+.hero-enter-5 { animation-delay: 0.9s; }
+
+/* Masked word rise — each line is an overflow-hidden mask; its words
+   translate up from below. Arabic diacritics (damma/shadda sit above
+   the em box) survive the clip via the padding/negative-margin pair:
+   the pad widens the visible clip box, the margin cancels the layout
+   gap so the 1.04 line rhythm is preserved. */
+.hr-line {
+  overflow: hidden;
+  padding-block: 0.18em;
+  margin-block: -0.18em;
+}
+.hr-word {
+  display: inline-block;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(125%);
+  animation: hr-word-rise 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes hr-word-rise {
+  from {
+    opacity: 0;
+    transform: translateY(125%);
+  }
+  40% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Accent line — brand gradient clipped to the glyphs. Gradient runs
+   reading-forward in BOTH directions (blue at the reading start). */
+.hr-accent-words {
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+[dir='ltr'] .hr-accent-words {
+  background-image: linear-gradient(to right, #4285f4, #60a5fa 55%, #34a853);
+}
+[dir='rtl'] .hr-accent-words {
+  background-image: linear-gradient(to left, #4285f4, #60a5fa 55%, #34a853);
+}
+/* The spinning star mark trailing the accent word. */
+.hr-star {
+  margin-inline-start: 0.16em;
+}
+
+/* Outlined ELYRA watermark bleeding off the hero's empty corner.
+   Latin glyphs (stroke-only, LTR), decorative, non-interactive. */
+.hero-watermark {
+  position: absolute;
+  bottom: -0.12em;
+  inset-inline-end: -0.04em;
+  z-index: 1;
+  direction: ltr;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: clamp(7rem, 24vw, 26rem);
+  font-weight: 900;
+  line-height: 0.78;
+  letter-spacing: -0.03em;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(232, 242, 255, 0.06);
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  animation: hero-watermark-drift 14s ease-in-out infinite alternate;
+}
+@keyframes hero-watermark-drift {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-16px);
+  }
+}
+
+/* Vertical scroll rail (desktop) — rotated caption + a traveling
+   light drop inside a fading line. */
+.hero-rail-text {
+  writing-mode: vertical-rl;
+}
+.hero-rail-line {
+  height: clamp(3.5rem, 9vh, 6.5rem);
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.35), transparent);
+}
+.hero-rail-dot {
+  background: linear-gradient(to bottom, transparent, #4285f4, transparent);
+  animation: hero-rail-fall 2.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+@keyframes hero-rail-fall {
+  0% {
+    transform: translateY(-110%);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(340%);
+    opacity: 0;
+  }
+}
+
+/* Infinite service marquee — the hero's bottom edge. The track runs
+   LTR for the -50% transform lap; each item keeps its own direction
+   internally so Arabic shaping is untouched. No backdrop-filter: the
+   strip sits over an animating WebGL canvas (software-GPU safety). */
+.hero-marquee {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 8, 10, 0.42);
+  padding-block: 0.85rem;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+}
+.hero-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: hero-marquee-scroll 38s linear infinite;
+}
+.hero-marquee:hover .hero-marquee-track {
+  animation-play-state: paused;
+}
+@keyframes hero-marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* =========================================================================
+   ===== R7-b — Sensory layer (cursor / grain) =====
+   Supersedes the Phase 2 MagneticCursor/FilmGrain pair (unmounted from the
+   [locale] layout; their rules above are inert). The new layer owns the
+   shared `.elyra-cursor-dot/-ring` names via explicit resets below, so this
+   block is fully self-sufficient regardless of what precedes it.
+   Z-order (see the intro-overlay comment above): grain 90, cursor 200.
+   ========================================================================= */
+
+/* --- Animated film grain (components/sensory/grain-overlay.tsx) ---------
+   Same CSP-safe inline-SVG feTurbulence tile as Phase 2, now FLICKERING:
+   an 8-step background-position shuffle at steps(1) (hard cuts, 20 jumps/s)
+   that reads as celluloid grain. The 100% keyframe returns to the base
+   `0 0`, so the global prefers-reduced-motion override (which collapses
+   durations rather than removing animations) lands on exactly the static
+   base state — reduced-motion visitors see quiet, still grain. */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90; /* above the intro overlay (80); below the cursor (200) */
+  pointer-events: none;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 240px 240px;
+  background-position: 0 0;
+  animation: grain-flicker 0.4s steps(1) infinite;
+}
+@keyframes grain-flicker {
+  0%    { background-position: 0 0; }
+  12.5% { background-position: -48px 96px; }
+  25%   { background-position: 120px -72px; }
+  37.5% { background-position: -96px -48px; }
+  50%   { background-position: 72px 120px; }
+  62.5% { background-position: -120px 36px; }
+  75%   { background-position: 36px -120px; }
+  87.5% { background-position: -72px -96px; }
+  100%  { background-position: 0 0; }
+}
+
+/* --- Custom cursor (components/sensory/custom-cursor.tsx) ---------------
+   Structure: one fixed inert wrapper → two POSITIONER elements (per-frame
+   translate3d from a single rAF loop) → visual CORES whose scale is
+   CSS-transitioned (~220ms). Splitting position from scale is what allows
+   hover growth to ease via CSS without the per-frame position writes being
+   eased too. mix-blend-mode: difference sits on the positioner (an
+   element's own transform never isolates its own blending) and inverts the
+   whole group — core + label — over any background, dark or light.
+
+   The width/height/background/border resets neutralize the Phase 2 rules
+   that share the positioner class names above. */
+.elyra-cursor-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 200; /* above sheets/dialogs (z-50), intro (80), grain (90) */
+  pointer-events: none;
+}
+.elyra-cursor-dot,
+.elyra-cursor-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  background: transparent;
+  border: 0;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+  will-change: transform;
+  mix-blend-mode: difference;
+}
+.elyra-cursor-dot.is-hidden,
+.elyra-cursor-ring.is-hidden {
+  opacity: 0;
+}
+
+.elyra-cursor-dot-core {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: #ffffff;
+  transform: translate(-50%, -50%) scale(1);
+  transition: transform 0.22s ease-out;
+}
+.elyra-cursor-ring-core {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  transform: translate(-50%, -50%) scale(1);
+  transition:
+    transform 0.22s ease-out,
+    border-color 0.22s ease-out,
+    border-width 0.22s ease-out,
+    background-color 0.22s ease-out;
+}
+
+/* Hover over interactive elements: ring grows + brightens, dot shrinks. */
+.elyra-cursor-dot.is-hover .elyra-cursor-dot-core {
+  transform: translate(-50%, -50%) scale(0.4);
+}
+.elyra-cursor-ring.is-hover .elyra-cursor-ring-core {
+  transform: translate(-50%, -50%) scale(1.9);
+  border-color: rgba(255, 255, 255, 0.95);
+}
+
+/* Label mode — ring grows to ~72px (34 × 2.12) with a faint fill; the
+   border halves so the scaled ring stays hairline. (No backdrop-filter:
+   unreliable inside the difference-blended group — the white/10 wash plus
+   difference inversion reads on both light and dark surfaces.) */
+.elyra-cursor-ring.is-label .elyra-cursor-ring-core {
+  transform: translate(-50%, -50%) scale(2.12);
+  border-color: rgba(255, 255, 255, 0.95);
+  border-width: 0.5px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Press squeeze — declared last so it wins over hover/label. */
+.elyra-cursor-ring.is-press .elyra-cursor-ring-core {
+  transform: translate(-50%, -50%) scale(0.85);
+}
+
+/* Centered label text — a SIBLING of the scaled core so it never inherits
+   the ring scale. dir=auto is set in JSX (Arabic labels flip cleanly). */
+.elyra-cursor-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+  max-width: 64px;
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 500;
+  color: #ffffff;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.16s ease 0.06s;
+}
+.elyra-cursor-ring.is-label .elyra-cursor-label {
+  opacity: 1;
+}
+
+/* Hide the native cursor while the custom one is live. The JS only adds
+   `elyra-cursor-active` for fine pointers without a reduced-motion
+   preference; !important beats per-element cursor utilities. The text
+   caret keeps blinking while typing — cursor:none never hides it. */
+@media (pointer: fine) {
+  html.elyra-cursor-active,
+  html.elyra-cursor-active * {
+    cursor: none !important;
+  }
+}
+
+/* Print hygiene — the sensory layer is screen-only chrome. */
+@media print {
+  .grain-overlay,
+  .elyra-cursor-layer {
+    display: none !important;
+  }
+}
+
+/* =========================================================================
+   R7-c — Manifesto: scroll-linked word-by-word statement
+   Words render FULLY LIT from the server (no-JS / reduced-motion safe);
+   the component's rAF loop dims them on mount and re-lights them with
+   scroll progress. The short opacity transition smooths the stepping.
+   ========================================================================= */
+.manifesto-word {
+  display: inline-block;
+  opacity: 1;
+  transition: opacity 160ms linear;
+  will-change: opacity;
+}
+.manifesto-sig {
+  opacity: 1;
+  transition: opacity 240ms linear;
 }

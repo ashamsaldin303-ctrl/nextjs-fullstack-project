@@ -16,11 +16,16 @@ import { getHeroScroll } from '@/lib/hero-scroll'
  * together give the "slow global drift". uScroll (methodology bridge)
  * gently swells the flow; the camera dollies +0.8 on the same signal.
  *
- * Aurora backdrop (item 13): one additive fullscreen-ish plane BEHIND the
- * particles — 4-octave fbm curtains in blue/green with a soft cursor
- * light and a gentle vignette on the light itself. Additive blending
- * keeps the CSS stage (#08080A + hero-fallback gradient + blueprint
- * spotlight grid) visible underneath.
+ * Silk backdrop (item 13, wave 1-c upgrade): one additive fullscreen-ish
+ * plane BEHIND the particles — a two-level domain-warped fbm field
+ * (Inigo Quilez warp: q and r offset fields bending the final fbm
+ * sample) that reads as slow liquid silk. Graded brand blues with the
+ * green confined to thin warp-crossing filaments, a deep-blue undertone
+ * in the low-energy zones, a gaussian cursor vortex that stirs the
+ * domain plus a broad cursor wash, vertical melt + radial vignette, and
+ * a uScroll intensity swell. Additive blending keeps the CSS stage
+ * (#08080A + hero-fallback gradient + blueprint spotlight grid) visible
+ * underneath.
  *
  * Preserved performance architecture: deferred chunk (parent handles
  * requestIdleCallback/2.5s), IntersectionObserver-gated frameloop
@@ -46,8 +51,8 @@ const COLORS = [
 ]
 
 const BASE_CAMERA_Z = 6 // mirrors the Canvas camera prop below
-const AURORA_PLANE_Z = -9 // behind the whole particle volume
-const AURORA_PLANE_DIST = BASE_CAMERA_Z - AURORA_PLANE_Z
+const SILK_PLANE_Z = -9 // behind the whole particle volume
+const SILK_PLANE_DIST = BASE_CAMERA_Z - SILK_PLANE_Z
 const CAMERA_FOV_RAD = (70 * Math.PI) / 180 // mirrors the Canvas camera prop
 
 /* ------------------------------------------------------------------ *
@@ -230,10 +235,11 @@ const PARTICLE_FRAGMENT = /* glsl */ `
 `
 
 /* ------------------------------------------------------------------ *
- * GLSL — aurora backdrop (item 13). Cheap 4-octave value-noise fbm,
- * two drifting curtains, additive so the CSS stage stays visible.
+ * GLSL — silk backdrop (item 13, wave 1-c upgrade). Value-noise fbm
+ * (5 octaves, rotated) sampled through a two-level domain warp; additive
+ * so the CSS stage stays visible.
  * ------------------------------------------------------------------ */
-const AURORA_VERTEX = /* glsl */ `
+const SILK_VERTEX = /* glsl */ `
   varying vec2 vUv;
   varying vec2 vPos;
   void main() {
@@ -243,11 +249,19 @@ const AURORA_VERTEX = /* glsl */ `
   }
 `
 
-const AURORA_FRAGMENT = /* glsl */ `
+const SILK_FRAGMENT = /* glsl */ `
+  // Domain-warped fbm "silk" (Inigo Quilez warp structure): the sampling
+  // domain is bent through two offset fields — q = fbm(p + drift), then
+  // r = fbm(p*1.3 + q + counter-drift) — and the final sample
+  // f = fbm(p + r*2.2) flows as broad luminous bands. A gaussian vortex
+  // around the cursor stirs the whole domain (liquid-silk feel); graded
+  // brand blues, with the green confined to thin warp-crossing filaments.
   uniform float uTime;
-  uniform vec2 uMouse;   // world-space (plane local) cursor position
-  uniform vec3 uColorA;  // blue
-  uniform vec3 uColorB;  // green
+  uniform vec2 uMouse;   // world-space (plane-local) cursor position, CPU-lerped
+  uniform vec3 uColorA;  // primary blue #4285F4 — silk body
+  uniform vec3 uColorB;  // brand green #34A853 — warp-crossing filaments only
+  uniform vec3 uColorC;  // deep blue #0A2A5E — low-energy undertone
+  uniform float uScroll; // methodology bridge 0…1 → gentle intensity swell
   varying vec2 vUv;
   varying vec2 vPos;
 
@@ -266,11 +280,11 @@ const AURORA_FRAGMENT = /* glsl */ `
     return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
   }
 
-  // 4 octaves; the fixed rotation between octaves kills axis alignment.
+  // 5 octaves; the fixed rotation between octaves kills axis alignment.
   float fbm(vec2 p) {
     float v = 0.0;
     float a = 0.5;
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
       v += a * vnoise(p);
       p = mat2(0.8, 0.6, -0.6, 0.8) * p * 2.03;
       a *= 0.5;
@@ -279,33 +293,78 @@ const AURORA_FRAGMENT = /* glsl */ `
   }
 
   void main() {
-    float t = uTime * 0.03;
-    vec2 wp = vPos * 0.09;
+    float t = uTime * 0.13;
 
-    // Two aurora curtains drifting at different speeds and directions.
-    float n1 = fbm(wp + vec2(t * 0.6, -t * 0.35));
-    float n2 = fbm(wp * 1.35 + vec2(-t * 0.45, t * 0.3) + 7.3);
+    // --- cursor vortex --------------------------------------------------
+    // Stir the sampling domain around the pointer: rotate the plane-local
+    // position around uMouse under a gaussian falloff (~6 world units).
+    // Angular displacement tops out at 0.35 rad, so the total shift stays
+    // under ~0.7 world units — the composition never turns chaotic.
+    vec2 toM = vPos - uMouse;
+    float md = length(toM);
+    float stir = exp(-(md * md) / 24.0);
+    float ang = 0.35 * stir;
+    float ca = cos(ang);
+    float sa = sin(ang);
+    vec2 pos = uMouse + mat2(ca, -sa, sa, ca) * toM;
 
-    // Vertical window in world space (aspect-safe: the fov is vertical,
-    // so ±10.5 world units at the plane distance is the screen height) —
-    // the curtains melt out at the very top and bottom of the viewport.
+    // --- two-level domain warp (Inigo Quilez) ----------------------------
+    // q and r are offset fields sampled from the same fbm; f is the fbm
+    // sampled through BOTH warps. The two time offsets counter-drift, so
+    // the fields shear past each other and the fold pattern keeps
+    // re-forming instead of looping.
+    vec2 p = pos * 0.08;
+    float q = fbm(p + vec2(t * 0.6, -t * 0.4));
+    float r = fbm(p * 1.3 + vec2(q * 1.7, q * 1.1) + vec2(-t * 0.5, t * 0.3) + 2.7);
+    float f = fbm(p + r * 2.2);
+
+    // --- window / vignette / energy --------------------------------------
+    // Vertical melt at the viewport edges (aspect-safe: the fov is
+    // vertical, so ±10.5 world units at the plane distance is the screen
+    // height) + radial vignette on the light itself, nudged a touch high
+    // so the silk breathes brightest in the upper-middle band behind the
+    // headline.
     float vert = smoothstep(-10.5, -5.0, vPos.y) * (1.0 - smoothstep(5.0, 10.5, vPos.y));
+    float vig = 1.0 - smoothstep(0.15, 0.42, length(vUv - vec2(0.5, 0.44)));
+    float lift = 0.85 + 0.30 * smoothstep(-4.0, 5.0, vPos.y);
+    float swell = 1.0 + uScroll * 0.25;
 
-    // Gentle vignette on the aurora light itself (screen edges stay calm).
-    float vig = 1.0 - smoothstep(0.15, 0.42, length(vUv - vec2(0.5)));
+    // --- masks ------------------------------------------------------------
+    float body  = smoothstep(0.36, 0.78, f);               // broad fabric body
+    float ridge = smoothstep(0.60, 0.92, f);               // luminous band ridges
+    float deep  = 1.0 - smoothstep(0.18, 0.55, f);         // low-energy zones
+    float sheen = 0.62 + 0.38 * smoothstep(0.25, 0.85, q); // q shimmers the ridges
 
-    float blue = pow(smoothstep(0.38, 0.85, n1), 1.6) * vert * vig;
-    float green = pow(smoothstep(0.42, 0.90, n2), 1.7) * vert * vig;
+    // Green lives ONLY in thin filaments: where the second warp field r
+    // crosses a narrow level band while the body is lit — curved
+    // interference hairlines that drift as the warp fields slide.
+    float lvl = smoothstep(0.46, 0.55, r) * (1.0 - smoothstep(0.60, 0.70, r));
+    float filament = lvl * body * sheen;
+
+    // --- brand grades (derived from the uniform palette) ------------------
+    vec3 midBlue   = mix(uColorC, uColorA, 0.55);   // ≈ #0071E3 band depth
+    vec3 lightBlue = mix(uColorA, vec3(1.0), 0.22); // ≈ #60A5FA ridge sheen
 
     vec3 col = vec3(0.0); // additive: the CSS stage shows through
-    col += uColorA * blue * 0.30;
-    col += uColorB * green * 0.24;
-    // cool core where the curtains cross
-    col += uColorA * blue * green * 0.30;
 
-    // Subtle cursor light — a broad cool wash following the pointer.
-    float md = length(vPos - uMouse);
-    col += mix(uColorB, uColorA, 0.6) * exp(-md * md / 220.0) * 0.10;
+    // deep undertone between the bands
+    col += uColorC * deep * deep * 0.42 * vert * vig;
+
+    // silk body — hue graded by q, lifting into the light-blue sheen on
+    // the ridges
+    vec3 bandCol = mix(midBlue, uColorA, smoothstep(0.30, 0.70, q));
+    col += bandCol * body * (0.26 + 0.20 * ridge) * vert * vig * lift * swell;
+    col += lightBlue * body * ridge * sheen * 0.30 * vert * vig * lift * swell;
+
+    // warp-crossing filaments
+    col += uColorB * filament * 0.48 * vert * vig * lift * swell;
+
+    // broad cursor wash (blue family — green is reserved for filaments)
+    col += mix(uColorC, uColorA, 0.75) * exp(-md * md / 220.0) * 0.14 * swell;
+
+    // intensity governor: hard per-channel cap — the additive layer stays
+    // premium-dark even where masks coincidentally stack
+    col = min(col, vec3(0.50));
 
     gl_FragColor = vec4(col, 1.0);
   }
@@ -393,15 +452,17 @@ function Particles({ mouse }: { mouse: React.MutableRefObject<{ x: number; y: nu
   )
 }
 
-function AuroraBackdrop({ mouse }: { mouse: React.MutableRefObject<{ x: number; y: number; tx: number; ty: number }> }) {
+function SilkBackdrop({ mouse }: { mouse: React.MutableRefObject<{ x: number; y: number; tx: number; ty: number }> }) {
   const mouseVec = useRef(new THREE.Vector2(0, 0))
 
   const uniforms = useMemo(
     () => ({
       uTime: { value: 0 },
       uMouse: { value: new THREE.Vector2(0, 0) },
-      uColorA: { value: new THREE.Color('#4285F4') },
-      uColorB: { value: new THREE.Color('#34A853') },
+      uColorA: { value: new THREE.Color('#4285F4') }, // silk body blue
+      uColorB: { value: new THREE.Color('#34A853') }, // warp-crossing filaments only
+      uColorC: { value: new THREE.Color('#0A2A5E') }, // deep undertone
+      uScroll: { value: 0 },
     }),
     []
   )
@@ -411,17 +472,23 @@ function AuroraBackdrop({ mouse }: { mouse: React.MutableRefObject<{ x: number; 
     // eslint-disable-next-line react-hooks/immutability
     uniforms.uTime.value += delta
 
-    // Project the pointer onto the aurora plane in world space (aspect-
-    // correct; numbers only — no per-frame allocations).
+    // Project the pointer onto the silk plane in world space (aspect-
+    // correct; numbers only — no per-frame allocations). The CPU lerp
+    // smooths the vortex centre, so the stir glides instead of snapping.
     const aspect = state.size.width / state.size.height
-    const halfH = Math.tan(CAMERA_FOV_RAD * 0.5) * AURORA_PLANE_DIST
+    const halfH = Math.tan(CAMERA_FOV_RAD * 0.5) * SILK_PLANE_DIST
     mouseVec.current.x += (mouse.current.tx * halfH * aspect - mouseVec.current.x) * 0.05
     mouseVec.current.y += (mouse.current.ty * halfH - mouseVec.current.y) * 0.05
     uniforms.uMouse.value.copy(mouseVec.current)
+
+    // Scroll bridge (methodology section) → gentle silk swell, lerped
+    // with the same pattern Particles uses.
+    const scrollTarget = getHeroScroll()
+    uniforms.uScroll.value += (scrollTarget - uniforms.uScroll.value) * 0.08
   })
 
   return (
-    <mesh position={[0, 0, AURORA_PLANE_Z]} renderOrder={-1} frustumCulled={false}>
+    <mesh position={[0, 0, SILK_PLANE_Z]} renderOrder={-1} frustumCulled={false}>
       <planeGeometry args={[64, 32]} />
       {/* True additive over the PAGE, not just over the framebuffer: the
           canvas is transparent, so plain AdditiveBlending (SRC_ALPHA, ONE)
@@ -429,7 +496,7 @@ function AuroraBackdrop({ mouse }: { mouse: React.MutableRefObject<{ x: number; 
           CSS stage underneath. CustomBlending with (ONE,ONE / ZERO,ONE)
           adds light to the color buffer while leaving canvas alpha at 0 —
           the deep background, hero-fallback gradient and blueprint
-          spotlight grid all stay visible beneath the aurora. */}
+          spotlight grid all stay visible beneath the silk. */}
       <shaderMaterial
         transparent
         depthWrite={false}
@@ -440,8 +507,8 @@ function AuroraBackdrop({ mouse }: { mouse: React.MutableRefObject<{ x: number; 
         blendSrcAlpha={THREE.ZeroFactor}
         blendDstAlpha={THREE.OneFactor}
         uniforms={uniforms}
-        vertexShader={AURORA_VERTEX}
-        fragmentShader={AURORA_FRAGMENT}
+        vertexShader={SILK_VERTEX}
+        fragmentShader={SILK_FRAGMENT}
       />
     </mesh>
   )
@@ -522,7 +589,7 @@ export function HeroCanvas({ active }: HeroCanvasProps) {
         camera={{ position: [0, 0, BASE_CAMERA_Z], fov: 70 }}
         style={{ background: 'transparent' }}
       >
-        <AuroraBackdrop mouse={mouse} />
+        <SilkBackdrop mouse={mouse} />
         <Particles mouse={mouse} />
         <ScrollDolly />
         <ContextLossGuard />

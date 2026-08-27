@@ -10,8 +10,8 @@ import { Navbar } from '@/components/layout/navbar'
 import { Footer } from '@/components/layout/footer'
 import { ScrollProgress } from '@/components/layout/scroll-progress'
 import { Toaster } from '@/components/ui/sonner'
-import { MagneticCursor } from '@/components/sensory/magnetic-cursor'
-import { FilmGrain } from '@/components/sensory/film-grain'
+import { CustomCursor } from '@/components/sensory/custom-cursor'
+import { GrainOverlay } from '@/components/sensory/grain-overlay'
 import '../globals.css'
 
 const inter = Inter({
@@ -191,12 +191,15 @@ export default async function LocaleLayout({
             {children}
           </main>
           <Footer />
-          {/* Phase 2 — Sensory Polish Layer (app-wide, single instance each).
-              MagneticCursor lives INSIDE NextIntlClientProvider so the
-              Phase 5 WS-7 context chip can resolve translated labels
-              from common.cursor.* at runtime. */}
-          <FilmGrain />
-          <MagneticCursor />
+          {/* R7-b — Sensory Polish Layer (app-wide, single instance each):
+              animated film grain + the difference-blend custom cursor
+              (dot + trailing ring, magnetic-hover growth, centered label
+              mode). CustomCursor lives INSIDE NextIntlClientProvider so its
+              label mode can fall back to the common.cursor.* catalog for
+              elements that carry only data-cursor (zoom / inspect /
+              external / rotate / drag / preview — Phase 5 WS-7 chips). */}
+          <GrainOverlay />
+          <CustomCursor />
         </NextIntlClientProvider>
         <Toaster position="top-center" richColors closeButton />
       </body>

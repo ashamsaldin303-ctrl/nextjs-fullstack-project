@@ -1,12 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
-import { ArrowRight, Play } from 'lucide-react'
+import { ArrowRight, ArrowUpLeft, MapPin, Play } from 'lucide-react'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 import { useCursorVelocity } from '@/lib/use-cursor-velocity'
+import { useMagnetic } from '@/lib/use-magnetic'
 import { HeroConsole } from './hero-console'
 import { KineticHeading } from './kinetic-heading'
 
@@ -18,34 +19,159 @@ const HeroCanvas = dynamic(
   }
 )
 
+/* ------------------------------------------------------------------ */
+/* Live Damascus clock — editorial "we are here" detail.               */
+/* Server renders a neutral placeholder; the real time arrives after  */
+/* mount (setState-in-effect), so hydration never mismatches.         */
+/* ------------------------------------------------------------------ */
+function DamascusClock({ locale }: { locale: string }) {
+  const [time, setTime] = useState<string | null>(null)
+
+  useEffect(() => {
+    // ar → Arabic-Indic digits via ar-SY; en → plain Latin digits.
+    const fmt = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SY' : 'en-GB', {
+      timeZone: 'Asia/Damascus',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    })
+    const tick = () => setTime(fmt.format(new Date()))
+    tick()
+    const id = window.setInterval(tick, 1000)
+    return () => window.clearInterval(id)
+  }, [locale])
+
+  return (
+    <span dir="ltr" className="font-mono text-xs tabular-nums text-white/55">
+      {time ?? '--:--:--'}
+    </span>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Rotating circular-text badge — an editorial seal that links to the  */
+/* work page. Latin-only textPath (shaping-safe), slow spin, magnet.   */
+/* ------------------------------------------------------------------ */
+function OrbitBadge({ label }: { label: string }) {
+  // R7-b: magnetic pull on the badge Link (fine pointers, motion allowed).
+  const badgeRef = useRef<HTMLAnchorElement>(null)
+  useMagnetic(badgeRef)
+  return (
+    <Link
+      ref={badgeRef}
+      href="/work"
+      aria-label={label}
+      data-cursor="magnet"
+      className="group relative hidden size-28 shrink-0 items-center justify-center rounded-full sm:inline-flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-deep"
+    >
+      <svg
+        viewBox="0 0 100 100"
+        className="absolute inset-0 size-full motion-safe:animate-[spin_22s_linear_infinite]"
+        aria-hidden="true"
+      >
+        <defs>
+          <path
+            id="elyra-orbit-path"
+            d="M50,50 m-38,0 a38,38 0 1,1 76,0 a38,38 0 1,1 -76,0"
+            fill="none"
+          />
+        </defs>
+        <text
+          className="fill-white/55 font-mono uppercase"
+          style={{ fontSize: '7.6px', letterSpacing: '0.16em' }}
+        >
+          <textPath
+            href="#elyra-orbit-path"
+            textLength="236"
+            lengthAdjust="spacingAndGlyphs"
+          >
+            ELYRA · DIGITAL CRAFT · EST 2024 ·
+          </textPath>
+        </text>
+      </svg>
+      <span className="flex size-11 items-center justify-center rounded-full border border-white/15 bg-white/5 transition-all duration-300 group-hover:scale-110 group-hover:border-g-blue/50 group-hover:bg-g-blue/15">
+        <ArrowUpLeft
+          className="size-4 text-white/85 transition-transform duration-300 group-hover:-translate-y-0.5 rtl:-scale-x-100 rtl:group-hover:translate-x-0.5"
+          aria-hidden="true"
+        />
+      </span>
+    </Link>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Infinite marquee ticker — the hero's bottom edge. The track runs    */
+/* LTR (transform loop), every item keeps its own direction so Arabic  */
+/* shaping stays intact. Items duplicate ×2 for the seamless -50% lap. */
+/* ------------------------------------------------------------------ */
+function HeroMarquee({ items }: { items: string[] }) {
+  const row = (hidden: boolean) => (
+    <div className="flex shrink-0 items-center" aria-hidden={hidden || undefined}>
+      {items.map((item, i) => (
+        <span key={i} className="flex shrink-0 items-center">
+          <span className="whitespace-nowrap px-6 text-sm font-medium text-white/60 md:text-base">
+            {item}
+          </span>
+          <Spark aria-hidden="true" />
+        </span>
+      ))}
+    </div>
+  )
+  return (
+    <div
+      className="hero-marquee absolute inset-x-0 bottom-0 z-10"
+      dir="ltr"
+      data-bg-layer=""
+      aria-hidden="true"
+    >
+      <div className="hero-marquee-track">
+        {row(false)}
+        {row(true)}
+      </div>
+    </div>
+  )
+}
+
+function Spark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={`size-3.5 ${className ?? ''}`} fill="currentColor">
+      <path d="M12 0c.9 6.9 4.2 10.2 12 12-7.8 1.8-11.1 5.1-12 12-.9-6.9-4.2-10.2-12-12C7.8 10.2 11.1 6.9 12 0Z" />
+    </svg>
+  )
+}
+
 /**
- * Elyra hero — Phase 3 performance rework (prompt §4.1 + §4.2):
+ * Elyra hero — R7 editorial-cinematic rework.
  *
- *   · Above-the-fold content (badge, h1, subtitle, CTAs) renders from the
- *     SERVER with CSS-only entrance keyframes (`hero-enter`) that start on
- *     first paint — no framer-motion, no hydration wait, LCP-safe. The h1
- *     and subtitle (LCP candidates) carry zero animation delay.
- *   · The Three.js canvas is deferred until requestIdleCallback (2.5s
- *     timeout) or the first pointer interaction, so its 231KB chunk never
- *     blocks LCP/TBT. The gradient fallback paints instantly underneath.
- *   · framer-motion is fully removed from this component.
+ * Layout: asymmetric, start-aligned (right on RTL), giant masked-reveal
+ * display type (KineticHeading), kicker row with a live Damascus clock,
+ * outlined ELYRA watermark bleeding off the bottom corner, vertical
+ * scroll rail on the empty edge, rotating orbit badge beside the CTAs,
+ * and an infinite service marquee as the section's bottom edge.
+ *
+ * Preserved performance architecture: above-the-fold content renders
+ * from the SERVER with CSS-only entrances (no framer-motion, LCP-safe);
+ * the Three.js canvas stays deferred until idle/first interaction; the
+ * frameloop pauses offscreen/hidden; spotlight grid follows the pointer.
  */
 export function Hero() {
   const t = useTranslations('hero')
+  const locale = useLocale()
   const reduced = usePrefersReducedMotion()
 
   const heroRef = useRef<HTMLElement>(null)
-  // Phase 5 WS-6: ref for the primary CTA — kinetic typography with a
-  // narrower wght range (600→700) so the button feels responsive to
-  // cursor speed without competing with the h1's wider 600→800 range.
   const ctaPrimaryRef = useRef<HTMLAnchorElement>(null)
+  const ctaSecondaryRef = useRef<HTMLAnchorElement>(null)
   const [active, setActive] = useState(true)
   const [load3D, setLoad3D] = useState(false)
-  // FIX(2-c/7): both visibility signals — the IO writes this ref so the
-  // visibilitychange handler can never re-enable an offscreen section.
   const intersectingRef = useRef(true)
 
-  // Phase 5 WS-6: apply kinetic typography to the primary CTA.
+  const marqueeItems = useMemo(() => {
+    const raw = t.raw('marquee')
+    return Array.isArray(raw) ? (raw as string[]) : []
+  }, [t])
+
   useCursorVelocity(ctaPrimaryRef, {
     minWght: 600,
     maxWght: 700,
@@ -53,6 +179,14 @@ export function Hero() {
     saturationVelocity: 3,
     idleMs: 200,
   })
+
+  // R7-b sensory layer — magnetic pull on both CTAs. ctaPrimaryRef is
+  // shared with useCursorVelocity above (it writes the --wght CSS var,
+  // this writes transform — no conflict). The hook clears its inline
+  // transform at rest, so the Tailwind hover:scale / transition classes
+  // keep governing the resting state.
+  useMagnetic(ctaPrimaryRef)
+  useMagnetic(ctaSecondaryRef)
 
   // Pause rendering when the hero scrolls offscreen or the tab is hidden.
   useEffect(() => {
@@ -76,13 +210,7 @@ export function Hero() {
     }
   }, [])
 
-  // WS-3: spotlight Blueprint grid — pointer tracking sets --mx/--my.
-  // Phase 5 P0-2: also toggle `spotlight-active` on first move so the
-  // grid transitions from its dim default to full reveal opacity.
-  // FIX(2-c/4): rAF-coalesced — store the latest event and perform the
-  // rect read + CSS custom property write ONCE per frame instead of per
-  // pointermove (input events can fire far above display frequency). No
-  // new events → the callback never reschedules, so the loop goes idle.
+  // Spotlight Blueprint grid — rAF-coalesced pointer tracking.
   const spotlightActivated = useRef(false)
   const latestPointer = useRef<React.PointerEvent<HTMLElement> | null>(null)
   const spotlightRaf = useRef(0)
@@ -124,7 +252,6 @@ export function Hero() {
       const id = window.setTimeout(start, 1500)
       cancel = () => window.clearTimeout(id)
     }
-    // First real interaction accelerates the load if idle hasn't fired yet.
     window.addEventListener('pointermove', start, { once: true, passive: true })
     window.addEventListener('keydown', start, { once: true, passive: true })
     return () => {
@@ -144,12 +271,10 @@ export function Hero() {
       aria-labelledby="hero-title"
     >
       {/* Background — data-bg-layer opts out of .elyra-spotlight's
-          content-lifting rule (position:relative + z-index) so this
-          absolute layer keeps sizing to the section (see globals.css). */}
+          content-lifting rule (see globals.css). */}
       <div className="absolute inset-0" data-bg-layer="">
         {show3D ? <HeroCanvas active={active} /> : null}
         <div className="hero-fallback absolute inset-0 -z-10" aria-hidden="true" />
-        {/* vignette for legibility */}
         <div
           className="absolute inset-0"
           style={{
@@ -160,63 +285,90 @@ export function Hero() {
         />
       </div>
 
-      {/* Content — CSS-only entrance, LCP-safe (no JS dependency) */}
-      <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-7xl flex-col items-center justify-center px-4 pt-24 pb-20 text-center sm:px-6 lg:px-8">
-        <span className="hero-enter hero-enter-1 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs font-medium tracking-wide text-white/85 backdrop-blur-sm sm:text-sm">
-          <span className="size-1.5 rounded-full bg-g-green" aria-hidden="true" />
-          {t('badge')}
+      {/* Outlined ELYRA watermark — bleeds off the far corner (the empty
+          side of the asymmetric composition). Latin glyphs, stroke-only.
+          data-bg-layer: exempt from .elyra-spotlight's content-lift rule
+          (which would force position:relative and push the column down). */}
+      <div className="hero-watermark" data-bg-layer="" aria-hidden="true">
+        {t('watermark')}
+      </div>
+
+      {/* Vertical scroll rail on the empty edge (desktop only).
+          data-bg-layer: same spotlight content-lift exemption. */}
+      <div
+        className="hero-enter hero-enter-4 pointer-events-none absolute bottom-36 top-1/2 z-10 hidden -translate-y-1/2 flex-col items-center gap-4 ltr:right-7 rtl:left-7 lg:flex"
+        data-bg-layer=""
+        aria-hidden="true"
+      >
+        <span className="hero-rail-text text-[11px] font-medium uppercase text-white/45 ltr:tracking-[0.35em]">
+          {t('scroll')}
         </span>
+        <span className="hero-rail-line relative block w-px overflow-hidden">
+          <span className="hero-rail-dot absolute inset-x-0 top-0 block h-10" aria-hidden="true" />
+        </span>
+      </div>
+
+      {/* Content — start-aligned editorial column, CSS-only entrance. */}
+      <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-7xl flex-col justify-center px-4 pb-32 pt-24 text-start sm:px-6 lg:px-8 lg:pb-28">
+        {/* Kicker row — pulse dot, agency line, place + live time. */}
+        <div className="hero-enter hero-enter-1 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-white/70">
+          <span className="flex items-center gap-2.5">
+            <span className="size-1.5 rounded-full bg-g-green elyra-pulse" aria-hidden="true" />
+            <span className="font-medium">{t('badge')}</span>
+          </span>
+          <span className="hidden h-4 w-px bg-white/20 sm:block" aria-hidden="true" />
+          <span className="hidden items-center gap-1.5 text-white/55 sm:flex">
+            <MapPin className="size-3.5 text-g-blue/80" aria-hidden="true" />
+            {t('location')}
+            <DamascusClock locale={locale} />
+          </span>
+        </div>
 
         <KineticHeading
           id="hero-title"
           titleTopKey="titleTop"
           titleAccentKey="titleAccent"
           titleBottomKey="titleBottom"
-          className="hero-enter mt-8"
         />
 
-        <p className="hero-enter mt-8 max-w-2xl text-base leading-relaxed text-white/70 sm:text-lg md:text-xl">
+        <p className="hero-enter hero-enter-3 mt-7 max-w-xl text-base leading-relaxed text-white/70 sm:text-lg">
           {t('subtitle')}
         </p>
 
-        <div className="hero-enter hero-enter-2 mt-10 flex flex-col items-center gap-3 sm:flex-row">
-          <Link
-            ref={ctaPrimaryRef}
-            href="/contact"
-            data-cursor="magnet"
-            className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-6 text-base font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
-            // Phase 5 WS-6: bind CTA weight to --wght (default 700 when
-            // hook hasn't written — covers SSR + touch + reduced).
-            style={reduced ? undefined : { fontVariationSettings: '"wght" var(--wght, 700)' }}
-          >
-            {t('ctaPrimary')}
-            <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" aria-hidden="true" />
-          </Link>
-          <Link
-            href="/work"
-            data-cursor="magnet"
-            className="group inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 text-base font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
-          >
-            <Play className="size-4" aria-hidden="true" />
-            {t('ctaSecondary')}
-          </Link>
+        <div className="hero-enter hero-enter-4 mt-9 flex w-full items-center gap-4 sm:gap-6">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+            <Link
+              ref={ctaPrimaryRef}
+              href="/contact"
+              data-cursor="magnet"
+              className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-7 text-base font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
+              style={reduced ? undefined : { fontVariationSettings: '"wght" var(--wght, 700)' }}
+            >
+              {t('ctaPrimary')}
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" aria-hidden="true" />
+            </Link>
+            <Link
+              ref={ctaSecondaryRef}
+              href="/work"
+              data-cursor="magnet"
+              className="group inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 text-base font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
+            >
+              <Play className="size-4" aria-hidden="true" />
+              {t('ctaSecondary')}
+            </Link>
+          </div>
+          <span className="mx-2 hidden h-10 w-px bg-white/10 sm:block" aria-hidden="true" />
+          <OrbitBadge label={t('ctaSecondary')} />
         </div>
 
-        {/* WS-1: interactive command console — pure HTML/CSS, protects LCP.
-            FIX(2-c/2): `active` pauses the WebGL frameloop while the hero
-            is offscreen or the tab is hidden. */}
-        <HeroConsole active={active} />
-
-        <div className="hero-scroll-hint absolute bottom-8 left-1/2 -translate-x-1/2 text-xs text-white/50">
-          <span className="flex flex-col items-center gap-1">
-            <span>{t('scroll')}</span>
-            <span
-              className="block h-8 w-px bg-gradient-to-b from-white/40 to-transparent"
-              aria-hidden="true"
-            />
-          </span>
+        {/* Interactive command console — conversion element, start-aligned. */}
+        <div className="w-full max-w-2xl">
+          <HeroConsole active={active} />
         </div>
       </div>
+
+      {/* Service marquee — the hero's bottom edge. */}
+      {marqueeItems.length > 0 ? <HeroMarquee items={marqueeItems} /> : null}
     </section>
   )
 }
