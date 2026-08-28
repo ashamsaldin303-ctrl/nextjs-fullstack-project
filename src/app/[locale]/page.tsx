@@ -96,8 +96,9 @@ export default async function HomePage({
           minified+gzipped (framer-motion + AnimatePresence + motion
           runtime) without losing any functionality. */}
       {/* R9 (user request): the «قالوا عننا» testimonials section was
-          removed from the homepage. The catalog keys stay — the contact
-          page reuses items.first for its form-side social proof. */}
+          removed from the homepage. Only the reused subset of the catalog
+          keys stays (items.first.* + rating — the contact page's form-side
+          social proof); the remaining orphans were pruned in LOOP-6. */}
       <MethodologyLazy />
       <CalculatorLazy />
     </>

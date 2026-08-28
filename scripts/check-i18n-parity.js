@@ -5,11 +5,13 @@
  * drift apart. Verifies per key:
  *   1. presence in both catalogs,
  *   2. value types match (array vs string vs number),
- *   3. array values have equal length,
+ *   3. array values have equal length, and every string ELEMENT's ICU
+ *      placeholder + HTML-tag sets match across locales (L6-F2),
  *   4. ICU placeholder sets match ({name} tokens, incl. the argument of
  *      {count, plural, …} / {x, select, …} — arm text is ignored),
- *   5. no accidentally blanked strings (empty values must be allowlisted),
- *   6. advisory: identical ar/en string values (untranslated-copy risk).
+ *   5. numeric leaves are strictly equal (ar 120 vs en 130 fails — L6-F2),
+ *   6. no accidentally blanked strings (empty values must be allowlisted),
+ *   7. advisory: identical ar/en string values (untranslated-copy risk).
  * Run in CI / pre-delivery.
  */
 const fs = require('fs')
@@ -42,6 +44,20 @@ function placeholders(value) {
   return tokens
 }
 
+/**
+ * Extracts HTML tag names from a message ("<b>", "</em>", "<br/>").
+ * Used for array ELEMENTS, where the per-string placeholder check never
+ * ran before L6-F2 — a translated array element losing its <strong> tag
+ * would previously pass parity silently. Tag name only; attributes ignored.
+ */
+function htmlTags(value) {
+  const tags = new Set()
+  const re = /<\/?\s*([a-zA-Z][a-zA-Z0-9-]*)/g
+  let m
+  while ((m = re.exec(value))) tags.add(m[1])
+  return tags
+}
+
 const dir = path.join(__dirname, '..')
 const arFlat = flat(JSON.parse(fs.readFileSync(path.join(dir, 'messages/ar.json'), 'utf8')))
 const enFlat = flat(JSON.parse(fs.readFileSync(path.join(dir, 'messages/en.json'), 'utf8')))
@@ -54,9 +70,13 @@ const enOnly = enKeys.filter((k) => !(k in arFlat))
 
 const typeMismatches = []
 const arrayLengthMismatches = []
+const arrayElementPlaceholderMismatches = []
+const arrayElementTagMismatches = []
+const numericMismatches = []
 const placeholderMismatches = []
 let stringKeysChecked = 0
 let arrayKeysChecked = 0
+let numericKeysChecked = 0
 
 // --- Check 5 (L1-B P3, fix 2-d): intentional-empty allowlist -------------
 // An accidentally blanked string would silently pass every check above
@@ -116,6 +136,41 @@ for (const k of arKeys) {
     arrayKeysChecked++
     if (a.length !== e.length) {
       arrayLengthMismatches.push(`${k} (ar ${a.length} ≠ en ${e.length})`)
+      continue // lengths differ — element pairing is impossible
+    }
+    // L6-F2: per-element placeholder/HTML comparison (arrays used to be
+    // length-checked only, so a translated element could lose its {token}
+    // or <tag> without failing the gate).
+    for (let i = 0; i < a.length; i++) {
+      const av = a[i]
+      const ev = e[i]
+      if (typeof av !== 'string' || typeof ev !== 'string') continue
+      const ap = placeholders(av)
+      const ep = placeholders(ev)
+      for (const p of ap) {
+        if (!ep.has(p)) arrayElementPlaceholderMismatches.push(`${k}[${i}] (ar has {${p}}, en does not)`)
+      }
+      for (const p of ep) {
+        if (!ap.has(p)) arrayElementPlaceholderMismatches.push(`${k}[${i}] (en has {${p}}, ar does not)`)
+      }
+      const at = htmlTags(av)
+      const et = htmlTags(ev)
+      for (const tag of at) {
+        if (!et.has(tag)) arrayElementTagMismatches.push(`${k}[${i}] (ar has <${tag}>, en does not)`)
+      }
+      for (const tag of et) {
+        if (!at.has(tag)) arrayElementTagMismatches.push(`${k}[${i}] (en has <${tag}>, ar does not)`)
+      }
+    }
+    continue
+  }
+
+  // L6-F2: numeric leaves used to be type-checked only — ar 120 vs en 130
+  // passed. Numbers must now be identical in both catalogs.
+  if (typeof a === 'number') {
+    numericKeysChecked++
+    if (a !== e) {
+      numericMismatches.push(`${k} (ar: ${a}, en: ${e})`)
     }
     continue
   }
@@ -138,6 +193,9 @@ const failed =
   enOnly.length ||
   typeMismatches.length ||
   arrayLengthMismatches.length ||
+  arrayElementPlaceholderMismatches.length ||
+  arrayElementTagMismatches.length ||
+  numericMismatches.length ||
   placeholderMismatches.length ||
   emptyViolations.length
 
@@ -147,13 +205,19 @@ if (failed) {
   if (enOnly.length) console.error('  Only in en.json:', enOnly)
   if (typeMismatches.length) console.error('  Type mismatches:', typeMismatches)
   if (arrayLengthMismatches.length) console.error('  Array length mismatches:', arrayLengthMismatches)
+  if (arrayElementPlaceholderMismatches.length)
+    console.error('  Array element placeholder mismatches:', arrayElementPlaceholderMismatches)
+  if (arrayElementTagMismatches.length) console.error('  Array element HTML-tag mismatches:', arrayElementTagMismatches)
+  if (numericMismatches.length) console.error('  Numeric value mismatches:', numericMismatches)
   if (placeholderMismatches.length) console.error('  Placeholder mismatches:', placeholderMismatches)
   if (emptyViolations.length) console.error('  Empty string values (not in allowlist):', emptyViolations)
   process.exit(1)
 }
 
 console.log(`Parity OK: ${arKeys.length} keys matched across ar.json and en.json`)
-console.log(`  ICU placeholders verified on ${stringKeysChecked} string keys · array lengths verified on ${arrayKeysChecked} array keys`)
+console.log(
+  `  ICU placeholders verified on ${stringKeysChecked} string keys · arrays verified on ${arrayKeysChecked} keys (length + per-element placeholders/tags) · numeric equality verified on ${numericKeysChecked} keys`,
+)
 console.log(`  Empty-string check: ${EMPTY_STRING_ALLOWED.size} allowlisted keys, no accidental blanks`)
 if (identicalStringKeys.length) {
   console.log(

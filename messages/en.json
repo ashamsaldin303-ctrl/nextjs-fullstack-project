@@ -58,7 +58,7 @@
       "Intelligent n8n automation",
       "AI agents that work for you",
       "Stores that sell more",
-      "99/100 performance",
+      "90+ Lighthouse performance",
       "Apple-grade design"
     ]
   },
@@ -303,6 +303,8 @@
       }
     },
     "logTitle": "Live Execution Log",
+    "flowComplete": "flow complete",
+    "awaiting": "// awaiting trigger...",
     "stats": {
       "total": "Total time",
       "steps": "Steps",
@@ -731,14 +733,13 @@
         "preview": "Free preview",
         "lecture": "Trial lesson — try before enrolling",
         "duration": "12:40",
-        "curriculum": "Course content",
         "module": "Module",
         "lessons": "12 lessons",
         "instructorName": "Lina Al-Ali",
         "instructorRole": "Certified UI/UX instructor",
-        "certificate": "Certified certificate on completion",
+        "certificate": "Accredited certificate on completion",
         "level": "Beginner level",
-        "progress": "complete"
+        "footerNote": "All rights reserved"
       },
       "dining": {
         "nav": [
@@ -751,7 +752,7 @@
         "rating": "4.9",
         "reviewsCount": "+940 reviews",
         "delivery": "Delivery within 30 minutes",
-        "minOrder": "8$ minimum",
+        "minOrder": "$8 minimum",
         "openHours": "Open daily 12pm – 12am",
         "menuTabs": [
           "Grill",
@@ -794,9 +795,6 @@
     }
   },
   "testimonials": {
-    "kicker": "Testimonials",
-    "title": "Trust We Cherish",
-    "subtitle": "What clients say, from the first discovery session to long after launch.",
     "rating": "Rated 5 out of 5 stars",
     "items": {
       "first": {
@@ -804,24 +802,6 @@
         "name": "Reem Al-Halabi",
         "role": "Founder",
         "company": "Lamsa Store"
-      },
-      "second": {
-        "quote": "The automation system saves my team 60+ hours every month. Invoices issue themselves and reminders go out before we think of them — and for the first time, our accounting month closes in one day instead of five.",
-        "name": "Khaled Al-Najjar",
-        "role": "Operations Manager",
-        "company": "Ofoq Company"
-      },
-      "third": {
-        "quote": "Rare professionalism: delivered two weeks early with Lighthouse scores above 95. The details I never asked for are now the first thing our customers mention about our platform.",
-        "name": "Lina Murad",
-        "role": "Marketing Director",
-        "company": "Aqar Plus"
-      },
-      "fourth": {
-        "quote": "We went from scattered files to a platform managing 4,200 students without a single admin employee. Their post-launch support is not promises — it is a monthly improvement report that arrives before we ask.",
-        "name": "Omar Al-Saadi",
-        "role": "Technical Director",
-        "company": "Masar Academy"
       }
     }
   },
@@ -1157,7 +1137,7 @@
         },
         "p2": {
           "title": "Aqar Plus Platform",
-          "type": "Real-estate Platform",
+          "type": "Real Estate Platform",
           "desc": "A cluttered listings board became a smooth discovery platform with live maps and filters that understand buyers.",
           "services": [
             "Interactive map search",

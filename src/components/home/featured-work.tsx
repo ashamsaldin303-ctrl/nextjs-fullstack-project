@@ -8,9 +8,12 @@ import { Reveal } from '@/components/shared/reveal'
 import { BeforeAfter, toMockContent } from './before-after'
 import { DeconstructedCard } from './deconstructed-card'
 
+// L6-F1: the dead per-project `metrics` arrays were removed — the render
+// reads the localized metrics via t.raw(`${p.key}.metrics`), so the static
+// ['metric1','metric2'] placeholders were never consumed.
 const PROJECTS = [
-  { key: 'project1' as const, variant: 'site-new' as const, accent: '#0071E3', metrics: ['metric1', 'metric2'] },
-  { key: 'project2' as const, variant: 'dashboard-new' as const, accent: '#34A853', metrics: ['metric1', 'metric2'] },
+  { key: 'project1' as const, variant: 'site-new' as const, accent: '#0071E3' },
+  { key: 'project2' as const, variant: 'dashboard-new' as const, accent: '#34A853' },
 ]
 
 // FIX(2-c/11): project1 gets the full deconstructed showcase above, so

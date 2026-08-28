@@ -58,8 +58,9 @@
      #0F172A (7.9:1) and the new #08080A deep (8.3:1). Replaces the
      slate-500-ish opacity that failed AA for small captions. */
   --elyra-muted-on-dark: #A3AEC2;
-  /* Phase 4 WS-3: immersive deep dark for hero-console / simulator /
-     testimonials only — #0F172A stays for regular dark bands. */
+  /* Phase 4 WS-3: immersive deep dark for the homepage hero + automation
+     simulator (R9 removed the hero console + testimonials) — #0F172A
+     stays for regular dark bands. */
   --background-deep: #08080A;
   /* Legacy g-* token NAMES are kept (navbar/contact/simulator class
      references) but the VALUES carry the Elyra blue/green family
@@ -164,15 +165,10 @@
 
 /* Custom utilities */
 @layer utilities {
-  /* Smooth, gentle glass on dark sections */
-  .glass-dark {
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-  }
   /* L1-D P2 (fix 2-d): .glass-light deleted — zero TSX references since the
-     Phase-2 glass pass; only .glass-dark (navbar) survives. */
+     Phase-2 glass pass. L6-F1: .glass-dark deleted too — zero TSX
+     references since the navbar moved to inline utilities
+     (bg-elyra-dark/70 + backdrop-blur-xl + border-white/10). */
 
   /* Cinematic dark gradient fallback for 3D/WebGL heroes — blue + green
      radials over the dark base (palette revert: blue glows are back). */
@@ -271,7 +267,6 @@ html[data-intro-off] .intro-overlay {
   display: none;
 }
 html[data-intro] .hero-enter,
-html[data-intro] .hero-scroll-hint,
 html[data-intro] .kinetic-word,
 html[data-intro] .hr-word,
 html[data-intro] .hero-marquee-track,
@@ -292,7 +287,6 @@ html[data-intro] .hero-build-fx * {
 html[data-page-wait] .intro-overlay,
 html[data-page-wait] .intro-overlay *,
 html[data-page-wait] .hero-enter,
-html[data-page-wait] .hero-scroll-hint,
 html[data-page-wait] .kinetic-word,
 html[data-page-wait] .hr-word,
 html[data-page-wait] .hero-marquee-track,
@@ -311,7 +305,6 @@ html[data-page-wait] .hero-build-fx * {
    the homepage via browser back/forward — the restored cached DOM carries
    every animation parked at its end state. */
 .hero-fx-restart .hero-enter,
-.hero-fx-restart .hero-scroll-hint,
 .hero-fx-restart .kinetic-word,
 .hero-fx-restart .hr-word,
 .hero-fx-restart .hero-marquee-track,
@@ -488,15 +481,8 @@ html[data-page-wait] .hero-build-fx * {
       opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
       transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .reveal-blur {
-    opacity: 0;
-    transform: translateY(28px);
-    filter: blur(10px);
-    transition:
-      opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-      transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-      filter 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-  }
+  /* L6-F1: .reveal-blur deleted — its only consumer was the testimonials
+     section removed in R9 (reveal.tsx lost the variant in the same pass). */
   .reveal-left {
     opacity: 0;
     transform: translateX(-48px);
@@ -520,11 +506,6 @@ html[data-page-wait] .hero-build-fx * {
 .reveal-zoom.reveal-visible {
   opacity: 1;
   transform: scale(1) translateY(0);
-}
-.reveal-blur.reveal-visible {
-  opacity: 1;
-  transform: translateY(0);
-  filter: blur(0);
 }
 .reveal-left.reveal-visible,
 .reveal-right.reveal-visible {
@@ -589,15 +570,10 @@ html[data-page-wait] .hero-build-fx * {
   }
 }
 
-/* Scroll indicator pulse (was framer motion.div in hero) */
-.hero-scroll-hint {
-  opacity: 0;
-  animation: hero-hint-in 1s ease-out 0.9s forwards;
-}
-@keyframes hero-hint-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
+/* L6-F1: .hero-scroll-hint + @keyframes hero-hint-in deleted — zero TSX
+   references (the scroll-hint span left the hero with the R7-c rework; the
+   live scroll rail is .hero-rail-text/.hero-rail-dot, still covered by
+   every pause/reset list above). */
 
 /* =========================================================================
    R8 — "The Assembly": homepage build sequence (user request — a building
@@ -771,13 +747,27 @@ html[data-page-wait] .hero-build-fx * {
 .hb-l3 { right: 48px; top: 34%; animation-delay: 0.76s; }
 
 /* Scan line — the printer head. Sweeps the hero top→bottom ONCE, then
-   parks below the fold at 0 opacity. `top` animates in % of the hero
-   height (works whatever the hero's pixel height is). */
+   parks below the fold at 0 opacity. L6-F1 (P2): the sweep is now a
+   compositor-only translateY in cqh units — the old `top` keyframes
+   interpolated a LAYOUT property (layout + paint work every frame) across
+   the LCP hero. The bar rides inside .hero-build-scan-track, a
+   size-contained track whose height equals the hero height, so 1cqh = 1%
+   of the hero (works whatever the hero's pixel height is) and the
+   −7cqh → 107cqh travel is exactly the old −7% → 107% `top` range.
+   Container-type: size applies layout/style/size containment only — no
+   stacking context — so the bar's z-index: 20 keeps sweeping OVER the
+   materializing content exactly as before. */
+.hero-build-scan-track {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  container-type: size;
+}
 .hero-build-scan {
   position: absolute;
   left: 0;
   right: 0;
-  top: -7%;
+  top: 0;
   height: 110px;
   z-index: 20;
   background: linear-gradient(
@@ -811,10 +801,10 @@ html[data-page-wait] .hero-build-fx * {
   box-shadow: 0 0 22px 5px rgba(96, 165, 250, 0.35);
 }
 @keyframes hb-scan {
-  0% { top: -7%; opacity: 0; }
+  0% { transform: translateY(-7cqh); opacity: 0; }
   12% { opacity: 1; }
   88% { opacity: 1; }
-  100% { top: 107%; opacity: 0; }
+  100% { transform: translateY(107cqh); opacity: 0; }
 }
 
 /* Closing sheen — one diagonal light sweep across the finished hero. */
@@ -873,6 +863,40 @@ html[data-page-wait] .hero-build-fx * {
   25% { opacity: 1; }
   60% { opacity: 1; }
   100% { opacity: 0; }
+}
+
+/* Before/after SCENE keyframes — L6-F1: moved here VERBATIM (class names,
+   keyframe names, timings) from before-after.tsx, which used to inject this
+   as an inline <style> PER BeforeAfter instance (so /work rendered six
+   duplicate copies of every definition). The 2005 blinking announcement
+   dots, the old-site scrolling news ticker, and the R9 dining steam wisps.
+   The global prefers-reduced-motion kill-switch at the top of this file
+   freezes these (the ticker completes to -50% where its duplicated copy
+   sits — content stays readable); the data-intro/data-page-wait pause lists
+   need no changes — they operate on element selectors and /work is an
+   inner page where data-intro is never armed. */
+@keyframes ba-scene-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+.ba-scene-blink {
+  animation: ba-scene-blink 1.3s ease-in-out infinite;
+}
+@keyframes ba-scene-ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.ba-scene-ticker-track {
+  animation: ba-scene-ticker 16s linear infinite;
+}
+/* R9 dining scene: rising steam wisps over the hero dish. */
+@keyframes ba-scene-steam {
+  0% { transform: translateY(0) scaleX(1); opacity: 0; }
+  30% { opacity: 0.9; }
+  100% { transform: translateY(-90%) scaleX(1.6); opacity: 0; }
+}
+.ba-scene-steam {
+  animation: ba-scene-steam 2.6s ease-in-out infinite;
 }
 
 /* Work-grid filter transition (was framer AnimatePresence layout) */
@@ -975,8 +999,9 @@ html[data-page-wait] .hero-build-fx * {
 }
 
 /* --- Phase 4 WS-3: Dark deep section + Blueprint spotlight ---------------
-   Immersive sections (hero console, simulator, testimonials) use the new
-   #08080A deep instead of #0F172A. A mouse-following radial spotlight
+   Immersive sections (the homepage hero, automation simulator — R9
+   removed the hero console + testimonials) use the new #08080A deep
+   instead of #0F172A. A mouse-following radial spotlight
    reveals a faint CSS grid beneath — pure CSS, transform only, disabled
    on touch and reduced-motion.
 

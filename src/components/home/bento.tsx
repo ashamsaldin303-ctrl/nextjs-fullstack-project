@@ -783,7 +783,7 @@ function MiniAgent() {
   /** Batch 2 item 8: convert the intent into a request — the typed idea
    *  when present, otherwise the currently shown answer. URL contract:
    *  /contact?service=agent&idea=<urlencoded> (same locale-correct
-   *  router.push pattern as hero-console's goToContact). */
+   *  router.push pattern as the automation simulator's completion CTA). */
   const convert = () => {
     const text = idea.trim() || current
     const params = new URLSearchParams({ service: 'agent' })

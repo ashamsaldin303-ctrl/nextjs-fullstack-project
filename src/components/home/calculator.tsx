@@ -188,12 +188,21 @@ export function Calculator() {
     }
   }
 
+  // L6-F1: locale-aware slide direction. `x` is PHYSICAL — with the raw
+  // d * 30 sign, advancing (d = 1) always enters from the physical right
+  // and exits left, which reads backwards in RTL. Flipping the sign for
+  // Arabic mirrors the gesture so the advance flows toward the
+  // reading-direction start (rightward, like turning an RTL page): the
+  // incoming step enters from the physical left, the outgoing one exits
+  // toward the right. Reduced-motion gating is unchanged (variants stay
+  // undefined → no slide at all).
+  const slideSign = locale === 'ar' ? -1 : 1
   const slideVariants = reduced
     ? undefined
     : {
-        enter: (d: number) => ({ opacity: 0, x: d * 30 }),
+        enter: (d: number) => ({ opacity: 0, x: d * 30 * slideSign }),
         center: { opacity: 1, x: 0 },
-        exit: (d: number) => ({ opacity: 0, x: -d * 30 }),
+        exit: (d: number) => ({ opacity: 0, x: -d * 30 * slideSign }),
       }
 
   // L1-C P3 (fix 2-d): aria-label REMOVED — it overrode aria-labelledby

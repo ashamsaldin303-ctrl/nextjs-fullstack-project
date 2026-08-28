@@ -6,7 +6,7 @@
 >
 > **المرحلة 2 مكتملة** — طبقة الإحساس (مؤشر مغناطيسي + حبيبات سينمائية + Audio UX) + إثراء المحتوى + React Compiler + hreflang.
 >
-> **المرحلة 1 مكتملة** — التأسيس + الصفحة الرئيسية (9 أقسام) + صفحتا الخدمتين + work / about / contact + كل معايير الجودة.
+> **المرحلة 1 مكتملة** — التأسيس + الصفحة الرئيسية (8 أقسام) + صفحتا الخدمتين + work / about / contact + كل معايير الجودة.
 
 ## البنية التقنية
 
@@ -20,7 +20,7 @@
 
 | المسار | الوصف |
 |---|---|
-| `/` | الصفحة الرئيسية (9 أقسام) |
+| `/` | الصفحة الرئيسية (8 أقسام) |
 | `/services/websites` | مسار بناء المواقع + مشهد 3D تفاعلي |
 | `/services/automation` | مسار الأتمتة + محاكي بسيناريوهات متعددة |
 | `/work` | الأعمال (فلترة + 6 بطاقات قبل/بعد) |
@@ -95,7 +95,7 @@
 |---|---|
 | `bun run lint` | ✓ 0 أخطاء / 0 تحذيرات (قواعد React 19 الصارمة مفعّلة) |
 | `bunx tsc --noEmit` | ✓ 0 أخطاء (مع `noUncheckedIndexedAccess`) |
-| تكافؤ i18n (ar/en) | ✓ 620 مفاتيح متطابقة |
+| تكافؤ i18n (ar/en) | ✓ متطابقة بالكامل بين اللغتين — بوابة التحقق: node scripts/check-i18n-parity.js |
 | جميع المسارات (×2 لغة) | ✓ 200 OK |
 | تحقق في المتصفح | ✓ رسم + تفاعلات + RTL/LTR + responsive + sticky footer |
 | أخطاء console/hydration | ✓ صفر |
@@ -264,7 +264,7 @@ bun scripts/clean-leads.ts (--all|--purge-days=N)[ --dry-run]  # محو كامل
 ```
 src/
 ├── app/[locale]/          # كل الصفحات + layout + loading + error + not-found
-│   ├── page.tsx           # الرئيسية (9 أقسام)
+│   ├── page.tsx           # الرئيسية (8 أقسام)
 │   ├── services/{websites,automation}/
 │   ├── work/ about/ contact/
 ├── app/global-error.tsx   # المعالج الجذري
@@ -286,7 +286,7 @@ src/
 │                          # db, utils
 ├── app/api/leads/route.ts # نقطة الكتابة الوحيدة (Zod + إعادة حساب + Prisma + 429)
 └── proxy.ts               # next-intl middleware (Next.js 16)
-messages/{ar,en}.json      # 620 مفاتيح متطابقة
+messages/{ar,en}.json      # ترجمات متطابقة بالكامل بين اللغتين — التحقق: node scripts/check-i18n-parity.js
 ```
 
 ---

@@ -322,8 +322,9 @@ function Centerpiece({
 }: {
   dragging: boolean
   /** L4 R4 P3: while true (an arrow-key nudge landed <900ms ago) the
-   *  useFrame auto-spin pauses — same semantics console-scene's keyboard
-   *  drift-pause got in L3-2 — so an ArrowLeft step (−0.16 rad) isn't
+   *  useFrame auto-spin pauses — the keyboard drift-pause semantics
+   *  standardized in L3-2 (this scene has carried them alone since R9
+   *  deleted console-scene.tsx) — so an ArrowLeft step (−0.16 rad) isn't
    *  counter-rotated by the +0.25 rad/s spin in ~0.64s. */
   keyboardActive: boolean
   /** Hands the spinner group up to CapabilityScene so its imperative

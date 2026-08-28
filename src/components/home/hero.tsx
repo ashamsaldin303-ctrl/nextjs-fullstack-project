@@ -365,7 +365,14 @@ export function Hero() {
           <span className="hb-label hb-l2">33.51°N · 36.29°E — DAMASCUS</span>
           <span className="hb-label hb-l3">GRID 12 × 8 · BUILD v2.5</span>
         </div>
-        <span className="hero-build-scan" />
+        {/* L6-F1 (P2): the scan bar now rides inside a size-contained track
+            (.hero-build-scan-track) so its sweep animates a compositor-only
+            translateY in cqh units — the old `top` animation forced layout
+            + paint every frame over the LCP hero. The whole layer stays
+            decorative (aria-hidden on .hero-build-fx above). */}
+        <div className="hero-build-scan-track">
+          <span className="hero-build-scan" />
+        </div>
         <span className="hero-build-sheen" />
       </div>
 

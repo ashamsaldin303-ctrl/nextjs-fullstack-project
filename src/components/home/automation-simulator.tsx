@@ -266,7 +266,7 @@ export function AutomationSimulator({
         id: logSeq.current,
         time: logTimestamp(new Date()),
         kind: 'done',
-        text: 'flow complete',
+        text: t('flowComplete'),
         ms: totalMs,
       }])
     }, steps.length * (STEP_DISPLAY + TRANSITION))
@@ -668,7 +668,9 @@ export function AutomationSimulator({
             >
               {logLines.length === 0 ? (
                 // literal JS-style comment as the terminal's idle hint
-                <p className="text-white/50">{'// awaiting trigger...'}</p>
+                // (L6-F1: catalog key simulator.awaiting — the ar copy carries
+                // its own "//" prefix so the terminal chrome stays identical)
+                <p className="text-white/50">{t('awaiting')}</p>
               ) : (
                 logLines.map((line) => (
                   <div key={line.id} dir="ltr" className={cn('whitespace-pre', !reduced && 'elyra-log-line')}>

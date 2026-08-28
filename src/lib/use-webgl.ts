@@ -1,7 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-
 /**
  * WebGL support probe — checks ACTUAL context creation, not just API
  * presence (FIX(2-b) for L1-C/L1-D P3).
@@ -12,15 +10,17 @@ import { useEffect, useState } from 'react'
  * WebGLRenderer construction failure rejects silently — the consumer shows
  * an empty dark box instead of its fallback.
  *
- * · SSR-safe: `useWebGLSupport()` returns false on the server and resolves
- *   after the first client frame (hero-console's scene only mounts on user
- *   interaction, long after the probe settles — no fallback flash).
- * · rAF-deferred, mirroring hero-canvas.tsx's proven glAvailable probe: no
- *   synchronous context creation inside the effect body.
+ * · SSR-safe: returns false on the server WITHOUT touching the cache (the
+ *   SSR pass must never pin a bogus result).
  * · Memoized at module level — the probe runs at most once per page load
- *   and every consumer shares the result. hero-canvas.tsx and
- *   capability-scene.tsx carry their own inline probes today and can adopt
- *   `probeWebGL()` later without any API change here.
+ *   and both live consumers (hero-canvas.tsx + capability-scene.tsx,
+ *   LOOP-3 FIX 8) share the result.
+ *
+ * L6-F1: the useWebGLSupport() hook wrapper was deleted — it had zero
+ * consumers since R9 removed the hero console (hero-console.tsx +
+ * console-scene.tsx). Both live WebGL canvases call probeWebGL() inside
+ * their own rAF-deferred glAvailable effects, which keeps the identical
+ * "no synchronous context creation inside the effect body" timing.
  */
 
 let cached: boolean | null = null
@@ -41,24 +41,4 @@ export function probeWebGL(): boolean {
     cached = false
   }
   return cached
-}
-
-/**
- * True once an actual WebGL context has been created successfully.
- * Returns false until the first rAF after mount (see above).
- */
-export function useWebGLSupport(): boolean {
-  const [supported, setSupported] = useState(false)
-  useEffect(() => {
-    let cancelled = false
-    const id = requestAnimationFrame(() => {
-      if (cancelled) return
-      setSupported(probeWebGL())
-    })
-    return () => {
-      cancelled = true
-      cancelAnimationFrame(id)
-    }
-  }, [])
-  return supported
 }

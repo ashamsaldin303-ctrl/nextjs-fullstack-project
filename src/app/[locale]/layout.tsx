@@ -179,11 +179,21 @@ export default async function LocaleLayout({
             script), so the intro decision is made before anything renders:
             • same-session repeat visit → data-intro-off: the overlay is
               display:none from the very first frame (zero dark flash);
-            • genuine first visit, motion allowed → data-intro: the hero
-              entrance animations start PAUSED and play into the curtain
-              lift (removed by IntroOverlay the moment it starts rising);
+            • genuine first visit ON THE HOMEPAGE, motion allowed →
+              data-intro: the hero entrance animations start PAUSED and stay
+              parked behind the curtain; IntroOverlay removes the attribute
+              only once the 0.85s lift has FULLY completed (R9: the build
+              sequence then starts from time 0 on the revealed stage);
             • reduced motion / storage unavailable → no attribute, the
               overlay is display:none via the media query anyway.
+            L6-F1 (P0): arming is now HOMEPAGE-ONLY. Inner pages have no
+            IntroOverlay to disarm data-intro — a genuine first session
+            landing directly on /work, /about, /contact, /services/*, /en/*
+            used to get every .hero-enter pinned at opacity 0 forever
+            (nothing ever removed the attribute). Client-side navigations
+            TO the homepage in such a session are armed by IntroOverlay
+            itself (see intro-overlay.tsx), so the pre-paint homepage check
+            here stays simple.
             R8.1 attention gate — if the document is HIDDEN at load
             (background tab / collapsed preview panel), data-page-wait parks
             every one-shot entrance animation (intro + hero + build) until
@@ -191,7 +201,7 @@ export default async function LocaleLayout({
             plays out unseen. Everything is wrapped defensively — this must
             NEVER throw. */}
         <Script id="elyra-intro-gate" strategy="beforeInteractive">
-          {`try{if(sessionStorage.getItem('elyra-intro')==='1'){document.documentElement.setAttribute('data-intro-off','1')}else if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.setAttribute('data-intro','1')}if(document.hidden){document.documentElement.setAttribute('data-page-wait','1');var w=function(){if(!document.hidden){document.documentElement.removeAttribute('data-page-wait');document.removeEventListener('visibilitychange',w)}};document.addEventListener('visibilitychange',w)}}catch(e){}`}
+          {`try{var hp=location.pathname==='/'||location.pathname==='/en';if(sessionStorage.getItem('elyra-intro')==='1'){document.documentElement.setAttribute('data-intro-off','1')}else if(hp&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.setAttribute('data-intro','1')}if(document.hidden){document.documentElement.setAttribute('data-page-wait','1');var w=function(){if(!document.hidden){document.documentElement.removeAttribute('data-page-wait');document.removeEventListener('visibilitychange',w)}};document.addEventListener('visibilitychange',w)}}catch(e){}`}
         </Script>
         <NextIntlClientProvider>
           <a

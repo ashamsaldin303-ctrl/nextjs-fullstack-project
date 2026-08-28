@@ -37,7 +37,8 @@ export function Navbar() {
 
   const items = navItems(t)
 
-  // Transparent over the hero, glass-dark once scrolled.
+  // Transparent over the hero, glassy dark surface once scrolled (inline
+  // utilities — the old .glass-dark class was deleted in L6-F1).
   const surface = scrolled
     ? 'bg-elyra-dark/70 backdrop-blur-xl border-b border-white/10'
     : 'bg-transparent border-b border-transparent'

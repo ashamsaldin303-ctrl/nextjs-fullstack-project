@@ -18,8 +18,10 @@ import {
   leadWhatsappSchema,
 } from '@/lib/lead-fields'
 
-/** Project-type quick chips (Batch 2 item 7c) — the same taxonomy the hero
- *  console presets and the /contact prefill URL contract use:
+/** Project-type quick chips (Batch 2 item 7c) — the service taxonomy shared
+ *  with the /contact prefill URL contract, whose live producers are the
+ *  automation simulator's completion CTA (/contact?service=automation) and
+ *  the bento AI mini-app's convert action (/contact?service=agent&idea=…):
  *  service ∈ store|booking|agent|dashboard|automation|websites. */
 export type ContactServiceId =
   | 'store'

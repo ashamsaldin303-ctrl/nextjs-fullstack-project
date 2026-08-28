@@ -79,6 +79,18 @@ export function IntroOverlay() {
     window.addEventListener('wheel', onSkip, { passive: true })
     window.addEventListener('keydown', onSkip)
 
+    // L6-F1 (companion to the homepage-only pre-paint gate): full homepage
+    // loads arrive with `data-intro` already armed pre-paint, so this is a
+    // no-op there. Client-side navigations to the homepage (session started
+    // on an inner page, where the gate deliberately arms nothing) arrive
+    // with NOTHING armed — arming here keeps the hero entrance + Assembly
+    // build FX parked under the opaque curtain until the lift completes,
+    // preserving the R9 "build strictly after entry" guarantee in every
+    // scenario. The effect runs after first paint, so hero animations may
+    // advance ~1 frame under the fully-opaque curtain (imperceptible) and
+    // resume from pause after release.
+    document.documentElement.setAttribute('data-intro', '1')
+
     holdId = window.setTimeout(startExit, HOLD_MS)
 
     return () => {

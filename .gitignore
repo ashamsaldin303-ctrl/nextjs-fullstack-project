@@ -61,3 +61,7 @@ db/*.db
 db/*.db-wal
 db/*.db-shm
 tool-results/
+
+# one-off dev artifacts (debug screenshots, VLM JSONs, throwaway scripts) —
+# never belongs in VCS (~5MB of local history)
+.scratch/

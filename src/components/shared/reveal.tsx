@@ -24,17 +24,18 @@ import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
  * Variants:
  *   up    — fade + rise (the classic, default)
  *   zoom  — fade + scale 0.92→1 (cards, media)
- *   blur  — blur(10px)→0 + rise (quotes, testimonials)
  *   left  — fade + slide from the physical left (decorative, LTR+RTL safe)
  *   right — fade + slide from the physical right
  *   clip  — clip-path wipe from the bottom (headlines, images)
+ *
+ *   (L6-F1: the `blur` variant was removed — its only consumer was the
+ *   testimonials section deleted in R9; zero live variant="blur" usages.)
  */
-export type RevealVariant = 'up' | 'zoom' | 'blur' | 'left' | 'right' | 'clip'
+export type RevealVariant = 'up' | 'zoom' | 'left' | 'right' | 'clip'
 
 const VARIANT_CLASS: Record<RevealVariant, string> = {
   up: 'reveal',
   zoom: 'reveal reveal-zoom',
-  blur: 'reveal reveal-blur',
   left: 'reveal reveal-left',
   right: 'reveal reveal-right',
   clip: 'reveal reveal-clip',

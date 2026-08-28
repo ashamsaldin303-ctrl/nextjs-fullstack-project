@@ -5,7 +5,7 @@
  * - Web Audio actually produces sound when enabled (AudioContext state)
  * - EN locale sound labels + all routes render clean
  */
-import { chromium } from '/home/z/.npm-global/lib/node_modules/playwright/index.mjs'
+import { getChromium } from './_playwright.mjs'
 
 const BASE = 'http://localhost:3000'
 const results = []
@@ -14,6 +14,7 @@ const ok = (name, pass, detail = '') => {
   console.log(`${pass ? '✓' : '✗'} ${name}${detail ? ` — ${detail}` : ''}`)
 }
 
+const chromium = await getChromium()
 const browser = await chromium.launch({ channel: 'chromium', headless: true })
 
 /* ---------- 1) Reduced motion disables the custom cursor ---------- */

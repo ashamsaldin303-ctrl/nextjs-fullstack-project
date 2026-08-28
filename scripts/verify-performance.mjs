@@ -21,7 +21,7 @@
  * serve complete HTML. The structural guarantee is therefore verified via
  * the server HTML itself (check 1).
  */
-import { chromium } from '/home/z/.npm-global/lib/node_modules/playwright/index.mjs'
+import { getChromium } from './_playwright.mjs'
 
 const BASE = 'http://localhost:3000'
 const results = []
@@ -29,6 +29,7 @@ const ok = (name, pass, detail = '') => {
   results.push({ name, pass })
   console.log(`${pass ? '✓' : '✗'} ${name}${detail ? ` — ${detail}` : ''}`)
 }
+const chromium = await getChromium()
 const browser = await chromium.launch({ channel: 'chromium', headless: true })
 
 /* ---------- 1) Server HTML: no hydration-gated opacity on LCP ---------- */

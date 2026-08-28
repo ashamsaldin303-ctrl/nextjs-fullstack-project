@@ -10,7 +10,9 @@
 # Run (HOSTNAME=0.0.0.0 — see README "Deployment" for the 127.0.0.1 trap;
 # TRUST_PROXY=true is baked into the ENV block below — the deployment sits
 # behind the overwriting reverse proxy by definition):
-#   docker run -p 3000:3000 \
+#   ⚠ Bind to loopback only: a directly-reachable :3000 lets attackers spoof
+#   X-Forwarded-For and rotate rate-limit buckets (README hardening rule).
+#   docker run -p 127.0.0.1:3000:3000 \
 #     -e DATABASE_URL=file:/app/db/custom.db \
 #     -e N8N_WEBHOOK_URL=... -e N8N_WEBHOOK_SECRET=... \
 #     -v elyra-db:/app/db elyra

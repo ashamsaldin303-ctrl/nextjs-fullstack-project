@@ -210,16 +210,6 @@ function discountPct(price: string, old: string | undefined): number | null {
 
 const MONO_STACK = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
 
-/* Local keyframes for the 2005 blinking announcement dots + the old-site
-   scrolling news ticker. The global prefers-reduced-motion kill-switch in
-   globals.css freezes these (the ticker completes to -50% where its
-   duplicated copy sits — content stays readable). */
-const SCENE_KEYFRAMES =
-  '@keyframes ba-scene-blink{0%,100%{opacity:1}50%{opacity:.2}}.ba-scene-blink{animation:ba-scene-blink 1.3s ease-in-out infinite}' +
-  '@keyframes ba-scene-ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}.ba-scene-ticker-track{animation:ba-scene-ticker 16s linear infinite}' +
-  /* R9 dining scene: rising steam wisps over the hero dish. */
-  '@keyframes ba-scene-steam{0%{transform:translateY(0) scaleX(1);opacity:0}30%{opacity:.9}100%{transform:translateY(-90%) scaleX(1.6);opacity:0}}.ba-scene-steam{animation:ba-scene-steam 2.6s ease-in-out infinite}'
-
 /* R8 "real screenshot" pass — shared era/scene constants. */
 /** Faint graph-paper tiling behind the 2009 site body + masthead. */
 const OLD_TILE_BG =
@@ -1063,7 +1053,7 @@ function AcademyNewScene({ accent, mock }: { accent: string; mock?: MockContent 
       {/* footer */}
       <div className="flex h-[12px] shrink-0 items-center justify-between border-t border-stone-200 bg-stone-50 px-2">
         <span className="truncate text-[5.5px] text-stone-400">{t('academy.level')}</span>
-        <span className="truncate text-[5.5px] text-stone-400">{`© ${mock?.brand ?? ''} — ${t('property.footerNote')}`}</span>
+        <span className="truncate text-[5.5px] text-stone-400">{`© ${mock?.brand ? `${mock.brand} — ` : ''}${t('academy.footerNote')}`}</span>
       </div>
     </div>
   )
@@ -1189,28 +1179,34 @@ function DiningNewScene({ accent, mock }: { accent: string; mock?: MockContent }
 
       {/* dish cards */}
       <div className="mt-1 grid h-[27%] shrink-0 grid-cols-3 gap-1 px-2">
-        {(cards ?? []).map((card, i) => (
-          <div key={`${card.name}-${i}`} className="relative flex min-h-0 min-w-0 flex-col rounded-md border border-stone-200/90 bg-white p-[3px] shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
-            <div className="relative min-h-0 flex-1 overflow-hidden rounded-[4px]" style={{ background: 'linear-gradient(160deg, #FEF3C7 0%, #FFF7ED 100%)' }}>
-              <DishArt accent={accent} small />
-              {card.old ? (
-                <span className="absolute start-[3px] top-[3px] rounded-[2px] px-[3px] py-px text-[5px] font-bold leading-none text-white" style={{ background: '#dc2626' }}>
-                  {`−${discountPct(card.price, card.old)}%`}
+        {(cards ?? []).map((card, i) => {
+          // L6-F1: gate on the computed discount, not just `card.old` —
+          // discountPct can return null (unparseable/equal prices) and the
+          // old check printed a literal "−null%" badge. Mirrors SiteNewScene.
+          const off = discountPct(card.price, card.old)
+          return (
+            <div key={`${card.name}-${i}`} className="relative flex min-h-0 min-w-0 flex-col rounded-md border border-stone-200/90 bg-white p-[3px] shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
+              <div className="relative min-h-0 flex-1 overflow-hidden rounded-[4px]" style={{ background: 'linear-gradient(160deg, #FEF3C7 0%, #FFF7ED 100%)' }}>
+                <DishArt accent={accent} small />
+                {off !== null && (
+                  <span className="absolute start-[3px] top-[3px] rounded-[2px] px-[3px] py-px text-[5px] font-bold leading-none text-white" style={{ background: '#dc2626' }}>
+                    {`−${off}%`}
+                  </span>
+                )}
+              </div>
+              <div className="mt-[2px] truncate text-[6px] font-medium leading-tight text-stone-800">{card.name}</div>
+              <div className="flex items-center justify-between gap-0.5">
+                <span className="truncate text-[7px] font-bold leading-none text-stone-900">{card.price}</span>
+                <span
+                  className="shrink-0 rounded-[3px] px-[4px] py-[1px] text-[6px] font-bold leading-none"
+                  style={{ background: rgba(accent, 0.15), color: accentInk }}
+                >
+                  {t('dining.orderDish')}
                 </span>
-              ) : null}
+              </div>
             </div>
-            <div className="mt-[2px] truncate text-[6px] font-medium leading-tight text-stone-800">{card.name}</div>
-            <div className="flex items-center justify-between gap-0.5">
-              <span className="truncate text-[7px] font-bold leading-none text-stone-900">{card.price}</span>
-              <span
-                className="shrink-0 rounded-[3px] px-[4px] py-[1px] text-[6px] font-bold leading-none"
-                style={{ background: rgba(accent, 0.15), color: accentInk }}
-              >
-                {t('dining.orderDish')}
-              </span>
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* live reservation strip */}
@@ -1582,7 +1578,14 @@ function DashNewScene({
       ? 'bg-emerald-500/10 text-emerald-700'
       : 'bg-emerald-400/10 text-emerald-300',
     gridLine: light ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.08)',
-    lastPointRing: light ? '#ffffff' : '#ffffff',
+    /* L6-F1: the halo ring around the chart's last data point — it must
+       blend with the surface behind it so the accent dot reads as cleanly
+       separated from the line in BOTH tones (was a dead white/white
+       ternary; the circle below now consumes the token). Light tone: the
+       opaque white chart card. Dark tone: the shell tone sits within a few
+       units of the card's translucent blend (white/4% over the shell) —
+       imperceptible on a 0.5-unit stroke. */
+    lastPointRing: light ? '#ffffff' : '#0F172A',
   }
 
   return (
@@ -1785,7 +1788,7 @@ function DashNewScene({
                 cy={CHART_LAST[1]}
                 r="1.6"
                 fill={accent}
-                stroke="#ffffff"
+                stroke={k.lastPointRing}
                 strokeWidth="0.5"
               />
             </svg>
@@ -2250,9 +2253,6 @@ export function BeforeAfter({
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
     >
-      {/* scene-local keyframes (frozen by the global reduced-motion switch) */}
-      <style>{SCENE_KEYFRAMES}</style>
-
       {/* before layer (bottom) */}
       <div className="absolute inset-0">
         <Scene variant={beforeVariant} accent={accent} mock={mock} industry={industry} />
