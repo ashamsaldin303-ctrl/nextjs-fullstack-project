@@ -85,8 +85,12 @@ export function WorkGrid() {
             dropping /work's initial JS below the 200KB target.
             R2: cards are BIGGER (gap-10, larger type) and reveal with the
             zoom variant + per-card stagger — the same scroll-animation
-            language as the deconstructed card, scaled for the grid. */}
-        <div key={filter} className="reveal-filter-in mt-14 grid gap-10 md:grid-cols-2">
+            language as the deconstructed card, scaled for the grid.
+            R8.1: single column up to lg (1024px) — the dense before/after
+            mockups need ~600px+ of width to stay legible; the old
+            md:grid-cols-2 squeezed them into ~340px at tablet / preview
+            panel widths (the "didn't display well" report). */}
+        <div key={filter} className="reveal-filter-in mt-14 grid gap-10 lg:grid-cols-2">
           {visible.map((p, i) => {
             const metrics = t.raw(`projects.${p.key}.metrics`) as string[]
             const services = t.raw(`projects.${p.key}.services`) as string[]

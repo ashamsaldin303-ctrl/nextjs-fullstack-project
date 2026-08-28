@@ -184,9 +184,14 @@ export default async function LocaleLayout({
               lift (removed by IntroOverlay the moment it starts rising);
             • reduced motion / storage unavailable → no attribute, the
               overlay is display:none via the media query anyway.
-            Everything is wrapped defensively — this must NEVER throw. */}
+            R8.1 attention gate — if the document is HIDDEN at load
+            (background tab / collapsed preview panel), data-page-wait parks
+            every one-shot entrance animation (intro + hero + build) until
+            the first visibilitychange → visible, so the choreography never
+            plays out unseen. Everything is wrapped defensively — this must
+            NEVER throw. */}
         <Script id="elyra-intro-gate" strategy="beforeInteractive">
-          {`try{if(sessionStorage.getItem('elyra-intro')==='1'){document.documentElement.setAttribute('data-intro-off','1')}else if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.setAttribute('data-intro','1')}}catch(e){}`}
+          {`try{if(sessionStorage.getItem('elyra-intro')==='1'){document.documentElement.setAttribute('data-intro-off','1')}else if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.setAttribute('data-intro','1')}if(document.hidden){document.documentElement.setAttribute('data-page-wait','1');var w=function(){if(!document.hidden){document.documentElement.removeAttribute('data-page-wait');document.removeEventListener('visibilitychange',w)}};document.addEventListener('visibilitychange',w)}}catch(e){}`}
         </Script>
         <NextIntlClientProvider>
           <a

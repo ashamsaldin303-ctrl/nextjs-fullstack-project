@@ -156,8 +156,11 @@ export function CustomCursor() {
     if (!dot || !ring || !label) return
 
     const root = document.documentElement
-    // Hides the native cursor (globals.css: html.elyra-cursor-active).
-    root.classList.add('elyra-cursor-active')
+    // The native cursor is hidden (html.elyra-cursor-active, globals.css)
+    // only at the FIRST real pointermove — see onPointerMove. If the
+    // embedding environment never delivers pointer events (some preview
+    // panels / streamed frames), the user keeps a working native cursor
+    // instead of none at all.
 
     let disposed = false
     let killed = false // touch gesture seen — session-wide disable
@@ -234,6 +237,9 @@ export function CustomCursor() {
         ringPos.y = pointer.y
         dot.classList.remove('is-hidden')
         ring.classList.remove('is-hidden')
+        // First PROVEN movement — now the custom layers track, so it is
+        // finally safe to hide the native cursor.
+        root.classList.add('elyra-cursor-active')
       }
     }
 
@@ -269,7 +275,13 @@ export function CustomCursor() {
       ringPos.x += (pointer.x - ringPos.x) * RING_LERP
       ringPos.y += (pointer.y - ringPos.y) * RING_LERP
 
+      // NaN guard: dotWX/dotWY start as NaN, and Math.abs(x - NaN) is NaN,
+      // which compares false against everything — without this guard the
+      // very first write never happens and the layers stay parked at the
+      // top-left corner forever (the "stuck cursor" bug).
       if (
+        Number.isNaN(dotWX) ||
+        Number.isNaN(dotWY) ||
         Math.abs(dotPos.x - dotWX) > MOVE_EPSILON ||
         Math.abs(dotPos.y - dotWY) > MOVE_EPSILON
       ) {
@@ -278,6 +290,8 @@ export function CustomCursor() {
         dot.style.transform = `translate3d(${dotPos.x.toFixed(2)}px, ${dotPos.y.toFixed(2)}px, 0)`
       }
       if (
+        Number.isNaN(ringWX) ||
+        Number.isNaN(ringWY) ||
         Math.abs(ringPos.x - ringWX) > MOVE_EPSILON ||
         Math.abs(ringPos.y - ringWY) > MOVE_EPSILON
       ) {

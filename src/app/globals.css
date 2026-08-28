@@ -280,6 +280,46 @@ html[data-intro] .hero-build-fx * {
   animation-play-state: paused !important;
 }
 
+/* R8.1 — Attention gate (data-page-wait): armed pre-paint by the same
+   layout script when the document loads HIDDEN (background tab, collapsed
+   preview panel). One-shot entrance/build animations would otherwise play
+   out unseen and be over by the time the visitor actually looks. While the
+   attribute is present every entrance animation (intro + hero + build)
+   stays parked at its start frame; the script removes the attribute on the
+   first visibilitychange → visible, releasing the full choreography. */
+html[data-page-wait] .intro-overlay,
+html[data-page-wait] .intro-overlay *,
+html[data-page-wait] .hero-enter,
+html[data-page-wait] .hero-scroll-hint,
+html[data-page-wait] .kinetic-word,
+html[data-page-wait] .hr-word,
+html[data-page-wait] .hero-marquee-track,
+html[data-page-wait] .hero-rail-dot,
+html[data-page-wait] .hero-marquee,
+html[data-page-wait] .hero-build-fx,
+html[data-page-wait] .hero-build-fx * {
+  animation-play-state: paused !important;
+}
+
+/* R8.1 — History-return replay reset. Applied to the hero <section> for one
+   synchronous reflow (JS toggles it on and off before the next paint — no
+   intermediate frame is ever rendered): while present, every one-shot hero
+   animation computes to `none`, which resets its timeline; removing the
+   class restarts each animation from time 0. Used when the user returns to
+   the homepage via browser back/forward — the restored cached DOM carries
+   every animation parked at its end state. */
+.hero-fx-restart .hero-enter,
+.hero-fx-restart .hero-scroll-hint,
+.hero-fx-restart .kinetic-word,
+.hero-fx-restart .hr-word,
+.hero-fx-restart .hero-marquee-track,
+.hero-fx-restart .hero-rail-dot,
+.hero-fx-restart .hero-marquee,
+.hero-fx-restart .hero-build-fx,
+.hero-fx-restart .hero-build-fx * {
+  animation: none !important;
+}
+
 .intro-overlay {
   position: fixed;
   inset: 0;
@@ -565,19 +605,24 @@ html[data-intro] .hero-build-fx * {
    CSS-only, LCP discipline intact (no JS, no framer).
 
    Choreography (delays are relative to data-intro removal = the moment
-   the intro curtain starts lifting; repeat visits run it from first paint):
-     0.00–0.60s  BLUEPRINT STAGE — hairline guides draw (scaleX/Y from an
+   the intro curtain starts lifting; repeat visits run it from first paint;
+   a hidden load holds everything until the page is first looked at —
+   data-page-wait above):
+     0.00–0.75s  BLUEPRINT STAGE — hairline guides draw (scaleX/Y from an
                  edge), corner brackets snap in, crosshairs + mono spec
                  labels fade up. The technical drawing of the page appears.
-     0.30–1.55s  SCAN LINE — a horizontal light bar travels the hero top→
-                 bottom (printer-head metaphor); the content column
-                 MATERIALIZES behind it (hero-build-in: blur clears, clip
-                 box opens, rise settles) with delays tuned to the line's
-                 position (kicker .6 → h1 .7/.88/1.06 → subtitle 1.15 →
-                 CTAs 1.3 → console 1.45).
-     1.60s       POWER-ON — the marquee edge flashes bright (filter pulse).
-     1.70–2.55s  SHEEN — one diagonal light sweep closes the sequence.
-     1.85s       The blueprint layer settles to half strength and stays as
+     0.35–2.55s  SCAN LINE — a horizontal light bar travels the hero top→
+                 bottom (printer-head metaphor) at a readable, deliberate
+                 pace; the content column MATERIALIZES behind it
+                 (hero-build-in: blur clears, clip box opens, rise settles)
+                 with delays tuned to the line's position (kicker .85 →
+                 h1 1.0/1.22/1.44 → subtitle 1.55 → CTAs/rail 1.8 →
+                 console 2.05). R8.1: the sweep runs ~1.75× slower than the
+                 original cut — the sequence stays catchable even when a
+                 preview panel's rendering pipeline adds a beat.
+     2.60s       POWER-ON — the marquee edge flashes bright (filter pulse).
+     2.70–3.65s  SHEEN — one diagonal light sweep closes the sequence.
+     2.80s       The blueprint layer settles to half strength and stays as
                  a quiet technical texture.
 
    RTL-safe: the scan runs top→bottom (physical), the sheen sweeps
@@ -600,7 +645,7 @@ html[data-intro] .hero-build-fx * {
   inset: 0;
   z-index: 2;
   direction: ltr; /* Latin-only spec labels + physical guide positions */
-  animation: hb-rest 1.1s ease 1.85s forwards;
+  animation: hb-rest 1.1s ease 2.8s forwards;
 }
 @keyframes hb-rest {
   to { opacity: 0.5; }
@@ -737,15 +782,15 @@ html[data-intro] .hero-build-fx * {
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(96, 165, 250, 0.05) 30%,
-    rgba(147, 197, 253, 0.14) 46%,
-    rgba(191, 219, 254, 0.38) 50%,
-    rgba(147, 197, 253, 0.14) 54%,
-    rgba(96, 165, 250, 0.05) 70%,
+    rgba(96, 165, 250, 0.07) 30%,
+    rgba(147, 197, 253, 0.18) 46%,
+    rgba(191, 219, 254, 0.5) 50%,
+    rgba(147, 197, 253, 0.18) 54%,
+    rgba(96, 165, 250, 0.07) 70%,
     transparent 100%
   );
   opacity: 0;
-  animation: hb-scan 1.25s cubic-bezier(0.45, 0.05, 0.55, 0.95) 0.3s forwards;
+  animation: hb-scan 2.2s cubic-bezier(0.45, 0.05, 0.55, 0.95) 0.35s forwards;
 }
 .hero-build-scan::after {
   content: '';
@@ -790,7 +835,7 @@ html[data-intro] .hero-build-fx * {
   );
   filter: blur(6px);
   opacity: 0;
-  animation: hb-sheen 0.85s cubic-bezier(0.16, 1, 0.3, 1) 1.7s forwards;
+  animation: hb-sheen 0.95s cubic-bezier(0.16, 1, 0.3, 1) 2.7s forwards;
 }
 @keyframes hb-sheen {
   0% { transform: translateX(-140%) skewX(-16deg); opacity: 0; }
@@ -801,7 +846,7 @@ html[data-intro] .hero-build-fx * {
 
 /* Marquee power-on — the bottom edge flashes alive as the scan exits. */
 .hero-marquee {
-  animation: hb-power-on 0.6s ease-out 1.6s forwards;
+  animation: hb-power-on 0.6s ease-out 2.6s forwards;
 }
 @keyframes hb-power-on {
   0% { filter: brightness(1); }

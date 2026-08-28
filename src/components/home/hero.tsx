@@ -198,6 +198,54 @@ export function Hero() {
   useMagnetic(ctaPrimaryRef)
   useMagnetic(ctaSecondaryRef)
 
+  // R8.1 — Replay the "Assembly" choreography when the user RETURNS to
+  // the homepage by history navigation (browser back / forward). Link
+  // navigations remount the page and restart the CSS animations for free,
+  // but history restores reuse the cached DOM (Next 16 router cache /
+  // bfcache) with every one-shot animation already parked at its end
+  // state — without a manual re-arm the sequence would silently not
+  // replay. Re-arming is the class-toggle + forced-reflow idiom: while
+  // `.hero-fx-restart` is present every hero animation computes to
+  // `none`; the synchronous reflow commits that reset; removing the class
+  // restarts each animation from time 0 (no intermediate frame is ever
+  // painted). Two complementary signals cover both restore paths:
+  //   · pageshow (persisted) → bfcache thaw of the whole document
+  //   · currententrychange   → same-document history swap (covers the
+  //     Next router cache; Chromium — harmless no-op elsewhere)
+  const restartHeroFx = useCallback(() => {
+    const el = heroRef.current
+    if (!el) return
+    el.classList.add('hero-fx-restart')
+    void el.offsetWidth // flush the reset before the class comes off
+    el.classList.remove('hero-fx-restart')
+  }, [])
+
+  useEffect(() => {
+    if (reduced) return
+    const isHomepage = () =>
+      window.location.hash === '' &&
+      (window.location.pathname === '/' || window.location.pathname === '/en')
+    const onPageshow = (e: PageTransitionEvent) => {
+      if (e.persisted && isHomepage()) restartHeroFx()
+    }
+    // The entry swap may still be mid-commit when the event fires (the
+    // pathname can read as the OLD route) — settle it before deciding.
+    const onEntryChange = () => {
+      window.setTimeout(() => {
+        if (isHomepage()) restartHeroFx()
+      }, 0)
+    }
+    window.addEventListener('pageshow', onPageshow)
+    const nav = (
+      window as Window & { navigation?: EventTarget }
+    ).navigation
+    if (nav) nav.addEventListener('currententrychange', onEntryChange)
+    return () => {
+      window.removeEventListener('pageshow', onPageshow)
+      if (nav) nav.removeEventListener('currententrychange', onEntryChange)
+    }
+  }, [reduced, restartHeroFx])
+
   // Pause rendering when the hero scrolls offscreen or the tab is hidden.
   useEffect(() => {
     const el = heroRef.current
@@ -330,11 +378,11 @@ export function Hero() {
       </div>
 
       {/* Vertical scroll rail on the empty edge (desktop only).
-          data-bg-layer: same spotlight content-lift exemption. R8: inline
+          data-bg-layer: same spotlight content-lift exemption. R8.1: inline
           build-sequence delay (synced to the scan line reaching this edge). */}
       <div
         className="hero-enter pointer-events-none absolute bottom-36 top-1/2 z-10 hidden -translate-y-1/2 flex-col items-center gap-4 ltr:right-7 rtl:left-7 lg:flex"
-        style={{ animationDelay: '1.3s' }}
+        style={{ animationDelay: '1.8s' }}
         data-bg-layer=""
         aria-hidden="true"
       >
@@ -349,10 +397,11 @@ export function Hero() {
       {/* Content — start-aligned editorial column, CSS-only entrance. */}
       <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-7xl flex-col justify-center px-4 pb-32 pt-24 text-start sm:px-6 lg:px-8 lg:pb-28">
         {/* Kicker row — pulse dot, agency line, place + live time.
-            R8: inline delay synced to the build scan line (~30% hero height). */}
+            R8.1: inline delay synced to the build scan line (~25% hero
+            height — the line reaches the kicker ~0.85s into the sweep). */}
         <div
           className="hero-enter flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-white/70"
-          style={{ animationDelay: '0.6s' }}
+          style={{ animationDelay: '0.85s' }}
         >
           <span className="flex items-center gap-2.5">
             <span className="size-1.5 rounded-full bg-g-green elyra-pulse" aria-hidden="true" />
@@ -375,14 +424,14 @@ export function Hero() {
 
         <p
           className="hero-enter mt-7 max-w-xl text-base leading-relaxed text-white/70 sm:text-lg"
-          style={{ animationDelay: '1.15s' }}
+          style={{ animationDelay: '1.55s' }}
         >
           {t('subtitle')}
         </p>
 
         <div
           className="hero-enter mt-9 flex w-full items-center gap-4 sm:gap-6"
-          style={{ animationDelay: '1.3s' }}
+          style={{ animationDelay: '1.8s' }}
         >
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
             <Link

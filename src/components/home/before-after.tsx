@@ -1501,7 +1501,10 @@ export function BeforeAfter({
       data-cursor="drag"
       data-cursor-label={tc('cursor.drag')}
       className={cn(
-        'relative aspect-[16/10] w-full select-none overflow-hidden rounded-2xl border border-border bg-card touch-none',
+        // R8.1: taller 4/3 frame below sm — the dense mockup scenes need
+        // the extra height to stay legible on phone-width cards; back to
+        // the cinematic 16/10 from sm up.
+        'relative aspect-[4/3] w-full select-none overflow-hidden rounded-2xl border border-border bg-card touch-none sm:aspect-[16/10]',
         className
       )}
       onPointerDown={onPointerDown}
