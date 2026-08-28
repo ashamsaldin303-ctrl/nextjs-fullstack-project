@@ -46,7 +46,7 @@
     "titleTop": "We Craft",
     "titleAccent": "Digital",
     "titleBottom": "Experiences",
-    "subtitle": "Elyra is a digital agency specializing in beautifully designed websites, interactive 3D experiences, and intelligent n8n automation — where Apple's taste meets Google's brains.",
+    "subtitle": "Elyra is a digital agency specializing in beautifully designed websites, interactive 3D experiences, and intelligent n8n automation.",
     "ctaPrimary": "Start Your Project",
     "ctaSecondary": "See Our Work",
     "scroll": "Scroll to explore",
@@ -60,20 +60,7 @@
       "Stores that sell more",
       "99/100 performance",
       "Apple-grade design"
-    ],
-    "console": {
-      "placeholder": "Describe your project in one word…",
-      "enterHint": "Press Enter to build",
-      "custom": "Custom system",
-      "customDesc": "We'll reach out to design it with you",
-      "presets": {
-        "store": "Smart Store + n8n",
-        "booking": "Booking Platform",
-        "ai": "AI Customer Agent",
-        "dashboard": "Analytics Dashboard"
-      },
-      "sceneLabel": "Interactive 3D model — drag with the mouse or use arrow keys to rotate"
-    }
+    ]
   },
   "manifesto": {
     "kicker": "Philosophy",
@@ -316,7 +303,6 @@
       }
     },
     "logTitle": "Live Execution Log",
-    "payloadTitle": "Incoming Payload",
     "stats": {
       "total": "Total time",
       "steps": "Steps",
@@ -426,59 +412,181 @@
       },
       "old": {
         "announce": "*** SPECIAL OFFERS!!! UP TO 70% OFF — HURRY BEFORE IT ENDS ***",
-        "nav": [
-          "Home",
-          "Products",
-          "About Us",
-          "Contact",
-          "Links",
-          "Sitemap"
-        ],
         "welcome": "Welcome to our humble website...",
         "clickHere": "CLICK HERE!!!",
         "counter": "Visitors: 004217",
         "bestViewed": "Best viewed in Internet Explorer 6 at 800×600",
         "construction": "Page under construction 🚧 coming soon!",
-        "items": [
-          "Product No. 1",
-          "Product No. 2",
-          "Product No. 3"
-        ],
-        "fallbackBrand": "Al-Sham Trading Co.",
         "slogan": "You deserve the best since 1998",
         "adSpace": "Ad space",
         "adTag": "AD",
         "tickerTag": "NEW",
-        "ticker": "Welcome to our official website — special offers for a limited time — to book or get in touch, call the phone numbers at the bottom of the page",
-        "categoriesTitle": "Site sections",
-        "categories": [
-          "Home",
-          "About us",
-          "Products",
-          "Offers",
-          "News",
-          "Contact"
-        ],
         "pollTitle": "Site poll",
-        "pollQ": "Do you like our design?",
-        "pollYes": "Yes, great",
-        "pollNo": "No",
         "pollVotes": "1,240 votes so far",
         "newsTitle": "Latest news",
-        "news": [
-          "12/03 — products page updated with summer offers",
-          "05/03 — a new collection has just arrived",
-          "28/02 — our 10th anniversary, 10% off"
-        ],
         "friendsTitle": "Friendly sites",
-        "friends": [
-          "Arabic web directory",
-          "Discussion forums",
-          "Download center"
-        ],
-        "productsTitle": "Featured products",
-        "orderNow": "Order now",
-        "credit": "Design & code: Sham Tech Network"
+        "credit": "Design & code: Sham Tech Network",
+        "store": {
+          "fallbackBrand": "Al-Sham Trading Co.",
+          "nav": [
+            "Home",
+            "Products",
+            "About Us",
+            "Contact",
+            "Links",
+            "Sitemap"
+          ],
+          "ticker": "Welcome to our official website — special offers for a limited time — to book or get in touch, call the phone numbers at the bottom of the page",
+          "categoriesTitle": "Site sections",
+          "categories": [
+            "Home",
+            "About us",
+            "Products",
+            "Offers",
+            "News",
+            "Contact"
+          ],
+          "pollQ": "Do you like our design?",
+          "pollYes": "Yes, great",
+          "pollNo": "No",
+          "productsTitle": "Featured products",
+          "orderNow": "Order now",
+          "items": [
+            "Product No. 1",
+            "Product No. 2",
+            "Product No. 3"
+          ],
+          "news": [
+            "12/03 — products page updated with summer offers",
+            "05/03 — a new collection has just arrived",
+            "28/02 — our 10th anniversary, 10% off"
+          ],
+          "friends": [
+            "Arabic web directory",
+            "Discussion forums",
+            "Download center"
+          ]
+        },
+        "property": {
+          "fallbackBrand": "Al-Amana Realty Office",
+          "nav": [
+            "Home",
+            "For Sale",
+            "For Rent",
+            "Offices",
+            "Land",
+            "Contact"
+          ],
+          "ticker": "New housing offers in Mazzeh and Bloudan — stamped prices for a limited time — for viewing call our office or email us",
+          "categoriesTitle": "Browse districts",
+          "categories": [
+            "Damascus - Mazzeh",
+            "Rif Dimashq - Bloudan",
+            "Aleppo - Shahbaa",
+            "Latakia - American",
+            "Homs - Waer"
+          ],
+          "pollQ": "Buying or renting this year?",
+          "pollYes": "Buying",
+          "pollNo": "Renting",
+          "productsTitle": "Latest listings",
+          "orderNow": "Details",
+          "items": [
+            "140m² apartment - Mazzeh",
+            "Furnished villa - Bloudan",
+            "Commercial office - Business"
+          ],
+          "news": [
+            "12/03 — villa prices in Bloudan down 5%",
+            "05/03 — Mazzeh Tower opens pre-sales",
+            "28/02 — first-time buyer guide: 10 tips"
+          ],
+          "friends": [
+            "Syrian realty directory",
+            "Brokerage forum",
+            "Housing news"
+          ]
+        },
+        "academy": {
+          "fallbackBrand": "Al-Nour Training Academy",
+          "nav": [
+            "Home",
+            "Courses",
+            "Instructors",
+            "Certificates",
+            "Enroll",
+            "Contact"
+          ],
+          "ticker": "Enrollment open for the new term courses — limited seats — book yours via the form or the admin numbers",
+          "categoriesTitle": "Academy sections",
+          "categories": [
+            "Design courses",
+            "Programming courses",
+            "Business",
+            "Languages & skills",
+            "Free courses"
+          ],
+          "pollQ": "Do you prefer remote learning?",
+          "pollYes": "Yes, remote",
+          "pollNo": "In person",
+          "productsTitle": "Most requested courses",
+          "orderNow": "Enroll",
+          "items": [
+            "Design fundamentals",
+            "Digital marketing",
+            "Project management"
+          ],
+          "news": [
+            "12/03 — April diploma enrollment open",
+            "05/03 — free workshop: build your portfolio",
+            "28/02 — three students win an Arab competition"
+          ],
+          "friends": [
+            "Education gateway",
+            "National training center",
+            "Tech magazine"
+          ]
+        },
+        "dining": {
+          "fallbackBrand": "Beit Al-Sham Restaurant",
+          "nav": [
+            "Home",
+            "Menu",
+            "Reservations",
+            "Delivery",
+            "About",
+            "Contact"
+          ],
+          "ticker": "New! delivery to all neighborhoods — order via the numbers at the bottom of the page — 10% off first orders",
+          "categoriesTitle": "Taste sections",
+          "categories": [
+            "Grills",
+            "Starters",
+            "Pastries",
+            "Desserts",
+            "Drinks"
+          ],
+          "pollQ": "What is our best dish?",
+          "pollYes": "Grills",
+          "pollNo": "Pastries",
+          "productsTitle": "Kitchen dishes",
+          "orderNow": "Order it",
+          "items": [
+            "Mixed grill platter",
+            "Cheese pastries",
+            "Pistachio baklava"
+          ],
+          "news": [
+            "12/03 — Damascene desserts section opens",
+            "05/03 — big family offer returns every Thursday",
+            "28/02 — our 10th anniversary, 15% off"
+          ],
+          "friends": [
+            "Restaurant directory",
+            "Chefs forum",
+            "Taste magazine"
+          ]
+        }
       },
       "dash": {
         "nav": [
@@ -579,6 +687,82 @@
           "Sheet3"
         ],
         "ready": "Ready"
+      },
+      "property": {
+        "searchPlaceholder": "Search by district or city…",
+        "searchBtn": "Search",
+        "filters": [
+          "Buy",
+          "Rent",
+          "Apartments",
+          "Villas",
+          "Offices",
+          "Land"
+        ],
+        "results": "128 matching listings",
+        "beds": "bd",
+        "baths": "ba",
+        "area": "m²",
+        "forSale": "For Sale",
+        "priceCut": "Price cut",
+        "featuredTitle": "Agent of the week",
+        "featuredName": "Rim Haddad",
+        "featuredRole": "Certified agent · 214 deals",
+        "stats": [
+          "+1,240 listings",
+          "Verified agent",
+          "360° virtual tour"
+        ],
+        "newBadge": "New",
+        "contact": "Contact",
+        "footerNote": "All rights reserved"
+      },
+      "academy": {
+        "nav": [
+          "Home",
+          "Courses",
+          "Tracks",
+          "Certificates"
+        ],
+        "enroll": "Enroll Now",
+        "rating": "4.8",
+        "students": "+8,200 students",
+        "reviews": "(2,340 reviews)",
+        "preview": "Free preview",
+        "lecture": "Trial lesson — try before enrolling",
+        "duration": "12:40",
+        "curriculum": "Course content",
+        "module": "Module",
+        "lessons": "12 lessons",
+        "instructorName": "Lina Al-Ali",
+        "instructorRole": "Certified UI/UX instructor",
+        "certificate": "Certified certificate on completion",
+        "level": "Beginner level",
+        "progress": "complete"
+      },
+      "dining": {
+        "nav": [
+          "Home",
+          "Menu",
+          "Reservations",
+          "Delivery",
+          "About"
+        ],
+        "rating": "4.9",
+        "reviewsCount": "+940 reviews",
+        "delivery": "Delivery within 30 minutes",
+        "minOrder": "8$ minimum",
+        "openHours": "Open daily 12pm – 12am",
+        "menuTabs": [
+          "Grill",
+          "Starters",
+          "Desserts"
+        ],
+        "orderDish": "Add",
+        "reserve": "Book a table",
+        "guests": "4 guests",
+        "dateTime": "Today · 8:30 pm",
+        "footerNote": "All rights reserved"
       }
     }
   },

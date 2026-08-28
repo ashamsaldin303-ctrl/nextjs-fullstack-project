@@ -8,7 +8,6 @@ import { ArrowRight, ArrowUpLeft, MapPin, Play } from 'lucide-react'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 import { useCursorVelocity } from '@/lib/use-cursor-velocity'
 import { useMagnetic } from '@/lib/use-magnetic'
-import { HeroConsole } from './hero-console'
 import { KineticHeading } from './kinetic-heading'
 
 const HeroCanvas = dynamic(
@@ -153,12 +152,13 @@ function Spark({ className }: { className?: string }) {
  * scroll rail on the empty edge, rotating orbit badge beside the CTAs,
  * and an infinite service marquee as the section's bottom edge.
  *
- * R8 build sequence: as the intro curtain lifts, a blueprint layer draws
- * itself (guides + brackets + crosshairs + mono spec labels), a scan line
- * sweeps the hero top→bottom "printing" the content into place (each
- * block's inline animationDelay is tuned to the line's position), the
- * marquee edge powers on and a closing diagonal sheen sweeps across —
- * the agency's "we build" narrative made literal.
+ * R8 build sequence: AFTER the intro curtain has fully lifted (R9 — the
+ * release is strictly sequential now), a blueprint layer draws itself
+ * (guides + brackets + crosshairs + mono spec labels), a scan line sweeps
+ * the hero top→bottom "printing" the content into place (each block's
+ * inline animationDelay is tuned to the line's position), the marquee edge
+ * powers on and a closing diagonal sheen sweeps across — the agency's
+ * "we build" narrative made literal.
  *
  * Preserved performance architecture: above-the-fold content renders
  * from the SERVER with CSS-only entrances (no framer-motion, LCP-safe);
@@ -378,11 +378,12 @@ export function Hero() {
       </div>
 
       {/* Vertical scroll rail on the empty edge (desktop only).
-          data-bg-layer: same spotlight content-lift exemption. R8.1: inline
-          build-sequence delay (synced to the scan line reaching this edge). */}
+          data-bg-layer: same spotlight content-lift exemption. R9: inline
+          build-sequence delay (synced to the tightened scan line reaching
+          this edge). */}
       <div
         className="hero-enter pointer-events-none absolute bottom-36 top-1/2 z-10 hidden -translate-y-1/2 flex-col items-center gap-4 ltr:right-7 rtl:left-7 lg:flex"
-        style={{ animationDelay: '1.8s' }}
+        style={{ animationDelay: '1.45s' }}
         data-bg-layer=""
         aria-hidden="true"
       >
@@ -397,11 +398,11 @@ export function Hero() {
       {/* Content — start-aligned editorial column, CSS-only entrance. */}
       <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-7xl flex-col justify-center px-4 pb-32 pt-24 text-start sm:px-6 lg:px-8 lg:pb-28">
         {/* Kicker row — pulse dot, agency line, place + live time.
-            R8.1: inline delay synced to the build scan line (~25% hero
-            height — the line reaches the kicker ~0.85s into the sweep). */}
+            R9: inline delay synced to the tightened build scan line (~25%
+            hero height — the line reaches the kicker ~0.65s into the sweep). */}
         <div
           className="hero-enter flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-white/70"
-          style={{ animationDelay: '0.85s' }}
+          style={{ animationDelay: '0.65s' }}
         >
           <span className="flex items-center gap-2.5">
             <span className="size-1.5 rounded-full bg-g-green elyra-pulse" aria-hidden="true" />
@@ -424,14 +425,14 @@ export function Hero() {
 
         <p
           className="hero-enter mt-7 max-w-xl text-base leading-relaxed text-white/70 sm:text-lg"
-          style={{ animationDelay: '1.55s' }}
+          style={{ animationDelay: '1.25s' }}
         >
           {t('subtitle')}
         </p>
 
         <div
           className="hero-enter mt-9 flex w-full items-center gap-4 sm:gap-6"
-          style={{ animationDelay: '1.8s' }}
+          style={{ animationDelay: '1.45s' }}
         >
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
             <Link
@@ -456,11 +457,6 @@ export function Hero() {
           </div>
           <span className="mx-2 hidden h-10 w-px bg-white/10 sm:block" aria-hidden="true" />
           <OrbitBadge label={t('ctaSecondary')} />
-        </div>
-
-        {/* Interactive command console — conversion element, start-aligned. */}
-        <div className="w-full max-w-2xl">
-          <HeroConsole active={active} />
         </div>
       </div>
 

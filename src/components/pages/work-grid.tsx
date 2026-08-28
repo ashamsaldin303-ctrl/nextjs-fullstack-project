@@ -12,21 +12,27 @@ type Category = 'websites' | 'automation'
 interface ProjectDef {
   key: 'p1' | 'p2' | 'p3' | 'p4' | 'p5' | 'p6'
   category: Category
-  variant: 'site-new' | 'dashboard-new'
+  variant: 'site-new' | 'property-new' | 'academy-new' | 'dining-new' | 'dashboard-new'
   accent: string
+  /** R9: dashboard skin — p5 dark SaaS vs p6 light studio ops. */
+  tone?: 'dark' | 'light'
 }
 
 // Phase 2 content enrichment (prompt §6.1): six projects across six
 // industries — e-commerce, real estate, education, restaurants, SaaS,
 // and a creative agency. Industries live in the i18n `type` field;
 // service lists are served per project via `projects.{key}.services`.
+// R9: the four website projects now each render their OWN after-scene
+// archetype (storefront / real-estate marketplace / course platform /
+// restaurant) instead of one shared storefront skeleton — the
+// "مواقع متشابهة" (sites look alike) report.
 const PROJECTS: ProjectDef[] = [
-  { key: 'p1', category: 'websites', variant: 'site-new', accent: '#0071E3' },  // e-commerce (blue)
-  { key: 'p2', category: 'websites', variant: 'site-new', accent: '#34A853' },  // real estate (brand green)
-  { key: 'p3', category: 'websites', variant: 'site-new', accent: '#EA4335' },  // education (red)
-  { key: 'p4', category: 'websites', variant: 'site-new', accent: '#FBBC05' },  // restaurant (gold)
-  { key: 'p5', category: 'automation', variant: 'dashboard-new', accent: '#4285F4' }, // SaaS (google blue)
-  { key: 'p6', category: 'automation', variant: 'dashboard-new', accent: '#60A5FA' }, // creative agency (light blue)
+  { key: 'p1', category: 'websites', variant: 'site-new', accent: '#0071E3' },      // e-commerce storefront (blue)
+  { key: 'p2', category: 'websites', variant: 'property-new', accent: '#34A853' },  // real-estate marketplace (brand green)
+  { key: 'p3', category: 'websites', variant: 'academy-new', accent: '#EA4335' },   // course platform (red)
+  { key: 'p4', category: 'websites', variant: 'dining-new', accent: '#FBBC05' },    // restaurant site (gold)
+  { key: 'p5', category: 'automation', variant: 'dashboard-new', accent: '#4285F4', tone: 'dark' },   // SaaS (google blue)
+  { key: 'p6', category: 'automation', variant: 'dashboard-new', accent: '#EA4335', tone: 'light' }, // creative studio (light ops skin)
 ]
 
 type Filter = 'all' | Category
@@ -108,6 +114,7 @@ export function WorkGrid() {
                     <BeforeAfter
                       variant={p.variant}
                       accent={p.accent}
+                      tone={p.tone}
                       label={t(`projects.${p.key}.title`)}
                       mock={mock}
                     />

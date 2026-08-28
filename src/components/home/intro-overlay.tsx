@@ -8,24 +8,29 @@ import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
  * IntroOverlay — cinematic first-visit entry animation (R3, user request:
  * "an Entry Animation for the homepage — smooth and very distinctive").
  *
- * Sequence (once per browser session, ~2.5s, skippable by ANY intent):
+ * Sequence (once per browser session, ~2.55s + build, skippable by ANY intent):
  *   0.0s  deep stage + radial blue glow fades in
  *   0.1s  the Elyra quad-dot mark scales up with a soft glow
  *   0.4s  the wordmark wipes in via clip-path (Arabic-safe — no per-letter
  *         animation, so letter joining is never broken)
  *   0.85s tagline rises · 1.05s gradient line draws
- *   1.7s  the curtain LIFTS (clip-path wipe upward, 0.85s expo ease) while
- *         the hero's own entrance animations resume underneath — the page
- *         comes alive exactly as the veil rises
- *   2.55s overlay unmounts; session flag set
+ *   1.7s  the curtain LIFTS (clip-path wipe upward, 0.85s expo ease) — the
+ *         hero entrance stays parked underneath until the lift is DONE
+ *   2.55s curtain fully up → `data-intro` is removed HERE (R9: the user
+ *         asked for the build animation to start strictly AFTER the entry
+ *         animation finishes — previously the hero/build FX were released
+ *         the moment the lift began and played half-hidden behind the
+ *         rising curtain). The Assembly build sequence now starts from
+ *         time 0 on a fully-revealed stage.
  *
  * Architecture (LCP/no-JS/hydration discipline):
  *   - The overlay markup is server-rendered so the very first paint is
  *     already the intro (no hero→overlay flash). A tiny BEFORE-INTERACTIVE
  *     script in the root layout (runs pre-paint, see [locale]/layout.tsx)
  *     arms `data-intro` on <html> for genuine first visits — CSS pauses the
- *     hero entrance animations while the attribute is present, so they play
- *     INTO the reveal instead of finishing invisibly under the curtain.
+ *     hero entrance animations while the attribute is present, so NOTHING
+ *     under the curtain plays early; the whole choreography waits for the
+ *     reveal (R9: release happens only after the lift completes).
  *   - Repeat visits in the same session: the same script sets
  *     `data-intro-off` pre-paint → CSS `display:none` (zero flash), and this
  *     component unmounts itself after hydration.
@@ -86,16 +91,37 @@ export function IntroOverlay() {
 
   useEffect(() => {
     if (phase !== 'exit') return
-    // Release the hero the instant the curtain starts rising.
-    document.documentElement.removeAttribute('data-intro')
+    // R9 SEQUENTIAL RELEASE: `data-intro` stays armed for the ENTIRE lift
+    // (0.85s) — the hero entrance + Assembly build FX are held at their
+    // start frames behind the rising curtain. The attribute is removed
+    // only once the clip-path transition has fully completed, so the build
+    // sequence begins from time 0 on a fully-revealed stage (user request:
+    // "make the build animation start after the entry animation ends").
     try {
       sessionStorage.setItem(INTRO_SESSION_KEY, '1')
     } catch {
       // Private mode / storage disabled — the intro simply replays next load.
     }
-    const id = window.setTimeout(() => setPhase('done'), LIFT_MS)
+    const id = window.setTimeout(() => {
+      document.documentElement.removeAttribute('data-intro')
+      setPhase('done')
+    }, LIFT_MS)
     return () => window.clearTimeout(id)
   }, [phase])
+
+  // R9 safety net: the release now happens 0.85s AFTER the exit starts. If
+  // the overlay unmounts inside that window (client navigation via
+  // keyboard, route change, error boundary), the pending timeout is
+  // cancelled by the effect cleanup above and `data-intro` would stay
+  // armed FOREVER — pausing every .hero-enter animation site-wide (inner
+  // pages included) behind opacity:0. Removing the attribute on unmount is
+  // idempotent and costs nothing.
+  useEffect(
+    () => () => {
+      document.documentElement.removeAttribute('data-intro')
+    },
+    []
+  )
 
   if (phase === 'done') return null
 

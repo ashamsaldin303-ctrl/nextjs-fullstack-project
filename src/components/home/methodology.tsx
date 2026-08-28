@@ -37,12 +37,18 @@ function MethodologyStep({
   const Icon = step.icon
   const start = index / total
   const end = (index + 1) / total
-  const scale = useTransform(progress, [start, end], [1, 0.94])
-  const opacity = useTransform(progress, [start, Math.min(end + 0.05, 1)], [1, 0.55])
+  // R9 (user request — "cards stack and the text stops being readable
+  // because of the transparency"): the scroll-linked OPACITY fade (1 →
+  // 0.55) is GONE. When a card scrolls under the next sticky card its
+  // visible strip kept fading to ~55% — on text that read as broken
+  // contrast, not depth. Depth is now carried by a much gentler scale
+  // (1 → 0.965) plus the opaque bg-card surface and the rail dot, so
+  // every word stays fully readable throughout the stack.
+  const scale = useTransform(progress, [start, end], [1, 0.965])
 
   return (
     <motion.article
-      style={reduced ? undefined : { scale, opacity }}
+      style={reduced ? undefined : { scale }}
       className={cn(
         'relative rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-10',
         'sticky top-24',

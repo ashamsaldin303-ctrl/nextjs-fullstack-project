@@ -67,92 +67,6 @@ const FLOW_ENTRY: Record<ScenarioId, string> = {
   weeklyReport: 'CRON 0 9 * * SUN · fired',
 }
 
-/* UI-3: incoming webhook bodies — literal JSON shown verbatim (never
- * translated). Numbers/booleans/strings only; rendered by jsonLines().
- */
-type JsonValue = string | number | boolean | { [key: string]: JsonValue }
-
-const PAYLOADS: Record<ScenarioId, JsonValue> = {
-  newOrder: {
-    event: 'lead.created',
-    name: 'Zeinab H.',
-    email: 'zeinab@example.com',
-    source: 'website:hero',
-    estimate: { tier: 'growth', weeks: 9 },
-    ts: '2025-11-03T14:02:11.482Z',
-  },
-  paymentReminder: {
-    event: 'invoice.due',
-    invoice: 'INV-2041',
-    client: 'Nour K.',
-    amount: 2400,
-    currency: 'USD',
-    overdue_days: 3,
-    ts: '2025-11-03T14:02:11.482Z',
-  },
-  weeklyReport: {
-    event: 'cron.triggered',
-    schedule: '0 9 * * SUN',
-    timezone: 'Asia/Damascus',
-    window_days: 7,
-    recipients: 4,
-    ts: '2025-11-03T14:02:11.482Z',
-  },
-}
-
-const JSON_CLS = {
-  key: 'text-g-blue',
-  string: 'text-g-green',
-  number: 'text-g-yellow',
-  punct: 'text-white/40',
-} as const
-
-interface JsonToken {
-  text: string
-  cls: string
-}
-
-function isJsonObject(value: JsonValue): value is { [key: string]: JsonValue } {
-  return typeof value === 'object'
-}
-
-function scalarToken(value: Exclude<JsonValue, { [key: string]: JsonValue }>): JsonToken {
-  if (typeof value === 'string') return { text: JSON.stringify(value), cls: JSON_CLS.string }
-  if (typeof value === 'number') return { text: String(value), cls: JSON_CLS.number }
-  return { text: String(value), cls: JSON_CLS.number } // boolean
-}
-
-/** Pretty-prints a JsonValue into syntax-colored display lines (2-space indent). */
-function jsonLines(value: JsonValue, indent = 0): JsonToken[][] {
-  if (!isJsonObject(value)) return [[scalarToken(value)]]
-  const pad = '  '.repeat(indent)
-  const lines: JsonToken[][] = [[{ text: '{', cls: JSON_CLS.punct }]]
-  const entries = Object.entries(value)
-  entries.forEach(([key, val], i) => {
-    const comma = i < entries.length - 1
-    const keyTok: JsonToken = { text: `${pad}  ${JSON.stringify(key)}`, cls: JSON_CLS.key }
-    if (isJsonObject(val)) {
-      lines.push([keyTok, { text: ': ', cls: JSON_CLS.punct }])
-      const nested = jsonLines(val, indent + 1)
-      if (comma) {
-        const lastLine = nested[nested.length - 1]
-        const lastTok = lastLine?.[lastLine.length - 1]
-        if (lastTok) lastTok.text += ','
-      }
-      nested.forEach((line) => lines.push(line))
-    } else {
-      const tok = scalarToken(val)
-      lines.push([
-        keyTok,
-        { text: ': ', cls: JSON_CLS.punct },
-        { text: tok.text + (comma ? ',' : ''), cls: tok.cls },
-      ])
-    }
-  })
-  lines.push([{ text: `${pad}}`, cls: JSON_CLS.punct }])
-  return lines
-}
-
 /** UI-3: wall-clock timestamp for log lines — HH:MM:SS.mmm, LTR-safe. */
 function logTimestamp(date: Date): string {
   const p2 = (n: number) => String(n).padStart(2, '0')
@@ -203,12 +117,14 @@ export function AutomationSimulator({
   const [completed, setCompleted] = useState<number[]>([])
   const [counter, setCounter] = useState(0) // live ms counter for current step
   const [logLines, setLogLines] = useState<LogLine[]>([]) // UI-3: execution log
-  const [payloadFlash, setPayloadFlash] = useState(false) // UI-3: "payload arrived" highlight
 
   const timeouts = useRef<number[]>([])
   const rafRef = useRef<number>(0)
   const logSeq = useRef(0) // UI-3: stable id sequence for log lines
   const logScrollRef = useRef<HTMLDivElement | null>(null)
+  // R9: the nodes stage — the run button sits ABOVE it now, and run()
+  // scrolls it into view so the user always watches the nodes work.
+  const stageRef = useRef<HTMLDivElement | null>(null)
 
   const clearAll = useCallback(() => {
     timeouts.current.forEach((id) => window.clearTimeout(id))
@@ -230,7 +146,6 @@ export function AutomationSimulator({
     setCompleted([])
     setCounter(0)
     setLogLines([]) // UI-3: log clears on scenario change
-    setPayloadFlash(false)
   }, [clearAll])
 
   // Reset whenever scenario changes — deferred to rAF so the setStates
@@ -267,6 +182,31 @@ export function AutomationSimulator({
     setStatus('running')
     setCurrentStep(0)
 
+    // R9 (user request — "the button rises and the user sees the nodes
+    // working"): the run button now lives directly ABOVE the stage, and a
+    // run glides the stage itself into comfortable view (only when it
+    // isn't already fully visible), so the nodes lighting up are never
+    // happening offscreen below the fold. NOTE: window.scrollTo with
+    // computed math, NOT element.scrollIntoView — the stage wrapper is
+    // itself a scroll container (overflow-x-auto for the 680px min-width
+    // canvas), and Chromium routes scrollIntoView into the stage's own
+    // (non-scrollable) axis, leaving the page untouched (verified live).
+    // Reduced motion: behavior 'auto'.
+    requestAnimationFrame(() => {
+      const stage = stageRef.current
+      if (!stage) return
+      const rect = stage.getBoundingClientRect()
+      const fullyVisible = rect.top >= 0 && rect.bottom <= window.innerHeight
+      if (!fullyVisible) {
+        const target =
+          window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2
+        window.scrollTo({
+          top: Math.max(0, target),
+          behavior: reduced ? 'auto' : 'smooth',
+        })
+      }
+    })
+
     // UI-3: fresh log — the "webhook received" entry line comes first.
     logSeq.current += 1
     setLogLines([{
@@ -275,9 +215,6 @@ export function AutomationSimulator({
       kind: 'entry',
       text: FLOW_ENTRY[scenario],
     }])
-    // UI-3: payload panel flashes "arrived" (~1s, cleaned with the rest).
-    setPayloadFlash(true)
-    schedule(() => setPayloadFlash(false), 1000)
 
     const STEP_DISPLAY = reduced ? 250 : 850
     const TRANSITION = reduced ? 80 : 320
@@ -343,9 +280,6 @@ export function AutomationSimulator({
   const activeStepDesc = activeStep ? t(`scenarios.${scenario}.steps.${activeStep.id}.desc`) : null
   const activeStepMs = activeStep ? Number(t.raw(`scenarios.${scenario}.steps.${activeStep.id}.ms`)) : 0
 
-  // UI-3: syntax-highlighted payload lines for the active scenario.
-  const payloadLines = useMemo(() => jsonLines(PAYLOADS[scenario]), [scenario])
-
   // UI-3: stats chip values — live elapsed while running (finished steps +
   // in-flight counter; during the inter-step transition the active step is
   // already in `completed`, so the counter is never double-counted),
@@ -402,14 +336,40 @@ export function AutomationSimulator({
           </div>
         ) : null}
 
+        {/* R9 (user request — "the button rises up and moves the nodes
+            itself"): the run control now sits directly ABOVE the nodes
+            stage, so a click starts the flow right where the eyes already
+            are, and run() glides the stage into view when needed. The
+            button also gets a gentle rise-in on mount (sim-btn-rise). */}
+        <div className="mt-8 flex flex-col items-center gap-3">
+          {status !== 'running' ? (
+            <button
+              type="button"
+              data-cursor="magnet"
+              onClick={run}
+              className="sim-btn-rise inline-flex h-12 items-center gap-2 rounded-full bg-primary px-8 text-base font-medium text-primary-foreground shadow-[0_10px_30px_-10px_rgba(0,113,227,0.7)] transition-transform hover:scale-105 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark motion-reduce:animate-none"
+            >
+              {status === 'completed' ? <RotateCw className="size-4" aria-hidden="true" /> : <Play className="size-4" aria-hidden="true" />}
+              {status === 'completed' ? t('replay') : t('run')}
+            </button>
+          ) : (
+            <span className="inline-flex h-12 items-center gap-2 rounded-full border border-white/15 bg-white/5 px-8 text-sm text-white/60">
+              <span className="size-2 animate-pulse rounded-full bg-primary" aria-hidden="true" />
+              {t('running')}
+            </span>
+          )}
+        </div>
+
         {/* Stage — Phase 5 WS-7: data-cursor="inspect" so the magnetic
             cursor shows the localized 'Inspect element' chip over the
             n8n nodes panel (technical context, not just a magnet snap).
             LOW-11: the min-w-[680px] stage overflows below ~712px, so the
             wrapper is a labelled, focusable region (keyboard-scrollable
-            via arrows once focused) + a visible md:hidden hint. */}
+            via arrows once focused) + a visible md:hidden hint.
+            R9: stageRef anchors run()'s scroll-into-view. */}
         <div
-          className="mt-10 overflow-x-auto scroll-dark no-scrollbar rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          ref={stageRef}
+          className="mt-6 overflow-x-auto scroll-dark no-scrollbar rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           data-cursor="inspect"
           tabIndex={0}
           role="region"
@@ -459,12 +419,21 @@ export function AutomationSimulator({
                 background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1.5px);
                 background-size: 24px 24px;
               }
-              /* Real monospace for the terminal/log/JSON panels — the
+              /* Real monospace for the terminal/log panels — the
                  global --font-mono token resolves to JetBrains Mono
                  (next/font, Batch 1 item 3 / I-1); the panels below are
                  already dir="ltr" so Latin tokens align correctly. */
               .elyra-mono {
                 font-family: var(--font-mono);
+              }
+              /* R9: run button rise-in — settles above the stage. */
+              @keyframes sim-btn-rise {
+                from { opacity: 0; transform: translateY(14px) scale(0.96); }
+                to { opacity: 1; transform: translateY(0) scale(1); }
+              }
+              .sim-btn-rise {
+                opacity: 0;
+                animation: sim-btn-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
               }
             `}</style>
             {!reduced ? (
@@ -590,15 +559,15 @@ export function AutomationSimulator({
             changes are announced once by the polite region inside the
             step card (MED-8 dedup semantics stay authoritative). */}
         <dl className="mt-6 grid grid-cols-3 gap-3 sm:gap-4">
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 backdrop-blur-md">
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
             <dt className="text-[11px] text-white/60">{t('stats.steps')}</dt>
             <dd className="mt-1 text-lg font-semibold tabular-nums text-white">{stepCount}</dd>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 backdrop-blur-md">
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
             <dt className="text-[11px] text-white/60">{t('stats.total')}</dt>
             <dd className="mt-1 text-lg font-semibold tabular-nums text-white">{totalDisplay}ms</dd>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 backdrop-blur-md">
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
             <dt className="text-[11px] text-white/60">{t('stats.status')}</dt>
             <dd className="mt-1 flex items-center gap-2 text-base font-semibold text-white">
               <span
@@ -612,7 +581,7 @@ export function AutomationSimulator({
 
         <div className="mt-4 grid gap-4 lg:grid-cols-5">
           {/* Step card */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-md sm:p-6 lg:col-span-3">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 sm:p-6 lg:col-span-3">
             {/* MED-8: live region for status changes (idle/running/stepOf).
                 The per-frame ms counter below is deliberately OUTSIDE this
                 region — polite announcements happen on status/step change
@@ -678,7 +647,7 @@ export function AutomationSimulator({
               duplicates the polite announcements from the step card.
               dir="ltr" keeps timestamps/monospace alignment correct even
               on the Arabic RTL page. */}
-          <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md lg:col-span-2">
+          <div className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-black/50 lg:col-span-2">
             <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-white/85">{t('logTitle')}</h3>
               <span
@@ -733,80 +702,30 @@ export function AutomationSimulator({
           </div>
         </div>
 
-        {/* UI-3: incoming payload viewer — literal JSON, never translated.
-            Brief border+glow highlight when a run starts ("payload
-            arrived"), fading back after ~1s. */}
-        <div
-          className={cn(
-            'mt-4 overflow-hidden rounded-2xl border bg-black/40 backdrop-blur-md transition-[border-color,box-shadow] duration-700',
-            payloadFlash ? 'border-primary/60' : 'border-white/10',
-            payloadFlash && !reduced && 'shadow-[0_0_32px_rgba(0,113,227,0.28)]'
-          )}
-        >
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-white/85">{t('payloadTitle')}</h3>
-            <span aria-hidden="true" dir="ltr" className="elyra-mono text-[10px] text-white/50">
-              {FLOW_ENTRY[scenario]}
-            </span>
-          </div>
-          <div dir="ltr" className="scroll-dark overflow-x-auto px-4 py-3">
-            <pre className="elyra-mono font-mono text-[11px] leading-relaxed">
-              <code className="block">
-                {payloadLines.map((tokens, i) => (
-                  <span key={i} className="block whitespace-pre">
-                    {tokens.map((tok, j) => (
-                      <span key={j} className={tok.cls}>{tok.text}</span>
-                    ))}
-                  </span>
-                ))}
-              </code>
-            </pre>
-          </div>
-        </div>
+        {/* R9 (user request): the "incoming payload" JSON viewer was
+            REMOVED from the live-automation section (simulator.payloadTitle
+            key dropped from both catalogs; PAYLOADS/jsonLines helpers
+            deleted). The execution-log terminal above remains. */}
 
-        {/* Controls. Batch 2 item 9: the run button already relabels to
-            simulator.replay ("إعادة التشغيل" / "Replay") once a run has
-            finished, so replay is explicit; the completion block below
-            adds the conversion payoff. */}
-        <div className="mt-6 flex flex-col items-center gap-5">
-          <div className="flex justify-center gap-3">
-            {status !== 'running' ? (
-              <button
-                type="button"
-                data-cursor="magnet"
-                onClick={run}
-                className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
-              >
-                {status === 'completed' ? <RotateCw className="size-4" aria-hidden="true" /> : <Play className="size-4" aria-hidden="true" />}
-                {status === 'completed' ? t('replay') : t('run')}
-              </button>
-            ) : (
-              <span className="inline-flex h-11 items-center gap-2 rounded-full border border-white/15 px-6 text-sm text-white/60">
-                <span className="size-2 animate-pulse rounded-full bg-primary" aria-hidden="true" />
-                {t('running')}
-              </span>
-            )}
+        {/* Completion — Batch 2 item 9: the finished run converts instead
+            of dead-ending: completion title + CTA to a prefilled contact
+            request (URL contract: /contact?service=automation, locale-
+            correct via @/i18n/navigation's router). The run/replay control
+            itself now lives ABOVE the nodes stage (R9). */}
+        {status === 'completed' ? (
+          <div className="mt-6 flex flex-col items-center gap-3 text-center">
+            <p className="text-sm font-medium text-white/85">{t('completionTitle')}</p>
+            <button
+              type="button"
+              data-cursor="magnet"
+              onClick={() => router.push('/contact?service=automation')}
+              className="inline-flex h-11 items-center gap-2 rounded-full border border-g-green/40 bg-g-green/15 px-6 text-sm font-medium text-white transition-colors hover:bg-g-green/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
+            >
+              <Send className="size-4" aria-hidden="true" />
+              {t('completionCta')}
+            </button>
           </div>
-          {/* Batch 2 item 9: post-run completion state — the finished run
-              converts instead of dead-ending: completion title + CTA to a
-              prefilled contact request (URL contract:
-              /contact?service=automation, locale-correct via
-              @/i18n/navigation's router — same pattern as hero-console). */}
-          {status === 'completed' ? (
-            <div className="flex flex-col items-center gap-3 text-center">
-              <p className="text-sm font-medium text-white/85">{t('completionTitle')}</p>
-              <button
-                type="button"
-                data-cursor="magnet"
-                onClick={() => router.push('/contact?service=automation')}
-                className="inline-flex h-11 items-center gap-2 rounded-full border border-g-green/40 bg-g-green/15 px-6 text-sm font-medium text-white transition-colors hover:bg-g-green/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
-              >
-                <Send className="size-4" aria-hidden="true" />
-                {t('completionCta')}
-              </button>
-            </div>
-          ) : null}
-        </div>
+        ) : null}
       </div>
     </section>
   )

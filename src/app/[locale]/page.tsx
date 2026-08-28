@@ -10,7 +10,6 @@ import { ServicesBento } from '@/components/home/bento'
 import { SimulatorLazy } from '@/components/home/simulator-lazy'
 import { FeaturedWork } from '@/components/home/featured-work'
 import { MethodologyLazy } from '@/components/home/methodology-lazy'
-import { Testimonials } from '@/components/home/testimonials'
 import { CalculatorLazy } from '@/components/home/calculator-lazy'
 import { HomeJsonLd } from '@/components/seo/home-json-ld'
 import { routing } from '@/i18n/routing'
@@ -96,8 +95,10 @@ export default async function HomePage({
           their chunks cuts the initial JS bundle on / by ~30KB
           minified+gzipped (framer-motion + AnimatePresence + motion
           runtime) without losing any functionality. */}
+      {/* R9 (user request): the «قالوا عننا» testimonials section was
+          removed from the homepage. The catalog keys stay — the contact
+          page reuses items.first for its form-side social proof. */}
       <MethodologyLazy />
-      <Testimonials />
       <CalculatorLazy />
     </>
   )
