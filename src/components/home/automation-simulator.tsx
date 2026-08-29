@@ -125,6 +125,20 @@ export function AutomationSimulator({
   // R9: the nodes stage — the run button sits ABOVE it now, and run()
   // scrolls it into view so the user always watches the nodes work.
   const stageRef = useRef<HTMLDivElement | null>(null)
+  // L6-R4 (fix 2 — calculator.tsx's success-swap focus-move precedent):
+  // activating the run button UNMOUNTS it (the progress chip replaces
+  // it) — focus used to fall to <body> for the whole 7s run and was
+  // never restored. While the flow runs, focus lives on the polite
+  // status region (its announcements narrate the run); when the status
+  // flips to 'completed' the replay button has remounted in the same
+  // commit, and focus returns to it.
+  const statusRegionRef = useRef<HTMLDivElement | null>(null)
+  const runButtonRef = useRef<HTMLButtonElement | null>(null)
+
+  useEffect(() => {
+    if (status === 'running') statusRegionRef.current?.focus()
+    else if (status === 'completed') runButtonRef.current?.focus()
+  }, [status])
 
   const clearAll = useCallback(() => {
     timeouts.current.forEach((id) => window.clearTimeout(id))
@@ -168,12 +182,22 @@ export function AutomationSimulator({
     if (el) el.scrollTop = el.scrollHeight
   }, [logLines])
 
+  // L6-R2 (fix 6): the `scenarios.<scenario>.steps.<id>.ms` raw-catalog
+  // lookup was repeated 6× with ONE divergent unsound `as number` cast —
+  // one guarded helper now owns the expression (Number() coercion, so a
+  // drifted catalog yields NaN which the sibling Number.isFinite guards
+  // below neutralize, never a crash).
+  const stepMs = useCallback(
+    (id: StepId): number => Number(t.raw(`scenarios.${scenario}.steps.${id}.ms`)),
+    [scenario, t]
+  )
+
   const totalMs = useMemo(() => {
     return steps.reduce((acc, step) => {
-      const ms = Number(t.raw(`scenarios.${scenario}.steps.${step.id}.ms`))
+      const ms = stepMs(step.id)
       return acc + (Number.isFinite(ms) ? ms : 0)
     }, 0)
-  }, [steps, scenario, t])
+  }, [steps, stepMs])
 
   const run = useCallback(() => {
     clearAll()
@@ -224,8 +248,7 @@ export function AutomationSimulator({
       schedule(() => {
         setCurrentStep(i)
         // animate counter 0 → step.ms over STEP_DISPLAY
-        const stepMs = t.raw(`scenarios.${scenario}.steps.${step.id}.ms`) as number
-        const target = Number(stepMs)
+        const target = stepMs(step.id)
         if (reduced) {
           setCounter(target)
         } else {
@@ -243,7 +266,7 @@ export function AutomationSimulator({
       schedule(() => {
         setCompleted((c) => (c.includes(i) ? c : [...c, i]))
         // UI-3: timestamped log line appended at completion time.
-        const ms = Number(t.raw(`scenarios.${scenario}.steps.${step.id}.ms`))
+        const ms = stepMs(step.id)
         logSeq.current += 1
         setLogLines((prev) => [...prev, {
           id: logSeq.current,
@@ -270,7 +293,7 @@ export function AutomationSimulator({
         ms: totalMs,
       }])
     }, steps.length * (STEP_DISPLAY + TRANSITION))
-  }, [clearAll, reduced, steps, scenario, t, schedule, totalMs])
+  }, [clearAll, reduced, steps, scenario, t, schedule, totalMs, stepMs])
 
   const secondsLabel = (totalMs / 1000).toFixed(2)
 
@@ -278,7 +301,7 @@ export function AutomationSimulator({
   const activeStep = currentStep >= 0 ? steps[currentStep] : null
   const activeStepTitle = activeStep ? t(`scenarios.${scenario}.steps.${activeStep.id}.title`) : null
   const activeStepDesc = activeStep ? t(`scenarios.${scenario}.steps.${activeStep.id}.desc`) : null
-  const activeStepMs = activeStep ? Number(t.raw(`scenarios.${scenario}.steps.${activeStep.id}.ms`)) : 0
+  const activeStepMs = activeStep ? stepMs(activeStep.id) : 0
 
   // UI-3: stats chip values — live elapsed while running (finished steps +
   // in-flight counter; during the inter-step transition the active step is
@@ -287,9 +310,9 @@ export function AutomationSimulator({
   const completedMsSum = useMemo(() => completed.reduce((acc, i) => {
     const step = steps[i]
     if (!step) return acc
-    const ms = Number(t.raw(`scenarios.${scenario}.steps.${step.id}.ms`))
+    const ms = stepMs(step.id)
     return acc + (Number.isFinite(ms) ? ms : 0)
-  }, 0), [completed, steps, scenario, t])
+  }, 0), [completed, steps, stepMs])
   const inFlightMs = currentStep >= 0 && !completed.includes(currentStep) ? counter : 0
   const totalDisplay = status === 'running' ? completedMsSum + inFlightMs : totalMs
 
@@ -344,6 +367,7 @@ export function AutomationSimulator({
         <div className="mt-8 flex flex-col items-center gap-3">
           {status !== 'running' ? (
             <button
+              ref={runButtonRef}
               type="button"
               data-cursor="magnet"
               onClick={run}
@@ -419,13 +443,13 @@ export function AutomationSimulator({
                 background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1.5px);
                 background-size: 24px 24px;
               }
-              /* Real monospace for the terminal/log panels — the
-                 global --font-mono token resolves to JetBrains Mono
+              /* Real monospace for the terminal/log panels — the global
+                 --font-mono token resolves to JetBrains Mono
                  (next/font, Batch 1 item 3 / I-1); the panels below are
-                 already dir="ltr" so Latin tokens align correctly. */
-              .elyra-mono {
-                font-family: var(--font-mono);
-              }
+                 already dir="ltr" so Latin tokens align correctly.
+                 L6-R4 (fix 8e): the .elyra-mono rule itself moved VERBATIM
+                 to globals.css (an inline <style> re-declared it on every
+                 render of this component). */
               /* R9: run button rise-in — settles above the stage. */
               @keyframes sim-btn-rise {
                 from { opacity: 0; transform: translateY(14px) scale(0.96); }
@@ -442,14 +466,20 @@ export function AutomationSimulator({
                 .elyra-flow { animation: elyra-flow 0.8s linear infinite; }
                 /* UI-3: traveling packet along the active edge — travels
                    between the two node centers (physical left; RTL is
-                   handled by the mirrored positions array). */
+                   handled by the mirrored positions array).
+                   L6-R3 (fix 7b): 'left' is a layout property — the
+                   packet now rides a full-track-width wrapper anchored
+                   at left:0, and translateX(%) resolves against the
+                   WRAPPER (= the track's own width), so var(--from)/
+                   var(--to) keep their exact %-of-track semantics; the
+                   visible dot sits at left:0 inside the wrapper. */
                 @keyframes elyra-packet {
-                  0% { left: var(--from); opacity: 0 }
+                  0% { transform: translateX(var(--from)); opacity: 0 }
                   12% { opacity: 1 }
                   88% { opacity: 1 }
-                  100% { left: var(--to); opacity: 0 }
+                  100% { transform: translateX(var(--to)); opacity: 0 }
                 }
-                .elyra-packet { left: var(--from); animation: elyra-packet 1.05s linear infinite; }
+                .elyra-packet { transform: translateX(var(--from)); animation: elyra-packet 1.05s linear infinite; }
                 /* UI-3: log line entry (fade/slide, one-shot). */
                 @keyframes elyra-log-in {
                   from { opacity: 0; transform: translateY(4px) }
@@ -466,7 +496,10 @@ export function AutomationSimulator({
             ) : null}
 
             {/* UI-3: packet dots travel the active edge (below the nodes,
-                so they emerge from / disappear into each node). */}
+                so they emerge from / disappear into each node). The
+                animated element is the full-track wrapper (fix 7b above);
+                the dot itself keeps its own -translate-y-1/2 centering
+                transform, separate from the animated wrapper's. */}
             {!reduced
               ? steps.slice(0, -1).map((_, i) => {
                   if (currentStep !== i + 1) return null
@@ -477,9 +510,11 @@ export function AutomationSimulator({
                     <span
                       key={`packet-${i}`}
                       aria-hidden="true"
-                      className="elyra-packet absolute top-1/2 size-2 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_12px_rgba(0,113,227,0.95)]"
+                      className="elyra-packet absolute inset-y-0 left-0 w-full"
                       style={{ '--from': `${from}%`, '--to': `${to}%` } as CSSProperties}
-                    />
+                    >
+                      <span className="absolute left-0 top-1/2 size-2 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_12px_rgba(0,113,227,0.95)]" />
+                    </span>
                   )
                 })
               : null}
@@ -497,9 +532,15 @@ export function AutomationSimulator({
                   className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
                   style={{ left: `${xPercent}%`, top: '46%' }}
                 >
-                  {/* UI-3: literal tech type badge (decorative — aria-hidden). */}
+                  {/* UI-3: literal tech type badge (decorative — aria-hidden).
+                      L6-R4 (fix 8d): lang="en" dir="ltr" islands the Latin
+                      chrome — the universal :lang(ar) letter-spacing reset
+                      exempts these, so tracking-[0.18em] correctly applies
+                      in BOTH locales (it computed to `normal` in AR). */}
                   <span
                     aria-hidden="true"
+                    lang="en"
+                    dir="ltr"
                     className={cn(
                       'elyra-mono mb-1.5 text-[8px] uppercase tracking-[0.18em]',
                       isActive ? 'text-g-blue' : 'text-white/55'
@@ -585,8 +626,15 @@ export function AutomationSimulator({
             {/* MED-8: live region for status changes (idle/running/stepOf).
                 The per-frame ms counter below is deliberately OUTSIDE this
                 region — polite announcements happen on status/step change
-                only, not every animation frame. */}
-            <div className="flex flex-wrap items-center justify-between gap-3" aria-live="polite">
+                only, not every animation frame. tabIndex={-1} (L6-R4 fix 2):
+                programmatically focusable landing spot while the run button
+                is unmounted — out of tab order. */}
+            <div
+              ref={statusRegionRef}
+              tabIndex={-1}
+              className="flex flex-wrap items-center justify-between gap-3"
+              aria-live="polite"
+            >
               {/* FIX(2-c/13): the completion sentence used to render 3×
                   (status row left + right + h3). The h3 below is now the
                   single completion announcement; the status row only
@@ -627,7 +675,7 @@ export function AutomationSimulator({
                 {completed.map((idx) => {
                   const step = steps[idx]
                   if (!step) return null
-                  const ms = Number(t.raw(`scenarios.${scenario}.steps.${step.id}.ms`))
+                  const ms = stepMs(step.id)
                   return (
                     <li key={step.id} className="flex items-center justify-between gap-2 text-xs">
                       <span className="flex items-center gap-2 text-white/70">

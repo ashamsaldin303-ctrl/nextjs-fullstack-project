@@ -6,6 +6,7 @@ import { Wrench } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Reveal } from '@/components/shared/reveal'
 import { BeforeAfter, toMockContent } from '@/components/home/before-after'
+import { asStringArray } from '@/lib/catalog-guards'
 
 type Category = 'websites' | 'automation'
 
@@ -98,8 +99,9 @@ export function WorkGrid() {
             panel widths (the "didn't display well" report). */}
         <div key={filter} className="reveal-filter-in mt-14 grid gap-10 lg:grid-cols-2">
           {visible.map((p, i) => {
-            const metrics = t.raw(`projects.${p.key}.metrics`) as string[]
-            const services = t.raw(`projects.${p.key}.services`) as string[]
+            // L6-R2 (fix 6): runtime-narrowed catalog reads (was `as string[]`).
+            const metrics = asStringArray(t.raw(`projects.${p.key}.metrics`))
+            const services = asStringArray(t.raw(`projects.${p.key}.services`))
             // UI-4: per-project mock content for the realistic "after" scene
             const mock = toMockContent(t.raw(`projects.${p.key}.mock`))
             return (

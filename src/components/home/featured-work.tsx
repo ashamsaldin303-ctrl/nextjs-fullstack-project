@@ -7,6 +7,7 @@ import { SectionHeading } from '@/components/shared/section-heading'
 import { Reveal } from '@/components/shared/reveal'
 import { BeforeAfter, toMockContent } from './before-after'
 import { DeconstructedCard } from './deconstructed-card'
+import { asStringArray } from '@/lib/catalog-guards'
 
 // L6-F1: the dead per-project `metrics` arrays were removed — the render
 // reads the localized metrics via t.raw(`${p.key}.metrics`), so the static
@@ -49,7 +50,8 @@ export function FeaturedWork() {
             a half-empty 2-col grid. */}
         <div className="mx-auto mt-14 max-w-2xl">
           {GRID_PROJECTS.map((p) => {
-            const metrics = t.raw(`${p.key}.metrics`) as string[]
+            // L6-R2 (fix 6): runtime-narrowed catalog read (was `as string[]`).
+            const metrics = asStringArray(t.raw(`${p.key}.metrics`))
             // UI-4: per-project mock content for the realistic "after" scene
             const mock = toMockContent(t.raw(`${p.key}.mock`))
             return (

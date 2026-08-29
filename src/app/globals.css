@@ -126,6 +126,16 @@
   --font-app: var(--font-cairo);
 }
 
+/* Real-mono helper for scoped terminal/badge chrome. L6-R4 (fix 8e) —
+   moved VERBATIM from automation-simulator.tsx's inline <style>, which
+   re-declared the rule on every render of the component. Resolves to the
+   global --font-mono token (JetBrains Mono — see the typography block
+   above); consumers: the simulator's NODE_TYPE badges + execution-log
+   terminal. */
+.elyra-mono {
+  font-family: var(--font-mono);
+}
+
 /* Dark sections use explicit utility classes (bg-elyra-dark) — the site
    ships light-only BY DESIGN; no .dark toggle and no dark token set
    exists. The @custom-variant dark above is kept only so stock shadcn
@@ -731,10 +741,13 @@ html[data-page-wait] .hero-build-fx * {
   to { opacity: 1; }
 }
 
-/* Mono spec labels — decorative technical annotations. */
+/* Mono spec labels — decorative technical annotations.
+   L6-R4 (fix 8e): routes through the documented --font-mono token
+   (JetBrains Mono + full fallback stack) instead of a hand-rolled
+   partial stack that bypassed the token. */
 .hb-label {
   position: absolute;
-  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.14em; /* Latin-only content — tracking is safe */
   color: rgba(190, 208, 255, 0.5);
@@ -845,13 +858,36 @@ html[data-page-wait] .hero-build-fx * {
   100% { filter: brightness(1); }
 }
 
-/* Automation pulse node (bento MiniFlow — was framer motion.span) */
-.elyra-pulse {
+/* Automation pulse node (bento MiniFlow — was framer motion.span).
+   L6-R3 (fix 7a): the pulse used to animate box-shadow — paint work on
+   EVERY frame, forever, on the always-visible hero kicker dot (and the
+   MiniFlow active node). Compositor-only now: a ::after ring (the
+   cursor-core idiom — see .elyra-cursor-ring-core) expands + fades via
+   transform/opacity while the host element itself never repaints.
+   Geometry note: a scale cannot reproduce the old fixed 8px box-shadow
+   spread at every host size (spread was absolute px, scale is
+   proportional) — on the hero's 6px dot the ring still reaches ≈8px
+   past the edge; on the 36px MiniFlow node it pings a little wider.
+   Same color, same 0.9s ease-out infinite cadence. The HOST must be a
+   positioned element for the absolute ::after (hero dot: `relative`;
+   MiniFlow node span: `absolute`) — deliberately NOT set on the class
+   itself, or this unlayered rule would override the MiniFlow node's
+   layered `absolute` utility. Reduced-motion coverage is unchanged:
+   the universal kill-switch at the top of this file targets *::after
+   as well, so the ring freezes invisible exactly like the old shadow. */
+.elyra-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  border: 2px solid rgba(66, 133, 244, 0.6);
   animation: elyra-pulse 0.9s ease-out infinite;
+  will-change: transform, opacity;
+  pointer-events: none;
 }
 @keyframes elyra-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(66, 133, 244, 0.6); }
-  100% { box-shadow: 0 0 0 8px rgba(66, 133, 244, 0); }
+  0% { transform: scale(0.85); opacity: 0.6; }
+  100% { transform: scale(1.55); opacity: 0; }
 }
 
 /* Before/after drag hint (was framer motion.div) */
@@ -968,6 +1004,22 @@ html[data-page-wait] .hero-build-fx * {
 }
 :lang(ar) h1, :lang(ar) h2, :lang(ar) h3, :lang(ar) h4 {
   line-height: var(--ar-lh-heading);
+}
+/* L6-R4 (fix 8c): the 1.3 heading floor is a readability BASELINE, but
+   it also CAPS deliberately-loose display leading — the manifesto
+   statement's leading-[1.45] computed 1.3 in AR (visibly tighter than
+   designed; grep found it the ONLY Arabic h1-h4 with leading ≥1.4, so
+   the opt-out ships for that one real victim). Unlayered like the floor
+   itself, and higher-specificity ((0,2,0) beats the floor's (0,1,1) and
+   every layered leading-* utility as usual). Apply to a heading directly
+   or to a wrapper to loosen all headings inside; --ar-lh-loose lets a
+   consumer pick a different value. */
+:lang(ar) .ar-lh-loose,
+:lang(ar) .ar-lh-loose h1,
+:lang(ar) .ar-lh-loose h2,
+:lang(ar) .ar-lh-loose h3,
+:lang(ar) .ar-lh-loose h4 {
+  line-height: var(--ar-lh-loose, 1.45);
 }
 /* Universal Arabic letter-spacing reset (Batch 1 item 2 — was a tag list
    that leaked tracking from .kicker, tracking-* utilities and component

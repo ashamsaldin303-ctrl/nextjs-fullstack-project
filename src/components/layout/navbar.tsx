@@ -30,9 +30,15 @@ export function Navbar() {
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24)
-    onScroll()
+    // Initial read — rAF-wrapped, never setState synchronously inside the
+    // effect body (react-hooks/set-state-in-effect; same idiom as
+    // intro-overlay.tsx). One intentional post-mount render.
+    const rafId = window.requestAnimationFrame(onScroll)
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    return () => {
+      window.cancelAnimationFrame(rafId)
+      window.removeEventListener('scroll', onScroll)
+    }
   }, [])
 
   const items = navItems(t)

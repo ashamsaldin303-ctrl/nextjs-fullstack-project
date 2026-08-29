@@ -65,3 +65,13 @@ tool-results/
 # one-off dev artifacts (debug screenshots, VLM JSONs, throwaway scripts) —
 # never belongs in VCS (~5MB of local history)
 .scratch/
+
+# sandbox tooling (L6-R5 P3, same pattern as .scratch): environment
+# scaffolding (build/dev scripts + dev.pid), prompt documents and test
+# harnesses that exist for this sandbox only — files STAY on disk
+# (untracked via `git rm -r --cached`) but must not ship in VCS.
+.zscripts/
+upload/
+download/
+tests/
+mini-services/

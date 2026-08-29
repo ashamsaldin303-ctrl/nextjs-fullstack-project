@@ -53,7 +53,7 @@
     "location": "Damascus",
     "watermark": "ELYRA",
     "marquee": [
-      "Award-grade websites",
+      "Stunning websites",
       "Immersive 3D",
       "Intelligent n8n automation",
       "AI agents that work for you",
@@ -181,11 +181,11 @@
         "retryHint": "Click again for a different answer",
         "responses": [
           "3 key decisions, 2 assigned tasks, and a deadline set for next Thursday. Summary sent to your team ✓",
-          "The gist: campaign launches on the 12th, next quarter’s budget is up 15%, and you own the deck ✓",
-          "One unresolved point: pricing — deferred to Thursday’s session. 3 action items dispatched to owners ✓",
+          "The gist: campaign launches on the 12th, next quarter's budget is up 15%, and you own the deck ✓",
+          "One unresolved point: pricing — deferred to Thursday's session. 3 action items dispatched to owners ✓",
           "47-minute meeting, 5 participants. Highlights: response time cut to 4 hours and a designer to hire ✓",
           "Logged 6 potential risks ranked by impact, each with a mitigation draft in the shared doc ✓",
-          "Client’s key note: loves the new direction but wants a darker variant — revised draft ready for approval ✓"
+          "Client's key note: loves the new direction but wants a darker variant — revised draft ready for approval ✓"
         ],
         "inputPlaceholder": "Type your question here…",
         "convertCta": "Turn this into a request"
@@ -328,7 +328,7 @@
     "viewAll": "Browse All Work",
     "project1": {
       "title": "Lamsa Fashion Store",
-      "category": "E-commerce",
+      "category": "E-commerce Store",
       "desc": "From a dull template store to a luxury shopping experience that feels like a boutique.",
       "metrics": [
         "+140% Conversion Rate",
@@ -879,7 +879,7 @@
       "successRestart": "Calculate Another Project",
       "errorTitle": "Couldn't submit your request",
       "errorNetwork": "Check your connection and try again — your data is preserved.",
-      "successReference": "Your reference: {reference}"
+      "successReference": "Your reference:"
     },
     "errors": {
       "name": "Name is required (at least 2 characters)",
@@ -1097,7 +1097,7 @@
       "projects": {
         "p1": {
           "title": "Lamsa Fashion Store",
-          "type": "E-commerce",
+          "type": "E-commerce Store",
           "desc": "From a sluggish off-the-shelf template to a boutique-grade shopping experience — even on mobile.",
           "services": [
             "Brand identity & shopping UX",

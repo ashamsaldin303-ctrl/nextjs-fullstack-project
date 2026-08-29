@@ -33,7 +33,13 @@ import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
  *     reveal (R9: release happens only after the lift completes).
  *   - Repeat visits in the same session: the same script sets
  *     `data-intro-off` pre-paint → CSS `display:none` (zero flash), and this
- *     component unmounts itself after hydration.
+ *     component unmounts itself after hydration. L6-R6 (P1): the pre-paint
+ *     gate only runs on FULL document loads — client-side returns to the
+ *     homepage (Link/history) arrive with NO html attribute at all, so the
+ *     component consults the session flag itself and dismisses identically:
+ *     within a session every return to the homepage behaves like a repeat
+ *     full load — no curtain, the hero entrance + Assembly replay from
+ *     paint (consistent with R8.1's history-return replay).
  *   - Reduced motion: the script never arms the intro and CSS hides the
  *     overlay outright — reduced users go straight to the hero.
  *   - No-JS first visit: pure-CSS animations still run and a CSS failsafe
@@ -61,7 +67,18 @@ export function IntroOverlay() {
   useEffect(() => {
     // Dismiss silently for repeat visits (pre-paint gate already hid it)
     // and for reduced-motion users (CSS hid it; never armed).
-    if (reduced || document.documentElement.hasAttribute('data-intro-off')) {
+    // L6-R6 (P1): the pre-paint gate never re-runs after hydration, so a
+    // client-side navigation back to the homepage arrives with neither
+    // `data-intro` nor `data-intro-off` — without this session check the
+    // full 2.55s curtain re-blocked the viewport on EVERY in-session
+    // return despite the flag being '1' (empirically verified by R6).
+    let playedThisSession = false
+    try {
+      playedThisSession = sessionStorage.getItem(INTRO_SESSION_KEY) === '1'
+    } catch {
+      /* storage unavailable — treat as not played (intro simply replays) */
+    }
+    if (reduced || playedThisSession || document.documentElement.hasAttribute('data-intro-off')) {
       document.documentElement.removeAttribute('data-intro')
       // rAF-wrapped — never setState synchronously inside the effect body
       // (react-hooks/set-state-in-effect).

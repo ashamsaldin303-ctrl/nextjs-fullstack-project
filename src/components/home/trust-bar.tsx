@@ -57,10 +57,15 @@ function Counter({ value, suffix, durationMs = 1600 }: CounterProps) {
   const reduced = usePrefersReducedMotion()
   const [display, setDisplay] = useState(0)
   // FIX(2-c/16): counts are formatted through next-intl's formatter — the
-  // exact machinery the simulator's `stepOf` message uses — so AR pages get
-  // Arabic-Indic digits ("١٢٠"). Digit convention (L3 reword): RUNTIME-formatted
-  // values (useFormatter/Intl — incl. formatMoney, clock, dates) follow the
-  // locale (Arabic-Indic in ar); only STATIC catalog strings keep Latin digits.
+  // exact machinery the simulator's `stepOf` message uses. Digit convention
+  // (L6-R4 reword — documents the ACTUAL runtime behavior): RUNTIME-formatted
+  // values (useFormatter/Intl — incl. formatMoney, the clocks, dates) render
+  // LATIN digits in ar: the plain `ar` locale resolves to the latn numbering
+  // system on current ICU/CLDR (SSR-verified: the counter paints "0", not
+  // "٠"), and the hero clock now pins -u-nu-latn explicitly to match (it
+  // alone used ar-SY → Arabic-Indic glyphs inside the latin-subset mono
+  // face). STATIC catalog strings keep Latin digits by house style — one
+  // numeral presentation site-wide.
   const format = useFormatter()
 
   useEffect(() => {

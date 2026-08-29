@@ -122,6 +122,22 @@ function ok(name, pass, detail = '') {
   console.log(`${pass ? '✓' : '✗'} ${name}${detail ? ` — ${detail}` : ''}`)
 }
 
+/* L6-R5 P3 cleanup fix: track every row this run creates so cleanup can
+ * delete by `reference` (the exact rows we inserted) instead of the old
+ * email-SUFFIX match — which ran at the END of try (a mid-run throw
+ * skipped it, leaving test rows behind) and could delete PRE-EXISTING
+ * @test.dev rows that belong to someone else. */
+const createdReferences = new Set()
+const createdEmails = new Set()
+let sawUncaptured201 = false
+function trackCreated(response, email) {
+  if (response.status !== 201) return
+  const ref = response.data?.reference
+  if (typeof ref === 'string' && ref.length > 0) createdReferences.add(ref)
+  else sawUncaptured201 = true
+  if (email) createdEmails.add(email)
+}
+
 async function postLead(body, headers = {}) {
   const res = await fetch(`${BASE}/api/leads`, {
     method: 'POST',
@@ -173,6 +189,7 @@ try {
   /* --- 0) Wait for a fresh rate window (robust to prior runs) -------- */
   {
     const probe = await postLead({ source: 'contact-form', name: 'p', email: 'probe@test.dev' })
+    trackCreated(probe, 'probe@test.dev')
     if (probe.status === 429) {
       const wait = Math.max(2, Number(probe.retryAfter ?? 60))
       console.log(`   (rate window busy — waiting ${wait}s for a fresh window…)\n`)
@@ -230,6 +247,7 @@ try {
       weeksMax: 999,
     }
     const r = await postLead(input)
+    trackCreated(r, 'forged@test.dev')
     const expected = computeEstimate({
       service: 'full',
       pages: 8,
@@ -269,6 +287,7 @@ try {
       integrations: ['email'],
       automationLevel: 'essential',
     })
+    trackCreated(r, 'valid-calc@test.dev')
     const ref = r.data?.reference ?? ''
     const row = ref
       ? await prisma.lead.findFirst({ where: { email: 'valid-calc@test.dev' }, orderBy: { createdAt: 'desc' } })
@@ -314,6 +333,7 @@ try {
       email: 'contact@test.dev',
       message: 'This is a real message from the verification script.',
     })
+    trackCreated(r, 'contact@test.dev')
     const row = r.status === 201
       ? await prisma.lead.findFirst({ where: { email: 'contact@test.dev' }, orderBy: { createdAt: 'desc' } })
       : null
@@ -347,6 +367,7 @@ try {
       )
     }
     const responses = await Promise.all(burst)
+    responses.forEach((r, i) => trackCreated(r, `burst${i}@test.dev`))
     const limited = responses.filter((r) => r.status === 429)
     const allHaveRetryAfter = limited.every((r) => {
       const v = Number(r.retryAfter)
@@ -422,13 +443,32 @@ try {
       `first=${first.status} replay=${replay.status}`
     )
   }
-
-  /* --- Cleanup test rows ---------------------------------------------- */
-  const deleted = await prisma.lead.deleteMany({
-    where: { email: { endsWith: '@test.dev' } },
-  })
-  console.log(`\ncleanup: removed ${deleted.count} test rows from the database`)
 } finally {
+  // Cleanup lives in FINALLY (L6-R5 P3): a mid-run throw must not leave
+  // test rows behind. Deletes the exact rows THIS run created, matched by
+  // their unique `reference` — never the old email-SUFFIX blanket delete
+  // (which could hit pre-existing @test.dev rows). Exact-email fallback
+  // covers a 201 whose reference somehow wasn't captured.
+  try {
+    let removed = 0
+    if (createdReferences.size > 0) {
+      removed += (
+        await prisma.lead.deleteMany({
+          where: { reference: { in: [...createdReferences] } },
+        })
+      ).count
+    }
+    if (sawUncaptured201 && createdEmails.size > 0) {
+      removed += (
+        await prisma.lead.deleteMany({
+          where: { email: { in: [...createdEmails] } },
+        })
+      ).count
+    }
+    console.log(`\ncleanup: removed ${removed} test rows from the database`)
+  } catch (err) {
+    console.error('cleanup failed:', err?.message ?? err)
+  }
   await prisma.$disconnect()
   mock.close()
 }

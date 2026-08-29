@@ -109,10 +109,11 @@ for (const k of enKeys) {
 // NOT IMPLEMENTED (deliberate decision, fix 2-d): an unused-key scan.
 // Deriving key usage from t()-call literals across src/ is too fragile —
 // dynamic keys such as t(`services.${id}.title`) defeat a literal scan and
-// would produce false positives that make the gate untrustworthy. Dead
-// catalog keys are tracked by the manual audits instead (L1-B P3 lists
-// the current 8: nav.services, common.back/next/close/getStarted/explore,
-// common.reduceMotionNote, hero.canvasFallback).
+// would produce false positives that make the gate untrustworthy. The
+// L1-B-era dead-key list is history: 7 of its 8 keys were pruned across
+// the L4/L6 rounds, and common.close is now LIVE (consumed as sonner's
+// closeButtonAriaLabel in [locale]/layout.tsx). The worklog is the
+// tracker for any future dead-key findings.
 const identicalStringKeys = []
 for (const k of arKeys) {
   if (k in enFlat && typeof arFlat[k] === 'string' && arFlat[k] === enFlat[k]) {

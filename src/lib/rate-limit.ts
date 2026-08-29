@@ -73,6 +73,12 @@ export interface RateLimitResult {
   allowed: boolean
   /** Seconds until the oldest hit leaves the window (for Retry-After). */
   retryAfterSec: number
+  /** Quota of the checked bucket — for the RateLimit-Limit header
+   *  (IETF draft draft-ietf-httpapi-ratelimit-headers, L6-R5 P3). */
+  limit: number
+  /** Hits left in the window AFTER this check — RateLimit-Remaining.
+   *  Zero whenever the check is rejected. */
+  remaining: number
 }
 
 /**
@@ -94,7 +100,7 @@ export function rateLimit(
   if (windowHits.length >= maxHits) {
     const oldest = windowHits.at(0) ?? now
     const retryAfterSec = Math.max(1, Math.ceil((oldest + WINDOW_MS - now) / 1000))
-    return { allowed: false, retryAfterSec }
+    return { allowed: false, limit: maxHits, remaining: 0, retryAfterSec }
   }
 
   // Inline size guard (L1-A P3 fix): the throttled sweep above can let
@@ -111,7 +117,12 @@ export function rateLimit(
 
   windowHits.push(now)
   hits.set(mapKey, windowHits)
-  return { allowed: true, retryAfterSec: 0 }
+  return {
+    allowed: true,
+    limit: maxHits,
+    remaining: Math.max(0, maxHits - windowHits.length),
+    retryAfterSec: 0,
+  }
 }
 
 /**

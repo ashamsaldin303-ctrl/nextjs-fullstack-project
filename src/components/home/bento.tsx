@@ -10,9 +10,11 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRouter } from '@/i18n/navigation'
+import { useIsRtl } from '@/lib/use-rtl'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { Reveal } from '@/components/shared/reveal'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
+import { asProducts, asStringArray, discountPct } from '@/lib/catalog-guards'
 
 /** Bento card with cursor-following radial glow (works in RTL & LTR). */
 function GlowCard({
@@ -131,21 +133,19 @@ function panelTextSafe(hex: string): string {
 const SITE_CTA = SITE_PALETTE.map(ctaSafe)
 const SITE_PANEL_TEXT = SITE_PALETTE.map(panelTextSafe)
 
-/** "349$" / "$349" → 19 (%). Returns 0 when there is no discount. */
-function discountPct(price: string, old: string): number {
-  const digits = (s: string) => Number(s.replace(/[^\d]/g, ''))
-  const p = digits(price)
-  const o = digits(old)
-  return o > p && p > 0 ? Math.round((1 - p / o) * 100) : 0
-}
+/* discountPct — now the SHARED guarded helper from @/lib/catalog-guards
+   (number|null contract; L6-R2 dedup — this local copy returned 0 instead
+   of null and used Number instead of parseInt). */
 
 function MiniSite() {
   const t = useTranslations('bento.websites.mini')
   const [swatch, setSwatch] = useState(0)
   const accent = SITE_PALETTE[swatch] ?? '#0071E3'
-  const nav = t.raw('nav') as string[]
-  const paletteNames = t.raw('palette') as string[]
-  const products = t.raw('products') as { name: string; price: string; old: string }[]
+  // L6-R2 (fix 6): runtime-narrowed catalog reads (was bare `as` casts —
+  // a drifted catalog shape would crash the card instead of degrading).
+  const nav = asStringArray(t.raw('nav'))
+  const paletteNames = asStringArray(t.raw('palette'))
+  const products = asProducts(t.raw('products'))
   // Accent-derived CSS vars: every element below restyles through these, so a
   // swatch click animates atomically via transition-colors on each consumer.
   const vars = {
@@ -273,7 +273,7 @@ function MiniSite() {
                       idx === 1 ? 'rounded-sm' : 'rounded-full'
                     )}
                   />
-                  {off > 0 ? (
+                  {off != null && off > 0 ? (
                     <span
                       dir="ltr"
                       className="absolute start-1 top-1 rounded bg-[color:var(--accent-cta)] px-1 text-[9px] font-bold leading-4 text-white transition-colors duration-300"
@@ -337,7 +337,9 @@ const FLOW_ICONS = [Inbox, Database, Send] as const
 
 function MiniFlow() {
   const t = useTranslations('bento.automation.mini')
-  const nodes = t.raw('nodes') as string[]
+  const isRtl = useIsRtl()
+  // L6-R2 (fix 6): runtime-narrowed catalog read (was `as string[]`).
+  const nodes = asStringArray(t.raw('nodes'))
   const reduced = usePrefersReducedMotion()
   const [state, setState] = useState<'idle' | 'running' | 'done'>('idle')
   // `step` = index of the node currently processing (3 = all processed).
@@ -440,13 +442,26 @@ function MiniFlow() {
                       )}
                       style={{ transformOrigin: 'start', transitionDelay: swept(i) ? '80ms' : '0ms' }}
                     />
-                    {/* traveling pulse dot along the swept connector */}
+                    {/* traveling pulse dot along the swept connector —
+                        L6-R3 (fix 7c): the dot used to animate
+                        `inset-inline-start` (a LAYOUT property — layout +
+                        paint every frame). It now rides a full-connector-
+                        width wrapper whose translateX(%) resolves against
+                        the WRAPPER (= the connector's own width), so the
+                        old 0% → calc(100% - 6px) travel is exactly
+                        equivalent; the visible dot sits at the start edge
+                        inside the wrapper. translateX is PHYSICAL while
+                        inset-inline-start was logical — hence the
+                        per-direction keyframes (start edge = right in
+                        RTL, so the RTL variant travels negative). */}
                     {swept(i) && !reduced ? (
                       <span
                         key={`dot-${runId}-${i}`}
-                        className="absolute top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_6px_rgba(0,113,227,0.9)]"
-                        style={{ animation: 'elyra-flow-dot 550ms ease-in-out 80ms forwards' }}
-                      />
+                        className="absolute inset-0"
+                        style={{ animation: `${isRtl ? 'elyra-flow-dot-rtl' : 'elyra-flow-dot'} 550ms ease-in-out 80ms forwards` }}
+                      >
+                        <span className="absolute top-1/2 start-0 size-1.5 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_6px_rgba(0,113,227,0.9)]" />
+                      </span>
                     ) : null}
                   </div>
                 ) : null}
@@ -475,7 +490,10 @@ function MiniFlow() {
         {state === 'done' ? <RotateCw className="size-3.5" aria-hidden="true" /> : <Play className="size-3.5" aria-hidden="true" />}
         {state === 'done' ? t('done') : t('title')}
       </button>
-      <style>{`@keyframes elyra-flow-dot { from { inset-inline-start: 0% } to { inset-inline-start: calc(100% - 6px) } }`}</style>
+      <style>{`
+        @keyframes elyra-flow-dot { from { transform: translateX(0) } to { transform: translateX(calc(100% - 6px)) } }
+        @keyframes elyra-flow-dot-rtl { from { transform: translateX(0) } to { transform: translateX(calc(-100% + 6px)) } }
+      `}</style>
     </div>
   )
 }
@@ -511,11 +529,39 @@ function MiniCube() {
   // Reduced motion: skip the CSS easing between drag rotations AND disable
   // the idle auto-rotation entirely (user-driven drags still work).
   const reduced = usePrefersReducedMotion()
-  const [rot, setRot] = useState({ x: -18, y: 28 })
+  // L6-R3 (fix 5): the rotation lives in a REF now — the idle spin loop
+  // used to call setRot 60×/s forever (no off-screen gate, measured still
+  // spinning at page bottom), re-rendering this subtree in perpetuity.
+  // Cursor-engine pattern (the manifesto.tsx:77-79 convention — never
+  // setState in a per-frame loop): the rAF loop writes the transform
+  // straight to the DOM; same rotation math, same drag/keyboard paths.
+  // `dragging`/`spinning` remain state — they flip only on interaction
+  // boundaries (transition toggle), a handful of renders per gesture.
+  const rotRef = useRef({ x: -18, y: 28 })
+  const cubeRef = useRef<HTMLDivElement>(null)
+  const shadowRef = useRef<HTMLDivElement>(null)
   const [dragging, setDragging] = useState(false)
   const [spinning, setSpinning] = useState(false)
   const start = useRef({ x: 0, y: 0, rx: 0, ry: 0 })
   const idleTimer = useRef(0)
+
+  // Write the current rotation (and the yaw-derived floor shadow) directly
+  // to the DOM. The JSX style props below carry only CONSTANT initial
+  // values, so React's per-key style diff never rewrites these writes.
+  const applyRot = useCallback(() => {
+    const { x, y } = rotRef.current
+    const cube = cubeRef.current
+    if (cube) cube.style.transform = `rotateX(${x}deg) rotateY(${y}deg)`
+    const shadow = shadowRef.current
+    if (shadow) {
+      // Cheap floor-shadow approximation: an ellipse that squashes/shifts
+      // with the cube's yaw so the ground reads as reacting to the rotation.
+      const ryRad = (y * Math.PI) / 180
+      const scale = 0.7 + 0.3 * Math.abs(Math.cos(ryRad))
+      const shift = Math.sin(ryRad) * 7
+      shadow.style.transform = `translateX(calc(-50% + ${shift.toFixed(3)}px)) scaleX(${scale.toFixed(4)})`
+    }
+  }, [])
 
   const stopSpin = useCallback(() => {
     setSpinning(false) // the spin-loop effect cleans its own rAF on flip
@@ -547,7 +593,9 @@ function MiniCube() {
   }, [reduced, armIdle])
 
   // The spin loop — time-based (display-rate independent), clamped against
-  // tab-visibility spikes, fully self-cleaning.
+  // tab-visibility spikes, fully self-cleaning. L6-R3 (fix 5): the loop
+  // writes the transform through the ref (applyRot) — ZERO setState per
+  // frame, so the perpetual idle rotation no longer re-renders anything.
   useEffect(() => {
     if (!spinning || reduced) return
     let raf = 0
@@ -555,14 +603,15 @@ function MiniCube() {
     const tick = (now: number) => {
       const dt = Math.min(now - last, 100)
       last = now
-      setRot((r) => ({ x: r.x, y: (r.y + dt * 0.012) % 360 })) // ~12°/s
+      rotRef.current = { x: rotRef.current.x, y: (rotRef.current.y + dt * 0.012) % 360 } // ~12°/s
+      applyRot()
       raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
     return () => {
       if (raf) cancelAnimationFrame(raf)
     }
-  }, [spinning, reduced])
+  }, [spinning, reduced, applyRot])
 
   const onDown = (e: React.PointerEvent) => {
     stopSpin()
@@ -570,7 +619,7 @@ function MiniCube() {
       window.clearTimeout(idleTimer.current)
       idleTimer.current = 0
     }
-    start.current = { x: e.clientX, y: e.clientY, rx: rot.x, ry: rot.y }
+    start.current = { x: e.clientX, y: e.clientY, rx: rotRef.current.x, ry: rotRef.current.y }
     setDragging(true)
     ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
   }
@@ -578,7 +627,8 @@ function MiniCube() {
     if (!dragging) return
     const dx = e.clientX - start.current.x
     const dy = e.clientY - start.current.y
-    setRot({ x: start.current.rx - dy * 0.5, y: start.current.ry + dx * 0.5 })
+    rotRef.current = { x: start.current.rx - dy * 0.5, y: start.current.ry + dx * 0.5 }
+    applyRot()
   }
   const onUp = () => {
     setDragging(false)
@@ -587,28 +637,30 @@ function MiniCube() {
 
   // L3 FIX (R3): keyboard path for the pointer-only drag (three-d-section
   // pattern). Arrow keys nudge the SAME rotation state the drag writes
-  // (setRot) with the same delta signs as a same-direction drag (right →
-  // +yaw, down → −pitch). preventDefault sits AFTER the switch, so only
-  // handled arrows are swallowed. A press counts as an interaction: it
-  // stops the idle spin and re-arms it, exactly like onDown/onUp do.
+  // (rotRef → applyRot) with the same delta signs as a same-direction drag
+  // (right → +yaw, down → −pitch). preventDefault sits AFTER the switch,
+  // so only handled arrows are swallowed. A press counts as an
+  // interaction: it stops the idle spin and re-arms it, exactly like
+  // onDown/onUp do.
   const onKeyDown = (e: React.KeyboardEvent) => {
     switch (e.key) {
       case 'ArrowLeft':
-        setRot((r) => ({ x: r.x, y: r.y - KEY_YAW_DEG }))
+        rotRef.current = { x: rotRef.current.x, y: rotRef.current.y - KEY_YAW_DEG }
         break
       case 'ArrowRight':
-        setRot((r) => ({ x: r.x, y: r.y + KEY_YAW_DEG }))
+        rotRef.current = { x: rotRef.current.x, y: rotRef.current.y + KEY_YAW_DEG }
         break
       case 'ArrowUp':
-        setRot((r) => ({ x: r.x + KEY_PITCH_DEG, y: r.y }))
+        rotRef.current = { x: rotRef.current.x + KEY_PITCH_DEG, y: rotRef.current.y }
         break
       case 'ArrowDown':
-        setRot((r) => ({ x: r.x - KEY_PITCH_DEG, y: r.y }))
+        rotRef.current = { x: rotRef.current.x - KEY_PITCH_DEG, y: rotRef.current.y }
         break
       default:
         return
     }
     e.preventDefault()
+    applyRot()
     stopSpin()
     // L4 R3/R4 P3: only re-arm the idle spin when the pointer isn't
     // holding the cube — a mid-drag keypress would otherwise arm the 2.5s
@@ -617,12 +669,6 @@ function MiniCube() {
     // onPointerUp re-arms idle after every real drag anyway.
     if (!dragging) armIdle()
   }
-
-  // Cheap floor-shadow approximation: an ellipse that squashes/shifts with
-  // the cube's yaw so the ground reads as reacting to the rotation.
-  const ryRad = (rot.y * Math.PI) / 180
-  const shadowScale = 0.7 + 0.3 * Math.abs(Math.cos(ryRad))
-  const shadowShift = Math.sin(ryRad) * 7
 
   return (
     <div className="mt-6">
@@ -652,13 +698,20 @@ function MiniCube() {
           className="absolute inset-0"
           style={{ background: 'radial-gradient(130px 90px at 50% 44%, rgba(0,113,227,0.28), transparent 70%)' }}
         />
-        {/* soft elliptical floor shadow */}
+        {/* soft elliptical floor shadow — transform is written
+            imperatively by applyRot() (yaw-derived squash/shift); the
+            CONSTANT initial value below matches the y=28° seed exactly
+            (toFixed formats included) so the SSR paint equals the
+            pre-fix first frame and React's style diff never touches
+            the key afterwards (L6-R3 fix 5). */}
         <div
+          ref={shadowRef}
           aria-hidden="true"
           className="absolute bottom-5 left-1/2 h-2.5 w-16 rounded-[50%] bg-black/70 blur-[5px] transition-transform duration-300"
-          style={{ transform: `translateX(calc(-50% + ${shadowShift}px)) scaleX(${shadowScale})` }}
+          style={{ transform: 'translateX(calc(-50% + 3.286px)) scaleX(0.9649)' }}
         />
         <div
+          ref={cubeRef}
           onPointerDown={onDown}
           onPointerMove={onMove}
           onPointerUp={onUp}
@@ -666,7 +719,10 @@ function MiniCube() {
           className="size-14 cursor-grab touch-none active:cursor-grabbing"
           style={{
             transformStyle: 'preserve-3d',
-            transform: `rotateX(${rot.x}deg) rotateY(${rot.y}deg)`,
+            // Constant initial pose (matches rotRef's seed) — applyRot()
+            // owns the transform from mount on; the value never changes
+            // through React, so its style diff never rewrites it.
+            transform: 'rotateX(-18deg) rotateY(28deg)',
             transition: dragging || spinning || reduced ? 'none' : 'transform 0.2s ease-out',
             willChange: 'transform',
           }}
@@ -724,7 +780,8 @@ function MiniAgent() {
   const reduced = usePrefersReducedMotion()
   // Six distinct localized answers — every click advances the index (cycling,
   // so the same answer is never shown twice in a row). `shown` counts clicks.
-  const responses = t.raw('responses') as string[]
+  // L6-R2 (fix 6): runtime-narrowed catalog read (was `as string[]`).
+  const responses = asStringArray(t.raw('responses'))
   const [shown, setShown] = useState(-1)
   const [phase, setPhase] = useState<'idle' | 'thinking' | 'typing'>('idle')
   const [chars, setChars] = useState(0)
@@ -907,7 +964,13 @@ function MiniOrbit() {
   return (
     <div className="mt-6">
       <p className="text-[11px] text-muted-foreground">{t('hint')}</p>
-      <div className="relative mt-3 flex h-32 items-center justify-center overflow-hidden rounded-xl border border-border bg-elyra-dark/95">
+      {/* L6-R4 (fix 8a): the whole orbit panel (rotating CRM/n8n/AI/SH/TG/@
+          tokens + hub dot) is decorative chrome around the caption —
+          aria-hidden keeps the bare Latin tokens out of the SR tree. */}
+      <div
+        aria-hidden="true"
+        className="relative mt-3 flex h-32 items-center justify-center overflow-hidden rounded-xl border border-border bg-elyra-dark/95"
+      >
         <div className="absolute size-2.5 rounded-full bg-primary" />
         <div
           className="absolute inset-0"
@@ -962,7 +1025,8 @@ export function ServicesBento() {
               {t('websites.desc')}
             </p>
             <ul className="mt-5 flex flex-wrap gap-2">
-              {(t.raw('websites.features') as string[]).map((f) => (
+              {/* L6-R2 (fix 6): runtime-narrowed catalog read (was `as string[]`). */}
+              {asStringArray(t.raw('websites.features')).map((f) => (
                 <li
                   key={f}
                   className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-foreground/80"

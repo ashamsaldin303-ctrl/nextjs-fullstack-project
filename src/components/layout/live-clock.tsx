@@ -38,9 +38,16 @@ export function LiveClock({ variant = 'on-dark' }: { variant?: 'on-dark' | 'on-l
         setTzLabel(null)
       }
     }
-    update()
+    // Initial tick — rAF-wrapped, never setState synchronously inside the
+    // effect body (react-hooks/set-state-in-effect; same idiom as
+    // intro-overlay.tsx). One intentional post-mount render; the SSR
+    // placeholder ('--:--') is unchanged.
+    const rafId = window.requestAnimationFrame(update)
     const id = window.setInterval(update, 60 * 1000)
-    return () => window.clearInterval(id)
+    return () => {
+      window.cancelAnimationFrame(rafId)
+      window.clearInterval(id)
+    }
   }, [locale])
 
   const onLight = variant === 'on-light'

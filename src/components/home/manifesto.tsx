@@ -122,7 +122,11 @@ export function Manifesto() {
         <h2
           id="manifesto-title"
           ref={titleRef}
-          className="mt-8 max-w-4xl text-3xl font-bold leading-[1.45] text-foreground sm:text-4xl lg:text-[2.8rem] lg:leading-[1.4]"
+          /* L6-R4 (fix 8c): ar-lh-loose opts this ONE Arabic heading out of
+             the :lang(ar) h1-h4 1.3 line-height floor so the designed
+             leading-[1.45] survives in AR (it computed 1.3 before — see
+             globals.css for the documented opt-out). */
+          className="ar-lh-loose mt-8 max-w-4xl text-3xl font-bold leading-[1.45] text-foreground sm:text-4xl lg:text-[2.8rem] lg:leading-[1.4]"
         >
           {words.map((word, i) => (
             <span key={i}>

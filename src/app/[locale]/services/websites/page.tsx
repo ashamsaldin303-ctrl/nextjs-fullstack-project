@@ -11,6 +11,7 @@ import { Reveal } from '@/components/shared/reveal'
 import { ThreeDSection } from '@/components/home/three-d-section'
 import { ServiceProse } from '@/components/shared/service-prose'
 import { buildPageMetadata } from '@/lib/seo'
+import { asStringArray } from '@/lib/catalog-guards'
 
 const TYPES = [
   { key: 'landing' as const, icon: Globe },
@@ -70,7 +71,10 @@ export default async function WebsitesPage({
                   <h3 className="mt-5 text-2xl font-semibold tracking-tight">{t(`types.${key}.title`)}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">{t(`types.${key}.desc`)}</p>
                   <ul className="mt-5 space-y-2">
-                    {(t.raw(`types.${key}.features`) as string[]).map((f) => (
+                    {/* L6-R2 (fix 6): runtime-narrowed catalog read (was
+                        `as string[]` — guards live in lib/catalog-guards,
+                        usable from this server component too). */}
+                    {asStringArray(t.raw(`types.${key}.features`)).map((f) => (
                       <li key={f} className="flex items-center gap-2 text-sm text-foreground/80">
                         <Check className="size-4 text-g-green" aria-hidden="true" />
                         {f}

@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Chrome, Boxes, TrendingUp, Workflow } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
+import { asStringArray } from '@/lib/catalog-guards'
 
 /**
  * Deconstructed work card (Phase 4 WS-5, rebuilt in UI-1, upgraded R2).
@@ -163,9 +164,12 @@ export function DeconstructedCard({ projectKey }: { projectKey: string }) {
   // all layer transforms are identity at p=0).
   const [size, setSize] = useState({ w: 480, h: 288 })
 
-  const metrics = t.raw(`${projectKey}.metrics`) as string[] | undefined
-  const metricMain = metrics?.[0] ?? ''
-  const metricSub = metrics?.[1] ?? ''
+  // L6-R2 (fix 6): runtime-narrowed catalog read (was `as string[] | undefined` —
+  // the guard degrades a missing/drifting array to [] and the ?? fallbacks
+  // below keep the empty-metric rendering path).
+  const metrics = asStringArray(t.raw(`${projectKey}.metrics`))
+  const metricMain = metrics[0] ?? ''
+  const metricSub = metrics[1] ?? ''
 
   // Viewport-height damp — on short viewports (landscape phones, small
   // laptops) the fan is squeezed so the full cascade + label still fits

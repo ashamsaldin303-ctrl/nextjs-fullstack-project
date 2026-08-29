@@ -158,6 +158,18 @@ export async function sendLeadWebhook(
           ? null
           : neutralizeCsvInjection(payload.lead.message),
     },
+    meta: {
+      receivedAt: payload.meta.receivedAt,
+      // L6-R1 P2: the User-Agent is the ONLY fully attacker-controlled
+      // string in the signed payload (a raw header with no charset
+      // restriction) — it used to ride the spreadsheet-bound webhook
+      // verbatim, skipping the neutralizer below. The route also caps it
+      // at 512 chars before it reaches this module.
+      userAgent:
+        payload.meta.userAgent === null
+          ? null
+          : neutralizeCsvInjection(payload.meta.userAgent),
+    },
   }
 
   const body = JSON.stringify(sanitized)

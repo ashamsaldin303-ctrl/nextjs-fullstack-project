@@ -196,6 +196,13 @@ export function ContactForm({
     // NOTE: the project-type chip selection intentionally does NOT ride
     // the JSON body — the strict contact-form schema accepts no `service`
     // key, so the type is carried by the seeded message template instead.
+    // L6-R2 P3: ~20s abort — a stalled connection must not pin the
+    // submitting state until the browser's own timeout (minutes). An
+    // AbortError lands in the catch below and surfaces the SAME generic
+    // network-failure message as a real network error (never a raw
+    // exception string).
+    const controller = new AbortController()
+    const abortTimer = window.setTimeout(() => controller.abort(), 20_000)
     try {
       const res = await fetch('/api/leads', {
         method: 'POST',
@@ -203,6 +210,7 @@ export function ContactForm({
           'Content-Type': 'application/json',
           'x-elyra-locale': locale,
         },
+        signal: controller.signal,
         body: JSON.stringify({
           source: 'contact-form',
           companyWebsite: honeypotRef.current?.value ?? '',
@@ -246,9 +254,11 @@ export function ContactForm({
         description: data?.message ?? t('errorNetwork'),
       })
     } catch {
-      // Network failure — the message stays for a retry.
+      // Network failure or the 20s abort — the message stays for a retry
+      // (indistinguishable to the visitor by design).
       toast.error(t('errorTitle'), { description: t('errorNetwork') })
     } finally {
+      window.clearTimeout(abortTimer)
       setSubmitting(false)
     }
   }

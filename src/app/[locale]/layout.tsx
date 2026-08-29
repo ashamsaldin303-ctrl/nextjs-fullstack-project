@@ -29,13 +29,19 @@ const cairo = Cairo({
 
 // Batch 1 item 3 — REAL mono: the global --font-mono token (globals.css)
 // resolves to this variable, so every `font-mono` / .elyra-mono usage
-// (simulator console, payload JSON, calculator reference pill) renders
-// a true monospace face instead of the old Inter alias. latin subset only
-// — code/JSON content is ASCII (no package install needed).
+// (simulator terminal, blueprint spec labels, calculator reference pill)
+// renders a true monospace face instead of the old Inter alias. latin
+// subset only — those consumers render ASCII/code tokens (no package
+// install needed).
+// L6-R3 P3: preload:false — the mono face is never above the fold (all
+// consumers are below-fold sections), so preloading it on every route
+// would only compete with Cairo/Inter for early bandwidth; the face
+// lazy-loads on first actual use instead.
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-jetbrains-mono',
   display: 'swap',
+  preload: false,
 })
 
 export function generateStaticParams() {

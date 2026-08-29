@@ -60,7 +60,11 @@ done
 # --- Measure ---------------------------------------------------------------
 mkdir -p "$OUT_DIR"
 echo "• Running Lighthouse on ${#ROUTES[@]} routes…"
-bunx lighthouse --version >/dev/null 2>&1 || bun add -d lighthouse >/dev/null 2>&1
+# Lighthouse resolves via bunx's package cache (fetched from npm on first
+# use — network required once). It is intentionally NEVER `bun add`-ed
+# here (L6-R5 P3): a measurement run must not mutate package.json/bun.lock.
+bunx lighthouse --version >/dev/null 2>&1 \
+  || echo "  (lighthouse not in the bunx cache yet — the first measurement below will fetch it)"
 
 printf "%-24s %6s %6s %6s %6s %8s %8s %8s\n" "route" "perf" "a11y" "bp" "seo" "LCP" "TBT" "CLS"
 FAILED=0

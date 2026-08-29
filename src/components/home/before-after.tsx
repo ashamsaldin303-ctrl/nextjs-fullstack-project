@@ -42,6 +42,20 @@ import {
 import { cn } from '@/lib/utils'
 import { useIsRtl } from '@/lib/use-rtl'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
+import {
+  asKpis,
+  asRows,
+  asStringArray,
+  discountPct,
+  type MockContent,
+} from '@/lib/catalog-guards'
+
+// L6-R2 (fix 6): the t.raw() narrowing helpers + guarded discountPct now
+// live in @/lib/catalog-guards (shared with bento/work-grid/featured-work/
+// deconstructed-card/services-websites). Re-exported here so the parents'
+// historical import surface (`from '@/components/home/before-after'`)
+// keeps working.
+export { toMockContent, type MockContent } from '@/lib/catalog-guards'
 
 /* R9 industry scenes — each "after" archetype gets its own layout so the
  * four website projects no longer share one storefront skeleton (the
@@ -62,91 +76,15 @@ type SceneVariant =
  * Per-project mock content for the "after" scenes. Resolved by the parents
  * (featured-work.tsx / work-grid.tsx) via t.raw(...) and narrowed through
  * toMockContent(). Every field is optional — scenes degrade to neutral
- * placeholders when a parent passes nothing.
+ * placeholders when a parent passes nothing. (Interface + narrowers live
+ * in @/lib/catalog-guards.ts — re-exported above.)
  */
-export interface MockContent {
-  brand?: string
-  kicker?: string
-  title?: string
-  sub?: string
-  cta?: string
-  cards?: { name: string; price: string; old?: string }[]
-}
 
 /* --------------------------------------------------------------------------
-   t.raw() narrowing helpers (no `any` — eslint forbids it)
+   t.raw() narrowing helpers — MOVED to src/lib/catalog-guards.ts (L6-R2:
+   one shared, never-throwing module instead of a private copy here while
+   sibling components used unsound `as` casts). See the import above.
    -------------------------------------------------------------------------- */
-
-type UnknownRecord = Record<string, unknown>
-
-function isRecord(value: unknown): value is UnknownRecord {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function asString(value: unknown): string {
-  return typeof value === 'string' ? value : ''
-}
-
-function asStringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string') : []
-}
-
-interface Kpi {
-  label: string
-  value: string
-  delta: string
-}
-
-interface SheetRow {
-  ref: string
-  party: string
-  amount: string
-  status: string
-}
-
-function asKpis(value: unknown): Kpi[] {
-  if (!Array.isArray(value)) return []
-  return value
-    .filter(isRecord)
-    .map((r) => ({ label: asString(r.label), value: asString(r.value), delta: asString(r.delta) }))
-    .filter((k) => k.label !== '' || k.value !== '')
-}
-
-function asRows(value: unknown): SheetRow[] {
-  if (!Array.isArray(value)) return []
-  return value
-    .filter(isRecord)
-    .map((r) => ({
-      ref: asString(r.ref),
-      party: asString(r.party),
-      amount: asString(r.amount),
-      status: asString(r.status),
-    }))
-    .filter((r) => r.ref !== '' || r.party !== '')
-}
-
-/** Narrow a next-intl t.raw() catalog value into MockContent. */
-export function toMockContent(raw: unknown): MockContent | undefined {
-  if (!isRecord(raw)) return undefined
-  const cards = Array.isArray(raw.cards)
-    ? raw.cards
-        .filter(isRecord)
-        .map((c) => ({
-          name: asString(c.name),
-          price: asString(c.price),
-          old: asString(c.old) || undefined,
-        }))
-        .filter((c) => c.name !== '' || c.price !== '')
-    : undefined
-  return {
-    brand: asString(raw.brand) || undefined,
-    kicker: asString(raw.kicker) || undefined,
-    title: asString(raw.title) || undefined,
-    sub: asString(raw.sub) || undefined,
-    cta: asString(raw.cta) || undefined,
-    cards: cards && cards.length > 0 ? cards : undefined,
-  }
-}
 
 /* --------------------------------------------------------------------------
    Color helpers — accents arrive as hex strings per project
@@ -199,14 +137,8 @@ const onAccentColor = (hex: string) => (isLightColor(hex) ? shadeColor(hex, 0.6)
 /** Readable ink on top of an accent TINT (announcement bar, chips). */
 const accentInkColor = (hex: string) => shadeColor(hex, isLightColor(hex) ? 0.5 : 0.15)
 
-/** "−18%"-style discount derived from the price pair (null → no badge). */
-function discountPct(price: string, old: string | undefined): number | null {
-  if (!old) return null
-  const p = Number.parseInt(price.replace(/[^0-9]/g, ''), 10)
-  const o = Number.parseInt(old.replace(/[^0-9]/g, ''), 10)
-  if (!Number.isFinite(p) || !Number.isFinite(o) || o <= 0 || p >= o) return null
-  return Math.round((1 - p / o) * 100)
-}
+/* discountPct ("−18%"-style, null → no badge) moved to
+   @/lib/catalog-guards.ts — imported above (L6-R2 dedup). */
 
 const MONO_STACK = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
 
@@ -2245,7 +2177,11 @@ export function BeforeAfter({
         // R8.1: taller 4/3 frame below sm — the dense mockup scenes need
         // the extra height to stay legible on phone-width cards; back to
         // the cinematic 16/10 from sm up.
-        'relative aspect-[4/3] w-full select-none overflow-hidden rounded-2xl border border-border bg-card touch-none sm:aspect-[16/10]',
+        // L6-R4 (fix 3): touch-pan-y replaces touch-none — the horizontal
+        // drag stays captured by the pointer handlers below (the browser
+        // only owns the vertical pan), so six full-width cards on /work
+        // are no longer dead zones for vertical page scrolling on touch.
+        'relative aspect-[4/3] w-full select-none overflow-hidden rounded-2xl border border-border bg-card touch-pan-y sm:aspect-[16/10]',
         className
       )}
       onPointerDown={onPointerDown}

@@ -27,8 +27,14 @@ function DamascusClock({ locale }: { locale: string }) {
   const [time, setTime] = useState<string | null>(null)
 
   useEffect(() => {
-    // ar → Arabic-Indic digits via ar-SY; en → plain Latin digits.
-    const fmt = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SY' : 'en-GB', {
+    // L6-R4 (fix 4): ar → LATIN digits via ar-SY-u-nu-latn. The mono face
+    // is loaded latin-subset-only, so the default ar-SY Arabic-Indic
+    // numerals fell through to a system font (fallback glyphs + a
+    // post-hydration font-swap) and clashed with the footer clock /
+    // trust-bar counters that already render Latin — three numeral
+    // presentations on one page. Latin digits in ar is the site's runtime
+    // numeral convention (see trust-bar.tsx). en → plain Latin digits.
+    const fmt = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SY-u-nu-latn' : 'en-GB', {
       timeZone: 'Asia/Damascus',
       hour: '2-digit',
       minute: '2-digit',
@@ -394,7 +400,9 @@ export function Hero() {
         data-bg-layer=""
         aria-hidden="true"
       >
-        <span className="hero-rail-text text-[11px] font-medium uppercase text-white/45 ltr:tracking-[0.35em]">
+        {/* L6-R4 (fix 8b): white/50 (~5.2:1) replaces white/45 (4.47:1 —
+            marginal under WCAG AA for the small rail text). */}
+        <span className="hero-rail-text text-[11px] font-medium uppercase text-white/50 ltr:tracking-[0.35em]">
           {t('scroll')}
         </span>
         <span className="hero-rail-line relative block w-px overflow-hidden">
@@ -412,7 +420,12 @@ export function Hero() {
           style={{ animationDelay: '0.65s' }}
         >
           <span className="flex items-center gap-2.5">
-            <span className="size-1.5 rounded-full bg-g-green elyra-pulse" aria-hidden="true" />
+            {/* L6-R3 (fix 7a): `relative` anchors the .elyra-pulse ::after
+                ring (the pulse is a compositor-only pseudo-element now — see
+                globals.css; the class itself must NOT set position or its
+                unlayered rule would override the MiniFlow node's layered
+                `absolute` utility). */}
+            <span className="size-1.5 relative rounded-full bg-g-green elyra-pulse" aria-hidden="true" />
             <span className="font-medium">{t('badge')}</span>
           </span>
           <span className="hidden h-4 w-px bg-white/20 sm:block" aria-hidden="true" />

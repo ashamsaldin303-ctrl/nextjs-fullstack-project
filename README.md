@@ -71,7 +71,7 @@
 
 18. **إعادة الحساب الخادمية دائماً**: `POST /api/leads` يستورد `computeEstimate` من `lib/calculator.ts` (لا نسخ) ويحسب الميزانية/المدة من خيارات المعالج فقط. حقول أرقام العميل المعروفة (`minBudget`/`maxBudget`/`weeksMin`/`weeksMax`/`estimate`) تُجرد قبل التحقق الصارم (دفاع مزدوج: العميل المزوّر يُتجاهل ولا يُخزن له رقم)، وكل حقل آخر غير معروف ← 400 قاطع.
 
-19. **الحصر في الذاكرة**: `lib/rate-limit.ts` — نافذة انزلاقية 60 ثانية × 5 طلبات/IP في `Map` مع تنظيف دوري يمنع تسرّب الذاكرة (خادم Node واحد standalone). الرد 429 يحمل `Retry-After` ورسالة مترجمة (ترويسة `x-elyra-locale` → fallback إلى accept-language → العربية).
+19. **الحصر في الذاكرة (طبقتان)**: `lib/rate-limit.ts` — نافذة انزلاقية 60 ثانية في `Map` مع تنظيف دوري يمنع تسرّب الذاكرة (خادم Node واحد standalone)، على طبقتين: العداد **المتساهل 30 طلباً/دقيقة/IP** يُحتسب على كل طلب يصل إلى المعالج (صالحاً كان أم لا — وظيفته كبح الفيض والسبام حصراً، وخطأ تحقق واحد لا يقفل الزائر خارج حصة الإرسال)، والحصة **الصارمة 5 طلبات/دقيقة/IP** تُستهلك فقط قبل الكتابة الفعلية (مسار 201) وتُسترَدّ تلقائياً إن فشل التخزين. الرد 429 يحمل `Retry-After` وترويسات `RateLimit-Limit/Remaining/Reset` (مسودة IETF لحقول تحديد المعدل) ورسالة مترجمة (ترويسة `x-elyra-locale` → fallback إلى accept-language → العربية).
 
 20. **نمط الويبهوك وأمانه**: توقيع HMAC-SHA256 على `timestamp.nonce.body` بمفتاح 32+ محرفاً من متغيرات بيئة فقط. عند غيابهما: تعطيل هادئ بسطر سجل واحد. التسليم best-effort بعد نجاح التخزين (fire-and-forget — الطلب يبقى 201)، مهلة 5 ثوانٍ بـ AbortController، وإعادة محاولة واحدة عند فشل الشبكة فقط. الوصفة الكاملة للاستقبال في n8n أدناه.
 
@@ -101,7 +101,7 @@
 | أخطاء console/hydration | ✓ صفر |
 | WCAG 2.1 AA | focus-visible, aria-label, keyboard (before/after slider), 44px targets |
 | `prefers-reduced-motion` | ✓ محترم في كل ميزة حركية (بما فيها المؤشر المغناطيسي — يُخفى كلياً) |
-| API الأمني | ✓ 13/13 (Zod 400 · تجاهل أرقام مزوّرة · 429+Retry-After · توقيعات HMAC) |
+| API الأمني | ✓ 14/14 (Zod 400 · تجاهل أرقام مزوّرة · 429+Retry-After · توقيعات HMAC) |
 
 ## المهام المرحلية
 
@@ -121,12 +121,14 @@
 | `201` | خُزّن. الرد: `{ "reference": "c5tr8p13xb" }` — مرجع عشوائي ('c' + 9 محارف base-36) يُخزّن الآن في عمود `reference` الفريد بالسجل نفسه (إصلاح L1-B) |
 | `400` | فشل Zod — أخطاء الحقول مترجمة (اعتماداً على `x-elyra-locale`) |
 | `403` | طلب عابر للمواقع مرفوض — فشل تحقق Origin/`Sec-Fetch-Site` (حماية CSRF) |
-| `413` | جسم الطلب أكبر من 64 كيلوبايت (بوابة content-length قبل التحليل) |
-| `415` | نوع المحتوى ليس `application/json` (قبل التحليل) |
-| `429` | تجاوز 5 طلبات/دقيقة/IP — ترويسة `Retry-After` بالثواني |
+| `413` | جسم الطلب أكبر من 64 كيلوبايت — بوابتان قبل التحليل: `content-length` أكبر من 64KB، أو وجود `Transfer-Encoding` (جسم chunked بلا content-length) |
+| `415` | نوع المحتوى ليس `application/json` (قبل التحليل — مطابقة تامة لنوع الوسائط بعد أول `;`، لا مطابقة جزئية) |
+| `429` | تجاوز العداد المتساهل (30 طلباً/دقيقة/IP — يُحتسب على كل طلب صالحاً كان أم لا) أو الحصة الصارمة (5 كتابات/دقيقة/IP) — ترويسات `Retry-After` و`RateLimit-Limit/Remaining/Reset` بالثواني |
 | `500` | خطأ عام بلا تفاصيل — التفاصيل لسجل الخادم فقط |
 
 مصدران للطلبات على النقطة نفسها: `source: "calculator"` (كل إجابات المعالج) و`source: "contact-form"` (نموذج التواصل مع `message`) — التمييز محفوظ داخل JSON عمود `integrations` (`{ source, items }`)، ورسالة التواصل تُخزَّن في عمود `message` مخصص وتُمرَّر إلى الويبهوك.
+
+**ملاحظة idempotency**: لا يوجد مفتاح idempotency (بالتصميم — النقطة بلا حالة جلسات). إعادة إرسال الطلب نفسه (نقرة مزدوجة أو إعادة محاولة شبكة) تنشئ سجلاً **مكرراً** وترجع 201 بمرجع جديد في كل مرة؛ التكرار يُعالَج تشغيلياً عبر فهرس `email` في المخطط (`@@index([email])`) عند التصدير أو المتابعة.
 
 ### سيناريو الويبهوك
 
@@ -229,6 +231,26 @@ docker build --build-arg NEXT_PUBLIC_SITE_URL=https://elyra.agency -t elyra .
 
 راجع `.env.example` لكل المتغيرات وتوثيقها. **قبل أول إطلاق**: شغّل `bun scripts/clean-leads.ts --all` أو `--all --dry-run` لضمان خلو قاعدة البيانات من بيانات الاختبار (المحو الكامل يتطلب `--all` صراحةً — التشغيل المجرد يطبع الاستخدام فقط).
 
+### الترقية على volume قائم / Upgrading an existing volume
+
+دفع المخطط (`prisma db push`) يجري **وقت بناء الصورة فقط** (مرحلة build في Dockerfile)، والحجم المسمّى (named volume) يأخذ محتواه من الصورة **فقط عندما يكون فارغاً** عند أول تركيب — أي أن إعادة نشر لاحقة مع مخطط مُطوَّر تُبقي قاعدة البيانات في الـ volume على **المخطط القديم**، فتفشل كل كتابة lead بخطأ P2021‏/500. بعد تحديث الصورة على نشر قائم، ارفع المخطط يدوياً ضد الـ volume المركّب — صورة التشغيل لا تحتوي Prisma CLI ولا `prisma/schema.prisma`، لذا شغّل حاوية مؤقتة من نسخة checkout للمستودع:
+
+```bash
+# من جذر مستودع المشروع على الخادم (يحتاج شبكة لجلب prisma عبر bunx مرة واحدة):
+docker run --rm -it \
+  -v elyra-db:/db \
+  -v "$PWD":/repo -w /repo \
+  -e DATABASE_URL=file:/db/custom.db \
+  --entrypoint bunx oven/bun:1 \
+  prisma db push --schema prisma/schema.prisma
+
+# أو مباشرة من المضيف إن كان مسار الـ volume مقروءاً (root / مجموعة docker):
+DATABASE_URL=file:/var/lib/docker/volumes/elyra-db/_data/custom.db \
+  bunx prisma db push --schema prisma/schema.prisma
+```
+
+(`db push` وليس الترحيلات — استراتيجية المشروع push-only من البداية ولا يوجد مجلد migrations.)
+
 ### الاحتفاظ بالبيانات (Data retention)
 
 كل سجل Lead يخزّن بيانات شخصية: `ipAddress` و`userAgent` و`email` و`whatsapp` و`message` (نص الاستفسار كاملاً). لا تحتفظ بها إلى الأبد — نظّف السجلات القديمة دورياً (90 يوماً موصى بها) عبر cron أو systemd timer:
@@ -237,6 +259,8 @@ docker build --build-arg NEXT_PUBLIC_SITE_URL=https://elyra.agency -t elyra .
 bun scripts/clean-leads.ts --purge-days=90          # حذف السجلات الأقدم من 90 يوماً
 bun scripts/clean-leads.ts --purge-days=90 --dry-run # عدّ فقط بلا حذف
 ```
+
+**من أين تُشغَّل عملية التنقية؟** صورة التشغيل لا تتضمن مجلد `scripts/` — شغّل السكربت من نسخة checkout للمستودع على الخادم مع توجيه `DATABASE_URL` إلى ملف قاعدة البيانات في الـ volume نفسه: `DATABASE_URL=file:/var/lib/docker/volumes/elyra-db/_data/custom.db bun scripts/clean-leads.ts --purge-days=90` (أو إلى ملف bind-mounted مباشرة). البديل: أدمج السكربت في الصورة (سطر `COPY scripts/clean-leads.ts ./scripts/` في مرحلة runtime من Dockerfile) وشغّله مجدوولاً عبر `docker exec elyra bun scripts/clean-leads.ts --purge-days=90`.
 
 **ثابتة تصدير البيانات (CSV injection)**: قاعدة البيانات تخزّن القيم الخام كما وردت عمداً — أي مسار تصدير لبيانات العملاء المحتملين (CSV/جداول بيانات) يجب أن يعيد تطبيق معقّم حقن CSV (`neutralizeCsvInjection` في `src/lib/n8n-webhook.ts`) قبل إنتاج الملف.
 
@@ -252,9 +276,9 @@ bun run lint                             # فحص الجودة (القواعد �
 bun run typecheck                       # فحص الأنواع (tsc --noEmit)
 node scripts/check-i18n-parity.js        # فحص تكافؤ الترجمات
 bun run db:push                          # دفع schema
-bun scripts/verify-api.mjs               # التحقق الأمني الكامل للـ API (13 فحصاً)
+bun scripts/verify-api.mjs               # التحقق الأمني الكامل للـ API (14 فحصاً)
 node scripts/verify-performance.mjs      # فحص إصلاحات الأداء (10 فحوص)
-node scripts/verify-sensory.mjs          # فحص طبقة الإحساس (16 فحصاً)
+node scripts/verify-sensory.mjs          # فحص طبقة الإحساس (17 فحصاً)
 bash scripts/lighthouse-prod.sh          # قياس Lighthouse إنتاجي (بيئة تسمح بالبناء)
 bun scripts/clean-leads.ts (--all|--purge-days=N)[ --dry-run]  # محو كامل صريح (--all) / تنقية دورية حسب العمر
 ```

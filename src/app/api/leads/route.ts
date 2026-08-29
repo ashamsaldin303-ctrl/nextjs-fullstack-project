@@ -31,10 +31,11 @@ import { getApiT } from '@/lib/api-i18n'
  *   403  Cross-site request (Sec-Fetch-Site / Origin mismatch).
  *   413  Body larger than 64 KB (content-length gate, pre-parse).
  *   415  Content-Type is not application/json (pre-parse).
- *   429  Rate limited — `Retry-After` header in seconds. Two tiers
- *        (Batch 2 item 10): the lenient bucket (30 req/min/IP) meters
- *        every request, while the strict bucket (5 req/min/IP) is
- *        burned only by requests that reach a persisted write.
+ *   429  Rate limited — `Retry-After` + IETF draft `RateLimit-Limit/-
+ *        Remaining/-Reset` headers. Two tiers (Batch 2 item 10): the
+ *        lenient bucket (30 req/min/IP) meters every request, while the
+ *        strict bucket (5 req/min/IP) is burned only by requests that
+ *        reach a persisted write.
  *   500  Generic error, zero internal detail; details go to the server log.
  *   201  Stored. Body: { reference } — 'c' + 9 random base-36 chars:
  *        cuid-shaped but collision-proof (final-board R1 — the previous
@@ -44,6 +45,12 @@ import { getApiT } from '@/lib/api-i18n'
  *        column, L1-B fix) so support can map it back to the lead.
  *        (Also the honeypot path: bot submissions get the same 201 shape
  *        but are silently discarded — see the POST handler.)
+ *   GET  405 with `Allow: POST, OPTIONS` (RFC 9110 §15.4.6 — the
+ *        framework's default 405 carries no Allow header).
+ *   All validation-adjacent error bodies (400/403/413/415/429) share one
+ *   envelope: { error, message, fields } — `fields` is {} when no
+ *   per-field detail applies (L6-R5 P3; 500 stays with the generic
+ *   handler).
  *
  * Security decisions (documented in README "Phase 3 decisions"):
  *   - The budget/duration are ALWAYS recomputed server-side from the wizard
@@ -64,6 +71,16 @@ export const runtime = 'nodejs'
 
 /** Hard cap on the request body — checked via content-length BEFORE parsing. */
 const MAX_BODY_BYTES = 64 * 1024
+
+/**
+ * Caps on header-derived strings BEFORE persistence (L6-R1 P3): body
+ * fields are length-validated by Zod, but the raw User-Agent header and
+ * the TRUST_PROXY-derived IP string arrive with no bound — an HTTP header
+ * may legally run ~16 KB and the SQLite columns are unbounded TEXT. The
+ * User-Agent cap also bounds the signed webhook payload.
+ */
+const MAX_USER_AGENT_CHARS = 512
+const MAX_IP_CHARS = 64
 
 const integrationKeySchema = z.enum([
   'crm',
@@ -167,7 +184,10 @@ function clientIp(req: NextRequest): string {
 }
 
 function requestLocale(req: NextRequest): 'ar' | 'en' {
-  const explicit = req.headers.get('x-elyra-locale')
+  // L6-R5 P3: normalize before comparing — header matching is
+  // case-sensitive by default, so "EN"/"AR" used to fall through to
+  // accept-language instead of honoring the explicit choice.
+  const explicit = req.headers.get('x-elyra-locale')?.toLowerCase()
   if (explicit === 'ar' || explicit === 'en') return explicit
   const accept = req.headers.get('accept-language')
   if (accept?.toLowerCase().startsWith('en')) return 'en'
@@ -295,11 +315,17 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(ip, 'lenient')
   if (!rl.allowed) {
     return NextResponse.json(
-      { error: 'rate_limited', message: t('rateLimited') },
+      { error: 'rate_limited', message: t('rateLimited'), fields: {} },
       {
         status: 429,
         headers: {
           'Retry-After': String(rl.retryAfterSec),
+          // IETF draft RateLimit-* fields
+          // (draft-ietf-httpapi-ratelimit-headers, L6-R5 P3) —
+          // machine-readable quota info alongside Retry-After.
+          'RateLimit-Limit': String(rl.limit),
+          'RateLimit-Remaining': String(rl.remaining),
+          'RateLimit-Reset': String(rl.retryAfterSec),
         },
       }
     )
@@ -317,7 +343,7 @@ export async function POST(req: NextRequest) {
     contentLengthHeader === null ? 0 : Number(contentLengthHeader)
   if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
     return NextResponse.json(
-      { error: 'too_large', message: t('tooLarge') },
+      { error: 'too_large', message: t('tooLarge'), fields: {} },
       { status: 413 }
     )
   }
@@ -327,12 +353,22 @@ export async function POST(req: NextRequest) {
   // content-length, so legitimate traffic is unaffected.
   if (req.headers.get('transfer-encoding') !== null) {
     return NextResponse.json(
-      { error: 'too_large', message: t('tooLarge') },
+      { error: 'too_large', message: t('tooLarge'), fields: {} },
       { status: 413 }
     )
   }
-  const contentType = req.headers.get('content-type') ?? ''
-  if (!contentType.toLowerCase().includes('application/json')) {
+  // Parse the MEDIA TYPE (first ';'-separated token, case-insensitive)
+  // and require exact equality with application/json (L6-R1 P3): the old
+  // substring test let smuggling values like "text/plain; application/json"
+  // through the documented 415 contract. +json suffixed types
+  // (application/ld+json etc.) are intentionally NOT accepted — the
+  // contract has always been plain application/json.
+  const mediaType =
+    (req.headers.get('content-type') ?? '')
+      .split(';', 1)[0]
+      ?.trim()
+      .toLowerCase() ?? ''
+  if (mediaType !== 'application/json') {
     return NextResponse.json(
       { error: 'invalid', message: t('invalid'), fields: {} },
       { status: 415 }
@@ -345,7 +381,7 @@ export async function POST(req: NextRequest) {
   const secFetchSite = req.headers.get('sec-fetch-site')
   if (secFetchSite === 'cross-site' || secFetchSite === 'same-site') {
     return NextResponse.json(
-      { error: 'cross_origin', message: t('crossOrigin') },
+      { error: 'cross_origin', message: t('crossOrigin'), fields: {} },
       { status: 403 }
     )
   }
@@ -359,7 +395,7 @@ export async function POST(req: NextRequest) {
     }
     if (!sameHost) {
       return NextResponse.json(
-        { error: 'cross_origin', message: t('crossOrigin') },
+        { error: 'cross_origin', message: t('crossOrigin'), fields: {} },
         { status: 403 }
       )
     }
@@ -421,11 +457,15 @@ export async function POST(req: NextRequest) {
   const strict = rateLimit(ip, 'strict')
   if (!strict.allowed) {
     return NextResponse.json(
-      { error: 'rate_limited', message: t('rateLimited') },
+      { error: 'rate_limited', message: t('rateLimited'), fields: {} },
       {
         status: 429,
         headers: {
           'Retry-After': String(strict.retryAfterSec),
+          // Same IETF draft RateLimit-* fields as the lenient 429 above.
+          'RateLimit-Limit': String(strict.limit),
+          'RateLimit-Remaining': String(strict.remaining),
+          'RateLimit-Reset': String(strict.retryAfterSec),
         },
       }
     )
@@ -433,8 +473,17 @@ export async function POST(req: NextRequest) {
 
   // 7) Persist (storage has priority over the webhook — §3.3).
   const stored = toStoredLead(input)
-  const userAgent = req.headers.get('user-agent')
-  const ipForRecord = ip === 'anonymous' ? null : ip
+  // L6-R1 P2/P3: the raw User-Agent header is the only fully
+  // attacker-controlled string with no charset restriction that reaches
+  // both the DB row and the HMAC-signed webhook — cap it here (the body
+  // fields get their Zod caps; headers got none until now). The
+  // TRUST_PROXY-derived IP string is capped the same way before it is
+  // persisted (only the persisted value — the rate-limit KEY stays
+  // untouched so bucket behavior is unchanged).
+  const userAgent =
+    req.headers.get('user-agent')?.slice(0, MAX_USER_AGENT_CHARS) ?? null
+  const ipForRecord =
+    ip === 'anonymous' ? null : ip.slice(0, MAX_IP_CHARS)
 
   // Generated BEFORE the create and PERSISTED on the row (L1-B P2 fix):
   // the reference used to be minted only for the 201 response/webhook, so
@@ -534,4 +583,27 @@ export async function OPTIONS() {
       Allow: 'POST, OPTIONS',
     },
   })
+}
+
+/**
+ * GET → 405 with a proper `Allow` header (L6-R5 P3). RFC 9110 §15.4.6
+ * REQUIRES a 405 to carry Allow; the framework's default GET fallback
+ * returns a bare 405 with none (probed live by R5). The message strings
+ * intentionally live here instead of the apiErrors catalog: this is a
+ * protocol-level (method) error, not a form-validation error, and the
+ * i18n parity gate stays untouched this round (712 keys).
+ */
+export async function GET(req: NextRequest) {
+  const locale = requestLocale(req)
+  return NextResponse.json(
+    {
+      error: 'method_not_allowed',
+      message:
+        locale === 'ar'
+          ? 'هذه النقطة تقبل POST فقط — راجع ترويسة Allow.'
+          : 'This endpoint only accepts POST — see the Allow header.',
+      fields: {},
+    },
+    { status: 405, headers: { Allow: 'POST, OPTIONS' } }
+  )
 }

@@ -1,3 +1,19 @@
+/**
+ * ⚠️⚠️⚠️  مثال غير آمن — لعرض الصندوق الرمل فقط، لا تنشره أبداً  ⚠️⚠️⚠️
+ * ⚠️⚠️⚠️  INSECURE EXAMPLE — sandbox demo only, never deploy  ⚠️⚠️⚠️
+ *
+ * (L6-R1 P3 — banner over deletion): socket.io هنا يعمل بـ `cors: "*"`
+ * وبلا أي مصادقة — أي شخص يصل إلى المنفذ يستطيع الاتصال وانتحال أي
+ * مستخدم وإرسال رسائل باسمه. هذا الملف أداة تجريبية للتحقق من تمرير
+ * Caddy لمسار WebSocket في بيئة المعاينة، وليس جزءاً من تطبيق إيليرا
+ * الإنتاجي ولا يُبنى داخل صورة Docker (.dockerignore يستثني examples/).
+ *
+ * socket.io runs with `cors: "*"` and ZERO authentication here — anyone
+ * who can reach the port can connect and spoof messages as any user.
+ * This file is a throwaway probe for the sandbox Caddy WebSocket
+ * forwarding path; it is NOT part of the production Elyra app and is
+ * excluded from the Docker image (.dockerignore excludes examples/).
+ */
 import { createServer } from 'http'
 import { Server } from 'socket.io'
 

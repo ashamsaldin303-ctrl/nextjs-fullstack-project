@@ -136,6 +136,13 @@ export function Calculator() {
     // Phase 3: real storage — the server recomputes the estimate from the
     // wizard options and returns a reference (guide §2.9). Client numbers
     // are never sent: only the option set travels.
+    // L6-R2 P3: ~20s abort — a stalled connection must not pin the
+    // submitting state until the browser's own timeout (minutes). An
+    // AbortError lands in the catch below and surfaces the SAME generic
+    // network-failure message as a real network error (never a raw
+    // exception string).
+    const controller = new AbortController()
+    const abortTimer = window.setTimeout(() => controller.abort(), 20_000)
     try {
       const res = await fetch('/api/leads', {
         method: 'POST',
@@ -143,6 +150,7 @@ export function Calculator() {
           'Content-Type': 'application/json',
           'x-elyra-locale': locale,
         },
+        signal: controller.signal,
         body: JSON.stringify({
           source: 'calculator',
           companyWebsite: honeypotRef.current?.value ?? '',
@@ -181,9 +189,11 @@ export function Calculator() {
         description: data?.message ?? t('form.errorNetwork'),
       })
     } catch {
-      // Network failure — data stays in the form for a retry.
+      // Network failure or the 20s abort — data stays in the form for a
+      // retry (indistinguishable to the visitor by design).
       toast.error(t('form.errorTitle'), { description: t('form.errorNetwork') })
     } finally {
+      window.clearTimeout(abortTimer)
       setSubmitting(false)
     }
   }
@@ -468,8 +478,15 @@ export function Calculator() {
                       </h3>
                       <p className="mt-2 max-w-md text-muted-foreground">{t('form.successDesc')}</p>
                       {reference ? (
-                        <p className="mt-3 rounded-full border border-g-green/30 bg-g-green/5 px-4 py-1.5 font-mono text-sm font-semibold tracking-wide text-g-green">
-                          {t('form.successReference', { reference })}
+                        <p className="mt-3 rounded-full border border-g-green/30 bg-g-green/5 px-4 py-1.5 text-sm font-semibold text-g-green">
+                          {/* L6-R4 P3: the label renders in the default Cairo
+                              face — the old blanket font-mono put the Arabic
+                              «رقمك المرجعي:» inside the latin-only JetBrains
+                              Mono stack (fallback glyphs). Only the Latin
+                              reference token keeps font-mono, isolated as an
+                              LTR island so it stays coherent in RTL. */}
+                          {t('form.successReference')}{' '}
+                          <span dir="ltr" className="font-mono tracking-wide">{reference}</span>
                         </p>
                       ) : null}
                       <button

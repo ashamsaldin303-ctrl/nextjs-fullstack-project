@@ -1,23 +1,11 @@
-'use client'
-
-import { useSyncExternalStore } from 'react'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { Logo } from '@/components/brand/logo'
 import { LiveClock } from './live-clock'
+import { CopyrightYear } from './copyright-year'
 import { Mail, MessageCircle, Send, Github, Linkedin, Instagram } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SITE_CONTACT, SITE_SOCIAL } from '@/lib/site-config'
-
-const subscribeNoop = () => () => {}
-// Quick win (prompt §8.2): dynamic server year — hydration stays safe
-// because useSyncExternalStore renders the server snapshot during
-// hydration, then re-renders with the client value if it differs.
-const getServerYear = () => new Date().getFullYear()
-
-function getClientYear(): number {
-  return new Date().getFullYear()
-}
 
 /* UI-5: column headings carry a tiny primary accent tick (2×12px,
    decorative) before the text — shared by all three footer columns.
@@ -33,11 +21,12 @@ function FooterHeading({ children }: { children: React.ReactNode }) {
 }
 
 export function Footer({ className }: { className?: string }) {
+  // L6-R6 P3: the footer is now a SERVER component — useTranslations
+  // resolves per-request exactly like ServiceProse/Logo (the proven
+  // shared-component pattern). The only runtime-clock value (the
+  // copyright year) lives in the tiny CopyrightYear client island;
+  // LiveClock was already its own client component.
   const t = useTranslations()
-  // Hydration-safe year (guide §1.6 + audit P1-9): useSyncExternalStore keeps
-  // the server snapshot constant (no mismatch) while the client reads the
-  // real clock — and avoids setState-in-effect cascading renders.
-  const year = useSyncExternalStore(subscribeNoop, getClientYear, getServerYear)
 
   return (
     <footer
@@ -215,7 +204,7 @@ export function Footer({ className }: { className?: string }) {
             floor (white/50 measured ≈5.2:1 — legal text deserves the
             same margin as the headings). */}
         <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 text-sm text-white/70 sm:flex-row">
-          <p>{t('footer.rights', { year })}</p>
+          <p><CopyrightYear /></p>
           <p>{t('footer.madeWith')}</p>
         </div>
       </div>

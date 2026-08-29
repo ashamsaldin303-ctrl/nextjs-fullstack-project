@@ -93,6 +93,15 @@ export default async function ContactPage({
   // (Batch 2 item 7d) — no duplicated content.
   const tTesti = await getTranslations('testimonials')
 
+  // DELIBERATE dynamic rendering (L6-R6 P3): `await searchParams` opts
+  // this route into request-time rendering — the ONLY dynamic route on
+  // this otherwise fully-static site. The trade is intentional: the
+  // prefill contract (?service=/?idea=, block comment above) must be
+  // visible in the server-rendered HTML (chip + seeded template). The
+  // alternative — reading the params client-side via useSearchParams —
+  // was consciously rejected: that hook forces a client-render bailout
+  // on every page that mounts it (see language-switcher.tsx for the
+  // same bailout-free discipline).
   const { service, idea } = parsePrefill(await searchParams)
 
   const channels = CHANNELS.map((c) =>
@@ -184,7 +193,15 @@ export default async function ContactPage({
                     <Quote className="size-6 text-primary/40" aria-hidden="true" />
                   </div>
                   <blockquote className="mt-3 text-sm leading-relaxed text-foreground/80">
-                    “{tTesti('items.first.quote')}”
+                    {/* L6-R4 P3: outer quote marks follow each locale's own
+                        convention — Arabic uses «…» (the same guillemets
+                        the quote itself uses internally for «ماذا تريد؟»),
+                        English keeps the curly “…” pair. */}
+                    {locale === 'ar' ? (
+                      <>«{tTesti('items.first.quote')}»</>
+                    ) : (
+                      <>“{tTesti('items.first.quote')}”</>
+                    )}
                   </blockquote>
                   <figcaption className="mt-3 text-xs text-muted-foreground">
                     <span className="font-semibold text-foreground">{tTesti('items.first.name')}</span>

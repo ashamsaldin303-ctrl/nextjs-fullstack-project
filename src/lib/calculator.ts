@@ -170,9 +170,21 @@ export function computeEstimate(input: CalculatorInput): CalcResult {
 }
 
 export function formatMoney(amount: number, locale: Locale): string {
-  return new Intl.NumberFormat(locale === 'ar' ? 'ar' : 'en-US', {
+  // L6-R4 P3: the site money convention is a bare "$" (catalogs render
+  // "349$" / "$349"), but CLDR's `ar` maps USD — wide AND narrow — to
+  // "US$", so an Intl currency format renders "‏2,800 US$" (verified in
+  // Node 24 + HeadlessChrome 152: `currencyDisplay: 'narrowSymbol'`
+  // still yields "US$" because the ar data has no narrow-alt for USD).
+  // Arabic therefore composes a Latin-digit number with a trailing "$" —
+  // exactly the catalog convention — while English keeps the Intl
+  // currency format with the narrow symbol ("$2,800").
+  if (locale === 'ar') {
+    return `${new Intl.NumberFormat('ar-u-nu-latn', { maximumFractionDigits: 0 }).format(amount)}$`
+  }
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
+    currencyDisplay: 'narrowSymbol',
     maximumFractionDigits: 0,
   }).format(amount)
 }
