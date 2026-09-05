@@ -374,6 +374,7 @@
     "scenes": {
       "site": {
         "announce": "Free shipping over $200 • 30-day returns",
+        "domain": "lamssa.sy",
         "nav": [
           "New In",
           "Browse",
@@ -382,8 +383,12 @@
         "search": "Search…",
         "viewers": "122 people viewing now",
         "addToCart": "Add",
-        "rating": "4.9",
-        "reviews": "312 reviews",
+        "rating": "4.8",
+        "products": [
+          { "rating": "4.9", "reviews": "312 reviews" },
+          { "rating": "4.7", "reviews": "96 reviews" },
+          { "rating": "4.8", "reviews": "187 reviews" }
+        ],
         "footerLinks": [
           "Support",
           "Shipping",
@@ -616,7 +621,8 @@
           {
             "label": "Needs follow-up",
             "value": "12",
-            "delta": "−41%"
+            "delta": "−41%",
+            "lowerIsBetter": true
           },
           {
             "label": "New customers",
@@ -691,6 +697,8 @@
         "ready": "Ready"
       },
       "property": {
+        "domain": "aqarplus.sy",
+        "budget": "Under $50k",
         "searchPlaceholder": "Search by district or city…",
         "searchBtn": "Search",
         "filters": [
@@ -720,6 +728,7 @@
         "footerNote": "All rights reserved"
       },
       "academy": {
+        "domain": "masar.ac",
         "nav": [
           "Home",
           "Courses",
@@ -727,7 +736,8 @@
           "Certificates"
         ],
         "enroll": "Enroll Now",
-        "rating": "4.8",
+        "yourProgress": "Your course progress",
+        "rating": "4.6",
         "students": "+8,200 students",
         "reviews": "(2,340 reviews)",
         "preview": "Free preview",
@@ -742,6 +752,7 @@
         "footerNote": "All rights reserved"
       },
       "dining": {
+        "domain": "baitalsham.com",
         "nav": [
           "Home",
           "Menu",
@@ -749,7 +760,7 @@
           "Delivery",
           "About"
         ],
-        "rating": "4.9",
+        "rating": "4.7",
         "reviewsCount": "+940 reviews",
         "delivery": "Delivery within 30 minutes",
         "minOrder": "$8 minimum",

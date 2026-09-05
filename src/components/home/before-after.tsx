@@ -19,6 +19,7 @@ import {
   Heart,
   ImageOff,
   LayoutDashboard,
+  Lock,
   MapPin,
   MessageCircle,
   MoveHorizontal,
@@ -43,10 +44,12 @@ import { cn } from '@/lib/utils'
 import { useIsRtl } from '@/lib/use-rtl'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 import {
-  asKpis,
   asRows,
+  asString,
   asStringArray,
   discountPct,
+  isRecord,
+  type Kpi,
   type MockContent,
 } from '@/lib/catalog-guards'
 
@@ -141,6 +144,77 @@ const accentInkColor = (hex: string) => shadeColor(hex, isLightColor(hex) ? 0.5 
    @/lib/catalog-guards.ts — imported above (L6-R2 dedup). */
 
 const MONO_STACK = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+
+/* --------------------------------------------------------------------------
+   G2-2 scene catalog narrowers — extensions of the shared catalog-guards
+   shapes with fields only the /work scenes consume. Built on the same
+   shared primitives (isRecord/asString) and the same never-throw,
+   degrade-to-empty contract; local (not in catalog-guards.ts) to keep this
+   wave's file set untouched.
+   -------------------------------------------------------------------------- */
+
+/** Per-KPI semantic direction (G2-2 F1): dash.kpis entries may carry
+ *  `lowerIsBetter: true` — on such metrics a NEGATIVE delta is the GOOD
+ *  outcome ("بحاجة متابعة −41%" — a 41% drop in follow-ups-needed), so the
+ *  delta chip must color by semantic outcome, not by raw sign. */
+interface SceneKpi extends Kpi {
+  lowerIsBetter?: boolean
+}
+
+function asSceneKpis(value: unknown): SceneKpi[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter(isRecord)
+    .map((r) => ({
+      label: asString(r.label),
+      value: asString(r.value),
+      delta: asString(r.delta),
+      lowerIsBetter: typeof r.lowerIsBetter === 'boolean' ? r.lowerIsBetter : undefined,
+    }))
+    .filter((k) => k.label !== '' || k.value !== '')
+}
+
+/** Per-product rating/review pairs (scenes.site.products) — G2-2 F4/F10:
+ *  the storefront's three cards must not share one identical ★rating·count. */
+interface ProductRating {
+  rating: string
+  reviews: string
+}
+
+function asProductRatings(value: unknown): ProductRating[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter(isRecord)
+    .map((r) => ({ rating: asString(r.rating), reviews: asString(r.reviews) }))
+    .filter((p) => p.rating !== '')
+}
+
+/* G2-2 F7: slim browser chrome for the four "after" website scenes —
+ * traffic dots + lock + URL pill. Deliberately physical LTR (real window
+ * chrome never mirrors with the page direction); the domain is a
+ * per-scene Latin catalog key. The before-scenes keep their own era chrome
+ * (2009 announcement strips, the Excel-2003 title bar) — this is the 2025
+ * counterpart, kept subtle: these are modern sites, not 2009 time capsules. */
+function BrowserChrome({ domain }: { domain: string }) {
+  return (
+    <div
+      dir="ltr"
+      className="flex h-[11px] shrink-0 items-center gap-[4px] border-b border-stone-200 bg-[#F4F4F6] px-[6px]"
+    >
+      <span className="size-[4px] shrink-0 rounded-full bg-[#FF5F57]" />
+      <span className="size-[4px] shrink-0 rounded-full bg-[#FEBC2E]" />
+      <span className="size-[4px] shrink-0 rounded-full bg-[#28C840]" />
+      <span className="mx-auto flex h-[7px] min-w-0 max-w-[56%] items-center gap-[3px] rounded-full border border-stone-200 bg-white px-[5px]">
+        <Lock className="size-[5px] shrink-0 text-stone-400" />
+        <span className="min-w-0 truncate text-[5px] font-medium leading-none text-stone-500">
+          {domain}
+        </span>
+      </span>
+      {/* trailing counterweight keeps the URL pill optically centered */}
+      <span className="w-[26px] shrink-0" />
+    </div>
+  )
+}
 
 /* R8 "real screenshot" pass — shared era/scene constants. */
 /** Faint graph-paper tiling behind the 2009 site body + masthead. */
@@ -296,10 +370,15 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
   const onAccent = onAccentColor(accent)
   const accentInk = accentInkColor(accent)
   const rating = t('site.rating')
+  const productRatings = asProductRatings(t.raw('site.products'))
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden bg-white text-stone-900">
-      {/* announcement bar (accent-tinted) */}
+    <div className="@container relative flex h-full flex-col overflow-hidden bg-white text-stone-900">
+      {/* G2-2 F7: browser chrome — traffic dots + lock + URL pill */}
+      <BrowserChrome domain={t('site.domain')} />
+
+      {/* announcement bar (accent-tinted) — its px-14 also keeps the centered
+          text clear of the AFTER chip, which rides on the chrome + this row */}
       <div
         className="flex h-[13px] shrink-0 items-center justify-center px-14"
         style={{ background: rgba(accent, 0.12) }}
@@ -309,8 +388,11 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
         </span>
       </div>
 
-      {/* navbar: brand • links • search pill • wishlist • account • cart */}
-      <div className="flex h-[22px] shrink-0 items-center justify-between gap-2 border-b border-stone-200 bg-white px-2 pe-[52px]">
+      {/* navbar: brand • links • search pill • wishlist • account • cart
+          (G2-2 F9: the old pe-[52px] reservation is gone — with the browser
+          chrome above, the AFTER chip (y≈8–27) covers chrome + announcement
+          only; nothing overlays this row or the chips row below) */}
+      <div className="flex h-[22px] shrink-0 items-center justify-between gap-2 border-b border-stone-200 bg-white px-2">
         <div className="flex min-w-0 items-center gap-1">
           <span className="size-[6px] shrink-0 rounded-full" style={{ background: accent }} />
           <span className="truncate text-[8px] font-extrabold tracking-tight">{mock?.brand ?? ''}</span>
@@ -342,7 +424,7 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
       </div>
 
       {/* category chips row — merchandising rail */}
-      <div className="flex h-[15px] shrink-0 items-center gap-1 border-b border-stone-100 bg-white px-2 pe-[52px]">
+      <div className="flex h-[15px] shrink-0 items-center gap-1 border-b border-stone-100 bg-white px-2">
         {categories.map((c, i) => (
           <span
             key={c}
@@ -368,13 +450,21 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
               {mock.kicker}
             </span>
           ) : null}
+          {/* G2-2 F5: display type scales with the CARD (container query),
+              10px → up to 18px — the miniature reads like a real site
+              screenshot scaled down instead of a dollhouse diorama. Spans
+              (not <p>): the unlayered :lang(ar) p rule would force 1.8
+              line-height over the designed 1.12/1.3 and blow the hero
+              budget at small cards. */}
           {mock?.title ? (
-            <p className="text-[10px] font-extrabold leading-[1.15] tracking-tight">{mock.title}</p>
+            <span className="line-clamp-2 text-[length:clamp(10px,3cqw,18px)] font-extrabold leading-[1.12] tracking-tight">
+              {mock.title}
+            </span>
           ) : (
-            <div className="h-[11px] w-4/5 rounded bg-stone-200" />
+            <div className="h-[19px] w-4/5 rounded bg-stone-200" />
           )}
           {mock?.sub ? (
-            <p className="line-clamp-2 text-[7px] leading-[1.3] text-stone-500">{mock.sub}</p>
+            <span className="line-clamp-2 text-[7px] leading-[1.3] text-stone-500">{mock.sub}</span>
           ) : (
             <div className="h-[7px] w-3/5 rounded bg-stone-200" />
           )}
@@ -505,13 +595,16 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
                     {t('site.addToCart')}
                   </span>
                 </div>
+                {/* G2-2 F4/F10: per-product rating + review count
+                    (scenes.site.products) — the three cards no longer share
+                    one identical "★4.9 · 312 تقييمًا" line. */}
                 <div className="mt-[1px] flex min-w-0 items-center gap-[3px] overflow-hidden">
                   <Star className="size-[5px] shrink-0 fill-amber-400 text-amber-400" />
                   <span className="shrink-0 text-[5.5px] font-bold leading-none text-stone-700">
-                    {rating}
+                    {productRatings[i]?.rating ?? rating}
                   </span>
                   <span className="truncate text-[5.5px] leading-none text-stone-400">
-                    {t('site.reviews')}
+                    {productRatings[i]?.reviews}
                   </span>
                 </div>
               </div>
@@ -629,7 +722,10 @@ function PropertyNewScene({ accent, mock }: { accent: string; mock?: MockContent
   const specs = (i: number) => PROPERTY_SPECS[i % PROPERTY_SPECS.length] ?? ['3', '2', '180']
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden bg-white text-stone-900">
+    <div className="@container relative flex h-full flex-col overflow-hidden bg-white text-stone-900">
+      {/* G2-2 F7: browser chrome — traffic dots + lock + URL pill */}
+      <BrowserChrome domain={t('property.domain')} />
+
       {/* topbar: brand • location chip • phone CTA (no nav row — portals keep it sparse) */}
       <div className="flex h-[20px] shrink-0 items-center justify-between gap-2 border-b border-stone-200 bg-white px-2">
         <div className="flex min-w-0 items-center gap-1">
@@ -662,8 +758,12 @@ function PropertyNewScene({ accent, mock }: { accent: string; mock?: MockContent
             <span className="truncate text-[6px] text-stone-500">{filters[1] ?? ''}</span>
             <span className="text-[5px] text-stone-400">▾</span>
           </span>
-          <span className="hidden w-[22%] shrink-0 items-center justify-between gap-[2px] rounded-md border border-stone-200 bg-white px-1.5 py-[3px] sm:flex">
-            <span className="truncate text-[6px] text-stone-500">$50k+</span>
+          {/* G2-2 F9 + F8: always rendered (a screenshot must not mutate with
+              the visitor's window — was `hidden … sm:flex`) and localized
+              budget label — was the Latin literal "$50k+" (Arabic convention:
+              Latin digits + trailing $). */}
+          <span className="flex w-[22%] shrink-0 items-center justify-between gap-[2px] rounded-md border border-stone-200 bg-white px-1.5 py-[3px]">
+            <span className="truncate text-[6px] text-stone-500">{t('property.budget')}</span>
             <span className="text-[5px] text-stone-400">▾</span>
           </span>
           <span
@@ -701,8 +801,10 @@ function PropertyNewScene({ accent, mock }: { accent: string; mock?: MockContent
                 <PropertyArt i={0} accent={accent} />
               </div>
             </div>
+            {/* G2-2 F5: the hero listing's price is this scene's display
+                figure (portals lead with money, not headlines) — 7px → 10px. */}
             <span
-              className="absolute start-[4%] top-[6%] rounded-md px-1.5 py-[2px] text-[7px] font-extrabold leading-none shadow-md"
+              className="absolute start-[4%] top-[6%] rounded-md px-1.5 py-[2px] text-[10px] font-extrabold leading-none shadow-md"
               style={{ background: '#ffffff', color: '#0f172a' }}
             >
               {cards?.[0]?.price ?? ''}
@@ -808,11 +910,16 @@ function PropertyNewScene({ accent, mock }: { accent: string; mock?: MockContent
 
 /* --------------------------------------------------------------------------
    Scene 1c — "academy-new": online course platform (R9 industry scene).
-   Signature elements: dark video player with progress, curriculum checklist,
-   instructor chip, course cards with completion bars.
+   Signature elements: dark video player with progress, curriculum checklist
+   + "تقدّمك في الدورة" (your progress) treatment, instructor chip, course
+   cards in pure catalog state (price/discount — G2-2 F6).
    -------------------------------------------------------------------------- */
 
-const COURSE_PROGRESS = [72, 38, 12]
+/* G2-2 F6: single aggregate completion for the "تقدّمك في الدورة" (your
+ * progress) treatment in the curriculum row. The per-card 72/38/12 bars were
+ * removed — course cards now carry catalog state only (price/discount),
+ * never enrolled state; the enrolled state lives where it is labeled. */
+const YOUR_PROGRESS = 72
 
 function AcademyNewScene({ accent, mock }: { accent: string; mock?: MockContent }) {
   const t = useTranslations('workSection.scenes')
@@ -822,7 +929,10 @@ function AcademyNewScene({ accent, mock }: { accent: string; mock?: MockContent 
   const accentInk = accentInkColor(accent)
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden bg-white text-stone-900">
+    <div className="@container relative flex h-full flex-col overflow-hidden bg-white text-stone-900">
+      {/* G2-2 F7: browser chrome — traffic dots + lock + URL pill */}
+      <BrowserChrome domain={t('academy.domain')} />
+
       {/* navbar: brand • links • enroll CTA */}
       <div className="flex h-[20px] shrink-0 items-center justify-between gap-2 border-b border-stone-200 bg-white px-2">
         <div className="flex min-w-0 items-center gap-1">
@@ -886,15 +996,25 @@ function AcademyNewScene({ accent, mock }: { accent: string; mock?: MockContent 
               {mock.kicker}
             </span>
           ) : null}
-          {mock?.title ? <p className="text-[10px] font-extrabold leading-[1.15] tracking-tight">{mock.title}</p> : null}
-          {mock?.sub ? <p className="line-clamp-2 text-[6.5px] leading-[1.35] text-stone-500">{mock.sub}</p> : null}
+          {/* G2-2 F5: display scale (see SiteNewScene) — spans so the
+              :lang(ar) p line-height floor can't inflate the leading. */}
+          {mock?.title ? (
+            <span className="line-clamp-2 text-[length:clamp(10px,3cqw,17px)] font-extrabold leading-[1.12] tracking-tight">
+              {mock.title}
+            </span>
+          ) : null}
+          {mock?.sub ? (
+            <span className="line-clamp-2 text-[6.5px] leading-[1.35] text-stone-500">{mock.sub}</span>
+          ) : null}
           <div className="flex min-w-0 items-center gap-1.5">
             <span className="flex shrink-0 items-center gap-[2px]">
               <Star className="size-[7px] fill-amber-400 text-amber-400" />
               <span className="text-[6px] font-bold leading-none text-stone-800">{t('academy.rating')}</span>
             </span>
             <span className="truncate text-[5.5px] leading-none text-stone-500">{t('academy.students')}</span>
-            <span className="hidden shrink-0 text-[5.5px] leading-none text-stone-400 sm:inline">{t('academy.reviews')}</span>
+            {/* G2-2 F9: always rendered — the scene is a fixed-frame
+                screenshot; it must not mutate with the visitor's window. */}
+            <span className="shrink-0 text-[5.5px] leading-none text-stone-400">{t('academy.reviews')}</span>
           </div>
           <div className="mt-[2px] flex min-w-0 items-center gap-1.5">
             {mock?.cta ? (
@@ -922,8 +1042,27 @@ function AcademyNewScene({ accent, mock }: { accent: string; mock?: MockContent 
         </div>
       </div>
 
-      {/* curriculum checklist + instructor */}
+      {/* curriculum checklist + your progress + instructor (G2-2 F6) */}
       <div className="flex h-[38px] shrink-0 items-center gap-1.5 border-t border-stone-100 px-2 py-1">
+        {/* "تقدّمك في الدورة" — the ENROLLED state lives here, explicitly
+            labeled; the course cards below stay pure catalog. */}
+        <div className="flex w-[76px] shrink-0 flex-col gap-[3px]">
+          <div className="flex min-w-0 items-center justify-between gap-1">
+            <span className="min-w-0 truncate text-[5px] font-bold leading-none text-stone-700">
+              {t('academy.yourProgress')}
+            </span>
+            <span
+              dir="ltr"
+              className="shrink-0 text-[4.5px] font-bold leading-none tabular-nums"
+              style={{ color: accentInk }}
+            >
+              {`${YOUR_PROGRESS}%`}
+            </span>
+          </div>
+          <div className="h-[3px] w-full overflow-hidden rounded-full bg-stone-200/80">
+            <div className="h-full rounded-full" style={{ width: `${YOUR_PROGRESS}%`, background: accent }} />
+          </div>
+        </div>
         <div className="grid min-w-0 flex-1 grid-cols-3 gap-1">
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex min-w-0 items-center gap-1 rounded-md border border-stone-200/80 bg-white px-1 py-[3px]">
@@ -953,7 +1092,8 @@ function AcademyNewScene({ accent, mock }: { accent: string; mock?: MockContent 
         </div>
       </div>
 
-      {/* course cards with completion bars */}
+      {/* course cards — catalog state ONLY (G2-2 F6 removed the completion
+          bars; the enrolled progress lives in the labeled treatment above) */}
       <div className="grid h-[26%] shrink-0 grid-cols-3 gap-1 px-2 pb-1">
         {(cards ?? []).map((card, i) => (
           <div key={`${card.name}-${i}`} className="relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-md border border-stone-200/90 bg-white p-[3px] shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
@@ -969,14 +1109,6 @@ function AcademyNewScene({ accent, mock }: { accent: string; mock?: MockContent 
             <div className="flex items-center justify-between gap-0.5">
               <span className="truncate text-[6px] font-bold leading-none text-stone-900">{card.price}</span>
               {card.old ? <span className="shrink-0 text-[4.5px] leading-none text-stone-400 line-through">{card.old}</span> : null}
-            </div>
-            <div className="mt-[2px] flex items-center gap-1">
-              <div className="h-[3px] min-w-0 flex-1 overflow-hidden rounded-full bg-stone-200/80">
-                <div className="h-full rounded-full" style={{ width: `${COURSE_PROGRESS[i % 3]}%`, background: accent }} />
-              </div>
-              <span dir="ltr" className="shrink-0 text-[4.5px] font-bold leading-none" style={{ color: accentInk }}>
-                {`${COURSE_PROGRESS[i % 3]}%`}
-              </span>
             </div>
           </div>
         ))}
@@ -1024,7 +1156,10 @@ function DiningNewScene({ accent, mock }: { accent: string; mock?: MockContent }
   const accentInk = accentInkColor(accent)
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden bg-[#FFFBF5] text-stone-900">
+    <div className="@container relative flex h-full flex-col overflow-hidden bg-[#FFFBF5] text-stone-900">
+      {/* G2-2 F7: browser chrome — traffic dots + lock + URL pill */}
+      <BrowserChrome domain={t('dining.domain')} />
+
       {/* navbar: brand • links • order phone */}
       <div className="flex h-[20px] shrink-0 items-center justify-between gap-2 border-b border-stone-200 bg-white px-2">
         <div className="flex min-w-0 items-center gap-1">
@@ -1067,8 +1202,16 @@ function DiningNewScene({ accent, mock }: { accent: string; mock?: MockContent }
               {mock.kicker}
             </span>
           ) : null}
-          {mock?.title ? <p className="text-[10px] font-extrabold leading-[1.15] tracking-tight">{mock.title}</p> : null}
-          {mock?.sub ? <p className="line-clamp-2 text-[6.5px] leading-[1.35] text-stone-500">{mock.sub}</p> : null}
+          {/* G2-2 F5: display scale (see SiteNewScene) — spans so the
+              :lang(ar) p line-height floor can't inflate the leading. */}
+          {mock?.title ? (
+            <span className="line-clamp-2 text-[length:clamp(10px,3cqw,17px)] font-extrabold leading-[1.12] tracking-tight">
+              {mock.title}
+            </span>
+          ) : null}
+          {mock?.sub ? (
+            <span className="line-clamp-2 text-[6.5px] leading-[1.35] text-stone-500">{mock.sub}</span>
+          ) : null}
           <div className="flex min-w-0 items-center gap-1.5">
             <span className="flex shrink-0 items-center gap-[2px]">
               <Star className="size-[7px] fill-amber-400 text-amber-400" />
@@ -1146,7 +1289,9 @@ function DiningNewScene({ accent, mock }: { accent: string; mock?: MockContent }
         <span className="flex min-w-0 items-center gap-1 text-[5.5px] font-medium text-stone-500">
           <CalendarCheck className="size-[9px] shrink-0" style={{ color: accent }} />
           <span className="truncate">{t('dining.dateTime')}</span>
-          <span className="hidden h-3 w-px bg-stone-200 sm:block" />
+          {/* G2-2 F9: always rendered — the scene is a fixed-frame
+              screenshot; it must not mutate with the visitor's window. */}
+          <span className="h-3 w-px shrink-0 bg-stone-200" />
           <Users className="size-[8px] shrink-0" style={{ color: accent }} />
           <span className="truncate">{t('dining.guests')}</span>
         </span>
@@ -1462,7 +1607,7 @@ function DashNewScene({
 }) {
   const t = useTranslations('workSection.scenes')
   const nav = asStringArray(t.raw('dash.nav'))
-  const kpis = asKpis(t.raw('dash.kpis'))
+  const kpis = asSceneKpis(t.raw('dash.kpis'))
   const range = asStringArray(t.raw('dash.range'))
   const tableHead = asStringArray(t.raw('dash.tableHead'))
   const rows = asRows(t.raw('dash.rows'))
@@ -1621,6 +1766,12 @@ function DashNewScene({
           <div className="grid shrink-0 grid-cols-4 gap-1">
             {kpis.map((kpi, i) => {
               const up = kpi.delta.trim().startsWith('+')
+              // G2-2 F1: semantic direction — on lower-is-better KPIs
+              // (dash.kpis[].lowerIsBetter, e.g. "بحاجة متابعة −41%") a DROP
+              // is the good outcome; the chip colors by outcome, not by
+              // sign. Both p5 dark + p6 light tones route through the same
+              // k.upChip/k.downChip tokens, so the fix covers both.
+              const good = kpi.lowerIsBetter ? !up : up
               const spark = KPI_SPARKS[i % KPI_SPARKS.length] ?? []
               return (
                 <div
@@ -1635,7 +1786,7 @@ function DashNewScene({
                     <span
                       className={cn(
                         'shrink-0 rounded-full px-[3px] py-[1px] text-[5px] font-bold leading-none tabular-nums',
-                        up ? k.upChip : k.downChip
+                        good ? k.upChip : k.downChip
                       )}
                     >
                       {kpi.delta}

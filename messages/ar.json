@@ -374,6 +374,7 @@
     "scenes": {
       "site": {
         "announce": "شحن مجاني للطلبات فوق 200$ • إرجاع خلال 30 يومًا",
+        "domain": "lamssa.sy",
         "nav": [
           "الجديد",
           "التصفح",
@@ -382,8 +383,12 @@
         "search": "ابحث…",
         "viewers": "يشاهد الآن 122 شخصًا",
         "addToCart": "أضف",
-        "rating": "4.9",
-        "reviews": "312 تقييمًا",
+        "rating": "4.8",
+        "products": [
+          { "rating": "4.9", "reviews": "312 تقييمًا" },
+          { "rating": "4.7", "reviews": "96 تقييمًا" },
+          { "rating": "4.8", "reviews": "187 تقييمًا" }
+        ],
         "footerLinks": [
           "الدعم",
           "التوصيل",
@@ -616,7 +621,8 @@
           {
             "label": "بحاجة متابعة",
             "value": "12",
-            "delta": "−41%"
+            "delta": "−41%",
+            "lowerIsBetter": true
           },
           {
             "label": "عملاء جدد",
@@ -691,6 +697,8 @@
         "ready": "جاهز"
       },
       "property": {
+        "domain": "aqarplus.sy",
+        "budget": "أقل من 50 ألف$",
         "searchPlaceholder": "ابحث بالحي أو المدينة…",
         "searchBtn": "ابحث",
         "filters": [
@@ -720,6 +728,7 @@
         "footerNote": "جميع الحقوق محفوظة"
       },
       "academy": {
+        "domain": "masar.ac",
         "nav": [
           "الرئيسية",
           "الدورات",
@@ -727,7 +736,8 @@
           "الشهادات"
         ],
         "enroll": "سجّل الآن",
-        "rating": "4.8",
+        "yourProgress": "تقدّمك في الدورة",
+        "rating": "4.6",
         "students": "+8,200 طالب",
         "reviews": "(2,340 تقييم)",
         "preview": "معاينة مجانية",
@@ -742,6 +752,7 @@
         "footerNote": "جميع الحقوق محفوظة"
       },
       "dining": {
+        "domain": "baitalsham.com",
         "nav": [
           "الرئيسية",
           "قائمة الطعام",
@@ -749,7 +760,7 @@
           "التوصيل",
           "من نحن"
         ],
-        "rating": "4.9",
+        "rating": "4.7",
         "reviewsCount": "+940 تقييم",
         "delivery": "التوصيل خلال 30 دقيقة",
         "minOrder": "الحد الأدنى 8$",
