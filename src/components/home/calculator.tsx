@@ -218,7 +218,10 @@ export function Calculator() {
   // L1-C P3 (fix 2-d): aria-label REMOVED — it overrode aria-labelledby
   // and named the landmark by the short kicker instead of the full h2.
   return (
-    <section id="calculator" className="bg-background py-20 sm:py-28" aria-labelledby="calc-title">
+    // G3-5 (G2-3 P2-1 fix 1): id="calculator" moved to the CalculatorLazy
+    // WRAPPER (stable across the lazy swap) — keeping it here would put two
+    // elements with the same id in the DOM once the lazy section mounts.
+    <section className="bg-background py-20 sm:py-28" aria-labelledby="calc-title">
       <div className="elyra-container max-w-5xl">
         <SectionHeading
           kicker={t('kicker')}

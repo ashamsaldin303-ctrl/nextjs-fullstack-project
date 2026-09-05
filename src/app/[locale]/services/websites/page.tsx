@@ -9,7 +9,10 @@ import { CTA } from '@/components/shared/cta'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { Reveal } from '@/components/shared/reveal'
 import { ThreeDSection } from '@/components/home/three-d-section'
+import { CalculatorLazy } from '@/components/home/calculator-lazy'
 import { ServiceProse } from '@/components/shared/service-prose'
+import { ServiceCrossNav } from '@/components/services/cross-nav'
+import { WebsitesHeroMotif } from '@/components/services/hero-motifs'
 import { buildPageMetadata } from '@/lib/seo'
 import { asStringArray } from '@/lib/catalog-guards'
 
@@ -52,7 +55,16 @@ export default async function WebsitesPage({
 
   return (
     <>
-      <PageHero namespace="pages.websites.hero" />
+      {/* G2-3 P2-1 (fix 1): the hero CTA copy promises the calculator — the
+          calculator now lives ON this page as its closing section, so the
+          CTA is an in-page anchor (next-intl Link keeps the hash through
+          locale prefixing; the wrapper carries the stable id=calculator
+          + scroll-mt-20). SO-1: blueprint signature motif. */}
+      <PageHero
+        namespace="pages.websites.hero"
+        ctaHref="/services/websites#calculator"
+        decorative={<WebsitesHeroMotif />}
+      />
 
       <section className="bg-background py-20 sm:py-28" aria-labelledby="types-title">
         <div className="elyra-container max-w-container">
@@ -64,9 +76,14 @@ export default async function WebsitesPage({
           <div className="mt-14 grid gap-6 md:grid-cols-3">
             {TYPES.map(({ key, icon: Icon }, i) => (
               <Reveal key={key} delay={i * 0.1} variant="zoom">
+                {/* G2-3 P3-8 (fix 9): card shell unified to the site's
+                    dominant standard (rounded-3xl · p-8 · hover shadow-lg ·
+                    size-12 rounded-2xl chip · size-6 icon) — the same family
+                    as about values + service prose; automation's
+                    integrations adopt it too (see that page). */}
                 <article className="group h-full overflow-hidden rounded-3xl border border-border bg-card p-8 transition-all hover:border-primary/40 hover:shadow-lg">
-                  <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-transform group-hover:scale-110">
-                    <Icon className="size-7" aria-hidden="true" />
+                  <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-transform group-hover:scale-110">
+                    <Icon className="size-6" aria-hidden="true" />
                   </div>
                   <h3 className="mt-5 text-2xl font-semibold tracking-tight">{t(`types.${key}.title`)}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">{t(`types.${key}.desc`)}</p>
@@ -124,7 +141,28 @@ export default async function WebsitesPage({
         </div>
       </section>
 
-      <CTA namespace="pages.websites.cta" variant="on-dark" />
+      {/* G2-3 P2-2 (fix 2): quiet cross-navigation row — the sibling
+          service + /work + /about (labels reuse nav.*). */}
+      <ServiceCrossNav
+        label={t('explore.label')}
+        links={['automation', 'work', 'about']}
+      />
+
+      {/* G2-3 P3-8 (fix 9): the page-ending treatment unified across BOTH
+          service pages (crossNav → on-dark CTA → calculator). The CTA
+          button copy promises a budget estimate, so its href is the same
+          in-page calculator anchor instead of /contact's top. */}
+      <CTA
+        namespace="pages.websites.cta"
+        variant="on-dark"
+        href="/services/websites#calculator"
+      />
+
+      {/* G2-3 P2-1 (fix 1): the calculator the hero/CTA copy promises —
+          embedded lazily (WS-8 pattern, zero initial-bundle cost) as the
+          page's closing conversion beat, mirroring / and /contact. The
+          CalculatorLazy wrapper is the stable #calculator target. */}
+      <CalculatorLazy />
     </>
   )
 }

@@ -9,6 +9,12 @@ interface PageHeroProps {
   namespace: string
   ctaHref?: string
   className?: string
+  /** G3-5 (SO-1): optional per-page decorative motif (aria-hidden is the
+   *  CALLER's responsibility — motifs are purely presentational). Rendered
+   *  absolutely inside the hero section, after the base gradient layers, so
+   *  each service page can carry a signature zone without forking the
+   *  generic hero. Keep it reduced-motion safe + RTL safe. */
+  decorative?: React.ReactNode
 }
 
 /**
@@ -19,7 +25,7 @@ interface PageHeroProps {
  * (`hero-enter`) — framer-motion removed, so inner-page LCP paints with the
  * first server-rendered frame. h1/subtitle (LCP candidates) carry no delay.
  */
-export function PageHero({ namespace, ctaHref = '/contact', className }: PageHeroProps) {
+export function PageHero({ namespace, ctaHref = '/contact', className, decorative }: PageHeroProps) {
   const t = useTranslations(namespace)
 
   return (
@@ -37,6 +43,7 @@ export function PageHero({ namespace, ctaHref = '/contact', className }: PageHer
         style={{ background: 'radial-gradient(60% 60% at 50% 0%, rgba(66,133,244,0.18), transparent 70%)' }}
         aria-hidden="true"
       />
+      {decorative}
       <div className="elyra-container max-w-4xl text-center">
         <span className="kicker kicker-on-dark hero-enter hero-enter-1">
           {t('kicker')}

@@ -11,7 +11,9 @@ import { useNearViewport } from '@/lib/use-near-viewport'
  * step transitions ship ~30KB minified+gzipped in the initial bundle.
  * On /contact the calculator sits BELOW the channels/form section, and
  * on / it sits below hero/bento/simulator/featured-work/methodology —
- * either way, well below the fold.
+ * either way, well below the fold. G3-5: it now also closes both
+ * service pages (/services/websites, /services/automation) as the
+ * on-page #calculator target their hero/CTA copy promises.
  *
  * This wrapper defers BOTH the chunk load and the hydration until the
  * section approaches the viewport (rootMargin 400px) — the same proven
@@ -53,7 +55,17 @@ export function CalculatorLazy() {
   const { ref, near } = useNearViewport<HTMLDivElement>()
 
   return (
-    <div ref={ref}>
+    <div
+      ref={ref}
+      // G2-3 P2-1 (fix 1): the STABLE anchor target for #calculator links.
+      // The id lives here — not on the Calculator's own <section> — so the
+      // hash resolves in the SSR HTML (pre-hydration, pre-lazy-load) AND
+      // after the real component swaps in (the wrapper never unmounts, so
+      // the anchor never goes stale mid-scroll). scroll-mt-20 (80px)
+      // clears the fixed h-16 navbar when the browser jumps to the anchor.
+      id="calculator"
+      className="scroll-mt-20"
+    >
       {near ? <LazyCalculator /> : (
         /* Same-shaped spacer pre-observation (avoids a load-in jump when
            the observer fires before the dynamic chunk's loading state). */

@@ -970,7 +970,7 @@
         "fallback": "The 3D preview is not available on this device"
       },
       "journey": {
-        "kicker": "Extended Journey",
+        "kicker": "From Idea to Launch",
         "title": "Your Journey With Us, in Detail",
         "steps": {
           "s1": {
@@ -1003,6 +1003,9 @@
         "title": "Ready for a Website Worthy of Your Brand?",
         "subtitle": "Start with the project calculator for an instant estimate — no commitment.",
         "button": "Calculate Your Project Budget"
+      },
+      "explore": {
+        "label": "Our Other Services"
       },
       "prose": {
         "kicker": "No Surprises",
@@ -1079,6 +1082,9 @@
         "title": "Your Routine Deserves Better Automation",
         "subtitle": "Calculate your automation system's cost in under a minute.",
         "button": "Design Your Automation System"
+      },
+      "explore": {
+        "label": "Our Other Services"
       },
       "prose": {
         "kicker": "Full Transparency",
@@ -1318,7 +1324,8 @@
       "story": {
         "kicker": "The Beginning",
         "title": "Why We Exist",
-        "p1": "Elyra started with a question that bothered us for a long time: why do people have to choose between a beautiful site that runs slowly, and a fast site that looks dull? Between a powerful system that intimidates its users, and an easy tool that lets its owners down?",
+        "p1": "Elyra started with a question that bothered us for a long time:",
+        "quote": "Why do people have to choose between a beautiful site that runs slowly, and a fast site that looks dull? Between a powerful system that intimidates its users, and an easy tool that lets its owners down?",
         "p2": "We decided not to choose. We design with beauty that stops the scrolling, engineer with precision that respects every millisecond, and automate whatever can be automated to give humans their time back — this is Elyra's covenant with every client.",
         "p3": "Today, after more than 120 projects spanning websites, platforms and automation systems, we're still the same team: small, obsessed, and asking every single time — is this more beautiful than what came before?"
       },
@@ -1388,6 +1395,9 @@
           "label": "Happy Clients"
         }
       },
+      "exploreWork": {
+        "label": "See How We Work"
+      },
       "cta": {
         "title": "Like What You're Reading?",
         "subtitle": "Have a project that resembles you? Let's build something worthy of you.",
@@ -1414,7 +1424,7 @@
         "telegram": {
           "title": "Telegram"
         },
-        "responseNote": "We usually reply within two hours on business days"
+        "responseNote": "The fastest replies usually come via WhatsApp"
       },
       "form": {
         "kicker": "The Classic Way",
@@ -1422,9 +1432,9 @@
         "name": "Name",
         "email": "Email Address",
         "message": "Your Message",
-        "messagePlaceholder": "Tell us about your project, goals, and any important deadlines...",
+        "messagePlaceholder": "Tell us about your project, goals, and any important deadlines…",
         "send": "Send Message",
-        "sending": "Sending...",
+        "sending": "Sending…",
         "successTitle": "Your Message Arrived!",
         "successDesc": "We'll get back to you within one business day at most.",
         "errors": {
