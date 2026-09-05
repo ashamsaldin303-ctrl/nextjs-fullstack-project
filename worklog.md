@@ -2908,3 +2908,16 @@ Work Log:
 
 Stage Summary:
 - All five verifier residuals fixed; gates re-run GREEN (tsc=0, eslint=0, parity 736); dev server up. Remaining known-accepted P4s (documented, not fixed): kanban badge copy nuance, budget-chip "$" spacing (matches the catalog's documented convention), decorative mock contrast (aria-hidden exempt), JPEG-bytes-under-.png in gitignored .stitch/.
+
+---
+Task ID: FINAL
+Agent: coordinator (main)
+Task: Close the four-group Stitch-integration loop — coordinator E2E + the lazy-load clip-path defect fix + final gates
+
+Work Log:
+- Coordinator personal E2E (agent-browser, sequential, closed): / AR — intro→hero clean, trust counters animate (120+/4,800), bento flagship 2×2 right-anchored (701px) with BrowserChrome + MiniSite edge-to-edge, swatch recolor live (--accent #0071E3→#EA4335 across 88 elements); /work — 6 cards, 4 chrome domains, kanban 4 columns, KPI −41% emerald, 4 distinct scene palettes (linen/clay, off-white/emerald, cream/terracotta, warm-cream/espresso); /services/websites — CTA anchor scrolls to #calculator (scrollY 4611, visible); /contact?service=store — chip pressed + template seeded + real inputs 44px (the 1px input is the honeypot by design); /en — dir=ltr, EN h1, trust 4 items; mobile 390px — no horizontal overflow anywhere, trust 2×2 with ZERO stray border ticks, flagship first; errors: none (only the documented THREE.Clock dev warning).
+- DEFECT FOUND & FIXED during E2E (missed by G4-5's network-request methodology): scene images inside the before/after slider's clip-path region never lazy-load — Chromium's lazy-load intersection does not fire for clip-concealed images and does NOT re-evaluate on clip-path changes (verified: image in-viewport 2.5s → still naturalWidth 0; slider drag to 94% → still unloaded; eager force → loads instantly). Fix: removed loading="lazy" from all 7 scene-image sites in before-after.tsx (19 tiny local webps ≈300KB total — eager is both reliable and cheap; miniature-screenshot semantics). Post-fix browser verification: 19/19 loaded at 1280 AND 390. Documented in-code at the store-hero site.
+- Final gates: tsc=0 · eslint=0 · parity 736 GREEN · dev server 200 throughout (restarted once after the documented OOM kill).
+
+Stage Summary:
+- FOUR-GROUP LOOP CLOSED CLEAN. Lifetime this session: Group 1 (4 research agents: SDK live-probe, prompting playbook, integration architecture, design tokens/porting playbook) → Group 2 (6 analysts: 31 findings P1×1/P2×9/P3×21 + ranked Stitch opportunity maps) → Group 3 (6 executors in 4 waves: Stitch infra + 15 homepage fixes + 8 scene fixes + 9 Stitch generations with VLM review + 15 rehosted webp photos + per-scene palettes + kanban scene + 11 page fixes + bento/trust ports) → Group 4 (6 verifiers: 51 claimed items PASS + cross-cutting + live-runtime + integration-chain, 5 cosmetic residuals fixed by coordinator + 1 real lazy-load defect found+fixed in coordinator E2E). Stitch quota ledger: 14 ops (5 bootstrap + 9 generates) — closed. Key security: env-only, never echoed, zero git-history leaks, SDK devDependency, .stitch/ gitignored+dockerignored.

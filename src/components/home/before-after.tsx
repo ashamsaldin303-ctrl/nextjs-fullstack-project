@@ -570,11 +570,17 @@ function SiteNewScene({
             }}
           />
           <div className="absolute -top-[25%] start-[8%] size-[80%] rounded-full bg-white/15 blur-[5px]" />
-          {/* decorative mock imagery — aria-hidden via the Scene wrapper */}
+          {/* decorative mock imagery — aria-hidden via the Scene wrapper.
+              Eager (no loading="lazy") by design: these miniature-screenshot
+              images sit inside the slider's clip-path region, and Chromium's
+              lazy-load intersection never fires for clip-concealed images —
+              even after the drag reveals them (IO does not re-evaluate on
+              clip-path changes). They are tiny local webps (~300KB for all
+              19), so eager is the reliable + cheap choice. Verified in the
+              G4 coordinator browser pass. */}
           <img
             src="/work-scenes/store-hero.webp"
             alt=""
-            loading="lazy"
             width={382}
             height={512}
             className="absolute inset-0 size-full object-cover object-[50%_20%]"
@@ -637,7 +643,6 @@ function SiteNewScene({
                       <img
                         src={photo[0]}
                         alt=""
-                        loading="lazy"
                         width={photo[1]}
                         height={photo[2]}
                         className="absolute inset-0 size-full object-cover"
@@ -899,7 +904,6 @@ function PropertyNewScene({
             <img
               src="/work-scenes/property-villa.webp"
               alt=""
-              loading="lazy"
               width={512}
               height={382}
               className="absolute inset-0 size-full object-cover"
@@ -1091,7 +1095,6 @@ function AcademyNewScene({
           <img
             src="/work-scenes/academy-instructor.webp"
             alt=""
-            loading="lazy"
             width={512}
             height={286}
             className="absolute inset-0 size-full object-cover"
@@ -1312,7 +1315,6 @@ function DiningNewScene({
           <img
             src="/work-scenes/dining-grill.webp"
             alt=""
-            loading="lazy"
             width={512}
             height={286}
             className="absolute inset-0 size-full object-cover"
@@ -1401,7 +1403,6 @@ function DiningNewScene({
                     <img
                       src={photo[0]}
                       alt=""
-                      loading="lazy"
                       width={photo[1]}
                       height={photo[2]}
                       className="absolute inset-0 size-full object-cover"
@@ -2397,7 +2398,6 @@ function StudioKanbanScene({ accent, mock }: { accent: string; mock?: MockConten
                           <img
                             src={thumb[0]}
                             alt=""
-                            loading="lazy"
                             width={thumb[1]}
                             height={thumb[2]}
                             className="h-[24px] w-[32px] shrink-0 rounded-[3px] object-cover"
