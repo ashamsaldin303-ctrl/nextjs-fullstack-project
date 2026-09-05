@@ -135,7 +135,13 @@ export function TrustBar() {
                 variant="zoom"
                 className={cn(
                   'px-4 py-2 text-center sm:px-6',
-                  i > 0 && 'border-s border-border'
+                  /* Column dividers only on non-first-column items of the
+                     CURRENT row layout: <lg the grid is 2 cols (odd indexes
+                     are left-of-divider), lg it is 4 cols (every i>0). The
+                     max-lg override kills the stray outer-start tick the
+                     2x2 layout drew on row-start items. */
+                  i % 2 === 1 && 'border-s border-border',
+                  i > 0 && i % 2 === 0 && 'border-s border-border max-lg:border-s-0'
                 )}
               >
                 <dt className="sr-only">{item.label}</dt>

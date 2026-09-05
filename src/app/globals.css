@@ -1000,7 +1000,8 @@ html[data-page-wait] .hero-build-fx * {
    keyframe names, timings) from before-after.tsx, which used to inject this
    as an inline <style> PER BeforeAfter instance (so /work rendered six
    duplicate copies of every definition). The 2005 blinking announcement
-   dots, the old-site scrolling news ticker, and the R9 dining steam wisps.
+   dots and the old-site scrolling news ticker (R9's dining steam wisps
+   were deleted with the CSS DishArt in the G4 pass — see below).
    The global prefers-reduced-motion kill-switch at the top of this file
    freezes these (the ticker completes to -50% where its duplicated copy
    sits — content stays readable); the data-intro/data-page-wait pause lists
@@ -1020,15 +1021,9 @@ html[data-page-wait] .hero-build-fx * {
 .ba-scene-ticker-track {
   animation: ba-scene-ticker 16s linear infinite;
 }
-/* R9 dining scene: rising steam wisps over the hero dish. */
-@keyframes ba-scene-steam {
-  0% { transform: translateY(0) scaleX(1); opacity: 0; }
-  30% { opacity: 0.9; }
-  100% { transform: translateY(-90%) scaleX(1.6); opacity: 0; }
-}
-.ba-scene-steam {
-  animation: ba-scene-steam 2.6s ease-in-out infinite;
-}
+/* (R9's .ba-scene-steam keyframes deleted — G3-4 replaced the CSS DishArt
+   with photographic hero-dish imagery; zero consumers, removed in the
+   G4 coordinator pass.) */
 
 /* Work-grid filter transition (was framer AnimatePresence layout) */
 .reveal-filter-in {

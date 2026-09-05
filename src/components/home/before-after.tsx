@@ -405,8 +405,8 @@ const SHEET_COLS = 'grid-cols-[10px_1.1fr_1fr_0.72fr_0.95fr]'
  *  Position-aligned with pages.work.projects.p1.mock.cards. */
 const SITE_PRODUCT_PHOTOS: ReadonlyArray<readonly [string, number, number]> = [
   ['/work-scenes/store-product-coat.webp', 190, 210],
-  ['/work-scenes/store-product-bag.webp', 384, 512],
-  ['/work-scenes/store-product-scarf.webp', 384, 512],
+  ['/work-scenes/store-product-bag.webp', 382, 512],
+  ['/work-scenes/store-product-scarf.webp', 382, 512],
 ]
 
 function SiteNewScene({

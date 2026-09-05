@@ -440,9 +440,9 @@ export function Hero() {
           G2-1 F3: the pre-WS-0 hand-rolled container (mx-auto max-w-7xl
           px-4/6/8) is ported to the site's unified elyra-container /
           max-w-container system (globals.css §3.1) — 24/40/64px gutters
-          and a fluid 1152→1440px cap on wide screens instead of the
-          fixed 1280px clamp. (navbar.tsx:55 carries the same legacy
-          pattern — OUT of this wave's file set, noted for a later round.) */}
+          and the fluid 1152→1280→1440→1568px ladder (1440 at ≥1536px,
+          1568 at ≥1920px) instead of the fixed 1280px clamp. navbar.tsx
+          was ported to the same system in G3-6. */}
       <div className="relative z-10 elyra-container max-w-container flex min-h-[100svh] flex-col justify-center pb-32 pt-24 text-start lg:pb-28">
         {/* Kicker row — pulse dot, agency line, place + live time.
             R9: inline delay synced to the tightened build scan line (~25%
