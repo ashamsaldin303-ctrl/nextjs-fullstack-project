@@ -2,19 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
-import { Briefcase, Zap, Star, Blocks, type LucideIcon } from 'lucide-react'
 import { Reveal } from '@/components/shared/reveal'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
-
-/* UI-5: per-stat visual identity — one semantic icon per metric, rendered
- * as a decorative (aria-hidden) tinted chip above the counter. */
-const STAT_ICONS: Record<'projects' | 'hours' | 'satisfaction' | 'integrations', LucideIcon> = {
-  projects: Briefcase,
-  hours: Zap,
-  satisfaction: Star,
-  integrations: Blocks,
-}
+import { cn } from '@/lib/utils'
 
 interface CounterProps {
   value: number
@@ -110,30 +101,31 @@ export function TrustBar() {
       aria-labelledby="stats-title"
     >
       <div className="elyra-container max-w-container">
-        {/* G2-1 F2: the hand-rolled kicker + h2 (capped at sm:text-4xl,
-            no KineticWords, Reveal-wrapped by hand) is replaced by the
-            standard SectionHeading every other section uses — same
-            catalog keys (stats.kicker / stats.title), kicker→h2 system,
-            md:text-5xl cap and KineticWords reveal. No subtitle key
-            exists in the stats namespace, so none is passed. Spacing
-            rhythm follows the site convention: content margin (mt-12,
-            equivalent to the old heading mb-12) instead of a
-            heading-side margin. */}
+        {/* G2-1 F2: standard SectionHeading (same stats.kicker / stats.title
+            catalog keys — kicker→h2 system, KineticWords reveal; content-side
+            mt-12 rhythm below). */}
         <SectionHeading
           kicker={t('kicker')}
           title={t('title')}
           titleId="stats-title"
         />
 
-        {/* UI-5 note: the `gap-px bg-border` grid already yields hairline
-            dividers between stats on desktop (RTL-safe by construction —
-            no divide-x/reverse needed); cells below add the icon chip,
-            a gradient accent under each value, and a gentle hover lift
-            on the INNER dd (lifting the cell itself would expose the
-            border-colored grid gaps behind it). */}
-        <dl className="mt-12 grid grid-cols-2 gap-px overflow-hidden rounded-3xl border border-border bg-border lg:grid-cols-4">
+        {/* G3-6 Stitch port (design-lab trust-band reference — the G2-1
+            Opportunity-3 typographic stats strip): the boxed stat-card grid
+            (rounded container + gap-px borders + icon chips + gradient
+            accents) becomes ONE continuous typographic strip — oversized
+            tabular numerals as the section's hero, small muted labels
+            beneath, thin vertical hairline rules BETWEEN stats only.
+            The rules are border-s (inline-start — LOGICAL, so the line
+            lands between neighbors in BOTH directions) on every non-first
+            item: at lg that separates the 4 columns; below lg (2×2 grid)
+            it separates the two columns. No boxes, no container chrome,
+            no icons — the numerals ARE the composition. dl/dt/dd contract,
+            the Counter hook (rAF easeOutCubic count-up + instant final
+            value under reduced motion) and the staggered Reveal entrance
+            are all preserved from the pre-port design. */}
+        <dl className="mt-12 grid grid-cols-2 gap-y-10 lg:grid-cols-4">
           {items.map((item, i) => {
-            const Icon = STAT_ICONS[item.key]
             return (
               /* Reveal renders the div wrapper (valid dl child) — but that div
                  may only contain dt/dd, so the visible label lives inside dd. */
@@ -141,28 +133,19 @@ export function TrustBar() {
                 key={item.key}
                 delay={i * 0.08}
                 variant="zoom"
-                className="bg-background p-6 text-center sm:p-8"
+                className={cn(
+                  'px-4 py-2 text-center sm:px-6',
+                  i > 0 && 'border-s border-border'
+                )}
               >
                 <dt className="sr-only">{item.label}</dt>
-                <dd className="group transition-transform duration-300 hover:-translate-y-1">
+                <dd>
                   <span
-                    className="mx-auto flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-110"
-                    aria-hidden="true"
-                  >
-                    <Icon className="size-5" aria-hidden="true" />
-                  </span>
-                  <span
-                    className="mt-4 block text-4xl font-bold tracking-tight text-primary sm:text-5xl"
+                    className="block text-4xl font-bold tracking-tight text-primary tabular-nums sm:text-5xl lg:text-6xl"
                     style={{ fontVariationSettings: '"wght" 700' }}
                   >
                     <Counter value={Number(item.value)} suffix={item.suffix} />
                   </span>
-                  {/* Subtle symmetric gradient accent under the value —
-                      direction-agnostic, safe for RTL. */}
-                  <span
-                    aria-hidden="true"
-                    className="mx-auto mt-4 block h-0.5 w-10 rounded-full bg-gradient-to-r from-transparent via-primary/60 to-transparent"
-                  />
                   <span className="mt-3 block text-sm font-normal tracking-normal text-muted-foreground">{item.label}</span>
                 </dd>
               </Reveal>

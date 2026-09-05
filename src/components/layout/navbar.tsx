@@ -52,7 +52,17 @@ export function Navbar() {
   return (
     <header className="fixed inset-x-0 top-0 z-50 transition-colors duration-300">
       <nav
-        className={cn('mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8', surface)}
+        /* G2-1 F3 (G3-6, deferred by G3-2): the last hand-rolled
+           `mx-auto max-w-7xl px-4 sm:px-6 lg:px-8` container swaps for the
+           site-standard elyra-container + max-w-container system (globals.css
+           §WS-0) — same fix G3-2 applied to hero.tsx/simulator-lazy.tsx.
+           24/40/64px gutters + the fluid 1152→1568px cap replace the fixed
+           1280px cap + 16px mobile gutters; the scrolled glass surface now
+           spans the same content measure as every section below it. */
+        className={cn(
+          'elyra-container max-w-container flex h-16 items-center justify-between',
+          surface
+        )}
         aria-label={t('nav.ariaLabel')}
       >
         <Link

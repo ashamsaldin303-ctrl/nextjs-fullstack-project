@@ -84,6 +84,12 @@ export function Calculator() {
 
   const result = useMemo(() => computeEstimate(input), [input])
 
+  /* G2-4 F9 (G3-6): dependency flags for the two service-gated option
+     groups, derived once (not re-derived inline per option button) so the
+     hint line + aria-describedby wiring read from one source of truth. */
+  const threeDDisabled = input.service === 'automation'
+  const automationDisabled = input.service === 'website'
+
   // L3 FIX (R5): on 201 the `done` branch swaps the form (whose focused
   // submit button just disappeared) for the success panel — focus fell to
   // <body> and nothing was announced. Move focus to the success heading
@@ -382,10 +388,21 @@ export function Calculator() {
 
                   <div>
                     <h3 className="text-lg font-semibold">{t('threeD')}</h3>
+                    {/* G2-4 F9 (G3-6): the dependent group greys out with no
+                        WHY — the single new catalog key explains it, wired as
+                        BOTH a visible muted line (sighted visitors) and
+                        aria-describedby on the disabled buttons (SR). Rendered
+                        ONLY while the group is disabled, so the active state
+                        carries zero extra noise. */}
+                    {threeDDisabled ? (
+                      <p id="calc-depends-threed" className="mt-1.5 text-xs text-muted-foreground">
+                        {t('dependsHint')}
+                      </p>
+                    ) : null}
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
                       {(['yes', 'no'] as ThreeDOption[]).map((opt) => {
                         const active = input.threeD === opt
-                        const disabled = input.service === 'automation'
+                        const disabled = threeDDisabled
                         return (
                           <button
                             key={opt}
@@ -393,6 +410,7 @@ export function Calculator() {
                             disabled={disabled}
                             onClick={() => setInput((p) => ({ ...p, threeD: opt }))}
                             aria-pressed={active}
+                            aria-describedby={disabled ? 'calc-depends-threed' : undefined}
                             className={cn(
                               'rounded-xl border px-4 py-3 text-start transition-colors',
                               disabled && 'opacity-50',
@@ -439,10 +457,18 @@ export function Calculator() {
 
                   <div>
                     <h3 className="text-lg font-semibold">{t('automationLevel')}</h3>
+                    {/* G2-4 F9 (G3-6): same single-key WHY hint, mirrored
+                        wiring — visible line + aria-describedby, only while
+                        the group is greyed out. */}
+                    {automationDisabled ? (
+                      <p id="calc-depends-automation" className="mt-1.5 text-xs text-muted-foreground">
+                        {t('dependsHint')}
+                      </p>
+                    ) : null}
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
                       {(['essential', 'advanced'] as AutomationLevel[]).map((opt) => {
                         const active = input.automationLevel === opt
-                        const disabled = input.service === 'website'
+                        const disabled = automationDisabled
                         return (
                           <button
                             key={opt}
@@ -450,6 +476,7 @@ export function Calculator() {
                             disabled={disabled}
                             onClick={() => setInput((p) => ({ ...p, automationLevel: opt }))}
                             aria-pressed={active}
+                            aria-describedby={disabled ? 'calc-depends-automation' : undefined}
                             className={cn(
                               'rounded-xl border px-4 py-3 text-start transition-colors',
                               disabled && 'opacity-50',

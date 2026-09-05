@@ -33,13 +33,15 @@
   --color-elyra-dark: var(--elyra-dark);
   --color-elyra-on-dark: var(--elyra-on-dark);
   --color-elyra-muted-on-dark: var(--elyra-muted-on-dark);
-  --color-background-deep: var(--background-deep);
   /* G2-4 F7: exposes --background-deep under the SITE'S OWN SURFACE NAME
      so the ring-offset-elyra-deep utility exists — focus rings on
      bg-elyra-deep surfaces (hero CTAs, simulator run/completion CTAs)
      now draw an exact #08080A offset instead of the #0F172A halo the
-     elyra-dark workaround produced. Sibling of --color-background-deep
-     above (which exists for the bg-* utility family). */
+     elyra-dark workaround produced. The former sibling
+     --color-background-deep was REMOVED (G2-6 F9 / G3-6): it generated a
+     bg-background-deep utility family with zero consumers — every real
+     use goes through the hand-rolled .bg-elyra-deep below, which reads
+     the same --background-deep var. */
   --color-elyra-deep: var(--background-deep);
   --color-g-blue: var(--g-blue);
   --color-g-red: var(--g-red);

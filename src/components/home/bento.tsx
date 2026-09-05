@@ -137,6 +137,35 @@ const SITE_PANEL_TEXT = SITE_PALETTE.map(panelTextSafe)
    (number|null contract; L6-R2 dedup — this local copy returned 0 instead
    of null and used Number instead of parseInt). */
 
+/* G3-6 flagship port: slim browser chrome strip for the storefront
+   preview — the G3-3 before-after.tsx BrowserChrome PATTERN (physical LTR
+   window chrome that never mirrors with page direction; URL pill held
+   optically centered by a trailing counterweight), re-created LOCALLY at
+   the MiniSite's dark-world scale: before-after's version is scene-scale
+   (5px micro type, stone palette) and belongs to /work's frames. Consumes
+   the same g-* traffic-light tokens the old inline chrome used, plus the
+   same hardcoded mock domain — no catalog surface (inside aria-hidden). */
+function BrowserChromeStrip({ domain }: { domain: string }) {
+  return (
+    <div
+      dir="ltr"
+      className="flex h-7 shrink-0 items-center gap-2 border-b border-white/10 bg-white/[0.04] px-2.5"
+    >
+      <div className="flex shrink-0 items-center gap-1.5">
+        <span className="size-2 rounded-full bg-g-red/90" />
+        <span className="size-2 rounded-full bg-g-yellow/90" />
+        <span className="size-2 rounded-full bg-g-green/90" />
+      </div>
+      <div className="mx-auto flex h-5 min-w-0 max-w-[60%] items-center gap-1 rounded-full border border-white/10 bg-white/10 px-2">
+        <Lock className="size-2.5 shrink-0 text-g-green" />
+        <span className="min-w-0 truncate text-[9px] font-medium leading-none text-white/70">{domain}</span>
+      </div>
+      {/* trailing counterweight keeps the URL pill optically centered */}
+      <span className="w-9 shrink-0" />
+    </div>
+  )
+}
+
 function MiniSite() {
   const t = useTranslations('bento.websites.mini')
   const [swatch, setSwatch] = useState(0)
@@ -155,30 +184,28 @@ function MiniSite() {
   } as CSSProperties
 
   return (
-    <div className="mt-6">
-      <p className="text-xs text-muted-foreground">{t('title')}</p>
-      <p className="mt-1 text-[11px] text-muted-foreground">{t('hint')}</p>
+    <div>
+      {/* caption zone — the playground's label + how-to. Carries the card's
+          own gutters (px-6/8) so it aligns with the padded top half while the
+          panel below bleeds edge-to-edge (G3-6 flagship composition). */}
+      <div className="px-6 pb-4 sm:px-8">
+        <p className="text-xs font-medium text-foreground/80">{t('title')}</p>
+        <p className="mt-1 text-[11px] text-muted-foreground">{t('hint')}</p>
+      </div>
 
       {/* The mini browser is an illustration (decorative mock storefront) —
           aria-hidden keeps its ~25 mock strings out of the SR tree; the
-          interactive control is the swatch row + its real caption below. */}
+          interactive control is the swatch row + its real caption below.
+          G3-6 flagship port: EDGE-TO-EDGE — no rounded corners or border of
+          its own (the card's rounded-3xl + overflow-hidden clips the bleed),
+          spanning the card's full width in its lower half. */}
       <div
         aria-hidden="true"
-        className="mt-4 select-none overflow-hidden rounded-xl border border-border bg-elyra-dark/95 text-elyra-on-dark"
+        className="select-none bg-elyra-dark/95 text-elyra-on-dark"
         style={vars}
       >
-        {/* Browser chrome: traffic lights + URL bar */}
-        <div className="flex items-center gap-2 border-b border-white/10 px-2.5 py-1.5">
-          <div className="flex shrink-0 items-center gap-1.5">
-            <span className="size-2 rounded-full bg-g-red/90" />
-            <span className="size-2 rounded-full bg-g-yellow/90" />
-            <span className="size-2 rounded-full bg-g-green/90" />
-          </div>
-          <div className="flex min-w-0 flex-1 items-center gap-1 rounded-full bg-white/10 px-2 py-0.5">
-            <Lock className="size-2.5 shrink-0 text-g-green" />
-            <span dir="ltr" className="truncate text-[9px] text-white/70">lamsa-store.com</span>
-          </div>
-        </div>
+        {/* Slim browser chrome strip (G3-3 pattern, local — see above) */}
+        <BrowserChromeStrip domain="lamsa-store.com" />
 
         {/* Announcement strip (doubles as the live line): accent tint +
             accent text + pulsing viewer dot */}
@@ -302,8 +329,10 @@ function MiniSite() {
       </div>
 
       {/* Swatches — decorative pointer toy (FIX 2-c/12: hidden from the a11y
-          tree + tab order), but the caption is REAL text and always visible. */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+          tree + tab order), but the caption is REAL text and always visible.
+          G3-6: the strip sits directly under the edge-to-edge panel, back
+          inside the card's gutters. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-6 py-3.5 sm:px-8">
         <div className="flex gap-2">
           {SITE_PALETTE.map((c, i) => (
             <button
@@ -1042,14 +1071,22 @@ export function ServicesBento() {
             default stretch), and the single cards keep their natural
             heights. */}
         <div className="mt-14 grid gap-4 lg:grid-cols-3">
-          {/* Big websites card — FIX(2-c/12): the icon eyebrow used to repeat
-              the identical i18n string as the h3 below (catalog has no distinct
-              per-card kicker key) — icon-only row preserves the rhythm.
-              R2: cards reveal with the zoom variant + stagger; grid-span
-              classes live on the Reveal wrapper (the grid item) and GlowCard
-              takes h-full so the stretch layout is preserved. */}
+          {/* Big websites card — FLAGSHIP (G3-6 Stitch port, design-lab
+              bento-services reference): spans 2 cols × 2 rows as the grid's
+              right-side anchor in RTL (grid col 1 = right edge under
+              dir=rtl). Anatomy per the reference: padded top half (icon
+              eyebrow, title, one-sentence desc, checkmark feature chips)
+              + the MiniSite storefront preview bleeding EDGE-TO-EDGE
+              through the card's lower half (GlowCard padding zeroed via
+              p-0 overrides; the card's own rounded-3xl + overflow-hidden
+              clips the bleed), anchored to the bottom with mt-auto so the
+              stretch gap sits between chips and preview, never below.
+              FIX(2-c/12) history: the icon eyebrow stays icon-only (no
+              catalog kicker key). R2: grid-span classes live on the Reveal
+              wrapper (the grid item); the zoom reveal + stagger unchanged. */}
           <Reveal variant="zoom" className="lg:col-span-2 lg:row-span-2">
-            <GlowCard className="h-full">
+            <GlowCard className="flex h-full flex-col p-0 sm:p-0">
+            <div className="p-6 pb-5 sm:p-8 sm:pb-6">
             {/* G2-1 F6: the lone-icon eyebrows got a container treatment
                 — the trust-bar chip (rounded-xl bg-primary/10 text-primary,
                 size-10 around the existing size-5 glyph), the most
@@ -1076,7 +1113,10 @@ export function ServicesBento() {
                 </li>
               ))}
             </ul>
-            <MiniSite />
+            </div>
+            <div className="mt-auto">
+              <MiniSite />
+            </div>
             </GlowCard>
           </Reveal>
 

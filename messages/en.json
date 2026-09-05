@@ -956,6 +956,7 @@
       "essential": "Essential — alerts and simple connections",
       "advanced": "Advanced — smart workflows and AI agents"
     },
+    "dependsHint": "This option depends on the service type you chose in the previous step",
     "result": {
       "budget": "Estimated Budget",
       "duration": "Timeline",
@@ -975,7 +976,7 @@
       "email": "Email Address",
       "whatsapp": "WhatsApp Number (optional)",
       "submit": "Send Project Request",
-      "sending": "Sending...",
+      "sending": "Sending…",
       "successTitle": "We've Received Your Request!",
       "successDesc": "Our team will contact you within 24 business hours with the final estimate details.",
       "successRestart": "Calculate Another Project",

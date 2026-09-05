@@ -103,7 +103,7 @@ for (const k of enKeys) {
 // the CRM acronym, placeholder-style numerals) but can also be an
 // untranslated string — so they are COUNTED and LISTED as a warning while
 // the exit code stays 0. Numbers are excluded: ar/en numeric equality is
-// expected (durations, stats). Today's catalogs carry ~19 identical
+// expected (durations, stats). Today's catalogs carry ~20 identical
 // strings + 23 identical numbers (the 42 legitimate values L1-B verified).
 //
 // NOT IMPLEMENTED (deliberate decision, fix 2-d): an unused-key scan.
