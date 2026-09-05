@@ -117,6 +117,14 @@ export function AutomationSimulator({
   const [completed, setCompleted] = useState<number[]>([])
   const [counter, setCounter] = useState(0) // live ms counter for current step
   const [logLines, setLogLines] = useState<LogLine[]>([]) // UI-3: execution log
+  // G2-4 F3: the run button's sim-btn-rise entrance is FIRST-MOUNT-only.
+  // The button unmounts while the flow runs and remounts exactly when
+  // status flips to 'completed' — the same commit that returns focus to
+  // it — so a replaying entrance kept the FOCUSED element (and its ring)
+  // invisible for ~150ms and half-fading for ~600ms after every run.
+  // Latched by run() (the only way the button ever unmounts) so later
+  // remounts — replays, scenario switches after a run — render settled.
+  const [btnIntroDone, setBtnIntroDone] = useState(false)
 
   const timeouts = useRef<number[]>([])
   const rafRef = useRef<number>(0)
@@ -201,6 +209,7 @@ export function AutomationSimulator({
 
   const run = useCallback(() => {
     clearAll()
+    setBtnIntroDone(true)
     setCompleted([])
     setCounter(0)
     setStatus('running')
@@ -363,7 +372,8 @@ export function AutomationSimulator({
             itself"): the run control now sits directly ABOVE the nodes
             stage, so a click starts the flow right where the eyes already
             are, and run() glides the stage into view when needed. The
-            button also gets a gentle rise-in on mount (sim-btn-rise). */}
+            button gets a gentle rise-in on FIRST mount only (G2-4 F3:
+            remounts land focus on it — see btnIntroDone above). */}
         <div className="mt-8 flex flex-col items-center gap-3">
           {status !== 'running' ? (
             <button
@@ -371,7 +381,10 @@ export function AutomationSimulator({
               type="button"
               data-cursor="magnet"
               onClick={run}
-              className="sim-btn-rise inline-flex h-12 items-center gap-2 rounded-full bg-primary px-8 text-base font-medium text-primary-foreground shadow-[0_10px_30px_-10px_rgba(0,113,227,0.7)] transition-transform hover:scale-105 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark motion-reduce:animate-none"
+              className={cn(
+                'inline-flex h-12 items-center gap-2 rounded-full bg-primary px-8 text-base font-medium text-primary-foreground shadow-[0_10px_30px_-10px_rgba(0,113,227,0.7)] transition-transform hover:scale-105 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-deep motion-reduce:animate-none',
+                !btnIntroDone && 'sim-btn-rise'
+              )}
             >
               {status === 'completed' ? <RotateCw className="size-4" aria-hidden="true" /> : <Play className="size-4" aria-hidden="true" />}
               {status === 'completed' ? t('replay') : t('run')}
@@ -435,65 +448,13 @@ export function AutomationSimulator({
                 )
               })}
             </svg>
-            {/* Static stage skin + (motion-allowed only) keyframes. The
-                global reduced-motion kill-switch is the backstop; these
-                guards keep motion off at the source. */}
-            <style>{`
-              .elyra-dotgrid {
-                background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1.5px);
-                background-size: 24px 24px;
-              }
-              /* Real monospace for the terminal/log panels — the global
-                 --font-mono token resolves to JetBrains Mono
-                 (next/font, Batch 1 item 3 / I-1); the panels below are
-                 already dir="ltr" so Latin tokens align correctly.
-                 L6-R4 (fix 8e): the .elyra-mono rule itself moved VERBATIM
-                 to globals.css (an inline <style> re-declared it on every
-                 render of this component). */
-              /* R9: run button rise-in — settles above the stage. */
-              @keyframes sim-btn-rise {
-                from { opacity: 0; transform: translateY(14px) scale(0.96); }
-                to { opacity: 1; transform: translateY(0) scale(1); }
-              }
-              .sim-btn-rise {
-                opacity: 0;
-                animation: sim-btn-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
-              }
-            `}</style>
-            {!reduced ? (
-              <style>{`
-                @keyframes elyra-flow { to { stroke-dashoffset: -24 } }
-                .elyra-flow { animation: elyra-flow 0.8s linear infinite; }
-                /* UI-3: traveling packet along the active edge — travels
-                   between the two node centers (physical left; RTL is
-                   handled by the mirrored positions array).
-                   L6-R3 (fix 7b): 'left' is a layout property — the
-                   packet now rides a full-track-width wrapper anchored
-                   at left:0, and translateX(%) resolves against the
-                   WRAPPER (= the track's own width), so var(--from)/
-                   var(--to) keep their exact %-of-track semantics; the
-                   visible dot sits at left:0 inside the wrapper. */
-                @keyframes elyra-packet {
-                  0% { transform: translateX(var(--from)); opacity: 0 }
-                  12% { opacity: 1 }
-                  88% { opacity: 1 }
-                  100% { transform: translateX(var(--to)); opacity: 0 }
-                }
-                .elyra-packet { transform: translateX(var(--from)); animation: elyra-packet 1.05s linear infinite; }
-                /* UI-3: log line entry (fade/slide, one-shot). */
-                @keyframes elyra-log-in {
-                  from { opacity: 0; transform: translateY(4px) }
-                  to { opacity: 1; transform: translateY(0) }
-                }
-                .elyra-log-line { animation: elyra-log-in 0.25s ease-out both; }
-                /* UI-3: one-shot g-green ring flash when a flow completes. */
-                @keyframes elyra-node-flash {
-                  0% { box-shadow: 0 0 0 0 rgba(52,168,83,0.55) }
-                  100% { box-shadow: 0 0 0 16px rgba(52,168,83,0) }
-                }
-                .elyra-node-flash { animation: elyra-node-flash 0.8s ease-out 1; }
-              `}</style>
-            ) : null}
+            {/* Static stage skin + keyframes now live in globals.css
+                (single-owner convention — G2-1 F4 / G2-4 keyframe
+                hygiene; the inline <style> blocks used to re-declare
+                them per render). Reduced-motion guards stay at the
+                source: the classes/elements below are applied only
+                when !reduced, and the global kill-switch is the
+                backstop. */}
 
             {/* UI-3: packet dots travel the active edge (below the nodes,
                 so they emerge from / disappear into each node). The
@@ -769,7 +730,7 @@ export function AutomationSimulator({
               type="button"
               data-cursor="magnet"
               onClick={() => router.push('/contact?service=automation')}
-              className="inline-flex h-11 items-center gap-2 rounded-full border border-g-green/40 bg-g-green/15 px-6 text-sm font-medium text-white transition-colors hover:bg-g-green/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
+              className="inline-flex h-11 items-center gap-2 rounded-full border border-g-green/40 bg-g-green/15 px-6 text-sm font-medium text-white transition-colors hover:bg-g-green/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-deep"
             >
               <Send className="size-4" aria-hidden="true" />
               {t('completionCta')}

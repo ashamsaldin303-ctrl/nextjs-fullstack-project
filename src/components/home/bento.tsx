@@ -313,7 +313,7 @@ function MiniSite() {
               tabIndex={-1}
               onClick={() => setSwatch(i)}
               className={cn(
-                'size-6 rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                'size-6 rounded-full transition-transform hover:scale-110',
                 swatch === i && 'ring-2 ring-ring ring-offset-2'
               )}
               style={{ background: c }}
@@ -434,13 +434,21 @@ function MiniFlow() {
                 </div>
                 {i < 2 ? (
                   <div className="relative mx-0.5 mt-[17px] h-0.5 flex-1 rounded-full bg-white/10">
-                    {/* progress sweep */}
+                    {/* progress sweep — G2-4 F1: transformOrigin 'start'
+                        is INVALID CSS (transform-origin takes PHYSICAL
+                        keywords; the logical form never shipped) — CSSOM
+                        silently dropped it and the sweep expanded from
+                        the connector's CENTER, losing the flow
+                        directionality + the RTL mirror intent. Physical
+                        'left' for LTR / 'right' for RTL, matching the
+                        per-direction elyra-flow-dot keyframes beside it
+                        (G3F-A fix 7c pattern). */}
                     <span
                       className={cn(
                         'absolute inset-0 rounded-full bg-primary transition-transform duration-500 ease-out',
                         swept(i) ? 'scale-x-100' : 'scale-x-0'
                       )}
-                      style={{ transformOrigin: 'start', transitionDelay: swept(i) ? '80ms' : '0ms' }}
+                      style={{ transformOrigin: isRtl ? 'right' : 'left', transitionDelay: swept(i) ? '80ms' : '0ms' }}
                     />
                     {/* traveling pulse dot along the swept connector —
                         L6-R3 (fix 7c): the dot used to animate
@@ -490,10 +498,8 @@ function MiniFlow() {
         {state === 'done' ? <RotateCw className="size-3.5" aria-hidden="true" /> : <Play className="size-3.5" aria-hidden="true" />}
         {state === 'done' ? t('done') : t('title')}
       </button>
-      <style>{`
-        @keyframes elyra-flow-dot { from { transform: translateX(0) } to { transform: translateX(calc(100% - 6px)) } }
-        @keyframes elyra-flow-dot-rtl { from { transform: translateX(0) } to { transform: translateX(calc(-100% + 6px)) } }
-      `}</style>
+      {/* elyra-flow-dot/-rtl keyframes live in globals.css (single-owner
+          convention — G2-1 F4 / G2-4 keyframe hygiene). */}
     </div>
   )
 }
@@ -689,7 +695,12 @@ function MiniCube() {
         aria-label={`${t('hint')} — ${t('idle')}`}
         tabIndex={0}
         onKeyDown={onKeyDown}
-        className="relative mt-3 flex h-36 items-center justify-center overflow-hidden rounded-xl border border-border bg-elyra-dark/95 touch-none select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
+        /* G2-4 F5: touch-none is scoped to the CUBE element below (the
+           only element with drag handlers) — on this whole-card stage it
+           made a full-card-width, 144px-tall vertical-scroll dead zone
+           on touch: a finger landing beside the cube refused to scroll
+           the page. The stage keeps select-none only. */
+        className="relative mt-3 flex h-36 items-center justify-center overflow-hidden rounded-xl border border-border bg-elyra-dark/95 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
         style={{ perspective: '600px' }}
       >
         {/* faint accent point-glow behind the cube (depth) */}
@@ -716,6 +727,8 @@ function MiniCube() {
           onPointerMove={onMove}
           onPointerUp={onUp}
           onPointerCancel={onUp}
+          /* touch-none lives HERE (the drag surface) — see the stage
+             comment above (G2-4 F5). */
           className="size-14 cursor-grab touch-none active:cursor-grabbing"
           style={{
             transformStyle: 'preserve-3d',
@@ -980,14 +993,28 @@ function MiniOrbit() {
             <span
               key={item.label}
               className="absolute flex size-7 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[9px] font-bold text-white"
-              style={{ left: item.left, top: item.top }}
+              /* G2-4 F6: counter-rotation — the token runs the SAME
+                 keyframes in reverse so the ring's rotation and the
+                 token's own cancel out (θ + (360 − θ) ≡ 0) and the
+                 CRM/n8n/AI/... labels stay UPRIGHT through the 14s lap
+                 instead of tumbling sideways. Same 14s linear duration =
+                 phase-locked from the same mount; the ring + tokens stay
+                 aria-hidden (decorative). Kill-switch: both rotations
+                 freeze (ring parks at 360° ≡ its start pose, token at
+                 0°) — the resting frame is identical. */
+              style={{
+                left: item.left,
+                top: item.top,
+                animation: 'elyra-orbit 14s linear infinite reverse',
+              }}
             >
               {item.label}
             </span>
           ))}
         </div>
       </div>
-      <style>{`@keyframes elyra-orbit { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
+      {/* elyra-orbit keyframes live in globals.css (single-owner
+          convention — G2-1 F4 / G2-4 keyframe hygiene). */}
     </div>
   )
 }
@@ -1006,7 +1033,15 @@ export function ServicesBento() {
           titleId="bento-title"
         />
 
-        <div className="mt-14 grid gap-4 lg:grid-cols-3 lg:grid-rows-2">
+        {/* G2-1 F5: lg:grid-rows-2 was a wrong mental model — the five
+            cards occupy 7 track-units over THREE rows at lg (websites
+            spans 2×2, AI spans 2×1), so the declaration only ever sized
+            the first two tracks and row 3 was implicit auto anyway.
+            Auto rows reproduce the shipped geometry honestly: the
+            2×2 websites card still stretches across rows 1-2 (h-full +
+            default stretch), and the single cards keep their natural
+            heights. */}
+        <div className="mt-14 grid gap-4 lg:grid-cols-3">
           {/* Big websites card — FIX(2-c/12): the icon eyebrow used to repeat
               the identical i18n string as the h3 below (catalog has no distinct
               per-card kicker key) — icon-only row preserves the rhythm.
@@ -1015,7 +1050,12 @@ export function ServicesBento() {
               takes h-full so the stretch layout is preserved. */}
           <Reveal variant="zoom" className="lg:col-span-2 lg:row-span-2">
             <GlowCard className="h-full">
-            <div className="flex items-center gap-2 text-primary">
+            {/* G2-1 F6: the lone-icon eyebrows got a container treatment
+                — the trust-bar chip (rounded-xl bg-primary/10 text-primary,
+                size-10 around the existing size-5 glyph), the most
+                size-harmonious of the site's three icon treatments and
+                the same one the calculator service cards use. */}
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Globe className="size-5" aria-hidden="true" />
             </div>
             <h3 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
@@ -1043,7 +1083,7 @@ export function ServicesBento() {
           {/* Automation */}
           <Reveal variant="zoom" delay={0.08}>
             <GlowCard className="h-full">
-            <div className="flex items-center gap-2 text-primary">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Workflow className="size-5" aria-hidden="true" />
             </div>
             <h3 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">
@@ -1059,7 +1099,7 @@ export function ServicesBento() {
           {/* 3D */}
           <Reveal variant="zoom" delay={0.14}>
             <GlowCard className="h-full">
-            <div className="flex items-center gap-2 text-primary">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Boxes className="size-5" aria-hidden="true" />
             </div>
             <h3 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">
@@ -1075,7 +1115,7 @@ export function ServicesBento() {
           {/* AI — wide */}
           <Reveal variant="zoom" delay={0.2} className="lg:col-span-2">
             <GlowCard className="h-full">
-            <div className="flex items-center gap-2 text-primary">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Bot className="size-5" aria-hidden="true" />
             </div>
             <div className="grid gap-6 sm:grid-cols-2 sm:items-center">
@@ -1095,7 +1135,7 @@ export function ServicesBento() {
           {/* Integrations */}
           <Reveal variant="zoom" delay={0.26} className="lg:col-span-1">
             <GlowCard className="h-full">
-            <div className="flex items-center gap-2 text-primary">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Sparkles className="size-5" aria-hidden="true" />
             </div>
             <h3 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">

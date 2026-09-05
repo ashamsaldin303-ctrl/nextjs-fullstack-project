@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { Briefcase, Zap, Star, Blocks, type LucideIcon } from 'lucide-react'
 import { Reveal } from '@/components/shared/reveal'
+import { SectionHeading } from '@/components/shared/section-heading'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 
 /* UI-5: per-stat visual identity — one semantic icon per metric, rendered
@@ -109,12 +110,20 @@ export function TrustBar() {
       aria-labelledby="stats-title"
     >
       <div className="elyra-container max-w-container">
-        <Reveal className="mx-auto mb-12 max-w-2xl text-center">
-          <span className="kicker">{t('kicker')}</span>
-          <h2 id="stats-title" className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-            {t('title')}
-          </h2>
-        </Reveal>
+        {/* G2-1 F2: the hand-rolled kicker + h2 (capped at sm:text-4xl,
+            no KineticWords, Reveal-wrapped by hand) is replaced by the
+            standard SectionHeading every other section uses — same
+            catalog keys (stats.kicker / stats.title), kicker→h2 system,
+            md:text-5xl cap and KineticWords reveal. No subtitle key
+            exists in the stats namespace, so none is passed. Spacing
+            rhythm follows the site convention: content margin (mt-12,
+            equivalent to the old heading mb-12) instead of a
+            heading-side margin. */}
+        <SectionHeading
+          kicker={t('kicker')}
+          title={t('title')}
+          titleId="stats-title"
+        />
 
         {/* UI-5 note: the `gap-px bg-border` grid already yields hairline
             dividers between stats on desktop (RTL-safe by construction —
@@ -122,7 +131,7 @@ export function TrustBar() {
             a gradient accent under each value, and a gentle hover lift
             on the INNER dd (lifting the cell itself would expose the
             border-colored grid gaps behind it). */}
-        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-3xl border border-border bg-border lg:grid-cols-4">
+        <dl className="mt-12 grid grid-cols-2 gap-px overflow-hidden rounded-3xl border border-border bg-border lg:grid-cols-4">
           {items.map((item, i) => {
             const Icon = STAT_ICONS[item.key]
             return (

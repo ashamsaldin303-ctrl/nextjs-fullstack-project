@@ -240,9 +240,15 @@ export function Calculator() {
                 aria-hidden="true"
               >
                 <motion.div
-                  className="h-full rounded-full bg-primary"
+                  className="h-full w-full origin-left rounded-full bg-primary rtl:origin-right"
                   initial={false}
-                  animate={{ width: step >= s ? '100%' : '0%' }}
+                  animate={{ scaleX: step >= s ? 1 : 0 }}
+                  // G2-4 F4: scaleX + transform-origin instead of animating
+                  // `width` — the codebase's compositor-only convention
+                  // (L6-F1 hb-scan, G3F-A packet/flow-dot/pulse). The fill
+                  // grows from the reading-start edge: origin-left in LTR,
+                  // origin-right in RTL (rtl: variant). initial={false}
+                  // keeps the no-mount-animation contract.
                   // L4 R3 P3: framer-motion animates on its own JS clock —
                   // the global CSS reduced-motion kill-switch can't reach
                   // it. Gate the tween duration like the file's own

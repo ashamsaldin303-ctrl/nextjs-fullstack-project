@@ -75,3 +75,12 @@ upload/
 download/
 tests/
 mini-services/
+
+# Stitch design-lab working zone (G1-C blueprint, G2-5 S-2 P3 — must land
+# BEFORE the first artifact): generated screen HTML/PNGs, prompt files,
+# project/screen registry (metadata.json) and the quota ledger
+# (generations.log) are machine-local dev-time files — never in VCS.
+# DESIGN.md is covered too: its source of truth is the Elyra codebase
+# (globals.css tokens + repo conventions), so the .stitch copy is a
+# disposable export, not a curated VCS file.
+.stitch/

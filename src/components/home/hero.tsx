@@ -68,10 +68,11 @@ function OrbitBadge({ label }: { label: string }) {
       href="/work"
       aria-label={label}
       data-cursor="magnet"
-      /* L1-C P3 (fix 2-d): ring-offset-elyra-deep never compiled (no
-         --color-elyra-deep token exists) — elyra-dark matches the hero
-         CTA pattern below and actually resolves. */
-      className="group relative hidden size-28 shrink-0 items-center justify-center rounded-full sm:inline-flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
+      /* G2-4 F7: --color-elyra-deep now exists in the @theme block
+         (globals.css) — the offset ring matches the hero's exact
+         #08080A surface instead of the #0F172A elyra-dark approximation
+         (was the documented L1-C workaround when the token was absent). */
+      className="group relative hidden size-28 shrink-0 items-center justify-center rounded-full sm:inline-flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-deep"
     >
       <svg
         viewBox="0 0 100 100"
@@ -86,6 +87,12 @@ function OrbitBadge({ label }: { label: string }) {
           />
         </defs>
         <text
+          /* G2-1 F1: lang="en" islands the Latin chrome — the universal
+             :lang(ar) letter-spacing reset exempts this element so the
+             inline 0.16em tracking applies in AR too (same fix class as
+             the simulator NODE_TYPE badges, G3F-A fix 8d). SVG text has
+             no dir attribute — the textPath already renders LTR. */
+          lang="en"
           className="fill-white/55 font-mono uppercase"
           style={{ fontSize: '7.6px', letterSpacing: '0.16em' }}
         >
@@ -275,10 +282,23 @@ export function Hero() {
   }, [])
 
   // Spotlight Blueprint grid — rAF-coalesced pointer tracking.
+  // G2-4 F2: tracking is gated to FINE POINTERS with motion allowed.
+  // Touch visitors keep the designed static dim grid (their mask is
+  // none — the --mx/--my writes + rect reads were pure waste), and
+  // reduced-motion visitors keep the 0.3 static state; before this
+  // gate the class was added on ANY pointermove and the old compound
+  // .spotlight-active selector then beat the dim fallbacks in the
+  // cascade. (pointer:fine is static per device — safe to cache.)
   const spotlightActivated = useRef(false)
+  const finePointer = useRef(false)
   const latestPointer = useRef<React.PointerEvent<HTMLElement> | null>(null)
   const spotlightRaf = useRef(0)
   const onHeroPointerMove = useCallback((e: React.PointerEvent<HTMLElement>) => {
+    if (reduced) return
+    if (!finePointer.current) {
+      finePointer.current = window.matchMedia('(pointer: fine)').matches
+    }
+    if (!finePointer.current) return
     latestPointer.current = e
     if (spotlightRaf.current) return
     spotlightRaf.current = requestAnimationFrame(() => {
@@ -294,7 +314,7 @@ export function Hero() {
         el.classList.add('spotlight-active')
       }
     })
-  }, [])
+  }, [reduced])
   useEffect(() => () => {
     if (spotlightRaf.current) cancelAnimationFrame(spotlightRaf.current)
   }, [])
@@ -367,9 +387,15 @@ export function Hero() {
           <span className="hb-cross hb-c1" />
           <span className="hb-cross hb-c2" />
           <span className="hb-cross hb-c3" />
-          <span className="hb-label hb-l1">FIG. 01 — HOMEPAGE ASSEMBLY</span>
-          <span className="hb-label hb-l2">33.51°N · 36.29°E — DAMASCUS</span>
-          <span className="hb-label hb-l3">GRID 12 × 8 · BUILD v2.5</span>
+          {/* G2-1 F1: lang="en" dir="ltr" islands the Latin spec labels —
+              .hero-blueprint's CSS direction:ltr does NOT exempt them
+              from the universal :lang(ar) letter-spacing reset (the
+              selector tests the ATTRIBUTE, not computed style), so the
+              .hb-label 0.14em tracking was lost in AR. NODE_TYPE-badge
+              precedent (G3F-A fix 8d). */}
+          <span lang="en" dir="ltr" className="hb-label hb-l1">FIG. 01 — HOMEPAGE ASSEMBLY</span>
+          <span lang="en" dir="ltr" className="hb-label hb-l2">33.51°N · 36.29°E — DAMASCUS</span>
+          <span lang="en" dir="ltr" className="hb-label hb-l3">GRID 12 × 8 · BUILD v2.5</span>
         </div>
         {/* L6-F1 (P2): the scan bar now rides inside a size-contained track
             (.hero-build-scan-track) so its sweep animates a compositor-only
@@ -410,8 +436,14 @@ export function Hero() {
         </span>
       </div>
 
-      {/* Content — start-aligned editorial column, CSS-only entrance. */}
-      <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-7xl flex-col justify-center px-4 pb-32 pt-24 text-start sm:px-6 lg:px-8 lg:pb-28">
+      {/* Content — start-aligned editorial column, CSS-only entrance.
+          G2-1 F3: the pre-WS-0 hand-rolled container (mx-auto max-w-7xl
+          px-4/6/8) is ported to the site's unified elyra-container /
+          max-w-container system (globals.css §3.1) — 24/40/64px gutters
+          and a fluid 1152→1440px cap on wide screens instead of the
+          fixed 1280px clamp. (navbar.tsx:55 carries the same legacy
+          pattern — OUT of this wave's file set, noted for a later round.) */}
+      <div className="relative z-10 elyra-container max-w-container flex min-h-[100svh] flex-col justify-center pb-32 pt-24 text-start lg:pb-28">
         {/* Kicker row — pulse dot, agency line, place + live time.
             R9: inline delay synced to the tightened build scan line (~25%
             hero height — the line reaches the kicker ~0.65s into the sweep). */}
@@ -459,7 +491,7 @@ export function Hero() {
               ref={ctaPrimaryRef}
               href="/contact"
               data-cursor="magnet"
-              className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-7 text-base font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
+              className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-7 text-base font-medium text-primary-foreground transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-deep"
               style={reduced ? undefined : { fontVariationSettings: '"wght" var(--wght, 700)' }}
             >
               {t('ctaPrimary')}
@@ -469,7 +501,13 @@ export function Hero() {
               ref={ctaSecondaryRef}
               href="/work"
               data-cursor="magnet"
-              className="group inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 text-base font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark"
+              /* G2-4 F8: no backdrop-filter — this pill sits directly
+                 over the animating WebGL canvas, the exact software-GPU
+                 hazard the marquee's own rule documents (globals.css
+                 .hero-marquee comment); a more opaque white/10 fill
+                 replaces the glass blur. Ring offset: exact elyra-deep
+                 surface token (G2-4 F7). */
+              className="group inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 text-base font-medium text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-deep"
             >
               <Play className="size-4" aria-hidden="true" />
               {t('ctaSecondary')}

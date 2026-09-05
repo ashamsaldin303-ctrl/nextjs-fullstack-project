@@ -27,9 +27,14 @@ const LazySimulator = dynamic(
     // py-20/28 + min-height — keeps the scrollbar/CLS stable pre-load.
     // FIX(2-c/8): raised to an honest approximation of the idle section
     // height (heading + 260px stage + step card + controls ≈ 800px).
+    // G2-1 F3: the inner div now carries the real section's exact
+    // container classes (elyra-container max-w-container — see
+    // automation-simulator.tsx) instead of the loose hand-rolled
+    // max-w-7xl px-4/6/8 approximation, so the placeholder's box
+    // (gutters + max-width) matches what replaces it.
     loading: () => (
       <section className="bg-elyra-deep py-20 text-elyra-on-dark sm:py-28" aria-hidden="true">
-        <div className="mx-auto min-h-[720px] max-w-7xl px-4 sm:px-6 lg:px-8" />
+        <div className="elyra-container max-w-container min-h-[720px]" />
       </section>
     ),
   }
@@ -44,9 +49,11 @@ export function SimulatorLazy(props: { scenario?: 'newOrder' | 'paymentReminder'
     <div ref={ref}>
       {near ? <LazySimulator {...props} /> : (
         /* Same-shaped spacer pre-observation (avoids a load-in jump when
-           the observer fires before the dynamic chunk's loading state). */
+           the observer fires before the dynamic chunk's loading state).
+           G2-1 F3: same elyra-container/max-w-container shape as the
+           loading placeholder + the real section. */
         <section className="bg-elyra-deep py-20 text-elyra-on-dark sm:py-28" aria-hidden="true">
-          <div className="mx-auto min-h-[720px] max-w-7xl px-4 sm:px-6 lg:px-8" />
+          <div className="elyra-container max-w-container min-h-[720px]" />
         </section>
       )}
     </div>
