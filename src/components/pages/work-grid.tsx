@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Wrench } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Reveal } from '@/components/shared/reveal'
-import { BeforeAfter, toMockContent } from '@/components/home/before-after'
+import { BeforeAfter, toMockContent, type ScenePalette } from '@/components/home/before-after'
 import { asStringArray } from '@/lib/catalog-guards'
 
 type Category = 'websites' | 'automation'
@@ -13,27 +13,101 @@ type Category = 'websites' | 'automation'
 interface ProjectDef {
   key: 'p1' | 'p2' | 'p3' | 'p4' | 'p5' | 'p6'
   category: Category
-  variant: 'site-new' | 'property-new' | 'academy-new' | 'dining-new' | 'dashboard-new'
+  variant: 'site-new' | 'property-new' | 'academy-new' | 'dining-new' | 'kanban-new' | 'dashboard-new'
   accent: string
-  /** R9: dashboard skin — p5 dark SaaS vs p6 light studio ops. */
+  /** R9: dashboard skin — p5 dark SaaS; p6 is the kanban board (G3-4). */
   tone?: 'dark' | 'light'
+  /** G3-4: per-scene brand palette (G2-2 F2) — when present its primary
+   *  becomes the scene accent and its neutrals replace the shared stone
+   *  scale inside the scene. */
+  palette?: ScenePalette
 }
 
-// Phase 2 content enrichment (prompt §6.1): six projects across six
-// industries — e-commerce, real estate, education, restaurants, SaaS,
-// and a creative agency. Industries live in the i18n `type` field;
-// service lists are served per project via `projects.{key}.services`.
-// R9: the four website projects now each render their OWN after-scene
-// archetype (storefront / real-estate marketplace / course platform /
-// restaurant) instead of one shared storefront skeleton — the
-// "مواقع متشابهة" (sites look alike) report.
+/* G3-4 per-scene palettes — each project's "after" scene now carries its
+ * Stitch brand world's neutrals, not just a swapped accent (the G2-2 F2
+ * sameness cure). p5 keeps its dark Google-blue console (accent only);
+ * p6's kanban scene owns its warm-graphite tokens internally.
+ * • p1 لمسة — quiet-luxury boutique: warm stone/clay on linen off-white
+ * • p2 عقار بلس — trustworthy portal: emerald/teal on warm off-white
+ * • p3 مسار — warm education: terracotta + charcoal on cream
+ * • p4 بيت الشام — Levantine hospitality: espresso/cream/tomato
+ */
 const PROJECTS: ProjectDef[] = [
-  { key: 'p1', category: 'websites', variant: 'site-new', accent: '#0071E3' },      // e-commerce storefront (blue)
-  { key: 'p2', category: 'websites', variant: 'property-new', accent: '#34A853' },  // real-estate marketplace (brand green)
-  { key: 'p3', category: 'websites', variant: 'academy-new', accent: '#EA4335' },   // course platform (red)
-  { key: 'p4', category: 'websites', variant: 'dining-new', accent: '#FBBC05' },    // restaurant site (gold)
-  { key: 'p5', category: 'automation', variant: 'dashboard-new', accent: '#4285F4', tone: 'dark' },   // SaaS (google blue)
-  { key: 'p6', category: 'automation', variant: 'dashboard-new', accent: '#EA4335', tone: 'light' }, // creative studio (light ops skin)
+  {
+    key: 'p1',
+    category: 'websites',
+    variant: 'site-new',
+    accent: '#A96A4F',
+    palette: {
+      primary: '#A96A4F',
+      surface: '#FBF8F3',
+      surfaceMuted: '#F3EDE3',
+      border: '#E7DDD0',
+      borderSoft: '#F0E9DE',
+      ink: '#2E2721',
+      inkSoft: '#4A423A',
+      inkMuted: '#8A7E72',
+      inkFaint: '#B3A99D',
+    },
+  },
+  {
+    key: 'p2',
+    category: 'websites',
+    variant: 'property-new',
+    accent: '#0E8A5F',
+    palette: {
+      primary: '#0E8A5F',
+      surface: '#FCFDFB',
+      surfaceMuted: '#EEF5F0',
+      border: '#DAE7DE',
+      borderSoft: '#E8F1EA',
+      ink: '#12241C',
+      inkSoft: '#2A4237',
+      inkMuted: '#6B7C73',
+      inkFaint: '#9BABA2',
+    },
+  },
+  {
+    key: 'p3',
+    category: 'websites',
+    variant: 'academy-new',
+    accent: '#C05B3C',
+    palette: {
+      primary: '#C05B3C',
+      surface: '#FDF9F1',
+      surfaceMuted: '#F6EFE2',
+      border: '#EBDFCC',
+      borderSoft: '#F2EADB',
+      ink: '#33291F',
+      inkSoft: '#50453A',
+      inkMuted: '#8A7A66',
+      inkFaint: '#B5A78F',
+    },
+  },
+  {
+    key: 'p4',
+    category: 'websites',
+    variant: 'dining-new',
+    accent: '#C23A22',
+    palette: {
+      primary: '#C23A22',
+      surface: '#FFF9EC',
+      surfaceMuted: '#F7EEDA',
+      border: '#EADBC0',
+      borderSoft: '#F2EAD6',
+      ink: '#2B1B12',
+      inkSoft: '#4E3A2B',
+      inkMuted: '#8C7563',
+      inkFaint: '#B8A48E',
+    },
+  },
+  { key: 'p5', category: 'automation', variant: 'dashboard-new', accent: '#4285F4', tone: 'dark' }, // SaaS console (google blue, dark)
+  {
+    key: 'p6',
+    category: 'automation',
+    variant: 'kanban-new',
+    accent: '#D97706', // warm-graphite planner + amber (G3-4: was a light-tone DashNewScene twin of p5)
+  },
 ]
 
 type Filter = 'all' | Category
@@ -116,6 +190,7 @@ export function WorkGrid() {
                     <BeforeAfter
                       variant={p.variant}
                       accent={p.accent}
+                      palette={p.palette}
                       tone={p.tone}
                       label={t(`projects.${p.key}.title`)}
                       mock={mock}

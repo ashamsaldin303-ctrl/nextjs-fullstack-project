@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   Activity,
+  Archive,
   Award,
   BarChart3,
   Bath,
@@ -13,18 +14,21 @@ import {
   CalendarCheck,
   Check,
   Clock3,
+  FileText,
   Flame,
   GraduationCap,
   Headphones,
   Heart,
   ImageOff,
   LayoutDashboard,
+  ListTodo,
   Lock,
   MapPin,
   MessageCircle,
   MoveHorizontal,
   Phone,
   PlayCircle,
+  Plus,
   RotateCcw,
   Ruler,
   Search,
@@ -72,6 +76,7 @@ type SceneVariant =
   | 'property-new'
   | 'academy-new'
   | 'dining-new'
+  | 'kanban-new'
   | 'dashboard-old'
   | 'dashboard-new'
 
@@ -144,6 +149,71 @@ const accentInkColor = (hex: string) => shadeColor(hex, isLightColor(hex) ? 0.5 
    @/lib/catalog-guards.ts — imported above (L6-R2 dedup). */
 
 const MONO_STACK = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+
+/* --------------------------------------------------------------------------
+   G3-4 per-scene palettes (G2-2 F2 — the sameness cure). Each /work website
+   project passes a palette derived from its Stitch brand world (G2-2 prompt
+   specs: لمسة warm stone/clay · عقار بلس emerald/teal · مسار terracotta ·
+   بيت الشام espresso/cream/tomato). The palette lands as CSS custom
+   properties on the scene root and the scene's surface/ink/border classes
+   consume them — so a scene's neutrals shift with its brand world while the
+   accent channel (fills/badges) keeps flowing through the `accent` prop.
+   When NO palette is passed (homepage featured-work), the tokens resolve to
+   the historical stone/white values — pixel-identical default look. The
+   ELYRA brand tokens are untouched: they stay on the page shell (cards,
+   hero, CTA) — only the mock scene interiors change.
+   -------------------------------------------------------------------------- */
+
+export interface ScenePalette {
+  /** brand primary — fills, badges, chips (replaces the single accent) */
+  primary: string
+  /** page surface (default: pure white) */
+  surface?: string
+  /** muted panels — footer/trust bars/inactive chips (default: stone-50) */
+  surfaceMuted?: string
+  /** strong hairline (default: stone-200) */
+  border?: string
+  /** faint hairline (default: stone-100) */
+  borderSoft?: string
+  /** heading ink (default: stone-900) */
+  ink?: string
+  /** body ink (default: stone-800) */
+  inkSoft?: string
+  /** secondary ink (default: stone-500) */
+  inkMuted?: string
+  /** tertiary ink (default: stone-400) */
+  inkFaint?: string
+}
+
+/** Neutral defaults — the exact Tailwind stone scale the scenes used as
+ *  literal classes, so the no-palette path renders identically. */
+const NEUTRAL_SCENE_VARS: Record<string, string> = {
+  '--sc-surface': '#ffffff',
+  '--sc-surface-muted': '#fafaf9',
+  '--sc-border': '#e7e5e4',
+  '--sc-border-soft': '#f5f5f4',
+  '--sc-ink': '#1c1917',
+  '--sc-ink-soft': '#292524',
+  '--sc-ink-muted': '#78716c',
+  '--sc-ink-faint': '#a8a29e',
+}
+
+/** Resolve a palette (or none) into the CSS var style object that the
+ *  website-scene roots carry — vars cascade to every token class below. */
+function sceneVars(palette?: ScenePalette): React.CSSProperties {
+  const vars: Record<string, string> = { ...NEUTRAL_SCENE_VARS }
+  if (palette) {
+    if (palette.surface) vars['--sc-surface'] = palette.surface
+    if (palette.surfaceMuted) vars['--sc-surface-muted'] = palette.surfaceMuted
+    if (palette.border) vars['--sc-border'] = palette.border
+    if (palette.borderSoft) vars['--sc-border-soft'] = palette.borderSoft
+    if (palette.ink) vars['--sc-ink'] = palette.ink
+    if (palette.inkSoft) vars['--sc-ink-soft'] = palette.inkSoft
+    if (palette.inkMuted) vars['--sc-ink-muted'] = palette.inkMuted
+    if (palette.inkFaint) vars['--sc-ink-faint'] = palette.inkFaint
+  }
+  return vars as React.CSSProperties
+}
 
 /* --------------------------------------------------------------------------
    G2-2 scene catalog narrowers — extensions of the shared catalog-guards
@@ -329,37 +399,25 @@ const SHEET_COLS = 'grid-cols-[10px_1.1fr_1fr_0.72fr_0.95fr]'
    Scene 1 — "site-new": modern e-commerce storefront
    -------------------------------------------------------------------------- */
 
-/** Three distinct CSS-only "product photo" silhouettes so the row reads
- *  like a real catalog rather than three identical boxes. */
-function ProductArt({ i }: { i: number }) {
-  if (i === 0) {
-    return (
-      <>
-        <div className="absolute left-1/2 top-1/2 h-[62%] w-[62%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/20" />
-        <div className="absolute left-1/2 top-1/2 h-[46%] w-[36%] -translate-x-1/2 -translate-y-1/2 rounded-[45%] bg-white/45" />
-        <div className="absolute left-1/2 top-[36%] h-[9%] w-[13%] -translate-x-1/2 rounded-full bg-white/65" />
-      </>
-    )
-  }
-  if (i === 1) {
-    return (
-      <>
-        <div className="absolute inset-x-[31%] top-[24%] h-[7%] rounded-[2px] bg-white/55" />
-        <div className="absolute inset-x-[24%] bottom-[16%] top-[34%] rounded-t-[38%] rounded-b-[14%] bg-white/40" />
-        <div className="absolute inset-x-[40%] top-[40%] h-[11%] rounded-full bg-white/55" />
-      </>
-    )
-  }
-  return (
-    <>
-      <div className="absolute inset-x-[38%] top-[16%] h-[15%] rounded-t-full border-[2px] border-b-0 border-white/50" />
-      <div className="absolute inset-x-[26%] top-[30%] bottom-[18%] rounded-[3px] bg-white/40" />
-      <div className="absolute inset-x-[32%] top-[38%] h-[9%] rounded-[2px] bg-white/60" />
-    </>
-  )
-}
+/** G3-4: real product photography for the storefront's three cards — the
+ *  wool-coat crop (from the Stitch lookbook), the leather handbag and the
+ *  cashmere-scarf product photo (Stitch storefront grid / IMAGE screen).
+ *  Position-aligned with pages.work.projects.p1.mock.cards. */
+const SITE_PRODUCT_PHOTOS: ReadonlyArray<readonly [string, number, number]> = [
+  ['/work-scenes/store-product-coat.webp', 190, 210],
+  ['/work-scenes/store-product-bag.webp', 384, 512],
+  ['/work-scenes/store-product-scarf.webp', 384, 512],
+]
 
-function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) {
+function SiteNewScene({
+  accent,
+  palette,
+  mock,
+}: {
+  accent: string
+  palette?: ScenePalette
+  mock?: MockContent
+}) {
   const t = useTranslations('workSection.scenes')
   const nav = asStringArray(t.raw('site.nav'))
   const categories = asStringArray(t.raw('site.categories'))
@@ -373,7 +431,10 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
   const productRatings = asProductRatings(t.raw('site.products'))
 
   return (
-    <div className="@container relative flex h-full flex-col overflow-hidden bg-white text-stone-900">
+    <div
+      className="@container relative flex h-full flex-col overflow-hidden bg-[var(--sc-surface)] text-[var(--sc-ink)]"
+      style={sceneVars(palette)}
+    >
       {/* G2-2 F7: browser chrome — traffic dots + lock + URL pill */}
       <BrowserChrome domain={t('site.domain')} />
 
@@ -392,26 +453,26 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
           (G2-2 F9: the old pe-[52px] reservation is gone — with the browser
           chrome above, the AFTER chip (y≈8–27) covers chrome + announcement
           only; nothing overlays this row or the chips row below) */}
-      <div className="flex h-[22px] shrink-0 items-center justify-between gap-2 border-b border-stone-200 bg-white px-2">
+      <div className="flex h-[22px] shrink-0 items-center justify-between gap-2 border-b border-[var(--sc-border)] bg-[var(--sc-surface)] px-2">
         <div className="flex min-w-0 items-center gap-1">
           <span className="size-[6px] shrink-0 rounded-full" style={{ background: accent }} />
           <span className="truncate text-[8px] font-extrabold tracking-tight">{mock?.brand ?? ''}</span>
         </div>
         <nav className="flex min-w-0 items-center gap-1.5 overflow-hidden">
           {nav.map((l) => (
-            <span key={l} className="whitespace-nowrap text-[6px] font-medium text-stone-500">
+            <span key={l} className="whitespace-nowrap text-[6px] font-medium text-[var(--sc-ink-muted)]">
               {l}
             </span>
           ))}
         </nav>
         <div className="flex shrink-0 items-center gap-1">
-          <span className="flex items-center gap-0.5 rounded-full border border-stone-200 bg-stone-50 px-1.5 py-px">
-            <Search className="size-[7px] shrink-0 text-stone-400" />
-            <span className="whitespace-nowrap text-[6px] text-stone-400">{t('site.search')}</span>
+          <span className="flex items-center gap-0.5 rounded-full border border-[var(--sc-border)] bg-[var(--sc-surface-muted)] px-1.5 py-px">
+            <Search className="size-[7px] shrink-0 text-[var(--sc-ink-faint)]" />
+            <span className="whitespace-nowrap text-[6px] text-[var(--sc-ink-faint)]">{t('site.search')}</span>
           </span>
-          <Heart className="size-[10px] shrink-0 text-stone-500" />
-          <User className="size-[10px] shrink-0 text-stone-500" />
-          <span className="relative block text-stone-700">
+          <Heart className="size-[10px] shrink-0 text-[var(--sc-ink-muted)]" />
+          <User className="size-[10px] shrink-0 text-[var(--sc-ink-muted)]" />
+          <span className="relative block text-[var(--sc-ink-soft)]">
             <ShoppingBag className="size-[11px]" />
             <span
               className="absolute -end-1 -top-[3px] flex size-[9px] items-center justify-center rounded-full text-[5px] font-bold leading-none"
@@ -424,13 +485,13 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
       </div>
 
       {/* category chips row — merchandising rail */}
-      <div className="flex h-[15px] shrink-0 items-center gap-1 border-b border-stone-100 bg-white px-2">
+      <div className="flex h-[15px] shrink-0 items-center gap-1 border-b border-[var(--sc-border-soft)] bg-[var(--sc-surface)] px-2">
         {categories.map((c, i) => (
           <span
             key={c}
             className={cn(
               'whitespace-nowrap rounded-full px-1.5 py-[1.5px] text-[5.5px] font-semibold leading-none',
-              i === 0 ? 'text-white' : 'bg-stone-100 text-stone-500'
+              i === 0 ? 'text-white' : 'bg-[var(--sc-surface-muted)] text-[var(--sc-ink-muted)]'
             )}
             style={i === 0 ? { background: accent } : undefined}
           >
@@ -461,12 +522,12 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
               {mock.title}
             </span>
           ) : (
-            <div className="h-[19px] w-4/5 rounded bg-stone-200" />
+            <div className="h-[19px] w-4/5 rounded bg-[var(--sc-border)]" />
           )}
           {mock?.sub ? (
-            <span className="line-clamp-2 text-[7px] leading-[1.3] text-stone-500">{mock.sub}</span>
+            <span className="line-clamp-2 text-[7px] leading-[1.3] text-[var(--sc-ink-muted)]">{mock.sub}</span>
           ) : (
-            <div className="h-[7px] w-3/5 rounded bg-stone-200" />
+            <div className="h-[7px] w-3/5 rounded bg-[var(--sc-border)]" />
           )}
           <div className="mt-[3px] flex min-w-0 items-center gap-1.5">
             {mock?.cta ? (
@@ -488,14 +549,16 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
                   />
                 ))}
               </span>
-              <span className="min-w-0 truncate text-[6px] font-medium text-stone-500">
+              <span className="min-w-0 truncate text-[6px] font-medium text-[var(--sc-ink-muted)]">
                 {`★ ${rating} · ${t('site.socialProof')}`}
               </span>
             </span>
           </div>
         </div>
 
-        {/* hero image — accent gradient + radial glow + floating chips + shine */}
+        {/* hero image — real lookbook photo (G3-4: the Stitch storefront
+            hero — model in a camel wool coat) over the accent-gradient
+            fallback; floating chips + shine ride on top */}
         <div
           className="relative min-h-0 overflow-hidden rounded-lg"
           style={{ background: `linear-gradient(135deg, ${accent} 0%, ${shadeColor(accent, 0.35)} 100%)` }}
@@ -507,13 +570,15 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
             }}
           />
           <div className="absolute -top-[25%] start-[8%] size-[80%] rounded-full bg-white/15 blur-[5px]" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="relative h-[58%] w-[42%]">
-              <div className="absolute inset-x-[24%] top-[-6%] h-[28%] rounded-t-full border-[2.5px] border-b-0 border-white/55" />
-              <div className="absolute inset-x-0 top-[16%] bottom-0 rounded-[24%] bg-white/40 shadow-[inset_0_-5px_8px_rgba(0,0,0,0.12)]" />
-              <div className="absolute inset-x-[20%] top-[26%] h-[13%] rounded-[30%] bg-white/65" />
-            </div>
-          </div>
+          {/* decorative mock imagery — aria-hidden via the Scene wrapper */}
+          <img
+            src="/work-scenes/store-hero.webp"
+            alt=""
+            loading="lazy"
+            width={382}
+            height={512}
+            className="absolute inset-0 size-full object-cover object-[50%_20%]"
+          />
           {/* floating chips — "new" badge + live viewers pill */}
           <span
             className="absolute start-[6%] top-[8%] rounded-[3px] px-1 py-px text-[5px] font-bold leading-none shadow-sm"
@@ -537,10 +602,10 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
           return (
             <div
               key={label}
-              className="flex min-w-0 items-center justify-center gap-[3px] rounded-md bg-stone-50 px-1"
+              className="flex min-w-0 items-center justify-center gap-[3px] rounded-md bg-[var(--sc-surface-muted)] px-1"
             >
               <Icon className="size-[8px] shrink-0" style={{ color: accent }} />
-              <span className="min-w-0 truncate text-[5.5px] font-medium leading-none text-stone-500">
+              <span className="min-w-0 truncate text-[5.5px] font-medium leading-none text-[var(--sc-ink-muted)]">
                 {label}
               </span>
             </div>
@@ -556,7 +621,7 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
             return (
               <div
                 key={`${card.name}-${i}`}
-                className="relative flex min-h-0 min-w-0 flex-col rounded-md border border-stone-200/90 bg-white p-[3px] shadow-[0_1px_2px_rgba(15,23,42,0.05)]"
+                className="relative flex min-h-0 min-w-0 flex-col rounded-md border border-[var(--sc-border)] bg-[var(--sc-surface)] p-[3px] shadow-[0_1px_2px_rgba(15,23,42,0.05)]"
               >
                 <div
                   className="relative min-h-0 flex-1 overflow-hidden rounded-[4px]"
@@ -564,7 +629,21 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
                     background: `linear-gradient(160deg, ${rgba(accent, 0.3)} 0%, ${rgba(accent, 0.1)} 100%)`,
                   }}
                 >
-                  <ProductArt i={i} />
+                  {/* G3-4: real product photo over the tint fallback — the
+                      three cards map to coat / bag / scarf shots */}
+                  {(() => {
+                    const photo = SITE_PRODUCT_PHOTOS[i % SITE_PRODUCT_PHOTOS.length]
+                    return photo ? (
+                      <img
+                        src={photo[0]}
+                        alt=""
+                        loading="lazy"
+                        width={photo[1]}
+                        height={photo[2]}
+                        className="absolute inset-0 size-full object-cover"
+                      />
+                    ) : null
+                  })()}
                   {off !== null && (
                     <span
                       className="absolute start-[3px] top-[3px] rounded-[2px] px-[3px] py-px text-[5px] font-bold leading-none"
@@ -574,16 +653,16 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
                     </span>
                   )}
                 </div>
-                <div className="mt-[2px] truncate text-[6px] font-medium leading-tight text-stone-800">
+                <div className="mt-[2px] truncate text-[6px] font-medium leading-tight text-[var(--sc-ink-soft)]">
                   {card.name}
                 </div>
                 <div className="flex items-center justify-between gap-0.5">
                   <div className="flex min-w-0 items-baseline gap-0.5">
-                    <span className="truncate text-[7px] font-bold leading-none text-stone-900">
+                    <span className="truncate text-[7px] font-bold leading-none text-[var(--sc-ink)]">
                       {card.price}
                     </span>
                     {card.old && (
-                      <span className="shrink-0 text-[5.5px] leading-none text-stone-400 line-through">
+                      <span className="shrink-0 text-[5.5px] leading-none text-[var(--sc-ink-faint)] line-through">
                         {card.old}
                       </span>
                     )}
@@ -600,10 +679,10 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
                     one identical "★4.9 · 312 تقييمًا" line. */}
                 <div className="mt-[1px] flex min-w-0 items-center gap-[3px] overflow-hidden">
                   <Star className="size-[5px] shrink-0 fill-amber-400 text-amber-400" />
-                  <span className="shrink-0 text-[5.5px] font-bold leading-none text-stone-700">
+                  <span className="shrink-0 text-[5.5px] font-bold leading-none text-[var(--sc-ink-soft)]">
                     {productRatings[i]?.rating ?? rating}
                   </span>
-                  <span className="truncate text-[5.5px] leading-none text-stone-400">
+                  <span className="truncate text-[5.5px] leading-none text-[var(--sc-ink-faint)]">
                     {productRatings[i]?.reviews}
                   </span>
                 </div>
@@ -615,22 +694,22 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
           [0, 1, 2].map((i) => (
             <div
               key={i}
-              className="flex min-h-0 flex-col rounded-md border border-stone-200/90 bg-white p-[3px]"
+              className="flex min-h-0 flex-col rounded-md border border-[var(--sc-border)] bg-[var(--sc-surface)] p-[3px]"
             >
-              <div className="min-h-0 flex-1 rounded-[4px] bg-stone-100" />
-              <div className="mt-[2px] h-[5px] w-3/4 rounded-full bg-stone-200" />
-              <div className="mt-[3px] h-[6px] w-1/2 rounded-full bg-stone-200" />
+              <div className="min-h-0 flex-1 rounded-[4px] bg-[var(--sc-surface-muted)]" />
+              <div className="mt-[2px] h-[5px] w-3/4 rounded-full bg-[var(--sc-border)]" />
+              <div className="mt-[3px] h-[6px] w-1/2 rounded-full bg-[var(--sc-border)]" />
             </div>
           ))
         )}
       </div>
 
       {/* footer: service links • payment badges • copyright */}
-      <div className="shrink-0 border-t border-stone-200 bg-stone-50 px-2 pb-[3px] pt-[3px]">
+      <div className="shrink-0 border-t border-[var(--sc-border)] bg-[var(--sc-surface-muted)] px-2 pb-[3px] pt-[3px]">
         <div className="flex items-center justify-between gap-1.5">
           <div className="flex min-w-0 items-center gap-2 overflow-hidden">
             {footerLinks.map((l) => (
-              <span key={l} className="whitespace-nowrap text-[6px] font-medium text-stone-500">
+              <span key={l} className="whitespace-nowrap text-[6px] font-medium text-[var(--sc-ink-muted)]">
                 {l}
               </span>
             ))}
@@ -640,14 +719,14 @@ function SiteNewScene({ accent, mock }: { accent: string; mock?: MockContent }) 
               <span
                 key={p}
                 dir="ltr"
-                className="rounded-[3px] border border-stone-200 bg-white px-[3px] py-px text-[5px] font-bold leading-none text-stone-500"
+                className="rounded-[3px] border border-[var(--sc-border)] bg-[var(--sc-surface)] px-[3px] py-px text-[5px] font-bold leading-none text-[var(--sc-ink-muted)]"
               >
                 {p}
               </span>
             ))}
           </div>
         </div>
-        <div className="mt-px truncate text-center text-[6px] text-stone-400">
+        <div className="mt-px truncate text-center text-[6px] text-[var(--sc-ink-faint)]">
           {`© ${mock?.brand ? `${mock.brand} — ` : ''}${t('site.footerNote')}`}
         </div>
       </div>
@@ -707,12 +786,23 @@ function PropertyArt({ i, accent }: { i: number; accent: string }) {
 }
 
 const PROPERTY_SPECS: ReadonlyArray<readonly [string, string, string]> = [
-  ['3', '2', '210'],
+  // G3-4: order follows the reordered p2 mock cards — the featured hero
+  // listing is the villa (matching the real listing photo), then the
+  // apartment + office compact cards.
   ['5', '3', '310'],
+  ['3', '2', '210'],
   ['2', '1', '85'],
 ]
 
-function PropertyNewScene({ accent, mock }: { accent: string; mock?: MockContent }) {
+function PropertyNewScene({
+  accent,
+  palette,
+  mock,
+}: {
+  accent: string
+  palette?: ScenePalette
+  mock?: MockContent
+}) {
   const t = useTranslations('workSection.scenes')
   const filters = asStringArray(t.raw('property.filters'))
   const stats = asStringArray(t.raw('property.stats'))
@@ -722,21 +812,24 @@ function PropertyNewScene({ accent, mock }: { accent: string; mock?: MockContent
   const specs = (i: number) => PROPERTY_SPECS[i % PROPERTY_SPECS.length] ?? ['3', '2', '180']
 
   return (
-    <div className="@container relative flex h-full flex-col overflow-hidden bg-white text-stone-900">
+    <div
+      className="@container relative flex h-full flex-col overflow-hidden bg-[var(--sc-surface)] text-[var(--sc-ink)]"
+      style={sceneVars(palette)}
+    >
       {/* G2-2 F7: browser chrome — traffic dots + lock + URL pill */}
       <BrowserChrome domain={t('property.domain')} />
 
       {/* topbar: brand • location chip • phone CTA (no nav row — portals keep it sparse) */}
-      <div className="flex h-[20px] shrink-0 items-center justify-between gap-2 border-b border-stone-200 bg-white px-2">
+      <div className="flex h-[20px] shrink-0 items-center justify-between gap-2 border-b border-[var(--sc-border)] bg-[var(--sc-surface)] px-2">
         <div className="flex min-w-0 items-center gap-1">
           <span className="flex size-[7px] shrink-0 items-center justify-center rounded-[2px]" style={{ background: accent }}>
             <span className="size-[3px] rounded-[1px] bg-white/90" />
           </span>
           <span className="truncate text-[8px] font-extrabold tracking-tight">{mock?.brand ?? ''}</span>
         </div>
-        <span className="flex min-w-0 items-center gap-[3px] rounded-full border border-stone-200 bg-stone-50 px-1.5 py-px">
+        <span className="flex min-w-0 items-center gap-[3px] rounded-full border border-[var(--sc-border)] bg-[var(--sc-surface-muted)] px-1.5 py-px">
           <MapPin className="size-[7px] shrink-0" style={{ color: accent }} />
-          <span className="truncate text-[6px] font-medium text-stone-500">{t('property.searchPlaceholder')}</span>
+          <span className="truncate text-[6px] font-medium text-[var(--sc-ink-muted)]">{t('property.searchPlaceholder')}</span>
         </span>
         <span
           className="flex shrink-0 items-center gap-1 rounded-full px-2 py-[2px] text-[6.5px] font-bold leading-none"
@@ -748,23 +841,23 @@ function PropertyNewScene({ accent, mock }: { accent: string; mock?: MockContent
       </div>
 
       {/* the fat search bar — the marketplace signature */}
-      <div className="shrink-0 border-b border-stone-100 bg-stone-50 px-2 py-[5px]">
+      <div className="shrink-0 border-b border-[var(--sc-border-soft)] bg-[var(--sc-surface-muted)] px-2 py-[5px]">
         <div className="flex items-stretch gap-[3px]">
-          <span className="flex min-w-0 flex-1 items-center gap-1 rounded-md border border-stone-200 bg-white px-1.5 py-[3px]">
-            <Search className="size-[8px] shrink-0 text-stone-400" />
-            <span className="truncate text-[6px] text-stone-400">{t('property.searchPlaceholder')}</span>
+          <span className="flex min-w-0 flex-1 items-center gap-1 rounded-md border border-[var(--sc-border)] bg-[var(--sc-surface)] px-1.5 py-[3px]">
+            <Search className="size-[8px] shrink-0 text-[var(--sc-ink-faint)]" />
+            <span className="truncate text-[6px] text-[var(--sc-ink-faint)]">{t('property.searchPlaceholder')}</span>
           </span>
-          <span className="flex w-[24%] shrink-0 items-center justify-between gap-[2px] rounded-md border border-stone-200 bg-white px-1.5 py-[3px]">
-            <span className="truncate text-[6px] text-stone-500">{filters[1] ?? ''}</span>
-            <span className="text-[5px] text-stone-400">▾</span>
+          <span className="flex w-[24%] shrink-0 items-center justify-between gap-[2px] rounded-md border border-[var(--sc-border)] bg-[var(--sc-surface)] px-1.5 py-[3px]">
+            <span className="truncate text-[6px] text-[var(--sc-ink-muted)]">{filters[1] ?? ''}</span>
+            <span className="text-[5px] text-[var(--sc-ink-faint)]">▾</span>
           </span>
           {/* G2-2 F9 + F8: always rendered (a screenshot must not mutate with
               the visitor's window — was `hidden … sm:flex`) and localized
               budget label — was the Latin literal "$50k+" (Arabic convention:
               Latin digits + trailing $). */}
-          <span className="flex w-[22%] shrink-0 items-center justify-between gap-[2px] rounded-md border border-stone-200 bg-white px-1.5 py-[3px]">
-            <span className="truncate text-[6px] text-stone-500">{t('property.budget')}</span>
-            <span className="text-[5px] text-stone-400">▾</span>
+          <span className="flex w-[22%] shrink-0 items-center justify-between gap-[2px] rounded-md border border-[var(--sc-border)] bg-[var(--sc-surface)] px-1.5 py-[3px]">
+            <span className="truncate text-[6px] text-[var(--sc-ink-muted)]">{t('property.budget')}</span>
+            <span className="text-[5px] text-[var(--sc-ink-faint)]">▾</span>
           </span>
           <span
             className="flex shrink-0 items-center rounded-md px-2.5 text-[6.5px] font-bold leading-none shadow-sm"
@@ -776,13 +869,13 @@ function PropertyNewScene({ accent, mock }: { accent: string; mock?: MockContent
       </div>
 
       {/* filter chips */}
-      <div className="flex h-[14px] shrink-0 items-center gap-1 border-b border-stone-100 bg-white px-2">
+      <div className="flex h-[14px] shrink-0 items-center gap-1 border-b border-[var(--sc-border-soft)] bg-[var(--sc-surface)] px-2">
         {filters.map((f, i) => (
           <span
             key={f}
             className={cn(
               'whitespace-nowrap rounded-full px-1.5 py-px text-[5.5px] font-semibold leading-none',
-              i === 0 ? 'text-white' : 'border border-stone-200 bg-white text-stone-500'
+              i === 0 ? 'text-white' : 'border border-[var(--sc-border)] bg-[var(--sc-surface)] text-[var(--sc-ink-muted)]'
             )}
             style={i === 0 ? { background: accent } : undefined}
           >
@@ -794,13 +887,23 @@ function PropertyNewScene({ accent, mock }: { accent: string; mock?: MockContent
       {/* listings + agent sidebar */}
       <div className="grid min-h-0 flex-1 grid-cols-[1.45fr_1fr] gap-1.5 p-2">
         <div className="flex min-h-0 min-w-0 flex-col gap-1.5">
-          {/* hero listing */}
-          <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-stone-200/80">
+          {/* hero listing — G3-4: real villa photo (the Stitch property
+              listing shot) over the old skyline gradient, which stays as
+              the tint fallback behind it */}
+          <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-[var(--sc-border)]">
             <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, #DBEAFE 0%, #EFF6FF 55%, #F0FDF4 100%)' }}>
               <div className="absolute inset-0">
                 <PropertyArt i={0} accent={accent} />
               </div>
             </div>
+            <img
+              src="/work-scenes/property-villa.webp"
+              alt=""
+              loading="lazy"
+              width={512}
+              height={382}
+              className="absolute inset-0 size-full object-cover"
+            />
             {/* G2-2 F5: the hero listing's price is this scene's display
                 figure (portals lead with money, not headlines) — 7px → 10px. */}
             <span
@@ -822,8 +925,8 @@ function PropertyNewScene({ accent, mock }: { accent: string; mock?: MockContent
             </span>
           </div>
           {/* spec strip + compact listings */}
-          <div className="flex shrink-0 items-center justify-between gap-2 rounded-lg border border-stone-200/80 bg-white px-2 py-[3px]">
-            <span className="flex items-center gap-[3px] text-[5.5px] font-medium text-stone-500">
+          <div className="flex shrink-0 items-center justify-between gap-2 rounded-lg border border-[var(--sc-border)] bg-[var(--sc-surface)] px-2 py-[3px]">
+            <span className="flex items-center gap-[3px] text-[5.5px] font-medium text-[var(--sc-ink-muted)]">
               <BedDouble className="size-[9px]" style={{ color: accent }} />
               {specs(0)[0]} {t('property.beds')}
               <Bath className="ms-1 size-[9px]" style={{ color: accent }} />
@@ -840,19 +943,19 @@ function PropertyNewScene({ accent, mock }: { accent: string; mock?: MockContent
               const card = cards?.[idx]
               const s = specs(idx)
               return (
-                <div key={idx} className="relative flex min-h-0 min-w-0 overflow-hidden rounded-lg border border-stone-200/80">
+                <div key={idx} className="relative flex min-h-0 min-w-0 overflow-hidden rounded-lg border border-[var(--sc-border)]">
                   <div className="relative w-[34%] shrink-0" style={{ background: 'linear-gradient(180deg, #E0E7FF 0%, #F0F9FF 100%)' }}>
                     <PropertyArt i={idx} accent={accent} />
                   </div>
                   <div className="flex min-w-0 flex-1 flex-col justify-center gap-[2px] p-[5px]">
-                    <span className="truncate text-[6px] font-bold leading-none text-stone-800">{card?.name ?? ''}</span>
-                    <span className="flex items-center gap-[3px] text-[5px] leading-none text-stone-500">
+                    <span className="truncate text-[6px] font-bold leading-none text-[var(--sc-ink-soft)]">{card?.name ?? ''}</span>
+                    <span className="flex items-center gap-[3px] text-[5px] leading-none text-[var(--sc-ink-muted)]">
                       <BedDouble className="size-[7px]" style={{ color: accent }} />{s[0]}
                       <Bath className="size-[7px]" style={{ color: accent }} />{s[1]}
                       <Ruler className="size-[7px]" style={{ color: accent }} />{s[2]}
                     </span>
                     <span className="flex items-center justify-between gap-1">
-                      <span dir="ltr" className="truncate text-[6.5px] font-extrabold leading-none text-stone-900">{card?.price ?? ''}</span>
+                      <span dir="ltr" className="truncate text-[6.5px] font-extrabold leading-none text-[var(--sc-ink)]">{card?.price ?? ''}</span>
                       {card?.old ? (
                         <span className="shrink-0 rounded-[3px] px-1 py-px text-[4.5px] font-bold leading-none text-white" style={{ background: '#dc2626' }}>
                           {t('property.priceCut')}
@@ -868,15 +971,15 @@ function PropertyNewScene({ accent, mock }: { accent: string; mock?: MockContent
 
         {/* sidebar: verified agent + platform stats */}
         <aside className="flex min-h-0 min-w-0 flex-col gap-1.5">
-          <div className="shrink-0 rounded-lg border border-stone-200/80 bg-stone-50 p-[6px]">
-            <p className="text-[5.5px] font-bold uppercase tracking-wide text-stone-400">{t('property.featuredTitle')}</p>
+          <div className="shrink-0 rounded-lg border border-[var(--sc-border)] bg-[var(--sc-surface-muted)] p-[6px]">
+            <p className="text-[5.5px] font-bold uppercase tracking-wide text-[var(--sc-ink-faint)]">{t('property.featuredTitle')}</p>
             <div className="mt-[4px] flex items-center gap-1.5">
               <span className="flex size-6 shrink-0 items-center justify-center rounded-full text-[7px] font-extrabold text-white" style={{ background: `linear-gradient(135deg, ${accent}, ${shadeColor(accent, 0.35)})` }}>
                 {t('property.featuredName').slice(0, 1)}
               </span>
               <div className="min-w-0">
-                <p className="truncate text-[6.5px] font-bold leading-tight text-stone-800">{t('property.featuredName')}</p>
-                <p className="truncate text-[5px] leading-tight text-stone-500">{t('property.featuredRole')}</p>
+                <p className="truncate text-[6.5px] font-bold leading-tight text-[var(--sc-ink-soft)]">{t('property.featuredName')}</p>
+                <p className="truncate text-[5px] leading-tight text-[var(--sc-ink-muted)]">{t('property.featuredRole')}</p>
               </div>
             </div>
             <span className="mt-[5px] flex items-center justify-center gap-1 rounded-md py-[3px] text-[6px] font-bold leading-none text-white" style={{ background: accent }}>
@@ -884,13 +987,13 @@ function PropertyNewScene({ accent, mock }: { accent: string; mock?: MockContent
               {t('property.contact')}
             </span>
           </div>
-          <div className="flex min-h-0 flex-1 flex-col justify-center gap-[5px] rounded-lg border border-stone-200/80 bg-white p-[6px]">
+          <div className="flex min-h-0 flex-1 flex-col justify-center gap-[5px] rounded-lg border border-[var(--sc-border)] bg-[var(--sc-surface)] p-[6px]">
             {stats.map((s, i) => (
               <div key={s} className="flex min-w-0 items-center gap-1.5">
                 <span className="flex size-4 shrink-0 items-center justify-center rounded-full" style={{ background: rgba(accent, 0.12) }}>
                   {i === 0 ? <Building2 className="size-[9px]" style={{ color: accent }} /> : i === 1 ? <ShieldCheck className="size-[9px]" style={{ color: accent }} /> : <PlayCircle className="size-[9px]" style={{ color: accent }} />}
                 </span>
-                <span className="min-w-0 truncate text-[6px] font-medium leading-none text-stone-600">{s}</span>
+                <span className="min-w-0 truncate text-[6px] font-medium leading-none text-[var(--sc-ink-muted)]">{s}</span>
               </div>
             ))}
           </div>
@@ -898,9 +1001,9 @@ function PropertyNewScene({ accent, mock }: { accent: string; mock?: MockContent
       </div>
 
       {/* footer */}
-      <div className="flex h-[13px] shrink-0 items-center justify-between gap-2 border-t border-stone-200 bg-stone-50 px-2">
-        <span className="truncate text-[5.5px] font-medium text-stone-500">{t('property.results')}</span>
-        <span className="truncate text-[5.5px] text-stone-400">
+      <div className="flex h-[13px] shrink-0 items-center justify-between gap-2 border-t border-[var(--sc-border)] bg-[var(--sc-surface-muted)] px-2">
+        <span className="truncate text-[5.5px] font-medium text-[var(--sc-ink-muted)]">{t('property.results')}</span>
+        <span className="truncate text-[5.5px] text-[var(--sc-ink-faint)]">
           {`© ${mock?.brand ? `${mock.brand} — ` : ''}${t('property.footerNote')}`}
         </span>
       </div>
@@ -921,7 +1024,24 @@ function PropertyNewScene({ accent, mock }: { accent: string; mock?: MockContent
  * never enrolled state; the enrolled state lives where it is labeled. */
 const YOUR_PROGRESS = 72
 
-function AcademyNewScene({ accent, mock }: { accent: string; mock?: MockContent }) {
+/** G3-4: real food photography for the three dish cards (the Stitch
+ *  restaurant's menu grid). Position-aligned with
+ *  pages.work.projects.p4.mock.cards — fattoush / shish tawook / knafeh. */
+const DINING_DISH_PHOTOS: ReadonlyArray<readonly [string, number, number]> = [
+  ['/work-scenes/dining-fattoush.webp', 384, 257],
+  ['/work-scenes/dining-tawook.webp', 384, 257],
+  ['/work-scenes/dining-knafeh.webp', 384, 257],
+]
+
+function AcademyNewScene({
+  accent,
+  palette,
+  mock,
+}: {
+  accent: string
+  palette?: ScenePalette
+  mock?: MockContent
+}) {
   const t = useTranslations('workSection.scenes')
   const nav = asStringArray(t.raw('academy.nav'))
   const cards = mock?.cards && mock.cards.length > 0 ? mock.cards.slice(0, 3) : null
@@ -929,12 +1049,15 @@ function AcademyNewScene({ accent, mock }: { accent: string; mock?: MockContent 
   const accentInk = accentInkColor(accent)
 
   return (
-    <div className="@container relative flex h-full flex-col overflow-hidden bg-white text-stone-900">
+    <div
+      className="@container relative flex h-full flex-col overflow-hidden bg-[var(--sc-surface)] text-[var(--sc-ink)]"
+      style={sceneVars(palette)}
+    >
       {/* G2-2 F7: browser chrome — traffic dots + lock + URL pill */}
       <BrowserChrome domain={t('academy.domain')} />
 
       {/* navbar: brand • links • enroll CTA */}
-      <div className="flex h-[20px] shrink-0 items-center justify-between gap-2 border-b border-stone-200 bg-white px-2">
+      <div className="flex h-[20px] shrink-0 items-center justify-between gap-2 border-b border-[var(--sc-border)] bg-[var(--sc-surface)] px-2">
         <div className="flex min-w-0 items-center gap-1">
           <span className="flex size-[8px] shrink-0 items-center justify-center rounded-full" style={{ background: accent }}>
             <GraduationCap className="size-[6px] text-white" />
@@ -943,7 +1066,7 @@ function AcademyNewScene({ accent, mock }: { accent: string; mock?: MockContent 
         </div>
         <nav className="flex min-w-0 items-center gap-2 overflow-hidden">
           {nav.map((l) => (
-            <span key={l} className="whitespace-nowrap text-[6px] font-medium text-stone-500">{l}</span>
+            <span key={l} className="whitespace-nowrap text-[6px] font-medium text-[var(--sc-ink-muted)]">{l}</span>
           ))}
         </nav>
         <span
@@ -961,14 +1084,19 @@ function AcademyNewScene({ accent, mock }: { accent: string; mock?: MockContent 
             className="absolute inset-0"
             style={{ background: `radial-gradient(70% 60% at 50% 42%, ${rgba(accent, 0.28)}, transparent 75%)` }}
           />
-          {/* faint lesson slides behind the player chrome */}
-          <div className="absolute inset-x-[16%] top-[22%] bottom-[30%] flex flex-col justify-center gap-[3px] rounded-md border border-white/10 bg-white/5 p-1.5">
-            <span className="h-[4px] w-3/5 rounded-full bg-white/25" />
-            <span className="h-[3px] w-4/5 rounded-full bg-white/15" />
-            <span className="h-[3px] w-2/5 rounded-full bg-white/15" />
-            <span className="mt-[3px] h-[10px] w-[46%] rounded-[3px]" style={{ background: rgba(accent, 0.4) }} />
-            <span className="h-[3px] w-3/5 rounded-full bg-white/15" />
-          </div>
+          {/* G3-4: real video poster — the UI-course instructor at her desk
+              (Stitch academy hero frame) replaces the abstract lesson-slide
+              bars; the player chrome (duration chip, play button, progress)
+              rides on top of the photo */}
+          <img
+            src="/work-scenes/academy-instructor.webp"
+            alt=""
+            loading="lazy"
+            width={512}
+            height={286}
+            className="absolute inset-0 size-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-slate-950/25" />
           <span className="absolute end-[5%] top-[6%] rounded-[3px] bg-black/50 px-1 py-px text-[5px] font-bold leading-none text-white/90" dir="ltr">
             {t('academy.duration')}
           </span>
@@ -1004,17 +1132,17 @@ function AcademyNewScene({ accent, mock }: { accent: string; mock?: MockContent 
             </span>
           ) : null}
           {mock?.sub ? (
-            <span className="line-clamp-2 text-[6.5px] leading-[1.35] text-stone-500">{mock.sub}</span>
+            <span className="line-clamp-2 text-[6.5px] leading-[1.35] text-[var(--sc-ink-muted)]">{mock.sub}</span>
           ) : null}
           <div className="flex min-w-0 items-center gap-1.5">
             <span className="flex shrink-0 items-center gap-[2px]">
               <Star className="size-[7px] fill-amber-400 text-amber-400" />
-              <span className="text-[6px] font-bold leading-none text-stone-800">{t('academy.rating')}</span>
+              <span className="text-[6px] font-bold leading-none text-[var(--sc-ink-soft)]">{t('academy.rating')}</span>
             </span>
-            <span className="truncate text-[5.5px] leading-none text-stone-500">{t('academy.students')}</span>
+            <span className="truncate text-[5.5px] leading-none text-[var(--sc-ink-muted)]">{t('academy.students')}</span>
             {/* G2-2 F9: always rendered — the scene is a fixed-frame
                 screenshot; it must not mutate with the visitor's window. */}
-            <span className="shrink-0 text-[5.5px] leading-none text-stone-400">{t('academy.reviews')}</span>
+            <span className="shrink-0 text-[5.5px] leading-none text-[var(--sc-ink-faint)]">{t('academy.reviews')}</span>
           </div>
           <div className="mt-[2px] flex min-w-0 items-center gap-1.5">
             {mock?.cta ? (
@@ -1025,17 +1153,17 @@ function AcademyNewScene({ accent, mock }: { accent: string; mock?: MockContent 
                 {mock.cta}
               </span>
             ) : null}
-            <span className="shrink-0 rounded-md border border-stone-200 px-1.5 py-[3px] text-[5.5px] font-semibold leading-none text-stone-500">
+            <span className="shrink-0 rounded-md border border-[var(--sc-border)] px-1.5 py-[3px] text-[5.5px] font-semibold leading-none text-[var(--sc-ink-muted)]">
               {t('academy.preview')}
             </span>
             {cards?.[0]?.price ? (
               <span className="flex min-w-0 items-baseline gap-1">
-                <span className="truncate text-[8px] font-extrabold leading-none text-stone-900">{cards[0].price}</span>
-                {cards[0].old ? <span className="shrink-0 text-[5.5px] leading-none text-stone-400 line-through">{cards[0].old}</span> : null}
+                <span className="truncate text-[8px] font-extrabold leading-none text-[var(--sc-ink)]">{cards[0].price}</span>
+                {cards[0].old ? <span className="shrink-0 text-[5.5px] leading-none text-[var(--sc-ink-faint)] line-through">{cards[0].old}</span> : null}
               </span>
             ) : null}
           </div>
-          <span className="mt-[2px] flex w-fit items-center gap-1 rounded-full border border-stone-200 bg-stone-50 px-1.5 py-px text-[5px] font-medium leading-none text-stone-500">
+          <span className="mt-[2px] flex w-fit items-center gap-1 rounded-full border border-[var(--sc-border)] bg-[var(--sc-surface-muted)] px-1.5 py-px text-[5px] font-medium leading-none text-[var(--sc-ink-muted)]">
             <Award className="size-[8px]" style={{ color: accent }} />
             {t('academy.certificate')}
           </span>
@@ -1043,12 +1171,12 @@ function AcademyNewScene({ accent, mock }: { accent: string; mock?: MockContent 
       </div>
 
       {/* curriculum checklist + your progress + instructor (G2-2 F6) */}
-      <div className="flex h-[38px] shrink-0 items-center gap-1.5 border-t border-stone-100 px-2 py-1">
+      <div className="flex h-[38px] shrink-0 items-center gap-1.5 border-t border-[var(--sc-border-soft)] px-2 py-1">
         {/* "تقدّمك في الدورة" — the ENROLLED state lives here, explicitly
             labeled; the course cards below stay pure catalog. */}
         <div className="flex w-[76px] shrink-0 flex-col gap-[3px]">
           <div className="flex min-w-0 items-center justify-between gap-1">
-            <span className="min-w-0 truncate text-[5px] font-bold leading-none text-stone-700">
+            <span className="min-w-0 truncate text-[5px] font-bold leading-none text-[var(--sc-ink-soft)]">
               {t('academy.yourProgress')}
             </span>
             <span
@@ -1059,13 +1187,13 @@ function AcademyNewScene({ accent, mock }: { accent: string; mock?: MockContent 
               {`${YOUR_PROGRESS}%`}
             </span>
           </div>
-          <div className="h-[3px] w-full overflow-hidden rounded-full bg-stone-200/80">
+          <div className="h-[3px] w-full overflow-hidden rounded-full bg-[var(--sc-border)]">
             <div className="h-full rounded-full" style={{ width: `${YOUR_PROGRESS}%`, background: accent }} />
           </div>
         </div>
         <div className="grid min-w-0 flex-1 grid-cols-3 gap-1">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="flex min-w-0 items-center gap-1 rounded-md border border-stone-200/80 bg-white px-1 py-[3px]">
+            <div key={i} className="flex min-w-0 items-center gap-1 rounded-md border border-[var(--sc-border)] bg-[var(--sc-surface)] px-1 py-[3px]">
               <span
                 className="flex size-[9px] shrink-0 items-center justify-center rounded-full"
                 style={{ background: i === 0 ? accent : rgba(accent, 0.12) }}
@@ -1073,21 +1201,21 @@ function AcademyNewScene({ accent, mock }: { accent: string; mock?: MockContent 
                 {i === 0 ? <Check className="size-[6px] text-white" /> : <span className="size-[3px] rounded-full" style={{ background: accent }} />}
               </span>
               <div className="min-w-0">
-                <p className="truncate text-[5.5px] font-bold leading-none text-stone-700">
+                <p className="truncate text-[5.5px] font-bold leading-none text-[var(--sc-ink-soft)]">
                   {`${t('academy.module')} ${i + 1}`}
                 </p>
-                <p className="mt-px truncate text-[4.5px] leading-none text-stone-400">{t('academy.lessons')}</p>
+                <p className="mt-px truncate text-[4.5px] leading-none text-[var(--sc-ink-faint)]">{t('academy.lessons')}</p>
               </div>
             </div>
           ))}
         </div>
-        <div className="flex shrink-0 items-center gap-1 rounded-full border border-stone-200 bg-stone-50 py-px pe-1.5 ps-px">
+        <div className="flex shrink-0 items-center gap-1 rounded-full border border-[var(--sc-border)] bg-[var(--sc-surface-muted)] py-px pe-1.5 ps-px">
           <span className="flex size-[14px] items-center justify-center rounded-full text-[6px] font-extrabold text-white" style={{ background: `linear-gradient(135deg, ${accent}, ${shadeColor(accent, 0.35)})` }}>
             {t('academy.instructorName').slice(0, 1)}
           </span>
           <div className="min-w-0 leading-none">
-            <p className="truncate text-[5.5px] font-bold text-stone-800">{t('academy.instructorName')}</p>
-            <p className="mt-px truncate text-[4.5px] text-stone-500">{t('academy.instructorRole')}</p>
+            <p className="truncate text-[5.5px] font-bold text-[var(--sc-ink-soft)]">{t('academy.instructorName')}</p>
+            <p className="mt-px truncate text-[4.5px] text-[var(--sc-ink-muted)]">{t('academy.instructorRole')}</p>
           </div>
         </div>
       </div>
@@ -1096,7 +1224,7 @@ function AcademyNewScene({ accent, mock }: { accent: string; mock?: MockContent 
           bars; the enrolled progress lives in the labeled treatment above) */}
       <div className="grid h-[26%] shrink-0 grid-cols-3 gap-1 px-2 pb-1">
         {(cards ?? []).map((card, i) => (
-          <div key={`${card.name}-${i}`} className="relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-md border border-stone-200/90 bg-white p-[3px] shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
+          <div key={`${card.name}-${i}`} className="relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-md border border-[var(--sc-border)] bg-[var(--sc-surface)] p-[3px] shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
             <div className="relative min-h-0 flex-1 overflow-hidden rounded-[4px]" style={{ background: `linear-gradient(150deg, ${rgba(accent, 0.28)} 0%, ${rgba(accent, 0.08)} 100%)` }}>
               <span className="absolute left-1/2 top-1/2 flex size-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 shadow-sm">
                 <PlayCircle className="size-3" style={{ color: accent }} />
@@ -1105,19 +1233,19 @@ function AcademyNewScene({ accent, mock }: { accent: string; mock?: MockContent 
                 {['12h', '8h', '16h'][i % 3]}
               </span>
             </div>
-            <div className="mt-[2px] truncate text-[5.5px] font-semibold leading-tight text-stone-800">{card.name}</div>
+            <div className="mt-[2px] truncate text-[5.5px] font-semibold leading-tight text-[var(--sc-ink-soft)]">{card.name}</div>
             <div className="flex items-center justify-between gap-0.5">
-              <span className="truncate text-[6px] font-bold leading-none text-stone-900">{card.price}</span>
-              {card.old ? <span className="shrink-0 text-[4.5px] leading-none text-stone-400 line-through">{card.old}</span> : null}
+              <span className="truncate text-[6px] font-bold leading-none text-[var(--sc-ink)]">{card.price}</span>
+              {card.old ? <span className="shrink-0 text-[4.5px] leading-none text-[var(--sc-ink-faint)] line-through">{card.old}</span> : null}
             </div>
           </div>
         ))}
       </div>
 
       {/* footer */}
-      <div className="flex h-[12px] shrink-0 items-center justify-between border-t border-stone-200 bg-stone-50 px-2">
-        <span className="truncate text-[5.5px] text-stone-400">{t('academy.level')}</span>
-        <span className="truncate text-[5.5px] text-stone-400">{`© ${mock?.brand ? `${mock.brand} — ` : ''}${t('academy.footerNote')}`}</span>
+      <div className="flex h-[12px] shrink-0 items-center justify-between border-t border-[var(--sc-border)] bg-[var(--sc-surface-muted)] px-2">
+        <span className="truncate text-[5.5px] text-[var(--sc-ink-faint)]">{t('academy.level')}</span>
+        <span className="truncate text-[5.5px] text-[var(--sc-ink-faint)]">{`© ${mock?.brand ? `${mock.brand} — ` : ''}${t('academy.footerNote')}`}</span>
       </div>
     </div>
   )
@@ -1125,29 +1253,21 @@ function AcademyNewScene({ accent, mock }: { accent: string; mock?: MockContent 
 
 /* --------------------------------------------------------------------------
    Scene 1d — "dining-new": restaurant site (R9 industry scene).
-   Signature elements: hero dish with steam, menu tabs, dish cards, and a
-   live reservation strip — warm cream palette.
+   Signature elements: hero dish photo + menu tabs + dish cards and a live
+   reservation strip — warm espresso/cream/tomato palette (G3-4: the dish
+   imagery is now the real Stitch food photography — the old CSS plate art
+   was removed with the imagery port).
    -------------------------------------------------------------------------- */
 
-function DishArt({ accent, small }: { accent: string; small?: boolean }) {
-  const size = small ? 'size-[70%]' : 'size-[74%]'
-  return (
-    <>
-      <div className={`absolute left-1/2 top-1/2 ${size} -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_6px_14px_rgba(0,0,0,0.18)]`} />
-      <div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[45%] rounded-full"
-        style={{ width: small ? '42%' : '46%', height: small ? '26%' : '30%', background: `radial-gradient(circle at 38% 32%, ${tintColor(accent, 0.25)}, ${accent})` }}
-      />
-      <div className="absolute left-1/2 top-1/2 -translate-x-[30%] -translate-y-[55%] size-[10%] rounded-full bg-white/50" />
-      {/* steam wisps — gentle, one-shot feel (frozen by reduced-motion switch) */}
-      <span className="ba-scene-steam absolute left-[42%] top-[16%] h-[16%] w-[3%] rounded-full bg-white/60 blur-[1.5px]" />
-      <span className="ba-scene-steam absolute left-[50%] top-[12%] h-[19%] w-[3%] rounded-full bg-white/50 blur-[1.5px]" style={{ animationDelay: '0.7s' }} />
-      <span className="ba-scene-steam absolute left-[58%] top-[16%] h-[15%] w-[3%] rounded-full bg-white/45 blur-[1.5px]" style={{ animationDelay: '1.3s' }} />
-    </>
-  )
-}
-
-function DiningNewScene({ accent, mock }: { accent: string; mock?: MockContent }) {
+function DiningNewScene({
+  accent,
+  palette,
+  mock,
+}: {
+  accent: string
+  palette?: ScenePalette
+  mock?: MockContent
+}) {
   const t = useTranslations('workSection.scenes')
   const nav = asStringArray(t.raw('dining.nav'))
   const tabs = asStringArray(t.raw('dining.menuTabs'))
@@ -1156,12 +1276,15 @@ function DiningNewScene({ accent, mock }: { accent: string; mock?: MockContent }
   const accentInk = accentInkColor(accent)
 
   return (
-    <div className="@container relative flex h-full flex-col overflow-hidden bg-[#FFFBF5] text-stone-900">
+    <div
+      className="@container relative flex h-full flex-col overflow-hidden bg-[var(--sc-surface)] text-[var(--sc-ink)]"
+      style={sceneVars(palette)}
+    >
       {/* G2-2 F7: browser chrome — traffic dots + lock + URL pill */}
       <BrowserChrome domain={t('dining.domain')} />
 
       {/* navbar: brand • links • order phone */}
-      <div className="flex h-[20px] shrink-0 items-center justify-between gap-2 border-b border-stone-200 bg-white px-2">
+      <div className="flex h-[20px] shrink-0 items-center justify-between gap-2 border-b border-[var(--sc-border)] bg-[var(--sc-surface)] px-2">
         <div className="flex min-w-0 items-center gap-1">
           <span className="flex size-[8px] shrink-0 items-center justify-center rounded-[2px]" style={{ background: accent }}>
             <UtensilsCrossed className="size-[6px] text-white" />
@@ -1170,7 +1293,7 @@ function DiningNewScene({ accent, mock }: { accent: string; mock?: MockContent }
         </div>
         <nav className="flex min-w-0 items-center gap-2 overflow-hidden">
           {nav.map((l) => (
-            <span key={l} className="whitespace-nowrap text-[6px] font-medium text-stone-500">{l}</span>
+            <span key={l} className="whitespace-nowrap text-[6px] font-medium text-[var(--sc-ink-muted)]">{l}</span>
           ))}
         </nav>
         <span className="flex shrink-0 items-center gap-1 rounded-full px-2 py-[2px] text-[6.5px] font-bold leading-none" style={{ background: accent, color: onAccent }}>
@@ -1183,7 +1306,17 @@ function DiningNewScene({ accent, mock }: { accent: string; mock?: MockContent }
       <div className="grid min-h-0 flex-1 grid-cols-[0.9fr_1.1fr] gap-1.5 p-2">
         <div className="relative min-h-0 overflow-hidden rounded-xl" style={{ background: 'linear-gradient(160deg, #FEF3C7 0%, #FFF7ED 60%, #FFEDD5 100%)' }}>
           <div className="absolute inset-0" style={{ background: 'radial-gradient(60% 55% at 50% 45%, rgba(255,255,255,0.5), transparent 70%)' }} />
-          <DishArt accent={accent} />
+          {/* G3-4: the real hero dish — the Stitch mixed-grill platter
+              (charcoal skewers on the wooden table) replaces the CSS plate
+              art, which stays beneath as the tint fallback */}
+          <img
+            src="/work-scenes/dining-grill.webp"
+            alt=""
+            loading="lazy"
+            width={512}
+            height={286}
+            className="absolute inset-0 size-full object-cover"
+          />
           <span className="absolute bottom-[6%] start-[6%] flex items-center gap-[3px] rounded-full bg-black/45 px-1.5 py-[2px] text-[5.5px] font-medium leading-none text-white backdrop-blur-sm">
             <Clock3 className="size-[7px] text-white/80" />
             {t('dining.delivery')}
@@ -1210,14 +1343,14 @@ function DiningNewScene({ accent, mock }: { accent: string; mock?: MockContent }
             </span>
           ) : null}
           {mock?.sub ? (
-            <span className="line-clamp-2 text-[6.5px] leading-[1.35] text-stone-500">{mock.sub}</span>
+            <span className="line-clamp-2 text-[6.5px] leading-[1.35] text-[var(--sc-ink-muted)]">{mock.sub}</span>
           ) : null}
           <div className="flex min-w-0 items-center gap-1.5">
             <span className="flex shrink-0 items-center gap-[2px]">
               <Star className="size-[7px] fill-amber-400 text-amber-400" />
-              <span className="text-[6px] font-bold leading-none text-stone-800">{t('dining.rating')}</span>
+              <span className="text-[6px] font-bold leading-none text-[var(--sc-ink-soft)]">{t('dining.rating')}</span>
             </span>
-            <span className="truncate text-[5.5px] leading-none text-stone-500">{t('dining.reviewsCount')}</span>
+            <span className="truncate text-[5.5px] leading-none text-[var(--sc-ink-muted)]">{t('dining.reviewsCount')}</span>
           </div>
           <div className="mt-[2px] flex min-w-0 items-center gap-1.5">
             {mock?.cta ? (
@@ -1228,7 +1361,7 @@ function DiningNewScene({ accent, mock }: { accent: string; mock?: MockContent }
                 {mock.cta}
               </span>
             ) : null}
-            <span className="shrink-0 rounded-md border border-stone-200 bg-white px-1.5 py-[3px] text-[5.5px] font-semibold leading-none text-stone-500">
+            <span className="shrink-0 rounded-md border border-[var(--sc-border)] bg-[var(--sc-surface)] px-1.5 py-[3px] text-[5.5px] font-semibold leading-none text-[var(--sc-ink-muted)]">
               {tabs[0] ?? ''}
             </span>
           </div>
@@ -1236,20 +1369,20 @@ function DiningNewScene({ accent, mock }: { accent: string; mock?: MockContent }
       </div>
 
       {/* menu tabs */}
-      <div className="flex h-[14px] shrink-0 items-center gap-1 border-t border-stone-200/70 px-2">
+      <div className="flex h-[14px] shrink-0 items-center gap-1 border-t border-[var(--sc-border)] px-2">
         {tabs.map((tab, i) => (
           <span
             key={tab}
             className={cn(
               'whitespace-nowrap rounded-full px-2 py-[2px] text-[5.5px] font-semibold leading-none',
-              i === 0 ? 'text-white' : 'border border-stone-200 bg-white text-stone-500'
+              i === 0 ? 'text-white' : 'border border-[var(--sc-border)] bg-[var(--sc-surface)] text-[var(--sc-ink-muted)]'
             )}
             style={i === 0 ? { background: accent } : undefined}
           >
             {tab}
           </span>
         ))}
-        <span className="ms-auto shrink-0 text-[5px] text-stone-400">{t('dining.openHours')}</span>
+        <span className="ms-auto shrink-0 text-[5px] text-[var(--sc-ink-faint)]">{t('dining.openHours')}</span>
       </div>
 
       {/* dish cards */}
@@ -1260,18 +1393,30 @@ function DiningNewScene({ accent, mock }: { accent: string; mock?: MockContent }
           // old check printed a literal "−null%" badge. Mirrors SiteNewScene.
           const off = discountPct(card.price, card.old)
           return (
-            <div key={`${card.name}-${i}`} className="relative flex min-h-0 min-w-0 flex-col rounded-md border border-stone-200/90 bg-white p-[3px] shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
+            <div key={`${card.name}-${i}`} className="relative flex min-h-0 min-w-0 flex-col rounded-md border border-[var(--sc-border)] bg-[var(--sc-surface)] p-[3px] shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
               <div className="relative min-h-0 flex-1 overflow-hidden rounded-[4px]" style={{ background: 'linear-gradient(160deg, #FEF3C7 0%, #FFF7ED 100%)' }}>
-                <DishArt accent={accent} small />
+                {(() => {
+                  const photo = DINING_DISH_PHOTOS[i % DINING_DISH_PHOTOS.length]
+                  return photo ? (
+                    <img
+                      src={photo[0]}
+                      alt=""
+                      loading="lazy"
+                      width={photo[1]}
+                      height={photo[2]}
+                      className="absolute inset-0 size-full object-cover"
+                    />
+                  ) : null
+                })()}
                 {off !== null && (
                   <span className="absolute start-[3px] top-[3px] rounded-[2px] px-[3px] py-px text-[5px] font-bold leading-none text-white" style={{ background: '#dc2626' }}>
                     {`−${off}%`}
                   </span>
                 )}
               </div>
-              <div className="mt-[2px] truncate text-[6px] font-medium leading-tight text-stone-800">{card.name}</div>
+              <div className="mt-[2px] truncate text-[6px] font-medium leading-tight text-[var(--sc-ink-soft)]">{card.name}</div>
               <div className="flex items-center justify-between gap-0.5">
-                <span className="truncate text-[7px] font-bold leading-none text-stone-900">{card.price}</span>
+                <span className="truncate text-[7px] font-bold leading-none text-[var(--sc-ink)]">{card.price}</span>
                 <span
                   className="shrink-0 rounded-[3px] px-[4px] py-[1px] text-[6px] font-bold leading-none"
                   style={{ background: rgba(accent, 0.15), color: accentInk }}
@@ -1285,13 +1430,13 @@ function DiningNewScene({ accent, mock }: { accent: string; mock?: MockContent }
       </div>
 
       {/* live reservation strip */}
-      <div className="mt-1 flex h-[22px] shrink-0 items-center justify-between gap-1.5 rounded-lg border border-stone-200/80 bg-white px-2">
-        <span className="flex min-w-0 items-center gap-1 text-[5.5px] font-medium text-stone-500">
+      <div className="mt-1 flex h-[22px] shrink-0 items-center justify-between gap-1.5 rounded-lg border border-[var(--sc-border)] bg-[var(--sc-surface)] px-2">
+        <span className="flex min-w-0 items-center gap-1 text-[5.5px] font-medium text-[var(--sc-ink-muted)]">
           <CalendarCheck className="size-[9px] shrink-0" style={{ color: accent }} />
           <span className="truncate">{t('dining.dateTime')}</span>
           {/* G2-2 F9: always rendered — the scene is a fixed-frame
               screenshot; it must not mutate with the visitor's window. */}
-          <span className="h-3 w-px shrink-0 bg-stone-200" />
+          <span className="h-3 w-px shrink-0 bg-[var(--sc-border)]" />
           <Users className="size-[8px] shrink-0" style={{ color: accent }} />
           <span className="truncate">{t('dining.guests')}</span>
         </span>
@@ -1304,8 +1449,8 @@ function DiningNewScene({ accent, mock }: { accent: string; mock?: MockContent }
       </div>
 
       {/* footer */}
-      <div className="mt-[3px] flex h-[12px] shrink-0 items-center justify-center border-t border-stone-200 bg-stone-50 px-2">
-        <span className="truncate text-[5.5px] text-stone-400">
+      <div className="mt-[3px] flex h-[12px] shrink-0 items-center justify-center border-t border-[var(--sc-border)] bg-[var(--sc-surface-muted)] px-2">
+        <span className="truncate text-[5.5px] text-[var(--sc-ink-faint)]">
           {`© ${mock?.brand ? `${mock.brand} — ` : ''}${t('dining.footerNote')}`}
         </span>
       </div>
@@ -1948,6 +2093,349 @@ function DashNewScene({
 }
 
 /* --------------------------------------------------------------------------
+   Scene 3b — "kanban-new": the p6 creative-studio ops board (G3-4 — the
+   p5/p6 twin cure: DashNewScene stays the dark SaaS console for p5; this is
+   Bassam's LIGHT warm-graphite planner with one amber accent). RTL: the
+   nav sidebar sits at the START (right) edge and the columns flow
+   right-to-left with the reading order. Conventions per G3-3: no browser
+   chrome (an internal app, not a website mock), fixed micro UI type like
+   DashNewScene (a board is dense ops tooling — no display clamp), and the
+   whole region is aria-hidden mock content via the Scene wrapper.
+   -------------------------------------------------------------------------- */
+
+/** p6 brand world (Stitch reference + G2-2 spec): warm graphite ink on a
+ *  warm paper-white surface, ONE amber accent — a well-loved planner, warm
+ *  and tactile, never corporate blue. Scene-local by design: the kanban is
+ *  the only consumer. */
+const KANBAN_PALETTE = {
+  surface: '#F7F5F0',
+  panel: '#FDFCF9',
+  well: '#EFECE3',
+  border: '#E3DFD3',
+  ink: '#2A2A28',
+  inkSoft: '#57534A',
+  inkMuted: '#8A857B',
+  inkFaint: '#B5B0A5',
+} as const
+
+/** Per-column badge treatments — gray (triage) / amber (in progress) /
+ *  blue-gray (with client) / green (approved). */
+const KANBAN_BADGES: ReadonlyArray<{ bg: string; ink: string; dot: string }> = [
+  { bg: '#ECE9E0', ink: '#6B675D', dot: '#B5B0A5' },
+  { bg: 'rgba(217,119,6,0.16)', ink: '#A05A08', dot: '#D97706' },
+  { bg: '#E6EAEE', ink: '#5A6B7E', dot: '#8496A8' },
+  { bg: '#E3F0E6', ink: '#2E7D4A', dot: '#4CAF70' },
+]
+
+/** G3-4: photographic card thumbnails — crops of the Stitch design-work
+ *  collage (website comp on a laptop, clinic app screen, printed brand
+ *  guide, menu mockup, business cards). */
+const KANBAN_THUMBS: ReadonlyArray<readonly [string, number, number]> = [
+  ['/work-scenes/kanban-thumb-website.webp', 220, 257],
+  ['/work-scenes/kanban-thumb-app.webp', 120, 112],
+  ['/work-scenes/kanban-thumb-brandguide.webp', 260, 100],
+  ['/work-scenes/kanban-thumb-menu.webp', 240, 138],
+  ['/work-scenes/kanban-thumb-cards.webp', 120, 62],
+]
+
+/** Card→thumb map per column (positional — client names live in the
+ *  catalog, the work-type imagery is visual and locale-neutral). */
+const KANBAN_COLUMN_THUMBS: ReadonlyArray<ReadonlyArray<number>> = [
+  [4, 3], // بريف: identity cards · storefront work
+  [0, 1, 2], // قيد التصميم: website comp · app · presentation
+  [3, 0], // مراجعة العميل: packaging · site comp
+  [2, 4], // جاهز للتسليم: brand guide · identity cards
+]
+
+interface KanbanCard {
+  client: string
+  task: string
+  chip: string
+}
+
+interface KanbanColumn {
+  title: string
+  badge: string
+  cards: KanbanCard[]
+}
+
+/** scenes.kanban.columns narrower — same never-throw, degrade-to-empty
+ *  contract as the other scene catalog readers. */
+function asKanbanColumns(value: unknown): KanbanColumn[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter(isRecord)
+    .map((col) => {
+      const rawCards = col['cards']
+      const cards: KanbanCard[] = Array.isArray(rawCards)
+        ? rawCards
+            .filter(isRecord)
+            .map((c) => ({
+              client: asString(c['client']),
+              task: asString(c['task']),
+              chip: asString(c['chip']),
+            }))
+            .filter((c) => c.client !== '')
+        : []
+      return { title: asString(col['title']), badge: asString(col['badge']), cards }
+    })
+    .filter((col) => col.title !== '')
+}
+
+const KANBAN_NAV_ICONS = [LayoutDashboard, FileText, ListTodo, BarChart3, Archive] as const
+
+function StudioKanbanScene({ accent, mock }: { accent: string; mock?: MockContent }) {
+  const t = useTranslations('workSection.scenes')
+  const nav = asStringArray(t.raw('kanban.nav'))
+  const columns = asKanbanColumns(t.raw('kanban.columns'))
+  const K = KANBAN_PALETTE
+  const onAccent = onAccentColor(accent)
+  // avatars rendered as letterless warm-gradient circles — at 8px letters
+  // read as noise; the cluster (3 heads) carries the meaning
+  const AVATAR_TONES = ['#C98A5B', '#8A9B77', '#A98FA6'] as const
+
+  return (
+    <div className="flex h-full overflow-hidden" style={{ background: K.surface, color: K.ink }}>
+      {/* right sidebar (RTL start edge) — nav + capacity widget */}
+      <aside
+        className="flex w-[62px] shrink-0 flex-col gap-1 border-e p-1"
+        style={{ borderColor: K.border, background: K.panel }}
+      >
+        <div
+          className="flex min-w-0 items-center gap-1 rounded-md px-1 py-[3px]"
+          style={{ background: 'rgba(217,119,6,0.14)' }}
+        >
+          <span className="size-[6px] shrink-0 rounded-full" style={{ background: accent }} />
+          <span className="truncate text-[6.5px] font-bold leading-none">
+            {mock?.brand ?? ''} · {t('kanban.ops')}
+          </span>
+        </div>
+        <nav className="flex flex-col gap-[2px]">
+          {nav.map((item, i) => {
+            const Icon = KANBAN_NAV_ICONS[i % KANBAN_NAV_ICONS.length] ?? LayoutDashboard
+            const active = i === 0
+            return (
+              <span
+                key={item}
+                className={cn(
+                  'relative flex min-w-0 items-center gap-1 rounded-[4px] px-1 py-[3px] text-[5.5px] font-semibold leading-none',
+                  active ? 'text-[#2A2A28]' : 'text-[#8A857B]'
+                )}
+                style={active ? { background: 'rgba(217,119,6,0.12)' } : undefined}
+              >
+                {active && (
+                  // amber activity bar on the START (right) edge — the RTL idiom
+                  <span
+                    className="absolute inset-y-[2px] start-0 w-[2px] rounded-full"
+                    style={{ background: accent }}
+                  />
+                )}
+                <Icon
+                  className="size-[9px] shrink-0"
+                  style={{ color: active ? accent : '#B5B0A5' }}
+                />
+                <span className="truncate">{item}</span>
+              </span>
+            )
+          })}
+        </nav>
+        {/* capacity widget */}
+        <div className="mt-auto flex shrink-0 flex-col gap-[3px] rounded-md border px-1 py-[3px]" style={{ borderColor: K.border }}>
+          <span className="truncate text-[4.5px] font-semibold leading-none" style={{ color: K.inkMuted }}>
+            {t('kanban.capacity')}
+          </span>
+          <div className="flex items-center justify-between gap-1">
+            <span dir="ltr" className="shrink-0 text-[5px] font-bold leading-none tabular-nums" style={{ color: K.ink }}>
+              {t('kanban.capacityValue')}
+            </span>
+            <div className="h-[3px] min-w-0 flex-1 overflow-hidden rounded-full" style={{ background: '#E3DFD3' }}>
+              <div className="h-full w-2/3 rounded-full" style={{ background: accent }} />
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* main column */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* topbar: greeting • search • + new brief • avatars • bell
+            (pe-[52px] keeps the row clear of the AFTER chip — DashNewScene
+            convention) */}
+        <div
+          className="flex h-[22px] shrink-0 items-center justify-between gap-1 border-b px-1.5 pe-[52px]"
+          style={{ borderColor: K.border, background: K.panel }}
+        >
+          <span className="min-w-0 truncate text-[6px] font-semibold leading-none" style={{ color: K.inkSoft }}>
+            {t('kanban.greeting')}
+          </span>
+          <div className="flex shrink-0 items-center gap-1">
+            <span
+              className="flex min-w-0 items-center gap-0.5 rounded-full border px-1 py-px"
+              style={{ borderColor: K.border, background: K.surface }}
+            >
+              <Search className="size-[8px] shrink-0" style={{ color: K.inkFaint }} />
+              <span className="max-w-[56px] truncate text-[5.5px] leading-none" style={{ color: K.inkFaint }}>
+                {t('kanban.search')}
+              </span>
+            </span>
+            <span
+              className="flex shrink-0 items-center gap-[2px] rounded-md px-1.5 py-[2.5px] text-[5.5px] font-bold leading-none shadow-sm"
+              style={{ background: accent, color: onAccent }}
+            >
+              <Plus className="size-[8px]" />
+              {t('kanban.newBrief')}
+            </span>
+            {/* avatar cluster */}
+            <span className="flex shrink-0">
+              {AVATAR_TONES.map((tone, i) => (
+                <span
+                  key={tone}
+                  className="size-[10px] rounded-full border"
+                  style={{
+                    background: `linear-gradient(135deg, ${tone}, ${shadeColor(tone, 0.3)})`,
+                    borderColor: K.panel,
+                    marginInlineStart: i === 0 ? 0 : '-2.5px',
+                  }}
+                />
+              ))}
+            </span>
+            <span className="relative block">
+              <Bell className="size-[10px]" style={{ color: K.inkMuted }} />
+              <span className="absolute -end-0.5 -top-0.5 size-[4px] rounded-full" style={{ background: accent }} />
+            </span>
+          </div>
+        </div>
+
+        {/* brief intake strip — the ops-tool signature */}
+        <div
+          className="flex h-[18px] shrink-0 items-center gap-1 border-b px-1.5 py-[2px]"
+          style={{ borderColor: K.border, background: K.panel }}
+        >
+          <span
+            className="flex min-w-0 flex-1 items-center gap-1 rounded-md border px-1.5 py-[2px]"
+            style={{ borderColor: K.border, background: K.surface }}
+          >
+            <FileText className="size-[7px] shrink-0" style={{ color: K.inkFaint }} />
+            <span className="truncate text-[5px] leading-none" style={{ color: K.inkFaint }}>
+              {t('kanban.intakeTitle')}
+            </span>
+          </span>
+          <span
+            className="flex w-[19%] shrink-0 items-center justify-between gap-[2px] rounded-md border px-1 py-[2px]"
+            style={{ borderColor: K.border, background: K.surface }}
+          >
+            <span className="truncate text-[5px] leading-none" style={{ color: K.inkMuted }}>
+              {t('kanban.intakeClient')}
+            </span>
+            <span className="text-[4px]" style={{ color: K.inkFaint }}>▾</span>
+          </span>
+          <span
+            dir="ltr"
+            className="flex shrink-0 items-center rounded-md px-1 py-[2px] text-[5px] font-semibold leading-none tabular-nums"
+            style={{ background: 'rgba(217,119,6,0.14)', color: '#A05A08' }}
+          >
+            {t('kanban.intakeBudget')}
+          </span>
+          <span
+            className="flex w-[15%] shrink-0 items-center gap-[2px] rounded-md border px-1 py-[2px]"
+            style={{ borderColor: K.border, background: K.surface }}
+          >
+            <CalendarCheck className="size-[7px] shrink-0" style={{ color: K.inkMuted }} />
+            <span className="truncate text-[5px] leading-none" style={{ color: K.inkMuted }}>
+              {t('kanban.intakeDeadline')}
+            </span>
+          </span>
+          <span
+            className="flex shrink-0 items-center rounded-md px-1.5 py-[2.5px] text-[5px] font-bold leading-none"
+            style={{ background: accent, color: onAccent }}
+          >
+            {t('kanban.intakeAdd')}
+          </span>
+        </div>
+
+        {/* the board — 4 columns flowing right-to-left */}
+        <div className="flex min-h-0 flex-1 gap-1 p-1.5">
+          {columns.map((col, ci) => {
+            const badge = KANBAN_BADGES[ci % KANBAN_BADGES.length] ?? {
+              bg: '#ECE9E0',
+              ink: '#6B675D',
+              dot: '#B5B0A5',
+            }
+            return (
+              <div
+                key={col.title}
+                className="flex min-w-0 flex-1 flex-col gap-1 overflow-hidden rounded-lg border p-[3px]"
+                style={{ borderColor: K.border, background: K.well }}
+              >
+                {/* column header: dot • title • count chip */}
+                <div className="flex shrink-0 items-center gap-[3px] pe-[2px]">
+                  <span className="size-[4px] shrink-0 rounded-full" style={{ background: badge.dot }} />
+                  <span className="min-w-0 truncate text-[5.5px] font-bold leading-none" style={{ color: K.ink }}>
+                    {col.title}
+                  </span>
+                  <span
+                    dir="ltr"
+                    className="ms-auto shrink-0 rounded-full px-[4px] py-px text-[4.5px] font-bold leading-none tabular-nums"
+                    style={{ background: K.panel, color: K.inkMuted, border: `1px solid ${K.border}` }}
+                  >
+                    {col.cards.length}
+                  </span>
+                </div>
+                {/* cards */}
+                <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-hidden">
+                  {col.cards.map((card, i) => {
+                    const thumbIdx = KANBAN_COLUMN_THUMBS[ci]?.[i] ?? i % KANBAN_THUMBS.length
+                    const thumb =
+                      KANBAN_THUMBS[thumbIdx] ??
+                      (['/work-scenes/kanban-thumb-website.webp', 220, 257] as const)
+                    return (
+                      <div
+                        key={`${card.client}-${i}`}
+                        className="shrink-0 rounded-[4px] border p-[3px] shadow-[0_1px_2px_rgba(42,42,40,0.06)]"
+                        style={{ borderColor: K.border, background: K.panel }}
+                      >
+                        <div className="flex min-w-0 items-start gap-[3px]">
+                          <img
+                            src={thumb[0]}
+                            alt=""
+                            loading="lazy"
+                            width={thumb[1]}
+                            height={thumb[2]}
+                            className="h-[24px] w-[32px] shrink-0 rounded-[3px] object-cover"
+                          />
+                          <div className="min-w-0 leading-none">
+                            <p className="truncate text-[5.5px] font-bold" style={{ color: K.ink }}>
+                              {card.client}
+                            </p>
+                            <p className="mt-[2px] truncate text-[4.5px]" style={{ color: K.inkMuted }}>
+                              {card.task}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-[3px] flex items-center justify-between gap-[3px]">
+                          <span className="min-w-0 truncate text-[4.5px] leading-none" style={{ color: K.inkFaint }}>
+                            {card.chip}
+                          </span>
+                          <span
+                            className="shrink-0 whitespace-nowrap rounded-full px-[4px] py-[1px] text-[4.5px] font-bold leading-none"
+                            style={{ background: badge.bg, color: badge.ink }}
+                          >
+                            {col.badge}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* --------------------------------------------------------------------------
    Scene 4 — "dashboard-old": spreadsheet misery
    -------------------------------------------------------------------------- */
 
@@ -2168,22 +2656,28 @@ function DashOldScene() {
 function Scene({
   variant,
   accent,
+  palette,
   mock,
   industry,
   tone,
 }: {
   variant: SceneVariant
   accent: string
+  /** G3-4: per-scene brand palette — consumed by the website "after"
+   *  scenes (CSS var tokens on their roots); the old/dashboard/kanban
+   *  scenes ignore it (era-authentic / own token systems). */
+  palette?: ScenePalette
   mock?: MockContent
   industry: OldIndustry
   tone?: 'dark' | 'light'
 }) {
   return (
     <div className="size-full" aria-hidden="true">
-      {variant === 'site-new' && <SiteNewScene accent={accent} mock={mock} />}
-      {variant === 'property-new' && <PropertyNewScene accent={accent} mock={mock} />}
-      {variant === 'academy-new' && <AcademyNewScene accent={accent} mock={mock} />}
-      {variant === 'dining-new' && <DiningNewScene accent={accent} mock={mock} />}
+      {variant === 'site-new' && <SiteNewScene accent={accent} palette={palette} mock={mock} />}
+      {variant === 'property-new' && <PropertyNewScene accent={accent} palette={palette} mock={mock} />}
+      {variant === 'academy-new' && <AcademyNewScene accent={accent} palette={palette} mock={mock} />}
+      {variant === 'dining-new' && <DiningNewScene accent={accent} palette={palette} mock={mock} />}
+      {variant === 'kanban-new' && <StudioKanbanScene accent={accent} mock={mock} />}
       {/* R8: the OLD scenes receive the mock too — the "before" is the SAME
           business (brand on the 2009 masthead, products echoed in the old
           table), which sells the before→after transformation. R9: the old
@@ -2200,6 +2694,9 @@ function Scene({
 interface BeforeAfterProps {
   variant: SceneVariant
   accent?: string
+  /** G3-4: per-scene brand palette (work-grid passes one per project;
+   *  featured-work's bare calls keep the neutral default look). */
+  palette?: ScenePalette
   className?: string
   /** aria label prefix — REQUIRED (FIX 2-c/17): every call site passes a
    *  localized project title; no untranslated default literal. */
@@ -2214,6 +2711,7 @@ interface BeforeAfterProps {
 export function BeforeAfter({
   variant,
   accent = '#0071E3',
+  palette,
   className,
   label,
   mock,
@@ -2226,6 +2724,10 @@ export function BeforeAfter({
   const containerRef = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState(50) // 0-100
   const dragging = useRef(false)
+
+  // G3-4: the palette's primary IS the scene accent when a palette is
+  // provided (single source of truth); bare callers keep the accent prop.
+  const sceneAccent = palette?.primary ?? accent
 
   // R9: every site archetype keeps the 2009 "before" (industry-flavored);
   // dashboard projects keep the Excel-2003 before.
@@ -2342,7 +2844,7 @@ export function BeforeAfter({
     >
       {/* before layer (bottom) */}
       <div className="absolute inset-0">
-        <Scene variant={beforeVariant} accent={accent} mock={mock} industry={industry} />
+        <Scene variant={beforeVariant} accent={sceneAccent} mock={mock} industry={industry} />
         <span className="absolute start-2 top-2 rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
           {t('before')}
         </span>
@@ -2353,7 +2855,7 @@ export function BeforeAfter({
         className="absolute inset-0"
         style={{ clipPath: clipAfter, WebkitClipPath: clipAfter }}
       >
-        <Scene variant={afterVariant} accent={accent} mock={mock} industry={industry} tone={tone} />
+        <Scene variant={afterVariant} accent={sceneAccent} palette={palette} mock={mock} industry={industry} tone={tone} />
         <span className="absolute end-2 top-2 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground backdrop-blur-sm">
           {t('after')}
         </span>

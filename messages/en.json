@@ -775,6 +775,97 @@
         "guests": "4 guests",
         "dateTime": "Today · 8:30 pm",
         "footerNote": "All rights reserved"
+      },
+      "kanban": {
+        "ops": "Operations",
+        "nav": [
+          "Projects board",
+          "Briefs",
+          "Tasks",
+          "Reports",
+          "Archive"
+        ],
+        "greeting": "Good evening, Zeinab",
+        "search": "Search everything…",
+        "newBrief": "New brief",
+        "capacity": "Capacity",
+        "capacityValue": "4/6",
+        "columns": [
+          {
+            "title": "Brief",
+            "badge": "Awaiting triage",
+            "cards": [
+              {
+                "client": "Zaytoun Restaurant",
+                "task": "New identity",
+                "chip": "Due: Nov 14"
+              },
+              {
+                "client": "Nabq Store",
+                "task": "Storefront design",
+                "chip": "Due: Nov 16"
+              }
+            ]
+          },
+          {
+            "title": "In Design",
+            "badge": "In progress",
+            "cards": [
+              {
+                "client": "Al-Wafa Bank",
+                "task": "Website UI",
+                "chip": "Due: Nov 18"
+              },
+              {
+                "client": "Tamam Clinics",
+                "task": "Booking app",
+                "chip": "Due: Nov 20"
+              },
+              {
+                "client": "Al-Mada Co.",
+                "task": "Pitch deck",
+                "chip": "Due: Nov 22"
+              }
+            ]
+          },
+          {
+            "title": "Client Review",
+            "badge": "With client",
+            "cards": [
+              {
+                "client": "Dar Café",
+                "task": "Coffee packaging",
+                "chip": "3 comments · 2 days ago"
+              },
+              {
+                "client": "Ruwad Academy",
+                "task": "Platform site",
+                "chip": "5 comments · 3 days ago"
+              }
+            ]
+          },
+          {
+            "title": "Ready to Deliver",
+            "badge": "Approved",
+            "cards": [
+              {
+                "client": "Arwad Hotel",
+                "task": "Brand guide",
+                "chip": "Delivery: Nov 10 · PDF 2.4 MB"
+              },
+              {
+                "client": "Sanabela Bakery",
+                "task": "Full identity",
+                "chip": "Delivery: Nov 12 · PDF 1.8 MB"
+              }
+            ]
+          }
+        ],
+        "intakeTitle": "Brief title",
+        "intakeClient": "Choose client",
+        "intakeBudget": "$1,240 – $3,000",
+        "intakeDeadline": "Deadline",
+        "intakeAdd": "Add to briefs"
       }
     }
   },
@@ -1174,13 +1265,13 @@
             "cta": "Explore Properties",
             "cards": [
               {
-                "name": "Apartment — Mezzeh",
-                "price": "$235,000",
+                "name": "Villa — Bloudan",
+                "price": "$540,000",
                 "old": ""
               },
               {
-                "name": "Villa — Bloudan",
-                "price": "$540,000",
+                "name": "Apartment — Mezzeh",
+                "price": "$235,000",
                 "old": ""
               },
               {
@@ -1253,17 +1344,17 @@
             "cta": "Book a Table",
             "cards": [
               {
-                "name": "Shami Mansaf",
+                "name": "Fattoush",
                 "price": "$12",
                 "old": "$15"
               },
               {
-                "name": "Fried Kibbeh",
+                "name": "Shish Tawook",
                 "price": "$8",
                 "old": ""
               },
               {
-                "name": "Pistachio Baklava",
+                "name": "Nabulsi Knafeh",
                 "price": "$6",
                 "old": ""
               }
