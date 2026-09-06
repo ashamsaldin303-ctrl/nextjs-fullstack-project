@@ -44,7 +44,15 @@ export function Manifesto() {
   )
 
   useEffect(() => {
-    if (reduced) return
+    if (reduced) {
+      // G4-3 P2 fix (PACK loop): a hydration race can run the dimming pass
+      // with the SSR snapshot (reduced=false) before the matchMedia
+      // re-render lands here — restore stylesheet opacity so reduced-motion
+      // users never see words stuck at the 0.13 dim floor.
+      for (const el of wordRefs.current) if (el) el.style.opacity = ''
+      if (sigRef.current) sigRef.current.style.opacity = ''
+      return
+    }
     const section = sectionRef.current
     const title = titleRef.current
     if (!section || !title || words.length === 0) return

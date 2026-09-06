@@ -53,6 +53,8 @@ const SLOP_WORDS = [
   'foster', 'myriad', 'harness', 'illuminate', 'facilitate', 'bolster',
   'it is important to note', 'dive into', 'cutting-edge', 'revolutionary',
   'seamless experience', 'transform your', 'take your to the next level',
+  // G4-1 P3 (PACK loop): closed the gap vs the verifier's 24-term census —
+  'effortless', 'state-of-the-art',
 ]
 const SLOP_RES = SLOP_WORDS.map((w) => ({
   word: w,
