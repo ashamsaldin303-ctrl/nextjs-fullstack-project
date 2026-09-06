@@ -524,6 +524,36 @@ html[data-page-wait] .hero-build-fx * {
 }
 
 /* =========================================================================
+   W2-04 (D14) — CSS-only page-enter ([locale]/template.tsx, zero JS).
+   A Next.js template re-renders per navigation, so .page-enter wraps every
+   route's content and slides it in 0.45s on the one site curve. LCP-safe
+   by decision D14: opacity is CONSTANT 1 — the template also runs on the
+   very first load, and a fade-from-0 would hold content invisible and
+   delay LCP (content is painted, then slides). transform-only → zero
+   layout work, direction-neutral (RTL-safe). The global kill-switch at the
+   top of this file collapses this to ~0ms under prefers-reduced-motion.
+   ========================================================================= */
+.page-enter {
+  animation: page-enter 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes page-enter {
+  from {
+    opacity: 1;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* G4 eye-check fallback (plan W2-04): the slide plays UNDER the fully
+   opaque intro curtain and finishes before the lift — no conflict
+   expected on first visit. IF G4's visual pass ever sees the slide fight
+   the hero choreography (e.g. after future timing changes), uncomment to
+   disable page-enter while the intro is armed:
+   html[data-intro] .page-enter { animation: none; } */
+
+/* =========================================================================
    Phase 3 — Performance: CSS-only scroll reveal + kinetic words + hero
    entrance (framer-motion-free, LCP-safe — prompt §4.1/§4.3)
    ========================================================================= */

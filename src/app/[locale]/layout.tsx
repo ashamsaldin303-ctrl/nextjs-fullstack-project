@@ -9,6 +9,7 @@ import { SITE_URL } from '@/lib/seo'
 import { OG_IMAGE_ALT } from '@/lib/site-config'
 import { Navbar } from '@/components/layout/navbar'
 import { Footer } from '@/components/layout/footer'
+import { MotionConfigProvider } from '@/components/layout/motion-config'
 import { ScrollProgress } from '@/components/layout/scroll-progress'
 import { Toaster } from '@/components/ui/sonner'
 import { CustomCursor } from '@/components/sensory/custom-cursor'
@@ -219,7 +220,11 @@ export default async function LocaleLayout({
           <Navbar />
           <ScrollProgress />
           <main id="main" className="flex-1">
-            {children}
+            {/* W2-03 (D15): framer-motion reducedMotion="user" umbrella —
+                every framer animation in the page tree becomes instant for
+                reduced-motion visitors. Manual rAF gating elsewhere is
+                untouched (see components/layout/motion-config.tsx). */}
+            <MotionConfigProvider>{children}</MotionConfigProvider>
           </main>
           <Footer />
           {/* R7-b — Sensory Polish Layer (app-wide, single instance each):
