@@ -60,7 +60,7 @@ export function PageHero({ namespace, ctaHref = '/contact', className, decorativ
             <span className="block text-primary">{t('titleAccent')}</span>
           ) : null}
         </h1>
-        <p className="hero-enter mx-auto mt-6 max-w-2xl text-base leading-relaxed text-white/70 sm:text-lg md:text-xl">
+        <p className="hero-enter mx-auto mt-6 max-w-2xl text-pretty text-base leading-relaxed text-white/70 sm:text-lg md:text-xl">
           {t('subtitle')}
         </p>
         {ctaHref && t.has('cta') ? (

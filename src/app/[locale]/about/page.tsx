@@ -88,7 +88,7 @@ export default async function AboutPage({
           />
           {/* lead-in line — sets up the question */}
           <Reveal delay={0.05} className="mt-8">
-            <p className="max-w-2xl text-lg leading-relaxed text-muted-foreground">{t('story.p1')}</p>
+            <p className="max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground">{t('story.p1')}</p>
           </Reveal>
           {/* the founding question as a large pull-quote. Quote marks follow
               the L6-R4 P3 locale convention (Arabic «…», English “…”);

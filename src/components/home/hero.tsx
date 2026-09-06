@@ -476,7 +476,7 @@ export function Hero() {
         />
 
         <p
-          className="hero-enter mt-7 max-w-xl text-base leading-relaxed text-white/70 sm:text-lg"
+          className="hero-enter mt-7 max-w-xl text-pretty text-base leading-relaxed text-white/70 sm:text-lg"
           style={{ animationDelay: '1.25s' }}
         >
           {t('subtitle')}

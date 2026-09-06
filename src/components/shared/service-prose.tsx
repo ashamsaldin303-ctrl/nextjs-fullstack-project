@@ -28,7 +28,7 @@ export function ServiceProse({ namespace }: { namespace: string }) {
               <h3 className="mt-5 text-xl font-semibold tracking-tight">
                 {t('included.title')}
               </h3>
-              <p className="mt-3 leading-relaxed text-muted-foreground">
+              <p className="mt-3 text-pretty leading-relaxed text-muted-foreground">
                 {t('included.desc')}
               </p>
             </article>

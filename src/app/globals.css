@@ -1180,11 +1180,33 @@ html[data-page-wait] .hero-build-fx * {
 /* --- Arabic typography precision (§3.3) ---------------------------------
    Arabic text needs looser line-height and zero letter-spacing for
    readability. Cairo headings 700-900 at 1.3. */
+
+/* W4-02 (D19): Arabic body 17px, applied at the html level. 106.25% of
+   the 16px default = 17px, and every rem scales proportionally (body,
+   h-12 buttons, spacing, rem endpoints inside clamp()) so all ratios
+   survive. EN is untouched (rule scoped to html:lang(ar)). The px/cqw-
+   clamped before-after miniatures are exempt by construction — px does
+   not scale with rem. Safe against W1-02 because --radius-3xl uses the
+   same calc() twin as 2xl (both grow together). */
+html:lang(ar) {
+  font-size: 106.25%;
+}
+
 :lang(ar) {
   --ar-lh: 1.8;
   /* 1.25 → 1.3 (Batch 1 item 2): tashkeel/diacritic breathing room for
      Cairo 700-900 headings at text-7xl/8xl display sizes. */
   --ar-lh-heading: 1.3;
+  /* W4-03: the adopted three-value leading system (1.3 / 1.8 / 2.05) —
+     any new raw line-height value outside the system is rejected in
+     review. Aliases carry the Tailwind --leading-* namespace so future
+     consumption is unified (leading-tight/normal/loose). Note: they are
+     live CSS vars, so --leading-tight retunes the stock utility 1.25 →
+     1.3 for Arabic non-heading sites; h1-h4/p/li/blockquote already run
+     1.3/1.8 via the AR floor rules below (unlayered > utilities). */
+  --leading-tight: var(--ar-lh-heading); /* 1.3 */
+  --leading-normal: var(--ar-lh); /* 1.8 */
+  --leading-loose: 2.05;
 }
 :lang(ar) p,
 :lang(ar) li,
@@ -1221,6 +1243,17 @@ html[data-page-wait] .hero-build-fx * {
    keep their intentional tracking. */
 :lang(ar) *:not([lang="en"]):not([dir="ltr"]) {
   letter-spacing: normal !important;
+}
+
+/* W4-01 (D20): Arabic kicker eyebrow recipe. The tracking ban above
+   voids .kicker's Latin tracking width in AR with no compensation;
+   word-spacing 0.3em is the sanctioned Arabic equivalent (1-f/66)
+   plus weight 600 at the small size. Scoped to :lang(ar) only — EN
+   kickers are pixel-identical. The hero badge row and .hb-label are
+   not .kicker and stay out by selector. */
+:lang(ar) .kicker {
+  word-spacing: 0.3em;
+  font-weight: 600;
 }
 /* L1-D P2 (fix 2-d): .prose-ar-max + the --ar-max-prose var deleted —
    zero TSX references since the Phase-4 layout pass. */
