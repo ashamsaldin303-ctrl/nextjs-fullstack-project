@@ -14,6 +14,8 @@ import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { useMobileTier } from '@/lib/use-mobile-tier'
 import { probeWebGL } from '@/lib/use-webgl'
+import { BRAND } from '@/lib/brand-colors'
+import { noteGlLost, noteGlRestored } from '@/lib/gl-health'
 
 /**
  * Interactive 3D capability scene for /services/websites.
@@ -47,23 +49,27 @@ import { probeWebGL } from '@/lib/use-webgl'
  * (halo particle field) lives exclusively in a lazy useState initializer.
  */
 
+// W3-03/D21: brand hexes import from the single owner
+// src/lib/brand-colors.ts — same values, one source. #60A5FA stays a
+// literal: the light-blue sheen is a scene-specific grade (GLSL even
+// derives it as a mix), not a brand token.
 const LIGHTS: { color: string; pos: [number, number, number] }[] = [
-  { color: '#4285F4', pos: [3, 2, 4] },
-  { color: '#34A853', pos: [-3, 2, 4] },
-  { color: '#0071E3', pos: [3, -2, 2] },
-  { color: '#E8F2FF', pos: [-3, -2, 2] },
+  { color: BRAND.gBlue, pos: [3, 2, 4] },
+  { color: BRAND.gGreen, pos: [-3, 2, 4] },
+  { color: BRAND.primary, pos: [3, -2, 2] },
+  { color: BRAND.wash, pos: [-3, -2, 2] },
 ]
 
 /** Halo palette — brand blues with green/cool-white counterpoints. */
 const HALO_COLORS = [
-  new THREE.Color('#4285F4'),
-  new THREE.Color('#4285F4'),
-  new THREE.Color('#0071E3'),
-  new THREE.Color('#0071E3'),
+  new THREE.Color(BRAND.gBlue),
+  new THREE.Color(BRAND.gBlue),
+  new THREE.Color(BRAND.primary),
+  new THREE.Color(BRAND.primary),
   new THREE.Color('#60A5FA'),
   new THREE.Color('#60A5FA'),
-  new THREE.Color('#34A853'),
-  new THREE.Color('#E8F2FF'),
+  new THREE.Color(BRAND.gGreen),
+  new THREE.Color(BRAND.wash),
 ]
 
 const HALO_COUNT = 600
@@ -86,9 +92,9 @@ interface OrbitConfig {
 }
 
 const ORBITS: OrbitConfig[] = [
-  { radius: 1.9, sx: 1.35, size: 0.1, color: '#4285F4', tilt: [Math.PI * 0.42, 0, Math.PI * 0.1], speed: 0.45, phase: 0 },
+  { radius: 1.9, sx: 1.35, size: 0.1, color: BRAND.gBlue, tilt: [Math.PI * 0.42, 0, Math.PI * 0.1], speed: 0.45, phase: 0 },
   { radius: 2.3, sx: 0.8, size: 0.085, color: '#60A5FA', tilt: [Math.PI * 0.55, 0.2, -Math.PI * 0.3], speed: -0.34, phase: 2.2 },
-  { radius: 2.55, sx: 1.12, size: 0.095, color: '#34A853', tilt: [Math.PI * 0.35, -0.5, Math.PI * 0.38], speed: 0.27, phase: 4.4 },
+  { radius: 2.55, sx: 1.12, size: 0.095, color: BRAND.gGreen, tilt: [Math.PI * 0.35, -0.5, Math.PI * 0.38], speed: 0.27, phase: 4.4 },
 ]
 
 /* ------------------------------------------------------------------ *
@@ -357,10 +363,10 @@ function Centerpiece({
     () => ({
       uTime: { value: 0 },
       uAmp: { value: 0.12 },
-      uColorA: { value: new THREE.Color('#4285F4') },
-      uColorB: { value: new THREE.Color('#0071E3') },
+      uColorA: { value: new THREE.Color(BRAND.gBlue) },
+      uColorB: { value: new THREE.Color(BRAND.primary) },
       uColorC: { value: new THREE.Color('#60A5FA') },
-      uColorG: { value: new THREE.Color('#34A853') },
+      uColorG: { value: new THREE.Color(BRAND.gGreen) },
     }),
     []
   )
@@ -613,7 +619,14 @@ function RoomEnv() {
 
 /** FIX(2-c/10): context-loss guard — `preventDefault()` marks the event
  *  as handled so the browser keeps the canvas alive for a possible restore
- *  (and stops the default console error spam); we log once for diagnostics. */
+ *  (and stops the default console error spam); we log once for diagnostics.
+ *  W3-01: also listens for `webglcontextrestored` — logs it and bumps the
+ *  window.__elyraGlHealth diagnostic counter (src/lib/gl-health.ts). The
+ *  uPixelRatio restore re-sync is hero-canvas-only per the plan; this
+ *  scene's halo uniform is re-pinned by its own per-frame useFrame sync
+ *  within one frame of the restore. Permanent failure is NOT handled
+ *  here by design: the architecture already falls back to the CSS art
+ *  (probeWebGL → glAvailable gate below). */
 function ContextLossGuard() {
   const gl = useThree((s) => s.gl)
   useEffect(() => {
@@ -621,9 +634,18 @@ function ContextLossGuard() {
     const onLost = (e: Event) => {
       e.preventDefault()
       console.warn('[CapabilityScene] WebGL context lost')
+      noteGlLost('capability')
+    }
+    const onRestored = () => {
+      console.info('[CapabilityScene] WebGL context restored')
+      noteGlRestored('capability')
     }
     canvas.addEventListener('webglcontextlost', onLost)
-    return () => canvas.removeEventListener('webglcontextlost', onLost)
+    canvas.addEventListener('webglcontextrestored', onRestored)
+    return () => {
+      canvas.removeEventListener('webglcontextlost', onLost)
+      canvas.removeEventListener('webglcontextrestored', onRestored)
+    }
   }, [gl])
   return null
 }

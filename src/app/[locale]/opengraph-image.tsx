@@ -1,5 +1,6 @@
 import { ImageResponse } from 'next/og'
 import { OG_IMAGE_ALT } from '@/lib/site-config'
+import { BRAND } from '@/lib/brand-colors'
 
 // Single source of truth (site-config.ts) — seo.ts, [locale]/layout.tsx and
 // [locale]/page.tsx already use OG_IMAGE_ALT; the file-convention export
@@ -13,7 +14,11 @@ export const contentType = 'image/png'
  * bubbling: pages without their own opengraph-image inherit this one).
  * Mirrors the icon.tsx E-mark + quad-dot brand language (blue/green/
  * red/yellow — Google-family palette; primary #0071E3, accent #4285F4)
- * on the dark hero surface (#0F172A + brand-blue glow).
+ * on the dark hero surface (#0F172A + brand-blue glow). Brand hexes
+ * import from the single owner src/lib/brand-colors.ts (W3-03);
+ * #F1F5F9 / #A3AEC2 stay local (on-dark ink / muted — deliberately not
+ * paper) and the rgba(0,113,227) glow stays an rgba literal (BRAND
+ * exports hex strings only — zero-change rule).
  *
  * FONT DECISION: text is English-only on purpose. ImageResponse's default
  * font has no Arabic glyphs (renders tofu), and the repo ships no font
@@ -34,7 +39,7 @@ export default function OpengraphImage() {
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
-          background: '#0F172A',
+          background: BRAND.dark,
         }}
       >
         {/* Primary glow — same radial treatment as the page heroes
@@ -66,7 +71,7 @@ export default function OpengraphImage() {
               display: 'flex',
               fontSize: 96,
               fontWeight: 800,
-              color: '#0F172A',
+              color: BRAND.dark,
               marginLeft: -8,
             }}
           >
@@ -80,7 +85,7 @@ export default function OpengraphImage() {
               width: 18,
               height: 18,
               borderRadius: '50%',
-              background: '#4285F4',
+              background: BRAND.gBlue,
             }}
           />
           <div
@@ -91,7 +96,7 @@ export default function OpengraphImage() {
               width: 11,
               height: 11,
               borderRadius: '50%',
-              background: '#EA4335',
+              background: BRAND.gRed,
             }}
           />
           <div
@@ -102,7 +107,7 @@ export default function OpengraphImage() {
               width: 11,
               height: 11,
               borderRadius: '50%',
-              background: '#FBBC05',
+              background: BRAND.gYellow,
             }}
           />
           <div
@@ -113,7 +118,7 @@ export default function OpengraphImage() {
               width: 11,
               height: 11,
               borderRadius: '50%',
-              background: '#34A853',
+              background: BRAND.gGreen,
             }}
           />
         </div>
@@ -156,7 +161,7 @@ export default function OpengraphImage() {
               width: 10,
               height: 10,
               borderRadius: '50%',
-              background: '#4285F4',
+              background: BRAND.gBlue,
             }}
           />
           <div
@@ -164,7 +169,7 @@ export default function OpengraphImage() {
               width: 10,
               height: 10,
               borderRadius: '50%',
-              background: '#EA4335',
+              background: BRAND.gRed,
             }}
           />
           <div
@@ -172,7 +177,7 @@ export default function OpengraphImage() {
               width: 10,
               height: 10,
               borderRadius: '50%',
-              background: '#FBBC05',
+              background: BRAND.gYellow,
             }}
           />
           <div
@@ -180,7 +185,7 @@ export default function OpengraphImage() {
               width: 10,
               height: 10,
               borderRadius: '50%',
-              background: '#34A853',
+              background: BRAND.gGreen,
             }}
           />
         </div>

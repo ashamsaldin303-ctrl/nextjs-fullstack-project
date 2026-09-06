@@ -13,6 +13,14 @@
  * values (the translated variant lives in [locale]/not-found.tsx).
  */
 import type { CSSProperties } from 'react'
+import { BRAND } from '@/lib/brand-colors'
+
+// W3-03/D21: the brand hexes in this self-contained shell import from
+// the single owner src/lib/brand-colors.ts (ImageResponse-free — plain
+// inline styles, but the same single source). #F1F5F9 / #A3AEC2 stay
+// local (on-dark ink / muted — deliberately NOT paper #F5F5F7), and the
+// rgba(…0,113,227…) glows stay rgba literals (BRAND exports hex strings
+// only — zero-change rule).
 
 const RECOVERY_LINKS = [
   { href: '/', label: 'الرئيسية · Home' },
@@ -46,7 +54,7 @@ export default function RootNotFound() {
             as the inline styles (no globals.css dependency). */}
         <style>{`
           .nf-chip:hover { background: rgba(255, 255, 255, 0.10); border-color: rgba(0, 113, 227, 0.5); }
-          .nf-chip:focus-visible { outline: 2px solid #4285F4; outline-offset: 2px; }
+          .nf-chip:focus-visible { outline: 2px solid ${BRAND.gBlue}; outline-offset: 2px; }
         `}</style>
       </head>
       <body
@@ -57,7 +65,7 @@ export default function RootNotFound() {
           alignItems: 'center',
           justifyContent: 'center',
           background:
-            'radial-gradient(60% 50% at 50% 0%, rgba(0, 113, 227, 0.16), transparent 70%), #0F172A',
+            'radial-gradient(60% 50% at 50% 0%, rgba(0, 113, 227, 0.16), transparent 70%), ' + BRAND.dark,
           color: '#F1F5F9',
           fontFamily:
             'system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif',
@@ -81,12 +89,12 @@ export default function RootNotFound() {
             <rect width="36" height="36" rx="9" fill="#F1F5F9" />
             <path
               d="M11 9 H22 V12.4 H14.6 V16.4 H20.6 V19.8 H14.6 V24 H22 V27.4 H11 Z"
-              fill="#0F172A"
+              fill={BRAND.dark}
             />
-            <circle cx="27" cy="20.4" r="2.6" fill="#4285F4" />
-            <circle cx="27" cy="14.8" r="1.5" fill="#EA4335" />
-            <circle cx="22.6" cy="20.4" r="1.5" fill="#FBBC05" />
-            <circle cx="27" cy="25.9" r="1.5" fill="#34A853" />
+            <circle cx="27" cy="20.4" r="2.6" fill={BRAND.gBlue} />
+            <circle cx="27" cy="14.8" r="1.5" fill={BRAND.gRed} />
+            <circle cx="22.6" cy="20.4" r="1.5" fill={BRAND.gYellow} />
+            <circle cx="27" cy="25.9" r="1.5" fill={BRAND.gGreen} />
           </svg>
           <div
             style={{
@@ -123,7 +131,7 @@ export default function RootNotFound() {
               padding: '0.625rem 1.5rem',
               minHeight: '2.75rem', // 44px touch target (L4 R5 P3)
               borderRadius: '9999px',
-              background: '#0071E3',
+              background: BRAND.primary,
               color: '#FFFFFF',
               textDecoration: 'none',
               fontWeight: 500,

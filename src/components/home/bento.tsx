@@ -575,8 +575,20 @@ function MiniCube() {
   const rotRef = useRef({ x: -18, y: 28 })
   const cubeRef = useRef<HTMLDivElement>(null)
   const shadowRef = useRef<HTMLDivElement>(null)
+  const stageRef = useRef<HTMLDivElement>(null)
   const [dragging, setDragging] = useState(false)
   const [spinning, setSpinning] = useState(false)
+  // W3-02 (plan §2): idle-spin visibility gate — the hero.tsx :263-282
+  // IO pattern, applied to the cube's STAGE. `inViewRef` is the
+  // synchronous read (armIdle checks it); `inView` state re-runs the
+  // spin-loop effect below so the rAF loop is fully torn down while
+  // off-screen (zero transform writes) and re-created on return. Default
+  // `true` = first-paint/SSR assumption "visible" — the observer delivers
+  // the real answer with its first callback, long before any 2.5s idle
+  // timer could fire, so initial behavior is unchanged when the cube
+  // starts in view.
+  const inViewRef = useRef(true)
+  const [inView, setInView] = useState(true)
   const start = useRef({ x: 0, y: 0, rx: 0, ry: 0 })
   const idleTimer = useRef(0)
 
@@ -603,9 +615,14 @@ function MiniCube() {
   }, [])
   // Idle auto-rotation: armed on mount and after every drag; fires ~2.5s
   // after the last interaction. Disabled entirely for reduced-motion users.
+  // W3-02: also refuses to arm while the stage is off-screen (idle is only
+  // ever armed in view — a timer armed before scrolling away may still fire
+  // and flip `spinning`, but the gated loop below then stays parked until
+  // the stage returns to view, which is exactly the resume behavior we
+  // want: same angle, no jump).
   const armIdle = useCallback(() => {
     if (idleTimer.current) window.clearTimeout(idleTimer.current)
-    if (reduced) return
+    if (reduced || !inViewRef.current) return
     idleTimer.current = window.setTimeout(() => {
       idleTimer.current = 0
       setSpinning(true)
@@ -631,8 +648,13 @@ function MiniCube() {
   // tab-visibility spikes, fully self-cleaning. L6-R3 (fix 5): the loop
   // writes the transform through the ref (applyRot) — ZERO setState per
   // frame, so the perpetual idle rotation no longer re-renders anything.
+  // W3-02: `spinning && inView && !reduced` — while the stage is scrolled
+  // out the effect early-returns and its cleanup cancels the rAF, so an
+  // off-screen cube performs NO work at all; when the stage re-enters view
+  // the effect re-runs and the rotation resumes from rotRef (same angle,
+  // no jump). Drag/keyboard paths never read `inView` — they stay live.
   useEffect(() => {
-    if (!spinning || reduced) return
+    if (!spinning || !inView || reduced) return
     let raf = 0
     let last = performance.now()
     const tick = (now: number) => {
@@ -646,7 +668,25 @@ function MiniCube() {
     return () => {
       if (raf) cancelAnimationFrame(raf)
     }
-  }, [spinning, reduced, applyRot])
+  }, [spinning, inView, reduced, applyRot])
+
+  // W3-02: the visibility observer itself — the ready pattern from
+  // hero.tsx :263-282 (threshold 0.05, ref + state dual write).
+  useEffect(() => {
+    const el = stageRef.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry) {
+          inViewRef.current = entry.isIntersecting
+          setInView(entry.isIntersecting)
+        }
+      },
+      { threshold: 0.05 }
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
 
   const onDown = (e: React.PointerEvent) => {
     stopSpin()
@@ -720,6 +760,7 @@ function MiniCube() {
           users get instant, un-eased nudges. Focus ring follows the
           three-d-section convention (ring-ring offset elyra-dark). */}
       <div
+        ref={stageRef}
         role="img"
         aria-label={`${t('hint')} — ${t('idle')}`}
         tabIndex={0}

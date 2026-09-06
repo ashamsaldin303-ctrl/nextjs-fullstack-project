@@ -85,6 +85,11 @@
   --dur-slow: 480ms; /* page transitions, sheets — UI tier */
 }
 
+/* سجل الـ hex المرجعي: src/lib/brand-colors.ts — (W3-03/D21) the single
+   TS-side owner of the brand hex VALUES (WebGL uniforms + Satori/inline
+   surfaces that cannot read CSS variables). :root keeps its own
+   declarations below — when a value changes there, change it in
+   brand-colors.ts in the same commit (values must stay identical). */
 :root {
   --radius: 0.875rem;
 
