@@ -277,9 +277,12 @@ bun run typecheck                       # فحص الأنواع (tsc --noEmit)
 node scripts/check-i18n-parity.js        # فحص تكافؤ الترجمات
 bun run db:push                          # دفع schema
 bun scripts/verify-api.mjs               # التحقق الأمني الكامل للـ API (14 فحصاً)
-node scripts/verify-performance.mjs      # فحص إصلاحات الأداء (10 فحوص)
+node scripts/verify-performance.mjs      # فحص إصلاحات الأداء (10 فحوص + baseline FPS تحت 4x CPU)
 node scripts/verify-sensory.mjs          # فحص طبقة الإحساس (17 فحصاً)
+node scripts/check-slop.mjs              # بوابة Anti-Slop المؤتمتة — إلزامية قبل كل delivery
+node scripts/check-secrets.mjs           # مسح الأسرار — إلزامي قبل أي push
 bash scripts/lighthouse-prod.sh          # قياس Lighthouse إنتاجي (بيئة تسمح بالبناء)
+# سياسة «قياس أولاً» (D13/D27): lighthouse-prod.sh يقيس initial JS مضغوطاً gz (هدف استشاري مؤجل ≤90KB — ليس بوابة) وverify-performance.mjs يوثّق median/p10 FPS للـ hero تحت 4x CPU throttle — أرقام الحزمة الكمية (90KB gz، 55/45fps) vendor-sourced لا تُتخذ بوابات قبل قياسها فعلياً
 bun scripts/clean-leads.ts (--all|--purge-days=N)[ --dry-run]  # محو كامل صريح (--all) / تنقية دورية حسب العمر
 ```
 

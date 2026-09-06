@@ -97,21 +97,27 @@ PY
   fi
 done
 
-# --- Initial JS size -------------------------------------------------------
+# --- Initial JS size (raw + gzipped — D27 measurement-first) --------------
+# The 90KB-gz figure from the pack is a DEFERRED ADVISORY target, not a gate:
+# it is printed beside the measured number so every run carries its context.
 echo ""
 echo "• Initial JS (first-load chunks of /):"
 python3 - << 'PY'
-import json, urllib.request, re
+import json, urllib.request, re, gzip
 try:
     html = urllib.request.urlopen('http://localhost:3000/').read().decode()
     scripts = re.findall(r'src="(/_next/static/[^"]+\.js)"', html)
     total = 0
+    gz = 0
     for s in scripts:
         try:
-            total += len(urllib.request.urlopen('http://localhost:3000' + s).read())
+            raw = urllib.request.urlopen('http://localhost:3000' + s).read()
+            total += len(raw)
+            gz += len(gzip.compress(raw))
         except Exception:
             pass
-    print(f"  {len(scripts)} chunks, {total/1024:.0f} KB (uncompressed transfer)")
+    print(f"  {len(scripts)} chunks, {total/1024:.0f} KB raw · {gz/1024:.0f} KB gzipped (≈ network transfer with compression)")
+    print(f"  advisory deferred target: ≤ 90 KB gz (D27 — measurement-first, NOT a gate)")
 except Exception as e:
     print('  measurement failed:', e)
 PY

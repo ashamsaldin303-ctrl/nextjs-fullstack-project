@@ -181,6 +181,56 @@ const browser = await chromium.launch({ channel: 'chromium', headless: true })
   await errCtx.close()
 }
 
+/* ---------- 5) FPS baseline on hero (dev · 4x CPU throttle — D13) -------- */
+/* Deferred-governor baseline (plan §2 W6-05, decision D13): CPU throttled
+ * 4x via CDP Emulation.setCPUThrottlingRate, then a 10-second rAF frame
+ * counter on the hero records one FPS sample per second. median/p10 are
+ * DOCUMENTED as the measurement-first baseline for the (deferred) adaptive
+ * governor decision — the pack's 55/45fps figures are vendor-sourced and
+ * are NOT gates here. This check always passes; it records, it does not
+ * judge. */
+{
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const page = await ctx.newPage()
+  // Warm-up visit: dev compiles routes on first hit — the baseline must
+  // measure the running site, not the compiler. Second visit in the session
+  // also skips the intro curtain (session-gated), i.e. steady-state hero.
+  await page.goto(BASE, { waitUntil: 'load' })
+  await page.waitForTimeout(4000)
+  await page.goto(BASE, { waitUntil: 'load' })
+  await page.waitForTimeout(1200)
+  const cdp = await ctx.newCDPSession(page)
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 })
+  const samples = await page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const fps = []
+        let frames = 0
+        let last = performance.now()
+        const tick = (now) => {
+          frames++
+          if (now - last >= 1000) {
+            fps.push(frames)
+            frames = 0
+            last = now
+          }
+          if (fps.length < 10) requestAnimationFrame(tick)
+          else resolve(fps)
+        }
+        requestAnimationFrame(tick)
+      }),
+  )
+  const sorted = [...samples].sort((a, b) => a - b)
+  const median = (sorted[4] + sorted[5]) / 2
+  const p10 = sorted[0] // 10th percentile of ten 1s samples = lowest second
+  ok(
+    'hero FPS baseline documented (4x CPU throttle · 10s · ADVISORY, D13)',
+    true,
+    `median=${median} fps, p10=${p10} fps (per-second samples: ${samples.join(', ')}) — dev + headless software-GPU = LOWER-BOUND baseline for the governor decision, no threshold (55/45fps vendor figures are not gates)`,
+  )
+  await ctx.close()
+}
+
 const failed = results.filter((r) => !r.pass)
 console.log(`\n=== ${results.length - failed.length}/${results.length} perf checks passed ===`)
 if (failed.length) {
