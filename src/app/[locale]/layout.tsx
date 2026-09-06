@@ -226,7 +226,10 @@ export default async function LocaleLayout({
                 untouched (see components/layout/motion-config.tsx). */}
             <MotionConfigProvider>{children}</MotionConfigProvider>
           </main>
-          <Footer />
+          {/* W4-05: locale flows in as a prop so the footer's status line
+              can feed the DamascusClock island without an async component
+              (see footer.tsx comment). */}
+          <Footer locale={locale} />
           {/* R7-b — Sensory Polish Layer (app-wide, single instance each):
               animated film grain + the difference-blend custom cursor
               (dot + trailing ring, magnetic-hover growth, centered label

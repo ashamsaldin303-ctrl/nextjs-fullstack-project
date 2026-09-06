@@ -414,13 +414,25 @@ function MiniFlow() {
       <p className="text-xs text-muted-foreground">{t('title')}</p>
       <p className="mt-1 text-[11px] text-muted-foreground">{t('hint')}</p>
       <div className="mt-4 rounded-xl border border-border bg-elyra-dark/95 p-3.5 text-elyra-on-dark">
+        {/* W4b (320px corrective): the node row was the automation card's
+            fixed-px MIN-width driver — 3 × w-16 shrink-0 (192px→204px at
+            the AR 17px root) + panel + card paddings ≈ 280/295px min vs a
+            ~272px grid box, so the card poked past the container once the
+            grid track stopped following max-content (grid-cols-1 above).
+            Now the columns keep w-16 as their basis but are allowed to
+            shrink (shrink-0 dropped, min-w-0 added) below ~355px
+            viewports — circles stay size-9, labels wrap inside the
+            narrowed column — and the connectors get a min-w-2 floor so
+            the visible flow line never collapses to 0. At ≥375px there
+            is free space, nothing shrinks: rendering is pixel-identical
+            to the pre-fix behavior. */}
         <div className="flex items-start">
           {nodes.map((label, i) => {
             const status = nodeStatus(i)
             const Icon = FLOW_ICONS[i] ?? Inbox
             return (
               <Fragment key={label}>
-                <div className="flex w-16 shrink-0 flex-col items-center gap-1.5">
+                <div className="flex w-16 min-w-0 flex-col items-center gap-1.5">
                   <div
                     className={cn(
                       'relative flex size-9 items-center justify-center rounded-full border-2 transition-colors duration-300',
@@ -462,7 +474,7 @@ function MiniFlow() {
                   </span>
                 </div>
                 {i < 2 ? (
-                  <div className="relative mx-0.5 mt-[17px] h-0.5 flex-1 rounded-full bg-white/10">
+                  <div className="relative mx-0.5 mt-[17px] h-0.5 min-w-2 flex-1 rounded-full bg-white/10">
                     {/* progress sweep — G2-4 F1: transformOrigin 'start'
                         is INVALID CSS (transform-origin takes PHYSICAL
                         keywords; the logical form never shipped) — CSSOM
@@ -1110,8 +1122,19 @@ export function ServicesBento() {
             Auto rows reproduce the shipped geometry honestly: the
             2×2 websites card still stretches across rows 1-2 (h-full +
             default stretch), and the single cards keep their natural
-            heights. */}
-        <div className="mt-14 grid gap-4 lg:grid-cols-3">
+            heights.
+            W4b (320px corrective, W4a finding): at mobile the single
+            implicit column track was grid-auto-columns: auto → max-
+            content, so the flagship card's unwrapped max-content
+            (~302px @16px root / ~313px @17px root — chips + swatch
+            caption rows) outgrew the ~272px grid box at a 320px
+            viewport and poked into the page gutter (pre-existing ~6px,
+            amplified to ~17px by W4-02's AR 17px root). grid-cols-1
+            (= minmax(0,1fr), the standard fix) pins the track to the
+            container: every row inside the cards reflows/wraps instead
+            of dictating the track; the card's overflow-hidden is now a
+            safety net, not the mechanism. */}
+        <div className="mt-14 grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Big websites card — FLAGSHIP (G3-6 Stitch port, design-lab
               bento-services reference): spans 2 cols × 2 rows as the grid's
               right-side anchor in RTL (grid col 1 = right edge under

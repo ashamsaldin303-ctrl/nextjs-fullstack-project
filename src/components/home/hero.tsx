@@ -9,6 +9,7 @@ import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 import { useCursorVelocity } from '@/lib/use-cursor-velocity'
 import { useMagnetic } from '@/lib/use-magnetic'
 import { KineticHeading } from './kinetic-heading'
+import { DamascusClock } from '@/components/layout/damascus-clock'
 
 const HeroCanvas = dynamic(
   () => import('./hero-canvas').then((m) => m.HeroCanvas),
@@ -19,40 +20,10 @@ const HeroCanvas = dynamic(
 )
 
 /* ------------------------------------------------------------------ */
-/* Live Damascus clock — editorial "we are here" detail.               */
-/* Server renders a neutral placeholder; the real time arrives after  */
-/* mount (setState-in-effect), so hydration never mismatches.         */
+/* DamascusClock lives in @/components/layout/damascus-clock.tsx since */
+/* W4-05 (D5): extracted verbatim so hero (snapshot gate) and the new  */
+/* footer status line consume the same client island.                  */
 /* ------------------------------------------------------------------ */
-function DamascusClock({ locale }: { locale: string }) {
-  const [time, setTime] = useState<string | null>(null)
-
-  useEffect(() => {
-    // L6-R4 (fix 4): ar → LATIN digits via ar-SY-u-nu-latn. The mono face
-    // is loaded latin-subset-only, so the default ar-SY Arabic-Indic
-    // numerals fell through to a system font (fallback glyphs + a
-    // post-hydration font-swap) and clashed with the footer clock /
-    // trust-bar counters that already render Latin — three numeral
-    // presentations on one page. Latin digits in ar is the site's runtime
-    // numeral convention (see trust-bar.tsx). en → plain Latin digits.
-    const fmt = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SY-u-nu-latn' : 'en-GB', {
-      timeZone: 'Asia/Damascus',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    })
-    const tick = () => setTime(fmt.format(new Date()))
-    tick()
-    const id = window.setInterval(tick, 1000)
-    return () => window.clearInterval(id)
-  }, [locale])
-
-  return (
-    <span dir="ltr" className="font-mono text-xs tabular-nums text-white/55">
-      {time ?? '--:--:--'}
-    </span>
-  )
-}
 
 /* ------------------------------------------------------------------ */
 /* Rotating circular-text badge — an editorial seal that links to the  */
