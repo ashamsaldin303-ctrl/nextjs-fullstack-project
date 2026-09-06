@@ -18,7 +18,7 @@
     },
     "about": {
       "title": "About Us",
-      "description": "Discover Elyra's story, team and values: beauty, precision, and automation that serves people."
+      "description": "Discover Elyra’s story, team and values: beauty, precision, and automation that serves people."
     },
     "contact": {
       "title": "Contact Us",
@@ -64,12 +64,12 @@
   },
   "manifesto": {
     "kicker": "Philosophy",
-    "body": "We don't build pages to be browsed — we build moments to be told. Every pixel is deliberate, every motion carries meaning; because beauty isn't decoration, it's the shortest path to trust.",
+    "body": "We don’t build pages to be browsed — we build moments to be told. Every pixel is deliberate, every motion carries meaning; because beauty isn’t decoration, it’s the shortest path to trust.",
     "signature": "— Elyra"
   },
   "stats": {
     "kicker": "Why Elyra",
-    "title": "Numbers We're Proud Of",
+    "title": "Numbers We’re Proud Of",
     "projects": {
       "value": 120,
       "suffix": "+",
@@ -154,7 +154,7 @@
       "mini": {
         "title": "Run the Flow",
         "hint": "Click to watch the pulse cross the three nodes",
-        "done": "Done! That's automation at work",
+        "done": "Done! That’s automation at work",
         "nodes": [
           "Receive order",
           "Validate & log",
@@ -166,7 +166,7 @@
     },
     "threeD": {
       "title": "3D Experiences",
-      "desc": "Interactive WebGL scenes that tell your brand's story and keep visitors exploring.",
+      "desc": "Interactive WebGL scenes that tell your brand’s story and keep visitors exploring.",
       "mini": {
         "hint": "Drag the cube to rotate it",
         "idle": "or leave it — it spins on its own"
@@ -176,16 +176,16 @@
       "title": "AI Agents",
       "desc": "Intelligent assistants that answer your customers, organize your schedule, and extract insights from messy files.",
       "mini": {
-        "prompt": "Summarize yesterday's meeting",
+        "prompt": "Summarize yesterday’s meeting",
         "hint": "Click the question to try the agent",
         "retryHint": "Click again for a different answer",
         "responses": [
           "3 key decisions, 2 assigned tasks, and a deadline set for next Thursday. Summary sent to your team ✓",
-          "The gist: campaign launches on the 12th, next quarter's budget is up 15%, and you own the deck ✓",
-          "One unresolved point: pricing — deferred to Thursday's session. 3 action items dispatched to owners ✓",
+          "The gist: campaign launches on the 12th, next quarter’s budget is up 15%, and you own the deck ✓",
+          "One unresolved point: pricing — deferred to Thursday’s session. 3 action items dispatched to owners ✓",
           "47-minute meeting, 5 participants. Highlights: response time cut to 4 hours and a designer to hire ✓",
           "Logged 6 potential risks ranked by impact, each with a mitigation draft in the shared doc ✓",
-          "Client's key note: loves the new direction but wants a darker variant — revised draft ready for approval ✓"
+          "Client’s key note: loves the new direction but wants a darker variant — revised draft ready for approval ✓"
         ],
         "inputPlaceholder": "Type your question here…",
         "convertCta": "Turn this into a request"
@@ -296,7 +296,7 @@
           },
           "notify": {
             "title": "Team Notification",
-            "desc": "A Telegram message with the report's top three takeaways.",
+            "desc": "A Telegram message with the report’s top three takeaways.",
             "ms": 90
           }
         }
@@ -882,17 +882,17 @@
       "design": {
         "title": "Design",
         "duration": "Weeks 2–3",
-        "desc": "We craft the identity and full experience before writing a single line of code — you see your site before it's built."
+        "desc": "We craft the identity and full experience before writing a single line of code — you see your site before it’s built."
       },
       "build": {
         "title": "Build",
         "duration": "Weeks 3–6",
-        "desc": "Weekly review cycles: experience progress early with a transparent, step-by-step process."
+        "desc": "Weekly review cycles: experience progress early with a transparent, step-by-step process. Then two protected weeks of polish for the fine details before launch — within the total duration, not on top of it."
       },
       "launch": {
         "title": "Launch & Support",
         "duration": "Ongoing",
-        "desc": "A safe launch with performance monitoring, then continuous improvement — we don't leave after opening day."
+        "desc": "A safe launch with performance monitoring, then continuous improvement — we don’t leave after opening day."
       }
     }
   },
@@ -962,7 +962,7 @@
       "duration": "Timeline",
       "weeks": "From {min} to {max} weeks",
       "breakdownTitle": "Estimate Breakdown",
-      "disclaimer": "This estimate is indicative and will be refined for free after the discovery session.",
+      "disclaimer": "This estimate is indicative and will be refined for free after the discovery session. It covers implementation only — running costs (hosting and maintenance) are discussed in the discovery session and typically run 10–20% of the build cost per year. Our 3D option is a focused hero moment, not a full WebGL world — which is why it stays within a reasonable budget.",
       "base": "Base Service",
       "pages": "Extra Pages",
       "bilingual": "Bilingual",
@@ -977,10 +977,10 @@
       "whatsapp": "WhatsApp Number (optional)",
       "submit": "Send Project Request",
       "sending": "Sending…",
-      "successTitle": "We've Received Your Request!",
+      "successTitle": "We’ve Received Your Request!",
       "successDesc": "Our team will contact you within 24 business hours with the final estimate details.",
       "successRestart": "Calculate Another Project",
-      "errorTitle": "Couldn't submit your request",
+      "errorTitle": "Couldn’t submit your request",
       "errorNetwork": "Check your connection and try again — your data is preserved.",
       "successReference": "Your reference:"
     },
@@ -1017,7 +1017,7 @@
         "kicker": "Services · Website Building",
         "title": "Websites Built",
         "titleAccent": "to Dazzle",
-        "subtitle": "From the elegant company site to the feature-rich platform — we design and build websites with Apple's purity standards and Google's performance.",
+        "subtitle": "From the elegant company site to the feature-rich platform — we design and build websites with Apple’s purity standards and Google’s performance.",
         "cta": "Calculate Your Website Budget"
       },
       "types": {
@@ -1083,7 +1083,7 @@
           },
           "s5": {
             "title": "Testing & Launch",
-            "desc": "Performance, accessibility and device testing, then a safe, calm launch."
+            "desc": "Performance, accessibility and device testing, then a safe, calm launch. Just before launch, two protected weeks of polish for the fine details — within the total duration, not on top of it."
           },
           "s6": {
             "title": "Support & Growth",
@@ -1101,9 +1101,9 @@
       },
       "prose": {
         "kicker": "No Surprises",
-        "title": "What's Included, and How We Work",
+        "title": "What’s Included, and How We Work",
         "included": {
-          "title": "What's included in every project?",
+          "title": "What’s included in every project?",
           "desc": "Every site we deliver — whatever its size — ships with the same foundation: 90+ Lighthouse performance, technical SEO, Arabic/English bilingual support, WCAG 2.1 AA accessibility, a dashboard your team can run without a developer, and analytics configured from day one. These are not paid add-ons; they are baselines we never compromise."
         },
         "process": {
@@ -1162,7 +1162,7 @@
       "runsOnN8n": {
         "kicker": "A Fact, Not a Promise",
         "title": "This Very Website Runs on n8n",
-        "desc": "Every request from the project calculator or contact form instantly travels through an HMAC-signed webhook to n8n: it's registered in the agency's CRM, you receive a welcome email, and our team gets a Telegram alert — all within seconds. The automation we sell is the same automation running this site.",
+        "desc": "Every request from the project calculator or contact form instantly travels through an HMAC-signed webhook to n8n: it’s registered in the agency’s CRM, you receive a welcome email, and our team gets a Telegram alert — all within seconds. The automation we sell is the same automation running this site.",
         "flow": {
           "request": "Request from Calculator",
           "webhook": "HMAC-SHA256 Signed Webhook",
@@ -1172,7 +1172,7 @@
       },
       "cta": {
         "title": "Your Routine Deserves Better Automation",
-        "subtitle": "Calculate your automation system's cost in under a minute.",
+        "subtitle": "Calculate your automation system’s cost in under a minute.",
         "button": "Design Your Automation System"
       },
       "explore": {
@@ -1180,9 +1180,9 @@
       },
       "prose": {
         "kicker": "Full Transparency",
-        "title": "What's Included, and How We Work",
+        "title": "What’s Included, and How We Work",
         "included": {
-          "title": "What's included in every project?",
+          "title": "What’s included in every project?",
           "desc": "Every automation system we build ships fully documented with clear flow diagrams, dry-run tests before delivery, monitoring logs that show everything as it happens, and restorable backups for every flow. An automation you do not understand is one you do not own — so we hand over full ownership with training for your team."
         },
         "process": {
@@ -1196,7 +1196,7 @@
         "kicker": "Our Work",
         "title": "Results That Speak",
         "titleAccent": "in Numbers",
-        "subtitle": "Selected website and automation projects — drag the divider on each card to see the transformation."
+        "subtitle": "Selected work — metrics are from specific real projects, not typical promises"
       },
       "filters": {
         "all": "All",
@@ -1418,19 +1418,19 @@
         "title": "Why We Exist",
         "p1": "Elyra started with a question that bothered us for a long time:",
         "quote": "Why do people have to choose between a beautiful site that runs slowly, and a fast site that looks dull? Between a powerful system that intimidates its users, and an easy tool that lets its owners down?",
-        "p2": "We decided not to choose. We design with beauty that stops the scrolling, engineer with precision that respects every millisecond, and automate whatever can be automated to give humans their time back — this is Elyra's covenant with every client.",
-        "p3": "Today, after more than 120 projects spanning websites, platforms and automation systems, we're still the same team: small, obsessed, and asking every single time — is this more beautiful than what came before?"
+        "p2": "We decided not to choose. We design with beauty that stops the scrolling, engineer with precision that respects every millisecond, and automate whatever can be automated to give humans their time back — this is Elyra’s covenant with every client.",
+        "p3": "Today, after more than 120 projects spanning websites, platforms and automation systems, we’re still the same team: small, obsessed, and asking every single time — is this more beautiful than what came before?"
       },
       "values": {
         "kicker": "Our Values",
         "title": "Three Values We Never Compromise",
         "beauty": {
           "title": "Beauty First",
-          "desc": "Beauty isn't decoration — it's respect for a visitor giving you two seconds of their life. Every pixel needs a reason."
+          "desc": "Beauty isn’t decoration — it’s respect for a visitor giving you two seconds of their life. Every pixel needs a reason."
         },
         "precision": {
           "title": "Precision as Engineering",
-          "desc": "Deadlines that are honored, code that is tested, performance that is measured. Precision isn't a slogan; it's a daily operating system."
+          "desc": "Deadlines that are honored, code that is tested, performance that is measured. Precision isn’t a slogan; it’s a daily operating system."
         },
         "humanAutomation": {
           "title": "Automation That Serves People",
@@ -1491,15 +1491,15 @@
         "label": "See How We Work"
       },
       "cta": {
-        "title": "Like What You're Reading?",
-        "subtitle": "Have a project that resembles you? Let's build something worthy of you.",
+        "title": "Like What You’re Reading?",
+        "subtitle": "Have a project that resembles you? Let’s build something worthy of you.",
         "button": "Get in Touch"
       }
     },
     "contact": {
       "hero": {
         "kicker": "Contact",
-        "title": "Let's Start",
+        "title": "Let’s Start",
         "titleAccent": "the Conversation",
         "subtitle": "Tell us about your project or use the interactive calculator — we usually reply within two hours on business days."
       },
@@ -1511,7 +1511,7 @@
         },
         "whatsapp": {
           "title": "WhatsApp",
-          "greeting": "Hi Elyra! I'd like to talk about a project."
+          "greeting": "Hi Elyra! I’d like to talk about a project."
         },
         "telegram": {
           "title": "Telegram"
@@ -1528,13 +1528,13 @@
         "send": "Send Message",
         "sending": "Sending…",
         "successTitle": "Your Message Arrived!",
-        "successDesc": "We'll get back to you within one business day at most.",
+        "successDesc": "We’ll get back to you within one business day at most.",
         "errors": {
           "name": "Name is required (at least 2 characters)",
           "email": "Please enter a valid email address",
           "message": "Message is required (at least 10 characters)"
         },
-        "errorTitle": "Couldn't send your message",
+        "errorTitle": "Couldn’t send your message",
         "errorNetwork": "Check your connection and try again — your message is preserved.",
         "projectTypeLabel": "Project type",
         "projectTypes": {
@@ -1549,9 +1549,9 @@
         "whatsappPlaceholder": "+963 9XX XXX XXX",
         "whatsappHint": "Optional — for faster replies",
         "prefill": {
-          "serviceIdea": "I'd like to build: {service} — {idea}",
-          "ideaOnly": "I'd like to build: {idea}",
-          "serviceOnly": "I'd like to build: {service}."
+          "serviceIdea": "I’d like to build: {service} — {idea}",
+          "ideaOnly": "I’d like to build: {idea}",
+          "serviceOnly": "I’d like to build: {service}."
         }
       },
       "socialProof": {
@@ -1577,7 +1577,7 @@
     "errorDesc": "We apologize — something went wrong. Try again or come back later.",
     "retry": "Try Again",
     "notFoundTitle": "Page Not Found",
-    "notFoundDesc": "Looks like you've reached an old or incorrect link — no worries, the road home is short.",
+    "notFoundDesc": "Looks like you’ve reached an old or incorrect link — no worries, the road home is short.",
     "notFoundRecoveryTitle": "Where would you like to go?",
     "sound": {
       "enable": "Enable sound effects",
