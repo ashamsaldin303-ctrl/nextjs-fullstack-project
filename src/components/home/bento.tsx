@@ -55,7 +55,7 @@ function GlowCard({
       ref={ref}
       onPointerMove={onMove}
       className={cn(
-        'glow-cursor group relative overflow-hidden rounded-3xl border border-border bg-card p-6 sm:p-8',
+        'glow-cursor group relative overflow-hidden rounded-2xl border border-border bg-card p-6 sm:p-8',
         className
       )}
     >
@@ -197,7 +197,7 @@ function MiniSite() {
           aria-hidden keeps its ~25 mock strings out of the SR tree; the
           interactive control is the swatch row + its real caption below.
           G3-6 flagship port: EDGE-TO-EDGE — no rounded corners or border of
-          its own (the card's rounded-3xl + overflow-hidden clips the bleed),
+          its own (the card's rounded-2xl + overflow-hidden clips the bleed),
           spanning the card's full width in its lower half. */}
       <div
         aria-hidden="true"
@@ -1078,7 +1078,7 @@ export function ServicesBento() {
               eyebrow, title, one-sentence desc, checkmark feature chips)
               + the MiniSite storefront preview bleeding EDGE-TO-EDGE
               through the card's lower half (GlowCard padding zeroed via
-              p-0 overrides; the card's own rounded-3xl + overflow-hidden
+              p-0 overrides; the card's own rounded-2xl + overflow-hidden
               clips the bleed), anchored to the bottom with mt-auto so the
               stretch gap sits between chips and preview, never below.
               FIX(2-c/12) history: the icon eyebrow stays icon-only (no

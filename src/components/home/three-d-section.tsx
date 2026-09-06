@@ -111,7 +111,7 @@ export function ThreeDSection() {
             aria-label={t('hint')}
             tabIndex={!reduced ? 0 : undefined}
             onKeyDown={onKeyDown}
-            className="relative aspect-[16/10] w-full overflow-hidden rounded-3xl border border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark sm:aspect-[16/8]"
+            className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl border border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark sm:aspect-[16/8]"
           >
             {!reduced && nearViewport ? <CapabilityScene ref={sceneRef} active={active} /> : null}
             <div className="hero-fallback absolute inset-0 -z-10" aria-hidden="true" />

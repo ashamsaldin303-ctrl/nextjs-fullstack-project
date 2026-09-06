@@ -57,8 +57,10 @@ export function FeaturedWork() {
             return (
               <Reveal key={p.key} delay={0.1} variant="zoom">
                 <article className="group" data-cursor="preview" data-cursor-label={tc('cursor.preview')}>
-                  {/* subtle hover lift on the comparison mockup (UI-4) */}
-                  <div className="rounded-2xl transition-all duration-300 ease-out group-hover:-translate-y-1 group-hover:shadow-lg">
+                  {/* subtle hover lift on the comparison mockup (UI-4).
+                      W1-05: group-hover:shadow-lg → group-hover:card-lift-hover
+                      (layered light-surface shadow, @utility in globals.css). */}
+                  <div className="rounded-2xl transition-all duration-300 ease-out group-hover:-translate-y-1 group-hover:card-lift-hover">
                     <BeforeAfter
                       variant={p.variant}
                       accent={p.accent}

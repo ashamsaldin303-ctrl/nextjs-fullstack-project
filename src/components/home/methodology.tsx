@@ -50,7 +50,7 @@ function MethodologyStep({
     <motion.article
       style={reduced ? undefined : { scale }}
       className={cn(
-        'relative rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-10',
+        'relative rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-10',
         'sticky top-24',
       )}
     >
@@ -70,7 +70,7 @@ function MethodologyStep({
           number span carried it too). */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl"
+        className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl"
       >
         <span
           className="absolute -end-4 -top-4 text-[120px] font-bold leading-none text-primary/5 sm:text-[160px]"

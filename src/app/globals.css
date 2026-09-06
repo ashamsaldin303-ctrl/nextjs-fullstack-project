@@ -8,6 +8,16 @@
    No component should ever hardcode a hex value.
    ========================================================================= */
 
+/* MOTION CANON (W1-01; pack-plan decisions D2/D4/D22/D23)
+   ONE site curve: cubic-bezier(0.16, 1, 0.3, 1) — a --ease-curtain token
+   (0.77, 0, 0.175, 1) was proposed and consciously REJECTED (D2).
+   Declared curve exceptions, untouched: backOut brackets (~:690),
+   near-linear scan (~:809), opacity-masked rail-fall loop (~:1392-1406).
+   Two-tier durations BY DESIGN (D22): UI 180/280/480ms (tokens below) vs
+   the cinematic 500-900ms+ ladder elsewhere in this file. Documented paint
+   exceptions (D23): wght axis, card-hover-lift box-shadow, :focus-visible
+   pulse (W1-06) — rare/small-area only, nothing wider. Signature hierarchy
+   (D4): silk WebGL hero = the signature; grain + cursor = ambient texture. */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -50,15 +60,43 @@
 
   --font-sans: var(--font-app);
 
+  /* RADIUS CANON (W1-02): pill = 9999 (buttons/badges) · md = 12 (small
+     elements) · lg = 14 (default) · xl = 18 · 2xl = 24 (large media
+     panels) — two real values (12/24) + panel + pill. --radius-3xl is
+     defined ONLY as an alias of 2xl's exact calc (identical 24px today and
+     under the future Arabic rem bump, W4-02 — never a fixed 1.5rem);
+     new code must use 2xl. */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 10px);
+  --radius-3xl: calc(var(--radius) + 10px);
+
+  /* Motion tokens (W1-01). --default-transition-timing-function re-points
+     every Tailwind transition utility (transition-colors, duration-300…)
+     to the site curve in one stroke (~26 default-ease call sites) — the
+     150ms --default-transition-duration stays UNTOUCHED (D22: durations
+     keep their values; only the easing changes). */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --default-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 180ms;  /* hover/focus — UI tier */
+  --dur-base: 280ms; /* layout shifts, small reveals — UI tier */
+  --dur-slow: 480ms; /* page transitions, sheets — UI tier */
 }
 
 :root {
   --radius: 0.875rem;
+
+  /* Motion token VALUES (W1-01) — mirrored from the @theme inline block
+     above because Tailwind 4 only emits namespaced theme variables to
+     :root (--ease-* lands, the --dur-* trio does NOT); hand-written CSS
+     (e.g. the W1-06 focus pulse) consumes var(--ease-out-expo)/var(--dur-*)
+     and needs these declarations to resolve. Keep the two blocks in sync. */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 180ms;  /* hover/focus — UI tier */
+  --dur-base: 280ms; /* layout shifts, small reveals — UI tier */
+  --dur-slow: 480ms; /* page transitions, sheets — UI tier */
 
   /* Brand palette (spec) */
   --elyra-dark: #0F172A;
@@ -180,6 +218,32 @@
     background: var(--primary);
     color: var(--primary-foreground);
   }
+}
+
+/* W1-06 — focus pulse (pack-plan D23: DOCUMENTED PAINT EXCEPTION — rare
+   event, keyboard nav only, small area; the transform-only alternative
+   would mean re-engineering the whole focus system).
+   Two states, deliberately UNLAYERED: element-level Tailwind transition-*
+   utilities (utilities layer) would otherwise override this transition and
+   silence the pulse on exactly the elements that need it (navbar links
+   carry transition-colors). Any :focus parks an invisible 2px outline at
+   offset 0; :focus-visible eases it to the ring color at 3px over 180ms
+   expo — the focus border grows elastically into place instead of popping.
+   The outline color matches the box-shadow ring above (var(--ring)) so
+   ring + outline read as ONE indicator, never two competing ones. Outline
+   never affects layout (zero CLS). The global prefers-reduced-motion
+   kill-switch collapses the transition to ~0ms — reduced-motion visitors
+   keep today's instant focus. */
+:focus {
+  outline: 2px solid transparent;
+  outline-offset: 0px;
+}
+:focus-visible {
+  outline-color: var(--ring);
+  outline-offset: 3px;
+  transition:
+    outline-color 180ms var(--ease-out-expo),
+    outline-offset 180ms var(--ease-out-expo);
 }
 
 /* Custom utilities */
@@ -1284,6 +1348,19 @@ html[data-page-wait] .hero-build-fx * {
     0 16px 40px -16px rgba(0, 113, 227, 0.22);
 }
 
+/* W1-05 — layered lift shadow for LIGHT surfaces (work/mockup cards).
+   Funnel rule (1-h/46+65): ~90% of cards carry NO shadow at all; ~9% get
+   this subtle two-layer hue-neutral lift on hover; the deep/overlay tier
+   belongs to the dark hero/deconstructed family. Registered with
+   @utility (not a plain class) precisely so Tailwind variants compose
+   with it — consumed as `group-hover:card-lift-hover`, driven by the
+   parent `.group`, replacing the old group-hover:shadow-xl/lg. Part of
+   the documented paint exceptions (D23): box-shadow transitions on
+   hover-lift cards only. */
+@utility card-lift-hover {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
 /* =========================================================================
    R7 — Editorial-cinematic hero (Elyra signature rework)
    Masked word rises, outlined watermark, vertical scroll rail with a
@@ -1449,14 +1526,18 @@ html[data-page-wait] .hero-build-fx * {
    that reads as celluloid grain. The 100% keyframe returns to the base
    `0 0`, so the global prefers-reduced-motion override (which collapses
    durations rather than removing animations) lands on exactly the static
-   base state — reduced-motion visitors see quiet, still grain. */
+   base state — reduced-motion visitors see quiet, still grain.
+   GRAIN CANON (W1-03): 240px tile · opacity 4.5% · flicker = 8 steps at
+   0.4s steps(1) · numOctaves 3 (raised from 2 — finer, more film-like
+   detail; anything past 4 is invisible at 4.5%). One recipe site-wide;
+   opacity never above 8% on light surfaces. */
 .grain-overlay {
   position: fixed;
   inset: 0;
   z-index: 90; /* above the intro overlay (80); below the cursor (200) */
   pointer-events: none;
   opacity: 0.045;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 240px 240px;
   background-position: 0 0;

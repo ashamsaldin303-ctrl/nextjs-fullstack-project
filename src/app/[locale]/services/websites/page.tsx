@@ -77,11 +77,11 @@ export default async function WebsitesPage({
             {TYPES.map(({ key, icon: Icon }, i) => (
               <Reveal key={key} delay={i * 0.1} variant="zoom">
                 {/* G2-3 P3-8 (fix 9): card shell unified to the site's
-                    dominant standard (rounded-3xl · p-8 · hover shadow-lg ·
+                    dominant standard (rounded-2xl · p-8 · hover shadow-lg ·
                     size-12 rounded-2xl chip · size-6 icon) — the same family
                     as about values + service prose; automation's
                     integrations adopt it too (see that page). */}
-                <article className="group h-full overflow-hidden rounded-3xl border border-border bg-card p-8 transition-all hover:border-primary/40 hover:shadow-lg">
+                <article className="group h-full overflow-hidden rounded-2xl border border-border bg-card p-8 transition-all hover:border-primary/40 hover:shadow-lg">
                   <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-transform group-hover:scale-110">
                     <Icon className="size-6" aria-hidden="true" />
                   </div>
