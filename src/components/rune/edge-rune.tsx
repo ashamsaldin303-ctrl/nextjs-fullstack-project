@@ -8,17 +8,17 @@ import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 import { useMobileTier } from '@/lib/use-mobile-tier'
 import { probeWebGL } from '@/lib/use-webgl'
 import { pokeRuneField } from './rune-bus'
-import { runePresetKeyForPath, type RunePresetKey } from './rune-presets'
+import { runeDirForPath, runePresetKeyForPath, type RunePresetKey } from './rune-landmarks'
 
 /**
- * Rune Field root (RUNE-2) — the full-viewport ambient volumetric layer
+ * Rune Landmarks root (RUNE-3) — the full-viewport semantic layer
  * mounted ONCE in [locale]/layout. This root is the GATEKEEPER and the
  * SCROLL HEARTBEAT: it stays out of the three.js chunk boundary entirely
- * (only hooks + next/dynamic + the tiny rune-bus here) and translates
- * every DOM scroll event into (a) scroll-clock advancement (scroll-store)
- * and (b) a poke on the invalidate bus, which is what makes the scene's
- * frameloop="demand" render frames while — and only while — the page is
- * being scrolled.
+ * (only hooks + next/dynamic + the tiny rune-bus + the pure-TS landmark
+ * registry here) and translates every DOM scroll event into (a)
+ * scroll-clock advancement (scroll-store) and (b) a poke on the
+ * invalidate bus, which is what makes the scene's frameloop="demand"
+ * render frames while — and only while — the page is being scrolled.
  *
  * Gates (unchanged product decisions from RUNE-1):
  * 1. prefers-reduced-motion → NOTHING mounts (pure decor; reduced-motion
@@ -33,14 +33,14 @@ import { runePresetKeyForPath, type RunePresetKey } from './rune-presets'
  * 5. document visibilitychange → frameloop 'never' while hidden; on
  *    return-to-visible the bus is poked so the field repaints.
  *
- * Stacking: z-[5] fixed inset-0 — the glass volumes float ABOVE section
- * content (they are translucent, pointer-events-none), below the navbar
- * (50), scroll progress (60), intro curtain (80), grain (90) and cursor
- * (200). pointer-events none + aria-hidden: pure decoration, clicks
- * always fall through (G8). Placement is symmetric in logical space —
- * the formations roam the WHOLE viewport, so there is no per-locale edge
- * to favor anymore (the RUNE-1 corner-sigil inset-inline-end logic is
- * retired with it).
+ * Stacking: z-[5] fixed inset-0 — the semantic bodies float in the
+ * sections' free margins ABOVE section content (translucent,
+ * pointer-events-none), below the navbar (50), scroll progress (60),
+ * intro curtain (80), grain (90) and cursor (200). pointer-events none +
+ * aria-hidden: pure decoration, clicks always fall through (G8). The
+ * landmarks' anchors are LOGICAL ('start'/'end') and resolve against
+ * the active writing direction, so AR and EN mirror each other
+ * correctly without rebuilding anything.
  */
 
 const RuneScene = dynamic(() => import('./rune-scene').then((m) => m.RuneScene), {
@@ -133,6 +133,7 @@ export function EdgeRune() {
   if (reduced || mobileTier || !ready || !glOk) return null
 
   const presetKey: RunePresetKey = runePresetKeyForPath(pathname)
+  const dir = runeDirForPath(pathname)
 
   return (
     <div
@@ -144,7 +145,7 @@ export function EdgeRune() {
         transition: 'opacity 700ms ease-out',
       }}
     >
-      <RuneScene active={visible} presetKey={presetKey} />
+      <RuneScene active={visible} presetKey={presetKey} dir={dir} />
     </div>
   )
 }
