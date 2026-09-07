@@ -15,6 +15,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { useMobileTier } from '@/lib/use-mobile-tier'
 import { probeWebGL } from '@/lib/use-webgl'
 import { BRAND_COLORS } from '@/lib/brand-colors'
+import { noteGlLost, noteGlRestored } from '@/lib/gl-health'
 
 /**
  * Interactive 3D capability scene for /services/websites.
@@ -48,6 +49,10 @@ import { BRAND_COLORS } from '@/lib/brand-colors'
  * (halo particle field) lives exclusively in a lazy useState initializer.
  */
 
+// W3-03/D21 + R1 (merged): brand hexes import from the single owner
+// src/lib/brand-colors.ts — same values, one source. The light-blue
+// sheen resolves via the gBlueLight token (same #60A5FA the GLSL side
+// derives as a mix).
 const LIGHTS: { color: string; pos: [number, number, number] }[] = [
   { color: BRAND_COLORS.gBlue, pos: [3, 2, 4] },
   { color: BRAND_COLORS.gGreen, pos: [-3, 2, 4] },
@@ -616,7 +621,14 @@ function RoomEnv() {
 
 /** FIX(2-c/10): context-loss guard — `preventDefault()` marks the event
  *  as handled so the browser keeps the canvas alive for a possible restore
- *  (and stops the default console error spam); we log once for diagnostics. */
+ *  (and stops the default console error spam); we log once for diagnostics.
+ *  W3-01: also listens for `webglcontextrestored` — logs it and bumps the
+ *  window.__elyraGlHealth diagnostic counter (src/lib/gl-health.ts). The
+ *  uPixelRatio restore re-sync is hero-canvas-only per the plan; this
+ *  scene's halo uniform is re-pinned by its own per-frame useFrame sync
+ *  within one frame of the restore. Permanent failure is NOT handled
+ *  here by design: the architecture already falls back to the CSS art
+ *  (probeWebGL → glAvailable gate below). */
 function ContextLossGuard() {
   const gl = useThree((s) => s.gl)
   useEffect(() => {
@@ -624,9 +636,18 @@ function ContextLossGuard() {
     const onLost = (e: Event) => {
       e.preventDefault()
       console.warn('[CapabilityScene] WebGL context lost')
+      noteGlLost('capability')
+    }
+    const onRestored = () => {
+      console.info('[CapabilityScene] WebGL context restored')
+      noteGlRestored('capability')
     }
     canvas.addEventListener('webglcontextlost', onLost)
-    return () => canvas.removeEventListener('webglcontextlost', onLost)
+    canvas.addEventListener('webglcontextrestored', onRestored)
+    return () => {
+      canvas.removeEventListener('webglcontextlost', onLost)
+      canvas.removeEventListener('webglcontextrestored', onRestored)
+    }
   }, [gl])
   return null
 }

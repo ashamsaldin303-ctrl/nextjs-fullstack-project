@@ -269,7 +269,7 @@ export function Calculator() {
           </div>
         </div>
 
-        <div className="relative mt-8 overflow-hidden rounded-3xl border border-border bg-card p-6 sm:p-10">
+        <div className="relative mt-8 overflow-hidden rounded-2xl border border-border bg-card p-6 sm:p-10">
           {/* UI-5 (visual-only): gradient hairline accent along the wizard
               card's top edge — decorative, no logic/state/pricing impact. */}
           <span

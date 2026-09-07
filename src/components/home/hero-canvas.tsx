@@ -3,6 +3,8 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useRef, useState, useEffect, useMemo } from 'react'
 import * as THREE from 'three'
+import { BRAND } from '@/lib/brand-colors'
+import { noteGlLost, noteGlRestored } from '@/lib/gl-health'
 import { getHeroScroll } from '@/lib/hero-scroll'
 import { useMobileTier } from '@/lib/use-mobile-tier'
 import { probeWebGL } from '@/lib/use-webgl'
@@ -48,15 +50,19 @@ const PARTICLE_COUNT_DESKTOP = 4500
 const PARTICLE_COUNT_MOBILE = 1800
 // Brand family only — blues / green / cool-white (palette revert: blue
 // is back — Google/Apple blue family with the brand green as counterpoint).
+// Hex values live in the single owner src/lib/brand-colors.ts (W3-03/D21).
+// #60A5FA stays a literal: it is the scene-specific light-blue ridge
+// sheen (also derived in GLSL as mix(uColorA, white, 0.22)) — NOT a
+// brand token, so brand-colors.ts must not absorb it.
 const COLORS = [
-  new THREE.Color('#4285F4'),
-  new THREE.Color('#4285F4'),
-  new THREE.Color('#0071E3'),
-  new THREE.Color('#0071E3'),
+  new THREE.Color(BRAND.gBlue),
+  new THREE.Color(BRAND.gBlue),
+  new THREE.Color(BRAND.primary),
+  new THREE.Color(BRAND.primary),
   new THREE.Color('#60A5FA'),
   new THREE.Color('#60A5FA'),
-  new THREE.Color('#34A853'),
-  new THREE.Color('#E8F2FF'),
+  new THREE.Color(BRAND.gGreen),
+  new THREE.Color(BRAND.wash),
 ]
 
 const BASE_CAMERA_Z = 6 // mirrors the Canvas camera prop below
@@ -441,10 +447,26 @@ function Particles({
     [dprMax]
   )
 
+  // W3-01: subscribe to the context-restore signal — ContextLossGuard
+  // fires this with R3F's state.viewport.dpr right after
+  // webglcontextrestored, pinning uPixelRatio on the fresh context
+  // before the first post-restore frame (the per-frame sync in useFrame
+  // below then keeps it live as always).
+  useEffect(
+    () =>
+      subscribeGlRestore((dpr) => {
+        uniforms.uPixelRatio.value = dpr
+      }),
+    [uniforms]
+  )
+
   useFrame((state, delta) => {
     if (!pointsRef.current) return
     // Three.js shader uniforms are mutated per-frame — the canonical R3F pattern.
-    // eslint-disable-next-line react-hooks/immutability
+    // (react-compiler joined the older immutability rule at this site once
+    // the W3-01 restore-subscription below also captures this memoized
+    // object — both rules report ONE finding per memoized value.)
+    // eslint-disable-next-line react-hooks/immutability, react-compiler/react-compiler
     uniforms.uTime.value += delta
     // uPixelRatio live sync (LOOP-3 FIX 6): state.viewport.dpr is R3F's
     // clamped actual dpr, so gl_PointSize always matches the render scale —
@@ -502,9 +524,11 @@ function SilkBackdrop({ mouse }: { mouse: React.MutableRefObject<{ x: number; y:
     () => ({
       uTime: { value: 0 },
       uMouse: { value: new THREE.Vector2(0, 0) },
-      uColorA: { value: new THREE.Color('#4285F4') }, // silk body blue
-      uColorB: { value: new THREE.Color('#34A853') }, // warp-crossing filaments only
-      uColorC: { value: new THREE.Color('#0A2A5E') }, // deep undertone
+      // Brand hexes from the single owner src/lib/brand-colors.ts
+      // (W3-03/D21) — same values, one source.
+      uColorA: { value: new THREE.Color(BRAND.gBlue) }, // silk body blue
+      uColorB: { value: new THREE.Color(BRAND.gGreen) }, // warp-crossing filaments only
+      uColorC: { value: new THREE.Color(BRAND.silkDeep) }, // deep undertone
       uScroll: { value: 0 },
     }),
     []
@@ -578,20 +602,54 @@ function ScrollDolly() {
   return null
 }
 
+/* W3-01 (plan §2): context-restore subscribers. ContextLossGuard is a
+ * sibling of Particles inside <Canvas> (not its parent), so the
+ * uPixelRatio re-sync travels through this tiny module-scoped registry:
+ * Particles registers a callback, the guard fires it right after
+ * `webglcontextrestored` with R3F's state.viewport.dpr — pinning the
+ * uniform on the fresh context before the first post-restore frame (the
+ * per-frame sync in Particles' useFrame then keeps it live as always). */
+type GlRestoreSubscriber = (dpr: number) => void
+const glRestoreSubscribers = new Set<GlRestoreSubscriber>()
+function subscribeGlRestore(fn: GlRestoreSubscriber): () => void {
+  glRestoreSubscribers.add(fn)
+  return () => {
+    glRestoreSubscribers.delete(fn)
+  }
+}
+
 /** Context-loss guard — `preventDefault()` marks the event as handled so
  *  the browser keeps the canvas alive for a possible restore (and stops
- *  the default console error spam); we log once for diagnostics. */
+ *  the default console error spam); we log once for diagnostics.
+ *  W3-01: also listens for `webglcontextrestored` — logs it, bumps the
+ *  window.__elyraGlHealth diagnostic counter (src/lib/gl-health.ts) and
+ *  re-syncs uPixelRatio from state.viewport.dpr for the fresh context.
+ *  Permanent failure is NOT handled here by design: the architecture
+ *  already falls back to the CSS gradient (probeWebGL → glAvailable). */
 function ContextLossGuard() {
   const gl = useThree((s) => s.gl)
+  const dpr = useThree((s) => s.viewport.dpr)
   useEffect(() => {
     const canvas = gl.domElement
     const onLost = (e: Event) => {
       e.preventDefault()
       console.warn('[HeroCanvas] WebGL context lost')
+      noteGlLost('hero')
+    }
+    const onRestored = () => {
+      console.info('[HeroCanvas] WebGL context restored')
+      noteGlRestored('hero')
+      // Re-sync the particles' point-size uniform to R3F's clamped dpr
+      // on the freshly restored context (W3-01).
+      for (const fn of glRestoreSubscribers) fn(dpr)
     }
     canvas.addEventListener('webglcontextlost', onLost)
-    return () => canvas.removeEventListener('webglcontextlost', onLost)
-  }, [gl])
+    canvas.addEventListener('webglcontextrestored', onRestored)
+    return () => {
+      canvas.removeEventListener('webglcontextlost', onLost)
+      canvas.removeEventListener('webglcontextrestored', onRestored)
+    }
+  }, [gl, dpr])
   return null
 }
 

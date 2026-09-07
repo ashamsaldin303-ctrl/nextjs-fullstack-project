@@ -185,8 +185,10 @@ export function WorkGrid() {
                 data-cursor="zoom"
               >
                 <Reveal variant="zoom" delay={i * 0.07}>
-                  {/* subtle hover lift on the comparison mockup (UI-4) */}
-                  <div className="rounded-2xl transition-all duration-300 ease-out group-hover:-translate-y-1.5 group-hover:shadow-xl">
+                  {/* subtle hover lift on the comparison mockup (UI-4).
+                      W1-05: group-hover:shadow-xl → group-hover:card-lift-hover
+                      (layered light-surface shadow, @utility in globals.css). */}
+                  <div className="rounded-2xl transition-all duration-300 ease-out group-hover:-translate-y-1.5 group-hover:card-lift-hover">
                     <BeforeAfter
                       variant={p.variant}
                       accent={p.accent}

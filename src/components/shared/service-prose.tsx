@@ -21,20 +21,20 @@ export function ServiceProse({ namespace }: { namespace: string }) {
         <SectionHeading kicker={t('kicker')} title={t('title')} kinetic={false} titleId="prose-title" />
         <div className="mt-12 grid gap-6 md:grid-cols-2">
           <Reveal>
-            <article className="h-full rounded-3xl border border-border bg-card p-8">
+            <article className="h-full rounded-2xl border border-border bg-card p-8">
               <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <PackageCheck className="size-6" aria-hidden="true" />
               </div>
               <h3 className="mt-5 text-xl font-semibold tracking-tight">
                 {t('included.title')}
               </h3>
-              <p className="mt-3 leading-relaxed text-muted-foreground">
+              <p className="mt-3 text-pretty leading-relaxed text-muted-foreground">
                 {t('included.desc')}
               </p>
             </article>
           </Reveal>
           <Reveal delay={0.1}>
-            <article className="h-full rounded-3xl border border-border bg-card p-8">
+            <article className="h-full rounded-2xl border border-border bg-card p-8">
               <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <Workflow className="size-6" aria-hidden="true" />
               </div>

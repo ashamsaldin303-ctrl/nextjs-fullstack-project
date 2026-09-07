@@ -88,7 +88,7 @@ export default async function AboutPage({
           />
           {/* lead-in line — sets up the question */}
           <Reveal delay={0.05} className="mt-8">
-            <p className="max-w-2xl text-lg leading-relaxed text-muted-foreground">{t('story.p1')}</p>
+            <p className="max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground">{t('story.p1')}</p>
           </Reveal>
           {/* the founding question as a large pull-quote. Quote marks follow
               the L6-R4 P3 locale convention (Arabic «…», English “…”);
@@ -135,7 +135,7 @@ export default async function AboutPage({
                     caption, typography-first (no icon chip, no glass fill:
                     backdrop-blur-md over a flat dark section showed
                     nothing and cost compositing). Hover depth stays. */}
-                <article className="card-hover-lift group h-full rounded-3xl border border-white/10 bg-white/[0.03] p-8 hover:border-white/20">
+                <article className="card-hover-lift group h-full rounded-2xl border border-white/10 bg-white/[0.03] p-8 hover:border-white/20">
                   <Icon className="size-5 text-primary/80" aria-hidden="true" />
                   <h3 className="mt-4 text-2xl font-semibold tracking-tight text-white sm:text-3xl">{t(`values.${key}.title`)}</h3>
                   <span
@@ -176,7 +176,7 @@ export default async function AboutPage({
                 <Reveal key={m} delay={i * 0.08} variant="zoom">
                   {/* UI-5: hover depth on team cards — lift + primary border
                       tint + avatar nudge. */}
-                  <article className="card-hover-lift group flex h-full flex-col items-center rounded-3xl border border-border bg-card p-6 text-center hover:border-primary/30">
+                  <article className="card-hover-lift group flex h-full flex-col items-center rounded-2xl border border-border bg-card p-6 text-center hover:border-primary/30">
                     {/* L1-C P3 (fix 2-d): dropped the unreachable `??` — a modulo
                         over a non-empty const array always yields a defined entry. */}
                     <div
@@ -210,7 +210,7 @@ export default async function AboutPage({
             title={t('numbers.title')}
             titleId="numbers-title"
           />
-          <dl className="mt-12 grid grid-cols-2 gap-px overflow-hidden rounded-3xl border border-border bg-border lg:grid-cols-4">
+          <dl className="mt-12 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border lg:grid-cols-4">
             {NUMBERS.map((n) => {
               const NumberIcon = NUMBER_ICONS[n]
               return (

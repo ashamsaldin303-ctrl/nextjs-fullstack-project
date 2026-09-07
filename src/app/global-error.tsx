@@ -2,6 +2,11 @@
 
 import { useEffect, useSyncExternalStore } from 'react'
 import { RotateCcw } from 'lucide-react'
+import { BRAND } from '@/lib/brand-colors'
+
+// W3-03/D21: the two brand hexes import from the single owner
+// src/lib/brand-colors.ts — same values, one source. #F1F5F9 stays
+// local (on-dark ink — deliberately NOT paper #F5F5F7).
 
 // Root-level error boundary sits ABOVE the [locale] segment, so next-intl
 // context is unavailable here. We detect the browser language instead and
@@ -60,7 +65,7 @@ export default function GlobalError({
     <html lang={copy.lang} dir={copy.dir}>
       <body
         style={{
-          background: '#0F172A',
+          background: BRAND.dark,
           color: '#F1F5F9',
           fontFamily: 'system-ui, sans-serif',
           margin: 0,
@@ -87,7 +92,7 @@ export default function GlobalError({
               padding: '0.625rem 1.25rem',
               minHeight: '2.75rem', // 44px touch target (L4 R5 P3)
               borderRadius: '9999px',
-              background: '#0071E3',
+              background: BRAND.primary,
               color: 'white',
               border: 'none',
               cursor: 'pointer',

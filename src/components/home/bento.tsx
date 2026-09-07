@@ -55,7 +55,7 @@ function GlowCard({
       ref={ref}
       onPointerMove={onMove}
       className={cn(
-        'glow-cursor group relative overflow-hidden rounded-3xl border border-border bg-card p-6 sm:p-8',
+        'glow-cursor group relative overflow-hidden rounded-2xl border border-border bg-card p-6 sm:p-8',
         className
       )}
     >
@@ -197,7 +197,7 @@ function MiniSite() {
           aria-hidden keeps its ~25 mock strings out of the SR tree; the
           interactive control is the swatch row + its real caption below.
           G3-6 flagship port: EDGE-TO-EDGE — no rounded corners or border of
-          its own (the card's rounded-3xl + overflow-hidden clips the bleed),
+          its own (the card's rounded-2xl + overflow-hidden clips the bleed),
           spanning the card's full width in its lower half. */}
       <div
         aria-hidden="true"
@@ -414,13 +414,25 @@ function MiniFlow() {
       <p className="text-xs text-muted-foreground">{t('title')}</p>
       <p className="mt-1 text-[11px] text-muted-foreground">{t('hint')}</p>
       <div className="mt-4 rounded-xl border border-border bg-elyra-dark/95 p-3.5 text-elyra-on-dark">
+        {/* W4b (320px corrective): the node row was the automation card's
+            fixed-px MIN-width driver — 3 × w-16 shrink-0 (192px→204px at
+            the AR 17px root) + panel + card paddings ≈ 280/295px min vs a
+            ~272px grid box, so the card poked past the container once the
+            grid track stopped following max-content (grid-cols-1 above).
+            Now the columns keep w-16 as their basis but are allowed to
+            shrink (shrink-0 dropped, min-w-0 added) below ~355px
+            viewports — circles stay size-9, labels wrap inside the
+            narrowed column — and the connectors get a min-w-2 floor so
+            the visible flow line never collapses to 0. At ≥375px there
+            is free space, nothing shrinks: rendering is pixel-identical
+            to the pre-fix behavior. */}
         <div className="flex items-start">
           {nodes.map((label, i) => {
             const status = nodeStatus(i)
             const Icon = FLOW_ICONS[i] ?? Inbox
             return (
               <Fragment key={label}>
-                <div className="flex w-16 shrink-0 flex-col items-center gap-1.5">
+                <div className="flex w-16 min-w-0 flex-col items-center gap-1.5">
                   <div
                     className={cn(
                       'relative flex size-9 items-center justify-center rounded-full border-2 transition-colors duration-300',
@@ -462,7 +474,7 @@ function MiniFlow() {
                   </span>
                 </div>
                 {i < 2 ? (
-                  <div className="relative mx-0.5 mt-[17px] h-0.5 flex-1 rounded-full bg-white/10">
+                  <div className="relative mx-0.5 mt-[17px] h-0.5 min-w-2 flex-1 rounded-full bg-white/10">
                     {/* progress sweep — G2-4 F1: transformOrigin 'start'
                         is INVALID CSS (transform-origin takes PHYSICAL
                         keywords; the logical form never shipped) — CSSOM
@@ -575,8 +587,20 @@ function MiniCube() {
   const rotRef = useRef({ x: -18, y: 28 })
   const cubeRef = useRef<HTMLDivElement>(null)
   const shadowRef = useRef<HTMLDivElement>(null)
+  const stageRef = useRef<HTMLDivElement>(null)
   const [dragging, setDragging] = useState(false)
   const [spinning, setSpinning] = useState(false)
+  // W3-02 (plan §2): idle-spin visibility gate — the hero.tsx :263-282
+  // IO pattern, applied to the cube's STAGE. `inViewRef` is the
+  // synchronous read (armIdle checks it); `inView` state re-runs the
+  // spin-loop effect below so the rAF loop is fully torn down while
+  // off-screen (zero transform writes) and re-created on return. Default
+  // `true` = first-paint/SSR assumption "visible" — the observer delivers
+  // the real answer with its first callback, long before any 2.5s idle
+  // timer could fire, so initial behavior is unchanged when the cube
+  // starts in view.
+  const inViewRef = useRef(true)
+  const [inView, setInView] = useState(true)
   const start = useRef({ x: 0, y: 0, rx: 0, ry: 0 })
   const idleTimer = useRef(0)
 
@@ -603,9 +627,14 @@ function MiniCube() {
   }, [])
   // Idle auto-rotation: armed on mount and after every drag; fires ~2.5s
   // after the last interaction. Disabled entirely for reduced-motion users.
+  // W3-02: also refuses to arm while the stage is off-screen (idle is only
+  // ever armed in view — a timer armed before scrolling away may still fire
+  // and flip `spinning`, but the gated loop below then stays parked until
+  // the stage returns to view, which is exactly the resume behavior we
+  // want: same angle, no jump).
   const armIdle = useCallback(() => {
     if (idleTimer.current) window.clearTimeout(idleTimer.current)
-    if (reduced) return
+    if (reduced || !inViewRef.current) return
     idleTimer.current = window.setTimeout(() => {
       idleTimer.current = 0
       setSpinning(true)
@@ -631,8 +660,13 @@ function MiniCube() {
   // tab-visibility spikes, fully self-cleaning. L6-R3 (fix 5): the loop
   // writes the transform through the ref (applyRot) — ZERO setState per
   // frame, so the perpetual idle rotation no longer re-renders anything.
+  // W3-02: `spinning && inView && !reduced` — while the stage is scrolled
+  // out the effect early-returns and its cleanup cancels the rAF, so an
+  // off-screen cube performs NO work at all; when the stage re-enters view
+  // the effect re-runs and the rotation resumes from rotRef (same angle,
+  // no jump). Drag/keyboard paths never read `inView` — they stay live.
   useEffect(() => {
-    if (!spinning || reduced) return
+    if (!spinning || !inView || reduced) return
     let raf = 0
     let last = performance.now()
     const tick = (now: number) => {
@@ -646,7 +680,25 @@ function MiniCube() {
     return () => {
       if (raf) cancelAnimationFrame(raf)
     }
-  }, [spinning, reduced, applyRot])
+  }, [spinning, inView, reduced, applyRot])
+
+  // W3-02: the visibility observer itself — the ready pattern from
+  // hero.tsx :263-282 (threshold 0.05, ref + state dual write).
+  useEffect(() => {
+    const el = stageRef.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry) {
+          inViewRef.current = entry.isIntersecting
+          setInView(entry.isIntersecting)
+        }
+      },
+      { threshold: 0.05 }
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
 
   const onDown = (e: React.PointerEvent) => {
     stopSpin()
@@ -720,6 +772,7 @@ function MiniCube() {
           users get instant, un-eased nudges. Focus ring follows the
           three-d-section convention (ring-ring offset elyra-dark). */}
       <div
+        ref={stageRef}
         role="img"
         aria-label={`${t('hint')} — ${t('idle')}`}
         tabIndex={0}
@@ -1069,8 +1122,19 @@ export function ServicesBento() {
             Auto rows reproduce the shipped geometry honestly: the
             2×2 websites card still stretches across rows 1-2 (h-full +
             default stretch), and the single cards keep their natural
-            heights. */}
-        <div className="mt-14 grid gap-4 lg:grid-cols-3">
+            heights.
+            W4b (320px corrective, W4a finding): at mobile the single
+            implicit column track was grid-auto-columns: auto → max-
+            content, so the flagship card's unwrapped max-content
+            (~302px @16px root / ~313px @17px root — chips + swatch
+            caption rows) outgrew the ~272px grid box at a 320px
+            viewport and poked into the page gutter (pre-existing ~6px,
+            amplified to ~17px by W4-02's AR 17px root). grid-cols-1
+            (= minmax(0,1fr), the standard fix) pins the track to the
+            container: every row inside the cards reflows/wraps instead
+            of dictating the track; the card's overflow-hidden is now a
+            safety net, not the mechanism. */}
+        <div className="mt-14 grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Big websites card — FLAGSHIP (G3-6 Stitch port, design-lab
               bento-services reference): spans 2 cols × 2 rows as the grid's
               right-side anchor in RTL (grid col 1 = right edge under
@@ -1078,7 +1142,7 @@ export function ServicesBento() {
               eyebrow, title, one-sentence desc, checkmark feature chips)
               + the MiniSite storefront preview bleeding EDGE-TO-EDGE
               through the card's lower half (GlowCard padding zeroed via
-              p-0 overrides; the card's own rounded-3xl + overflow-hidden
+              p-0 overrides; the card's own rounded-2xl + overflow-hidden
               clips the bleed), anchored to the bottom with mt-auto so the
               stretch gap sits between chips and preview, never below.
               FIX(2-c/12) history: the icon eyebrow stays icon-only (no

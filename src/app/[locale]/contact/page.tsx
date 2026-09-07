@@ -183,7 +183,7 @@ export default async function ContactPage({
                   RTL-safe: no directional utilities, values isolated via
                   <bdi>. */}
               <Reveal delay={0.06} variant="zoom">
-                <figure className="mt-8 rounded-3xl border border-border bg-card p-5 sm:p-6">
+                <figure className="mt-8 rounded-2xl border border-border bg-card p-5 sm:p-6">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex gap-0.5" role="img" aria-label={tTesti('rating')}>
                       {[0, 1, 2, 3, 4].map((s) => (
@@ -230,7 +230,7 @@ export default async function ContactPage({
               </Reveal>
 
               <Reveal delay={0.12} className="mt-6">
-                <div className="rounded-3xl border border-border bg-card p-6 sm:p-8">
+                <div className="rounded-2xl border border-border bg-card p-6 sm:p-8">
                   <ContactForm prefillService={service} prefillIdea={idea} />
                 </div>
               </Reveal>

@@ -46,6 +46,11 @@ import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
  *     hides the overlay at 4.5s — nothing can ever trap the user.
  *   - Skip intents (pointerdown / wheel / keydown) collapse the hold phase
  *     to "now" — the curtain always obeys the user.
+ *   - W2-02: the hold timer is gated on the document fonts readiness
+ *     promise (4s ceiling) so the wordmark is already in its final webface
+ *     before the curtain lifts — no visible font swap mid-lift on slow
+ *     networks. Skip intents preempt the wait (startExit is phase-guarded);
+ *     the no-JS CSS failsafe at 4.5s stays the hard ceiling.
  */
 
 /** sessionStorage flag — one play per tab session. */
@@ -54,6 +59,8 @@ const INTRO_SESSION_KEY = 'elyra-intro'
 const HOLD_MS = 1700
 /** Duration of the lift animation (matches the CSS transition). */
 const LIFT_MS = 850
+/** W2-02 — ceiling for the document fonts readiness wait (ms). */
+const FONTS_READY_TIMEOUT_MS = 4000
 
 export function IntroOverlay() {
   const t = useTranslations('meta')
@@ -108,9 +115,30 @@ export function IntroOverlay() {
     // resume from pause after release.
     document.documentElement.setAttribute('data-intro', '1')
 
-    holdId = window.setTimeout(startExit, HOLD_MS)
+    // W2-02 (plan §2): wait for the wordmark's real webfont before starting
+    // the hold timer — otherwise a late font swap re-shapes `.intro-word`
+    // while the curtain is already lifting (worst on throttled networks).
+    // Promise.race caps the wait at 4s; the no-JS CSS failsafe (globals.css
+    // `.intro-overlay` → intro-failsafe @4.5s) remains the hard ceiling on
+    // the curtain either way. Skip intents mounted above stay IMMEDIATE and
+    // preempt this promise: startExit only ever moves 'hold' → 'exit', so a
+    // skip that lands while fonts are still loading wins now and the hold
+    // timer scheduled below becomes a no-op.
+    let disposed = false
+    let fontsCeilingId = 0
+    Promise.race([
+      document.fonts.ready,
+      new Promise<void>((resolve) => {
+        fontsCeilingId = window.setTimeout(resolve, FONTS_READY_TIMEOUT_MS)
+      }),
+    ]).then(() => {
+      if (disposed) return
+      holdId = window.setTimeout(startExit, HOLD_MS)
+    })
 
     return () => {
+      disposed = true
+      window.clearTimeout(fontsCeilingId)
       window.removeEventListener('pointerdown', onSkip)
       window.removeEventListener('wheel', onSkip)
       window.removeEventListener('keydown', onSkip)

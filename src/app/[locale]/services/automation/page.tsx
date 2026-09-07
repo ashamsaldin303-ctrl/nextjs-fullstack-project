@@ -83,12 +83,12 @@ export default async function AutomationPage({
             {INTEGRATIONS.map(({ key, icon: Icon }, i) => (
               <Reveal key={key} delay={(i % 4) * 0.06} variant="zoom">
                 {/* G2-3 P3-8 (fix 9): shell unified to the site's dominant
-                    card family (rounded-3xl · p-8 · hover shadow-lg ·
+                    card family (rounded-2xl · p-8 · hover shadow-lg ·
                     size-12 rounded-2xl chip · size-6 icon) — was the drifted
                     rounded-2xl/p-6/shadow-md/size-11 outlier; now identical
                     to the websites types + about values + service prose
                     shells. */}
-                <article className="group h-full rounded-3xl border border-border bg-card p-8 transition-all hover:border-primary/40 hover:shadow-lg">
+                <article className="group h-full rounded-2xl border border-border bg-card p-8 transition-all hover:border-primary/40 hover:shadow-lg">
                   <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-transform group-hover:scale-110">
                     <Icon className="size-6" aria-hidden="true" />
                   </div>

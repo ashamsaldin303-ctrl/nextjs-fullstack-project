@@ -3,6 +3,7 @@ import { Link } from '@/i18n/navigation'
 import { Logo } from '@/components/brand/logo'
 import { LiveClock } from './live-clock'
 import { CopyrightYear } from './copyright-year'
+import { DamascusClock } from './damascus-clock'
 import { Mail, MessageCircle, Send, Github, Linkedin, Instagram } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SITE_CONTACT, SITE_SOCIAL } from '@/lib/site-config'
@@ -20,12 +21,58 @@ function FooterHeading({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function Footer({ className }: { className?: string }) {
+/* W4-05 (plan §2 / decision D5): the footer's second moment — a giant
+   stroke-only ELYRA wordmark + a one-line status readout (live Damascus
+   time + studio coordinates) sitting above the utility grid. The mark is
+   a sanctioned LATIN island (lang="en" dir="ltr", like the hero watermark
+   and hb-labels — the universal :lang(ar) letter-spacing reset exempts
+   it, so its -0.03em tracking applies in AR too, and Inter is pinned via
+   the --font-inter variable so AR/EN render the identical glyph shapes).
+   Decorative: aria-hidden + exempt from 4.5:1 (1px white/12% stroke; the
+   @supports fallback fills at white/8% for engines without
+   -webkit-text-stroke). All static SSR — the fixed clamp() guarantees
+   zero CLS; the ONLY client island is DamascusClock (its
+   '--:--:--' placeholder swaps to the time at the same tabular-mono
+   width, exactly like the hero kicker). Reduced-motion: nothing here
+   animates — the clock's tick is a text-only update (hero-verbatim
+   behavior). No i18n keys: the mark is bilingual-by-design Latin. */
+function FooterWordmark() {
+  /* Base = the no-stroke fallback (fill white/8%); browsers that DO
+     support -webkit-text-stroke flip to transparent + the 1px
+     white/12% stroke — the plan's @supports-not pattern expressed
+     as a positive supports-[] variant pair. */
+  return (
+    <div
+      aria-hidden="true"
+      lang="en"
+      dir="ltr"
+      className={cn(
+        'select-none',
+        '[font-family:var(--font-inter),system-ui,sans-serif]',
+        '[font-size:clamp(4rem,13vw,16rem)]',
+        'font-black leading-[0.8] tracking-[-0.03em]',
+        'text-[rgba(255,255,255,0.08)]',
+        'supports-[(-webkit-text-stroke:1px_black)]:text-transparent',
+        'supports-[(-webkit-text-stroke:1px_black)]:[-webkit-text-stroke:1px_rgba(255,255,255,0.12)]'
+      )}
+    >
+      ELYRA
+    </div>
+  )
+}
+
+export function Footer({ locale, className }: { locale: string; className?: string }) {
   // L6-R6 P3: the footer is now a SERVER component — useTranslations
   // resolves per-request exactly like ServiceProse/Logo (the proven
   // shared-component pattern). The only runtime-clock value (the
   // copyright year) lives in the tiny CopyrightYear client island;
-  // LiveClock was already its own client component.
+  // LiveClock was already its own client component. W4-05: the status
+  // line adds the DamascusClock island — the locale arrives as a prop
+  // from [locale]/layout.tsx (which already awaits+validates it), so
+  // this component stays sync: mixing an awaited getLocale() with the
+  // sync useTranslations() hook trips React's "suspended thenable"
+  // contract (measured — 500 on /ar), while the prop keeps the proven
+  // RSC pattern untouched.
   const t = useTranslations()
 
   return (
@@ -43,6 +90,22 @@ export function Footer({ className }: { className?: string }) {
         aria-hidden="true"
         className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent"
       />
+
+      {/* W4-05 second moment: wordmark + status line (see FooterWordmark
+          comment for the full rationale). The status line wraps below
+          ~330px content (gap-y-2) so the 320px gate stays zero-overflow;
+          at ≥375px it is a single row exactly per spec (gap-6). */}
+      <div className="elyra-container max-w-container pt-16">
+        <FooterWordmark />
+        <div
+          dir="ltr"
+          className="elyra-mono mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/55 tabular-nums"
+        >
+          <DamascusClock locale={locale} className="text-sm" />
+          <span>33.5138° N, 36.2765° E</span>
+        </div>
+      </div>
+
       <div className="elyra-container max-w-container py-16">
         <div className="grid gap-12 lg:grid-cols-12">
           {/* Brand block */}

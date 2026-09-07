@@ -1,7 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { motion, useScroll, useTransform, useReducedMotion, type MotionValue } from 'framer-motion'
+import { motion, useScroll, useSpring, useTransform, useReducedMotion, type MotionValue } from 'framer-motion'
 import { useEffect, useRef } from 'react'
 import { Compass, PencilRuler, Hammer, Rocket, type LucideIcon } from 'lucide-react'
 import { SectionHeading } from '@/components/shared/section-heading'
@@ -50,7 +50,7 @@ function MethodologyStep({
     <motion.article
       style={reduced ? undefined : { scale }}
       className={cn(
-        'relative rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-10',
+        'relative rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-10',
         'sticky top-24',
       )}
     >
@@ -70,7 +70,7 @@ function MethodologyStep({
           number span carried it too). */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl"
+        className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl"
       >
         <span
           className="absolute -end-4 -top-4 text-[120px] font-bold leading-none text-primary/5 sm:text-[160px]"
@@ -116,10 +116,19 @@ export function Methodology() {
     target: containerRef,
     offset: ['start 20%', 'end 60%'],
   })
-  // 4-I4 (Batch 3 item 15): one-way bridge — feed this section's scroll
-  // progress to the hero canvas camera dolly (bound in an effect so no
+  // W2-01 (plan §2 — scrub:1 translation): ONE shared spring smoothing the
+  // raw scroll progress. The rail, the stacked cards and the 3D camera
+  // bridge below all consume this SINGLE clock, so they can never drift
+  // apart (§5-5: changing these coefficients requires a documented
+  // decision — separate values would de-sync the three systems). The
+  // reduced-motion path is deliberately unchanged: the spring still exists
+  // but nothing consumes it there (static full rail, cards without style).
+  const smooth = useSpring(scrollYProgress, { stiffness: 100, damping: 30, mass: 0.5 })
+  // 4-I4 (Batch 3 item 15): one-way bridge — feed this section's SMOOTHED
+  // scroll progress (the shared W2-01 spring — the same clock the rail and
+  // cards use) to the hero canvas camera dolly (bound in an effect so no
   // module state is touched during render; unbinds on unmount).
-  useEffect(() => bindHeroScroll(scrollYProgress), [scrollYProgress])
+  useEffect(() => bindHeroScroll(smooth), [smooth])
 
   return (
     <section className="bg-background py-20 sm:py-28" aria-labelledby="method-title">
@@ -137,8 +146,9 @@ export function Methodology() {
         <div ref={containerRef} className="relative mt-14">
           {/* UI-5: vertical progress rail on the START side (logical
               inset — flips with RTL). Track is a hairline; the fill is a
-              scaleY transform on the same scrollYProgress the cards use
-              (no extra listeners). Reduced motion → static full line. */}
+              scaleY transform on the same shared spring the cards use
+              (W2-01 — one clock, no extra listeners). Reduced motion →
+              static full line. */}
           <div
             aria-hidden="true"
             className="absolute bottom-0 start-0 top-0 w-0.5 rounded-full bg-border"
@@ -148,7 +158,7 @@ export function Methodology() {
             ) : (
               <motion.div
                 className="h-full w-full origin-top rounded-full bg-gradient-to-b from-primary via-primary/70 to-primary/30"
-                style={{ scaleY: scrollYProgress }}
+                style={{ scaleY: smooth }}
               />
             )}
           </div>
@@ -162,7 +172,7 @@ export function Methodology() {
                 step={step}
                 index={i}
                 total={STEPS.length}
-                progress={scrollYProgress}
+                progress={smooth}
                 reduced={reduced}
               />
             ))}
