@@ -2936,3 +2936,22 @@ Work Log:
 
 Stage Summary:
 - Repository fully synced with GitHub. All Stitch-integration work, audit-loop fixes, and cinematic rounds are now on the remote. Token exposure surface: chat message only (user-supplied) + one transient /tmp file (deleted) — zero persistence in VCS.
+
+---
+Task ID: SPEC-1
+Agent: Coordinator (direct analysis, no subagents)
+Task: اقرأ وحلل بدقة — تحليل مواصفة «Edge Rune» المرفوعة (upload/elyra-edge-rune-spec.md) والتحقق من كل ادعاءاتها البنيوية ضد شجرة الكود الفعلية HEAD 07e8332
+
+Work Log:
+- قراءة المواصفة كاملة (228 سطراً) واستخراج كل الادعاءات القابلة للتحقق.
+- تحقق git: 991506b (الكوميت الذي تدّعي المواصفة فحصه) ليس في نسب هذا المستودع؛ HEAD الحقيقي 07e8332 (حقبة Stitch، بعد L6). لا أثر لـ ANIM-2 (لا scroll-velocity store، لا AmbientCanvas، لا BandSeam/NextLinkFinale/case-film) — شجرة الحقيقة = Stitch-era.
+- تحقق ملف‑بملف: capability-scene.tsx (Icosahedron(1.1,5) + NOISE_GLSL + uTime/uAmp/uColorA-D+G + هالة ~600 + dispose لكل مورد + ContextLossGuard) ✓؛ hero-scroll.ts ✓ (لكنه جسر progress 0..1 صفحة‑محلي فقط)؛ use-webgl.ts probeWebGL ✓؛ three-d-section.tsx (IO+visibilitychange+nearViewport) ✓؛ layout.tsx (Grain z-90 + CustomCursor z-200 بعد children) ✓؛ useMobileTier ✓؛ use-reduced-motion ✓؛ not-found ✓؛ المسارات السبعة تطابق جدول presets ✓.
+- نقض بالدليل: gl-health.ts + window.__elyraGlHealth غير موجودين إطلاقاً (rg على src كله)؛ brand-colors.ts غير موجود (الألوان CSS vars في globals.css + hex مكرر داخل capability-scene)؛ MotionConfigProvider غير موجود؛ سياسة «لا WebGL تحت 768px منذ المرحلة 2» كاذبة — hero-canvas يعمل على الجوال بطبقة أخف (1800 جسيم/dpr≤1.5)؛ scripts/research/ غير موجود.
+- قياسات: parity 736/736 EXIT 0 (وليس 737)؛ framer-motion مستورد في 4 ملفات فقط (كلها homepage) وReveal متحرر منه عمداً؛ three+R3F غير محمّلين اليوم على /work و/about و/contact و/services/automation؛ خريطة z: navbar 50 / progress 60 / intro 80 / grain 90 / cursor 200.
+- Dev server حي (GET / 200 في dev.log). لا تعديلات على أي ملف مصدر — تحليل فقط.
+
+Stage Summary:
+- المواصفة: قرارها المركزي (الخيار أ: Canvas ثابت واحد في layout + مورف باستيفاء uniforms) سليم ومعماريّاً صائب ويبقى صائباً بعد التحقق.
+- عُثر على 5 مراجع بنية تحتية غير موجودة (gl-health، brand-colors، MotionConfigProvider، سياسة الجوال، scripts/research) + تقدير «6–9KB gz» مضلل (الكلفة الحقيقية على الصفحات الداخلية تشمل three+R3F ~150–180KB gz) + §4.2 يجرّ framer-motion لكل الصفحات عكس فلسفة hero-scroll.
+- بوابات G6 وG10 تحتاجان إعادة صياغة (G6 تناقض سلوك hero الحالي؛ G10 تعتمد على infra وهمي). G1‑G5 وG7‑G9 وG11 قابلة للقياس وسليمة.
+- التوصية: تنفيذ ممكن بعد «إعادة تثبيت على الواقع» — إنشاء src/lib/brand-colors.ts كمصدر وحيد، حساب سرعة التمرير داخل useFrame من دلتا window.scrollY (بلا framer-motion)، كانفس بحجم الزاوية بدل شاشة كاملة، تجريد locale prefix عند مفتاح presets، وقرار جوال صريح جديد (إخفاء = قرار جديد وليس سياسة موروثة).
