@@ -14,6 +14,7 @@ import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { useMobileTier } from '@/lib/use-mobile-tier'
 import { probeWebGL } from '@/lib/use-webgl'
+import { BRAND_COLORS } from '@/lib/brand-colors'
 
 /**
  * Interactive 3D capability scene for /services/websites.
@@ -48,22 +49,24 @@ import { probeWebGL } from '@/lib/use-webgl'
  */
 
 const LIGHTS: { color: string; pos: [number, number, number] }[] = [
-  { color: '#4285F4', pos: [3, 2, 4] },
-  { color: '#34A853', pos: [-3, 2, 4] },
-  { color: '#0071E3', pos: [3, -2, 2] },
-  { color: '#E8F2FF', pos: [-3, -2, 2] },
+  { color: BRAND_COLORS.gBlue, pos: [3, 2, 4] },
+  { color: BRAND_COLORS.gGreen, pos: [-3, 2, 4] },
+  { color: BRAND_COLORS.primary, pos: [3, -2, 2] },
+  { color: BRAND_COLORS.wash, pos: [-3, -2, 2] },
 ]
 
-/** Halo palette — brand blues with green/cool-white counterpoints. */
+/** Halo palette — brand blues with green/cool-white counterpoints.
+ *  R1 consolidation: hex values now flow from src/lib/brand-colors.ts (the
+ *  same registry the Edge Rune presets use) — byte-identical literals. */
 const HALO_COLORS = [
-  new THREE.Color('#4285F4'),
-  new THREE.Color('#4285F4'),
-  new THREE.Color('#0071E3'),
-  new THREE.Color('#0071E3'),
-  new THREE.Color('#60A5FA'),
-  new THREE.Color('#60A5FA'),
-  new THREE.Color('#34A853'),
-  new THREE.Color('#E8F2FF'),
+  new THREE.Color(BRAND_COLORS.gBlue),
+  new THREE.Color(BRAND_COLORS.gBlue),
+  new THREE.Color(BRAND_COLORS.primary),
+  new THREE.Color(BRAND_COLORS.primary),
+  new THREE.Color(BRAND_COLORS.gBlueLight),
+  new THREE.Color(BRAND_COLORS.gBlueLight),
+  new THREE.Color(BRAND_COLORS.gGreen),
+  new THREE.Color(BRAND_COLORS.wash),
 ]
 
 const HALO_COUNT = 600
@@ -86,9 +89,9 @@ interface OrbitConfig {
 }
 
 const ORBITS: OrbitConfig[] = [
-  { radius: 1.9, sx: 1.35, size: 0.1, color: '#4285F4', tilt: [Math.PI * 0.42, 0, Math.PI * 0.1], speed: 0.45, phase: 0 },
-  { radius: 2.3, sx: 0.8, size: 0.085, color: '#60A5FA', tilt: [Math.PI * 0.55, 0.2, -Math.PI * 0.3], speed: -0.34, phase: 2.2 },
-  { radius: 2.55, sx: 1.12, size: 0.095, color: '#34A853', tilt: [Math.PI * 0.35, -0.5, Math.PI * 0.38], speed: 0.27, phase: 4.4 },
+  { radius: 1.9, sx: 1.35, size: 0.1, color: BRAND_COLORS.gBlue, tilt: [Math.PI * 0.42, 0, Math.PI * 0.1], speed: 0.45, phase: 0 },
+  { radius: 2.3, sx: 0.8, size: 0.085, color: BRAND_COLORS.gBlueLight, tilt: [Math.PI * 0.55, 0.2, -Math.PI * 0.3], speed: -0.34, phase: 2.2 },
+  { radius: 2.55, sx: 1.12, size: 0.095, color: BRAND_COLORS.gGreen, tilt: [Math.PI * 0.35, -0.5, Math.PI * 0.38], speed: 0.27, phase: 4.4 },
 ]
 
 /* ------------------------------------------------------------------ *
@@ -357,10 +360,10 @@ function Centerpiece({
     () => ({
       uTime: { value: 0 },
       uAmp: { value: 0.12 },
-      uColorA: { value: new THREE.Color('#4285F4') },
-      uColorB: { value: new THREE.Color('#0071E3') },
-      uColorC: { value: new THREE.Color('#60A5FA') },
-      uColorG: { value: new THREE.Color('#34A853') },
+      uColorA: { value: new THREE.Color(BRAND_COLORS.gBlue) },
+      uColorB: { value: new THREE.Color(BRAND_COLORS.primary) },
+      uColorC: { value: new THREE.Color(BRAND_COLORS.gBlueLight) },
+      uColorG: { value: new THREE.Color(BRAND_COLORS.gGreen) },
     }),
     []
   )

@@ -2955,3 +2955,37 @@ Stage Summary:
 - عُثر على 5 مراجع بنية تحتية غير موجودة (gl-health، brand-colors، MotionConfigProvider، سياسة الجوال، scripts/research) + تقدير «6–9KB gz» مضلل (الكلفة الحقيقية على الصفحات الداخلية تشمل three+R3F ~150–180KB gz) + §4.2 يجرّ framer-motion لكل الصفحات عكس فلسفة hero-scroll.
 - بوابات G6 وG10 تحتاجان إعادة صياغة (G6 تناقض سلوك hero الحالي؛ G10 تعتمد على infra وهمي). G1‑G5 وG7‑G9 وG11 قابلة للقياس وسليمة.
 - التوصية: تنفيذ ممكن بعد «إعادة تثبيت على الواقع» — إنشاء src/lib/brand-colors.ts كمصدر وحيد، حساب سرعة التمرير داخل useFrame من دلتا window.scrollY (بلا framer-motion)، كانفس بحجم الزاوية بدل شاشة كاملة، تجريد locale prefix عند مفتاح presets، وقرار جوال صريح جديد (إخفاء = قرار جديد وليس سياسة موروثة).
+
+---
+Task ID: RUNE-1
+Agent: Coordinator (direct implementation + agent-browser verification)
+Task: تنفيذ مواصفة «Edge Rune» (مجسم 3D ثابت على حافة الشاشة يدور مع التمرير ويتمورف لكل مسار) على آخر نسخة HEAD 07e8332، مع التصحيحات الست من تحليل SPEC-1
+
+Work Log:
+- R1: أنشئ src/lib/brand-colors.ts (مصدر وحيد للألوان: gBlue/primary/gBlueLight/gGreen/wash/dark — مطابق بايت‑بايت لتokens في globals.css) + src/lib/scroll-store.ts (سرعة تمرير عامة بلا framer-motion: عينة window.scrollY داخل useFrame، سقف 3200px/s، حارس teleport 900px، deadzone 6px/s مع تثبيت الاتجاه).
+- R2: src/components/rune/rune-presets.ts — 7 presets (home/websites/automation/work/about/contact/default) بأهداف amp/freq/twist/morph/speed/scale + 6 ألوان، وstripLocalePath لتجريد /ar|/en قبل مطابقة المسار.
+- R3: src/components/rune/rune-scene.tsx — شيدر المورف (NOISE_GLSL المجرَّب + uFreq/uTwist/uMorph الجديدة، twist=0 يطابق رياضياً نمط capability المُتحقق منه) + هالة 240 جسيمة بـ uHaloA/B + محرك استيفاء dt-compensated (MORPH_K=3.2 ≈ 0.9s) + دوران اتجاهي (K_SCROLL=0.0006، ROT_MAX=1.8، idle 0.12rad/s) + snap أول‑إطار للقيم المحايدة (بديل eslint-disable: memos نظيفة التبعيات وReact Compiler يحسّن المكوّن) + per-resource dispose + ContextLossGuard موسم '[EdgeRune]' + مقبض قياس dev فقط window.__elyraRuneDebug (NODE_ENV inline).
+- R4: src/components/rune/edge-rune.tsx — البوابات: reduced→null، mobileTier→null (قرار منتج جديد موثّق، ليس سياسة موروثة)، requestIdleCallback(2.5s) قبل جلب chunk الـ three، probeWebGL rAF-deferred، visibilitychange→frameloop never؛ صندوق 220×220 fixed z-[5] opacity-80 بـ inset-inline-end منطقي + env() للجهة الفيزيائية حسب اللغة؛ dynamic ssr:false يبقي three خارج الحزمة المشتركة.
+- التركيب: [locale]/layout.tsx بعد <Footer/> قبل <GrainOverlay/> (ترتيب §4.6).
+- التجويد: capability-scene.tsx — استبدال 15 hex حرفياً بـ BRAND_COLORS (قيم متطابقة، النظام المحمي أعيد التحقق منه حياً).
+- إصلاح واحد أثناء التحقق: R3F يضبط pointer-events:auto على حاويته — أضيف pointerEvents:'none' عبر style الـ Canvas (دمج R3F يضع ...style أخيراً) بعد رصد فشل G8 بـ elementFromPoint.
+
+التحقق (متصفح حقيقي عبر agent-browser، 1440×900):
+- G1: tsc=0، lint=0 (صفر تحذيرات)، parity 736/736، صفر مفاتيح جديدة، صفر تبعيات جديدة.
+- G2: rune وحده = 60fps (قياس EMA على 3 صفحات داخلية)؛ عنق زجاجة الرئيسية = hero silk في SwiftShader (حالة سابقة، ليس الـ rune: 2 draw calls على 220×220).
+- G3: 6 تنقلات client-side → mount=1 دائماً، عدد canvases مستقر (1 داخلي / 2 رئيسية / 2 مع capability).
+- G4: نزول rotVel=+0.39→+0.50 وrotY يتصاعد؛ صعود rotVel=−0.36 وrotY يتراجع؛ سكون +0.12 idle.
+- G5: عينات منتصف مورف ملتقطة (amp 0.021 بين 0.03→0.02؛ 0.198 بين 0.02→0.22) + VLM يؤكد 3 شخصيات بصرية مختلفة (شظايا/حلقة ملتوية/شبكة عُقد).
+- G6: 375px → لا rune DOM إطلاقاً، 375=375 بلا overflow.
+- G7: reduced-motion → لا rune (وhero كذلك — اتساق).
+- G8: elementFromPoint في مركز الصندوق يصيب elyra-container (النقر يخترق) — بعد الإصلاح.
+- G9: AR=يسار / EN=يمين (inset-inline-end)؛ /en/work → preset 'work' (تجريد الـ locale صحيح).
+- G10: dispatch webglcontextlost → '[EdgeRune] WebGL context lost' بلا انهيار.
+- G11: fixed بلا CLS، chunk بعد idle (LCP محمي)، probeWebGL بوابة، لا GL على الجوال.
+- dev.log نظيف من الأخطاء؛ capability-scene المحمي يعمل حياً (canvases=2 مع rune على /services/websites).
+- ملاحظة أمانة علمية: HEAD الحالي 07e8332 (حقبة Stitch) — لا أثر لعمل ANIM-2 في هذه الشجرة، والتنفيذ تم عليها بناءً على طلب المالك «آخر نسخة».
+
+Stage Summary:
+- ملفات جديدة: brand-colors.ts، scroll-store.ts، rune/{presets,scene,root}.tsx (5 ملفات، ~700 سطر) + تعديلان (layout، capability-scene).
+- الميزة تعمل كاملة على كل المسارات مع مورف عضوي متصل ودوران اتجاهي بالتمرير، والسياق الواحد حي عبر التنقلات.
+- منتج وسيط في .scratch/ (لقطات + vlm json) — غير متتبَّع.

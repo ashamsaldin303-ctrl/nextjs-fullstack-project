@@ -13,6 +13,7 @@ import { ScrollProgress } from '@/components/layout/scroll-progress'
 import { Toaster } from '@/components/ui/sonner'
 import { CustomCursor } from '@/components/sensory/custom-cursor'
 import { GrainOverlay } from '@/components/sensory/grain-overlay'
+import { EdgeRune } from '@/components/rune/edge-rune'
 import '../globals.css'
 
 const inter = Inter({
@@ -222,6 +223,15 @@ export default async function LocaleLayout({
             {children}
           </main>
           <Footer />
+          {/* Edge Rune — decorative fixed corner sigil (WebGL, gated: no
+              mobile / no reduced-motion / no WebGL → nothing mounts; chunk
+              loads post-idle so LCP is untouched). One live GL context for
+              ALL routes — the route preset MORPHS via uniform interpolation
+              instead of remounting, so navigations read as one continuous
+              organic transformation. z-[5]: above content, below navbar
+              (50) / intro (80) / grain (90) / cursor (200). pointer-events
+              none + aria-hidden — pure decoration (see rune/*). */}
+          <EdgeRune />
           {/* R7-b — Sensory Polish Layer (app-wide, single instance each):
               animated film grain + the difference-blend custom cursor
               (dot + trailing ring, magnetic-hover growth, centered label
