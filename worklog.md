@@ -3559,4 +3559,22 @@ Stage Summary:
 - الجديد: model-registry.ts، model-loader.ts، public/models/** (11 مجسماً + manifest.json)، إعادة كتابة rune-scene.tsx (منظورية + PBR + أدوات حقيقية)؛ المحذوف: rune-assemblies.ts + rune-landmarks.ts؛ edge-rune.tsx (استيراد model-registry فقط).
 - النتيجة النهائية على 9 مشاهد مُتحقق منها: 8-9/10 في كل مشهد (كانت 5-6 في البداية) — مجسمات واقعية ثقيلة بوضع مستقر مضبوط وحركة مصممة ثلاثية الطبقات، بلا أي تغطية نصوص.
 - عقود المالك محفوظة آلياً: التمرير هو الزمن (عقارب odometer برهان رياضي + عكس مثالي)، التوقف = صفر إطارات (برهان frames)، وضع صحيح (slots لاصقة بأقسام DOM بأحجام ثابتة)، مجسمات بلندر حقيقية CC0 (Poly Haven).
-- منتج وسيط: .scratch/heavy1/ (لقطات + json VLM) غير متتبَّع.
+- منتج وسيط: .scratch/heavy1/ (لقطات + json VLM) غير متتبَّع.---
+Task ID: MERGE-1
+Agent: Coordinator (direct, no subagents)
+Task: Owner asked «هل تم دفع جميع التغييرات إلى GitHub؟ وأعطني رابط الريبو» — audit push state, reconcile, prepare for a full sync.
+
+Work Log:
+- Audited: local main = 8 commits ahead (RUNE-1/2/3, REF-2, UUID worklog commits, a0fbf2f = 12 heavy Blender-grade GLB model packs + model-loader/registry), while a fresh `git fetch` revealed origin/main had moved to 991506b with 9 remote-only commits (PUSH-1 twin 95dd24f + PACK W1→W6 + PACK-FINAL) — genuine two-way divergence after merge-base c648230. Anonymous ls-remote works → repo is public.
+- Normalized working-tree noise: 61 model/loader files had exec-bit flips (100644→100755, zero content change) from the previous session's download/extract; chmod 644 restored a byte-clean tree.
+- Merge executed with resolution policy «newest approved architecture wins overlaps, keep both intents where complementary»: (1) layout.tsx = SmoothScroll (Lenis) + MotionConfigProvider(reducedMotion umbrella) + Footer locale/DamascusClock + EdgeRune, all coexisting; (2) globals.css grain = REF-2 Phase D 0.03/2-octave over PACK W1 0.045/3 (the value PACK set and REF-2 later VLM-tuned down); (3) brand-colors.ts add/add unified as UNION registry — R1 BRAND_COLORS + W3 BRAND exported as aliases of one object (every overlapping hex byte-identical; gBlueLight #60A5FA tokenized; primaryStrong/gRed/gYellow/deep/paper/silkDeep added) so hero-canvas (BRAND) and rune/capability (BRAND_COLORS) compile unchanged; (4) capability-scene.tsx = R1 token wiring + W3 gl-health telemetry (noteGlLost/noteGlRestored listeners auto-merged intact, import block rebuilt manually); (5) worklog.md = chronological union (PACK 09-06 entries first, local RUNE/REF-2 09-07 entries after).
+- Confirmed no double-smoothing: PACK's lib diff was additive-only (brand-colors + gl-health); Lenis remains the sole global smoother, useSpring stays per-element (velocity-skew, methodology).
+- Incoming additions kept: CLAUDE.md, agent-pack/ (5 files), docs/awards-plan.md, scripts/check-slop.mjs + check-secrets.mjs, template.tsx (CSS page-enter), damascus-clock.tsx, gl-health.ts, README + 18 component merges (values-only i18n copy, RTL typography, footer second-moment, bento 320px fix).
+- Gates after resolution: bunx tsc --noEmit = 0 · bun run lint = 0 · check-i18n-parity = "Parity OK: 736 keys" (raw key count ar=en=1020, zero orphans).
+- Browser-verified (agent-browser): / 200 — hero h1 + EdgeRune canvas + DamascusClock footer (01:03:13, 33.5138° N 36.2765° E) all present, zero page errors; /about 200 — 20 /models/ resources actually loading; /services/websites 200 — resolved capability-scene renders (window.__elyraGlHealth correctly absent: fires only on first context event); mobile 375×812 — no horizontal overflow, footer visible. dev.log clean (transient mid-merge 500 self-recovered once brand-colors.ts was finalized).
+- Committed MERGE-1 (9086ff7). NO PUSH performed: token zero-persistence protocol holds (no /tmp artifacts, no env vars, no credential helper — verified); remote URL remains credential-free HTTPS.
+
+Stage Summary:
+- Repository answer to owner: NO — the entire 3D line was NOT on GitHub, and GitHub carried a PACK line the local branch never had; both are now reconciled locally into one history (main = 9 commits ahead, 0 behind, tree clean).
+- Repo: https://github.com/ashamsaldin303-ctrl/nextjs-fullstack-project (public, anonymous read verified).
+- BLOCKED-ON-OWNER: the single push needs a user-supplied PAT (repo scope) — will use the transient askpass protocol (token to /tmp with umask 077, deleted immediately after push, never enters .git/config or history) exactly as PUSH-1 did.
