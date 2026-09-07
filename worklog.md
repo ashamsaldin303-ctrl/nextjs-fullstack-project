@@ -3610,3 +3610,19 @@ Work Log:
 Stage Summary:
 - REPOSITORY FULLY SYNCED: https://github.com/ashamsaldin303-ctrl/nextjs-fullstack-project now carries EVERYTHING — the PACK polish line, the RUNE/REF-2 3D line, the 12 heavy realistic models, and the MERGE-1 reconciliation, in one linear history.
 - Residual advice to owner: rotate both chat-transited PATs (the 333-pixel one never gained any repo access — single 403 — and the 303-ctrl one is now spent; rotation is owner's responsibility per the accepted-tradeoff ledger).
+---
+Task ID: REF-3
+Agent: Coordinator (direct analysis, no subagents)
+Task: Owner uploaded upload/DETAILED_ANALYSIS_REPORT.md (972-line engineering whitepaper on olssonsskafferi.se, craftedbygc.com, atelierpaulin.com, aardvarkbookclub.com) — «حلل بدقة ثم كيف نستفيد منه بأفضل طريقة في جميع المجالات».
+
+Work Log:
+- Read the full report (all 7 sections incl. per-site math/physics/code + comparison matrix + performance guide).
+- Math verification (manual): ζ=24/(2√320)=0.6708 ✓ underdamped; Bézier discrete arc-length ✓; clip circle R_max ✓; Schlick approximation ✓; hinge (1−cos(πt/2)) ✓; flagged e=0.38→22px as narrative-tuned (e²·220≈32px), VRAM%/+300% as unmeasurable claims.
+- Key context finding: only aardvark overlaps with REF-1's site set (silencio/animejs/illoca/aardvark) → 3 of 4 sites are NEW reference material; report is a complementary "tactile/sensory" layer on top of our executed REF-1/REF-2 foundation.
+- Code-reality cross-check (component-by-component): ALREADY HAVE — Lenis, ClipCurve, tabular-nums ×5 files, deconstructed-card (= Atelier exploded-view, measurement-driven, stronger than report's), methodology sticky stack (half-solution: no fan tilt/scale), sound.ts engine (hover/click/success — all high-freq, no lowpass/impact), custom-cursor (dot/ring/label/magnet), reduced-motion umbrella, grain, freeze contract. GENUINELY NEW — 9 opportunities mapped to exact files: N1 playImpact organic thud (190→32Hz+lowpass 320/Q1.2) → sound.ts; N2 squash&stretch → calculator estimate/before-after handle/CTA; N3 hash-seed angular dispersion ±3.5° → calculator chips; N4 deck fanning (Sᵢ=1−0.045(N−i)p, θ=(−1)ⁱ2.5°p, origin center-top) → methodology upgrade; N5 self-drawing golden arabesque (strokeDashoffset=S(1−p)) → manifesto/about divider; N6 radar cursor X/Y readouts → 3D zones; N7 box-lid hinge −120°(1−cos) → contact success; N8 proximity dot-grid Canvas 2D → no-WebGL reduced tier; N9 Fresnel gold edge → spec cards.
+- Explicit WON'T-TAKE list: GSAP (framer-motion only), Aardvark retro palette (mechanics yes, paint no), full isometric free-roam as v1, report's narrative numbers as KPIs.
+- Wrote the full Arabic analysis + 3-tier integration plan (T1 quick wins in existing files / T2 signature moments / T3 ambitious needing design approval) → upload/elyra-ref3-tactile-integration-plan.md, with house rules (freeze contract, RTL logical mirroring, muted-default audio, compositor-only) and REF-2 gate suite per item.
+
+Stage Summary:
+- Deliverable: precise report verification (math sound, code production-grade but LTR/GSAP-context — math transfers, library doesn't) + honest existing-vs-new matrix + phased plan awaiting owner approval to execute (same REF-1→REF-2 flow).
+- Positioning: report = the "tactile layer" (physics micro-interactions, organic audio, deck fanning, self-drawing wire) on top of our scroll/material foundation — no rework of REF-2.
