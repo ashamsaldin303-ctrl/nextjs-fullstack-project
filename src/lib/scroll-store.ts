@@ -1,80 +1,153 @@
 'use client'
 
 /**
- * Scroll velocity store for the Edge Rune (R1) — the generalization of
- * hero-scroll.ts's philosophy to a whole-page signal, WITHOUT framer-motion.
+ * Scroll clocks for the Rune Field (RUNE-2) — the "scroll is time" engine.
  *
- * Why no framer-motion: the repo keeps framer-motion out of app-wide
- * components on purpose (Reveal and the layout-level layers are
- * framer-motion-free; only 4 homepage files import it). A `useScroll()` +
- * `useVelocity()` pair inside a layout-level component would drag the
- * framer-motion chunk onto every internal page — for a decorative sigil.
- * Instead the ONE consumer (rune-scene's useFrame) samples window.scrollY
- * here once per frame and derives velocity from the delta. Zero listeners,
- * zero re-renders, zero new client JS.
+ * OWNER'S CONTRACT (2025 feedback, verbatim semantics):
+ * · «تتحرك في جميع أنحاء الشاشة مع Scroll Up/Down» → D, the SIGNED
+ *   accumulated scroll offset, drives every position path: scrolling down
+ *   carries the runes along their paths, scrolling up retraces them.
+ * · «كبيرة ثم تصغر وتكبر» → S, the UNSIGNED accumulated scroll distance,
+ *   drives the scale breathing — one full big→small→big cycle every ~2
+ *   screens of scrolling, phase-staggered per rune so the field ripples.
+ * · «ألا تتحرك أو يحدث لها أي شيء إذا توقف المستخدم عن التمرير» → the
+ *   clocks only advance inside scroll EVENT handlers. No wall-clock time
+ *   enters the animation anywhere (zero uTime in the shaders); combined
+ *   with the scene's frameloop="demand" the GPU renders literally zero
+ *   frames once the velocity tail below has drained.
  *
- * Module-level singleton (like hero-scroll.ts): read-only from useFrame,
- * never triggers a React render.
+ * The ONLY time-based quantity is the velocity EMA tail, which fades the
+ * glow energy out over ≤ ~350 ms after the last scroll event (a hard
+ * linear drain guarantees the tail terminates) — motion itself stops on
+ * the very last scroll event, instantly.
  *
- * Directional semantics (owner's literal request): scrolling DOWN spins the
- * rune one way, scrolling UP the opposite way. `dir` is the HELD sign of
- * the damped velocity — a dead-zone hysteresis so micro-jitter around zero
- * never flips the spin direction (spec §4.3).
+ * Event-driven (v2 rewrite of the RUNE-1 per-frame sampler): the old
+ * sampleScroll() polled window.scrollY once per rendered frame, which
+ * needs a running frame loop. The Rune Field renders frames ONLY while
+ * animating, so the store must instead be fed by the DOM scroll listener
+ * (rune field root attaches it) — the frame loop then READS the clocks
+ * and drains the tail.
+ *
+ * Module-level singleton (hero-scroll.ts pattern): read-only from the
+ * scene's useFrame, mutated only by onScrollEvent/tickScrollTail, never
+ * triggers a React render.
  */
 
-interface ScrollSample {
-  /** Damped velocity, px/s (positive = scrolling down). */
+export interface ScrollClocks {
+  /** Signed accumulated scroll offset (px). Down = positive. */
+  D: number
+  /** Unsigned accumulated scroll distance (px). */
+  S: number
+  /** Velocity EMA (px/s, positive = down) — glow energy source only. */
   vy: number
-  /** Held direction: 1 (down), -1 (up). Holds the last non-zero direction
-   *  while inside the dead-zone — never flips on jitter. */
+  /** Held direction: 1 (down), -1 (up); hysteresis inside the dead-zone. */
   dir: 1 | -1 | 0
 }
 
 interface ScrollState {
-  y: number
+  lastY: number
+  D: number
+  S: number
   vy: number
   dir: 1 | -1 | 0
   initialized: boolean
+  lastT: number
 }
 
-const state: ScrollState = { y: 0, vy: 0, dir: 0, initialized: false }
+const state: ScrollState = {
+  lastY: 0,
+  D: 0,
+  S: 0,
+  vy: 0,
+  dir: 0,
+  initialized: false,
+  lastT: 0,
+}
 
 /** Velocity clamp — beyond this (violent trackpad fling) the response
- *  saturates so the rune never turns into a blur. */
-const VY_MAX = 3200
-/** Single-frame position jump (px) that means "navigation scroll reset /
- *  anchor jump", not a real fling — ignored entirely (vy raw = 0). */
+ *  saturates so the glow never clips into strobing. */
+const VY_MAX = 3600
+/** Single-event position jump (px) that means "navigation scroll reset /
+ *  anchor jump / scroll restoration", not a real gesture — ignored. */
 const TELEPORT = 900
 /** Dead-zone (px/s) inside which the held direction is kept. */
 const DEADZONE = 6
-/** Damping rate for the velocity EMA — dt-compensated (1 - e^(-k·dt)). */
-const VY_K = 9
+/** EMA rise rate (1/s) — fast enough to track a fling within ~2 events. */
+const EMA_RISE = 26
+/** Exponential drain rate (1/s) for the glow tail after the last event. */
+const TAIL_DECAY = 12
+/** Linear drain floor (px/s²) — guarantees the tail reaches zero in
+ *  bounded time instead of asymptotically (the "strict freeze" contract:
+ *  frames stop when |vy| drains below the dead-zone). */
+const TAIL_DRAIN = 320
 
 /**
- * Sample the page scroll once. MUST be called at most once per frame by the
- * scene's useFrame (single consumer by design — a second caller would
- * double-advance the baseline). `delta` is the useFrame delta in seconds.
+ * Feed the clocks from a scroll event. Called by the Rune Field root's
+ * passive scroll listener (never from the render loop). Teleport-class
+ * jumps (route changes, hash anchors, scroll restoration) advance
+ * NOTHING — the field must not fling because the page jumped.
  */
-export function sampleScroll(delta: number): ScrollSample {
-  if (typeof window === 'undefined') return { vy: 0, dir: 0 }
+export function onScrollEvent(): void {
+  if (typeof window === 'undefined') return
   const y = window.scrollY
+  const now = performance.now()
   if (!state.initialized) {
-    state.y = y
     state.initialized = true
-    return { vy: 0, dir: state.dir }
+    state.lastY = y
+    state.lastT = now
+    return
   }
-  const dt = delta > 0 ? delta : 1 / 60
-  const dy = y - state.y
-  state.y = y
+  const dt = (now - state.lastT) / 1000
+  const dy = y - state.lastY
+  state.lastY = y
+  state.lastT = now
+  if (dy === 0) return
+  if (Math.abs(dy) > TELEPORT) return
+
+  state.D += dy
+  state.S += Math.abs(dy)
+
+  // Instantaneous velocity from event spacing (clamped; scroll events can
+  // arrive in bursts where dt under-reports — the clamp + EMA smooth it).
   let raw = 0
-  if (Math.abs(dy) <= TELEPORT) {
+  if (dt > 0.0001 && dt < 0.5) {
     raw = dy / dt
     if (raw > VY_MAX) raw = VY_MAX
     else if (raw < -VY_MAX) raw = -VY_MAX
   }
-  const s = 1 - Math.exp(-VY_K * dt)
+  const s = 1 - Math.exp(-EMA_RISE * Math.max(dt, 1 / 120))
   state.vy += (raw - state.vy) * s
   if (state.vy > DEADZONE) state.dir = 1
   else if (state.vy < -DEADZONE) state.dir = -1
-  return { vy: state.vy, dir: state.dir }
+}
+
+/**
+ * Drain the glow tail once per RENDERED frame. Returns true while the
+ * tail is still above the dead-zone (the caller must invalidate another
+ * frame); false once fully drained — the demand loop then stops and the
+ * field is frozen proof-positive.
+ */
+export function tickScrollTail(dt: number): boolean {
+  const t = dt > 0 ? Math.min(dt, 0.1) : 1 / 60
+  state.vy *= Math.exp(-TAIL_DECAY * t)
+  if (Math.abs(state.vy) < 60) {
+    // linear floor drain — bounded termination
+    const mag = Math.abs(state.vy) - TAIL_DRAIN * t
+    state.vy = mag > 0 ? Math.sign(state.vy) * mag : 0
+  }
+  if (Math.abs(state.vy) < DEADZONE) {
+    state.vy = 0
+    return false
+  }
+  return true
+}
+
+/** Pure read of the clocks (useFrame / debug handle). */
+export function getScrollClocks(): ScrollClocks {
+  return { D: state.D, S: state.S, vy: state.vy, dir: state.dir }
+}
+
+/** Normalized glow energy 0..1 (≈ saturated at a deliberate 1600 px/s). */
+export function scrollEnergy(): number {
+  return Math.min(Math.abs(state.vy) / 1600, 1)
 }

@@ -223,14 +223,19 @@ export default async function LocaleLayout({
             {children}
           </main>
           <Footer />
-          {/* Edge Rune — decorative fixed corner sigil (WebGL, gated: no
-              mobile / no reduced-motion / no WebGL → nothing mounts; chunk
-              loads post-idle so LCP is untouched). One live GL context for
-              ALL routes — the route preset MORPHS via uniform interpolation
-              instead of remounting, so navigations read as one continuous
-              organic transformation. z-[5]: above content, below navbar
-              (50) / intro (80) / grain (90) / cursor (200). pointer-events
-              none + aria-hidden — pure decoration (see rune/*). */}
+          {/* Rune Field (RUNE-2) — full-viewport ambient volumetric layer
+              (WebGL, gated: no mobile / no reduced-motion / no WebGL →
+              nothing mounts; chunk loads post-idle so LCP is untouched).
+              One live GL context for ALL routes. Every motion is a pure
+              function of the scroll clocks («التمرير هو الزمن»): the
+              runes roam the whole screen and breathe large→small→large
+              with scrolling, and frameloop="demand" renders ZERO frames
+              once the user stops — a literal freeze, machine-checkable
+              via window.__elyraRuneDebug.frames. Route presets morph the
+              formation continuously (no remounts). z-[5]: above section
+              content, below navbar (50) / progress (60) / intro (80) /
+              grain (90) / cursor (200). pointer-events none +
+              aria-hidden — pure decoration (see rune/*). */}
           <EdgeRune />
           {/* R7-b — Sensory Polish Layer (app-wide, single instance each):
               animated film grain + the difference-blend custom cursor

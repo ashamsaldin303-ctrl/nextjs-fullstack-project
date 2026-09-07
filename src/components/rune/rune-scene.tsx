@@ -1,29 +1,49 @@
 'use client'
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { sampleScroll } from '@/lib/scroll-store'
-import { RUNE_PRESETS, type RunePreset, type RunePresetKey } from './rune-presets'
+import { getScrollClocks, scrollEnergy, tickScrollTail } from '@/lib/scroll-store'
+import { setRuneInvalidate } from './rune-bus'
+import { BRAND_COLORS } from '@/lib/brand-colors'
+import {
+  RUNE_FIELD_PRESETS,
+  type RuneFieldPreset,
+  type RunePresetKey,
+} from './rune-presets'
 
 /**
- * Edge Rune scene (R3) — the fixed corner sigil's WebGL core.
+ * Rune Field scene (RUNE-2) — the full-viewport WebGL core.
  *
- * One IcosahedronGeometry + one point halo = 2 draw calls. Everything the
- * owner asked for lives here:
- * · «يدور مع Scroll Up/Down» — rotation velocity chases the HELD direction
- *   of the damped scroll velocity (sampleScroll), so down/up spin opposite
- *   ways and a full stop decays into a slow idle spin.
- * · «يغيّر شكله لكل صفحة» — route presets morph via UNIFORM interpolation
- *   (amp/freq/twist/morph/speed/scale + colors), never geometry swaps, so
- *   a navigation reads as one continuous ~0.8s organic transformation.
+ * OWNER'S CONTRACT, restated as invariants this file enforces:
+ * 1. «تتحرك في جميع أنحاء الشاشة» — an orthographic rig maps the whole
+ *    viewport to world units (y ∈ [-1, 1], x ∈ [-aspect, aspect]) and every
+ *    rune wanders a wide Lissajous path over it, driven by the signed
+ *    scroll clock D (down = forward along the path, up = retraced).
+ * 2. «كبيرة ثم تصغر وتكبر» — scale breathes with the unsigned clock S,
+ *    phase-staggered per rune; the volumes are deliberately LARGE (20–44%
+ *    of the viewport height) — protagonists, not corner confetti.
+ * 3. «لا يتحرك أي شيء عند التوقف» — ZERO wall-clock time reaches the
+ *    shaders (no uTime exists anywhere below). Every term is a function
+ *    of D, S or the glow energy, and the glow tail drains in bounded
+ *    time. Combined with frameloop="demand" + the invalidate bus, an idle
+ *    page renders ZERO frames — the debug handle's `frames` counter is
+ *    the machine-checkable proof.
+ * 4. «تتماشى الخلفية معها» — the field paints its own atmosphere: two
+ *    huge soft washes roam with the same clocks UNDER the dust and the
+ *    runes, tinting the page's background in motion with them.
  *
- * Patterns copied verbatim from the proven capability-scene.tsx (React 19 +
- * R3F 9 conventions): GLSL1 noise block, finite-difference normals on the
- * displaced surface, lazy-useState halo buffer init (Math.random purity),
- * per-resource disposal effects, scene-local time accumulation (immune to
- * R3F's frameloop clock resets), uPixelRatio live sync, ContextLossGuard.
- * The vertex shader EXTENDS the proven blob with uFreq / uTwist / uMorph.
+ * Rendering: glass volumes — normal blending, rim-weighted alpha (edges
+ * near-opaque, centers translucent) — which reads as glowing glass on the
+ * dark hero/CTA sections and as tinted crystal on the light sections (the
+ * site is a light design with dark sections; additive-only would vanish
+ * on the light ones).
+ *
+ * Patterns preserved from the proven RUNE-1/capability lineage: GLSL1
+ * noise block byte-identical across consumers, finite-difference normals
+ * on the displaced surface, per-resource disposal, scene-local snap
+ * (correct shape from the first RENDERED frame), ContextLossGuard, the
+ * R3F pointer-events click-through fix, uPixelRatio live sync.
  */
 
 /* ------------------------------------------------------------------ *
@@ -105,26 +125,24 @@ const NOISE_GLSL = /* glsl */ `
   }
 `
 
-/* Rune blob vertex — capability-scene's displaced blob, extended with the
- * morph uniforms:
- * · uFreq scales the noise sampling direction (low = smooth monolith,
- *   high = nervous node mesh)
- * · uTwist rotates each vertex around Y by uTwist·y — the "continuity band"
- *   silhouette of /about and the structural shear of /services/websites.
- *   twist=0 reduces twistVec() to the identity → the proven home math.
- * · uMorph blends two octave fields sampled at different scales/offsets,
- *   so presets differ in CHARACTER (billow vs shard) not just amount.
- * Normals: finite differences of the SAME twist+displace mapping (the
- * neighbor points run through displaced() too) — no cracks, and the
- * Fresnel shading stays crisp at every twist amount. */
+/* Rune volume vertex — the proven displaced blob where EVERY time term is
+ * now the unsigned scroll clock S (uS, in px). The old `uTime` rates were
+ * tuned for ~1 unit/s; uS * 0.0002 advances at the same rate during a
+ * comfortable ~800 px/s scroll, slower while creeping, livelier in a
+ * fling — the surface's flow is strictly proportional to the user's
+ * scrolling. The amp breathing (uPhase staggers it per rune) breathes
+ * with S too. Normals: finite differences of the SAME twist+displace
+ * mapping (neighbor points run through displaced() as well) — no cracks,
+ * Fresnel stays crisp at every twist amount. */
 const RUNE_VERTEX = /* glsl */ `
   ${NOISE_GLSL}
 
-  uniform float uTime;
+  uniform float uS;
   uniform float uAmp;
   uniform float uFreq;
   uniform float uTwist;
   uniform float uMorph;
+  uniform float uPhase;
   varying vec3 vNormal;
   varying vec3 vViewDir;
   varying float vNoise;
@@ -143,12 +161,13 @@ const RUNE_VERTEX = /* glsl */ `
   }
 
   float surfaceNoise(vec3 tp) {
+    float ft = uS * 0.0002;
     vec3 dir = normalize(tp);
     vec3 q = dir * 1.7 * uFreq;
-    float n1 = snoise(q + vec3(0.0, uTime * 0.16, uTime * 0.11));
-    n1 += 0.45 * snoise(q * 2.3 - vec3(uTime * 0.09, 0.0, uTime * 0.13));
-    float n2 = snoise(q * 0.55 + vec3(uTime * 0.07, 3.1, uTime * 0.05) + 11.3);
-    n2 += 0.35 * snoise(q * 1.4 - vec3(5.2, uTime * 0.06, 0.0));
+    float n1 = snoise(q + vec3(0.0, ft * 0.16, ft * 0.11));
+    n1 += 0.45 * snoise(q * 2.3 - vec3(ft * 0.09, 0.0, ft * 0.13));
+    float n2 = snoise(q * 0.55 + vec3(ft * 0.07, 3.1, ft * 0.05) + 11.3);
+    n2 += 0.35 * snoise(q * 1.4 - vec3(5.2, ft * 0.06, 0.0));
     return mix(n1, n2, uMorph);
   }
 
@@ -158,7 +177,7 @@ const RUNE_VERTEX = /* glsl */ `
   }
 
   void main() {
-    float amp = uAmp * (0.85 + 0.15 * sin(uTime * 0.45));
+    float amp = uAmp * (0.85 + 0.15 * sin(uS * 0.0028 + uPhase));
 
     vec3 tp = twistVec(position);
     float n0 = surfaceNoise(tp);
@@ -180,13 +199,18 @@ const RUNE_VERTEX = /* glsl */ `
   }
 `
 
-/* Fragment — the proven liquid-glass shading (Fresnel rim + iridescent
- * 3-color body gradient + grazing green hint + one fake specular glint).
- * Presets retarget uColorA/B/C/G and the interpolation engine lerps them,
- * which is the whole "يتناسق مع الموقع" guarantee: the colors come from
- * the same brand registry as every other WebGL surface. */
+/* Fragment — the liquid-glass shading re-voiced for NORMAL blending over
+ * a light-page-with-dark-sections design: the body keeps the iridescent
+ * 3-color gradient + grazing green hint + one fake specular glint, and a
+ * rim-weighted alpha makes each volume read as tinted crystal on light
+ * surfaces and glowing glass on dark ones. uOpacity carries the slot
+ * fade (route morphs park unused slots at 0), uEnergy lifts rim + alpha
+ * while the page is actively being scrolled. NO time term — the shimmer
+ * is clocked by S. */
 const RUNE_FRAGMENT = /* glsl */ `
-  uniform float uTime;
+  uniform float uS;
+  uniform float uOpacity;
+  uniform float uEnergy;
   uniform vec3 uColorA;
   uniform vec3 uColorB;
   uniform vec3 uColorC;
@@ -200,6 +224,7 @@ const RUNE_FRAGMENT = /* glsl */ `
     vec3 V = normalize(vViewDir);
     float ndv = clamp(dot(N, V), 0.0, 1.0);
     float fresnel = pow(1.0 - ndv, 2.4);
+    float rim = pow(fresnel, 1.15);
 
     float g = clamp(vNoise * 0.5 + 0.5, 0.0, 1.0);
     vec3 body = mix(uColorB * 0.45, uColorA, g);
@@ -208,41 +233,44 @@ const RUNE_FRAGMENT = /* glsl */ `
 
     vec3 col = body + uColorB * pow(ndv, 2.5) * 0.35;
     col += mix(uColorC, vec3(1.0), 0.4) * fresnel * 0.85;
-    col += uColorC * 0.06 * sin(uTime * 0.5 + vNoise * 6.28318);
+    // scroll-clocked shimmer (was uTime-based in RUNE-1 — contract 3)
+    col += uColorC * 0.06 * sin(uS * 0.004 + vNoise * 6.28318);
+    // active-scroll energy breathes into the rim only
+    col += uColorC * rim * 0.35 * uEnergy;
 
     vec3 L = normalize(vec3(0.4, 0.65, 0.8));
     vec3 R = reflect(-V, N);
     col += vec3(0.9, 0.95, 1.0) * pow(max(dot(R, L), 0.0), 48.0) * 0.55;
 
-    gl_FragColor = vec4(col, 1.0);
+    float alpha = uOpacity * clamp(0.30 + 0.58 * rim + 0.10 * uEnergy, 0.0, 0.92);
+    gl_FragColor = vec4(col, alpha);
   }
 `
 
-/* Halo — soft round additive sprites (hero/capability pattern), with the
- * preset colors carried by TWO uniforms (uHaloA/uHaloB) mixed per particle
- * by a static random aMix attribute: retargeting the uniforms morphs the
- * whole cloud's palette with zero buffer rewrites (spec §4.4 "الأبسط
- * والأكفأ"). */
+/* Halo — a small orbit cloud per rune (child of the rune's group, so it
+ * scales + orbits with the volume). S-clocked shimmer; uFade is the
+ * slot fade × the preset's halo intensity. Fixed pixel size (no
+ * perspective term — the rig is orthographic). Normal blending keeps the
+ * motes visible on light sections (additive would vanish there). */
 const HALO_VERTEX = /* glsl */ `
   attribute float aScale;
   attribute float aPhase;
   attribute float aMix;
-  uniform float uTime;
+  uniform float uS;
   uniform float uPixelRatio;
+  uniform float uFade;
+  uniform float uEnergy;
   uniform vec3 uHaloA;
   uniform vec3 uHaloB;
   varying vec3 vColor;
   varying float vAlpha;
 
   void main() {
-    vec3 p = position;
-    p *= 1.0 + 0.03 * sin(uTime * 0.3 + aPhase);
-    vec4 mv = modelViewMatrix * vec4(p, 1.0);
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mv;
-    float size = aScale * uPixelRatio * (24.0 / -mv.z);
-    gl_PointSize = clamp(size, 1.0, 16.0);
+    gl_PointSize = clamp(aScale * uPixelRatio * 4.0, 1.0, 10.0);
     vColor = mix(uHaloA, uHaloB, aMix);
-    vAlpha = 0.45 + 0.35 * sin(uTime * 0.8 + aPhase);
+    vAlpha = uFade * (0.30 + 0.30 * (0.5 + 0.5 * sin(uS * 0.0035 + aPhase * 2.0)) + 0.25 * uEnergy);
   }
 `
 
@@ -255,69 +283,474 @@ const HALO_FRAGMENT = /* glsl */ `
     // reversed-edge smoothstep rewritten as its algebraically identical
     // 1 - smoothstep(lo, hi, d) twin (LOOP-3 FIX 9 convention)
     float a = 1.0 - smoothstep(0.08, 0.5, d);
-    gl_FragColor = vec4(vColor, a * vAlpha);
+    gl_FragColor = vec4(vColor, a * vAlpha * 0.55);
   }
 `
 
-const HALO_COUNT = 240
+/* Dust — the ambient field. uD streams the motes past the viewport with
+ * scroll-parallax (per-particle depth), S-clocked drift + twinkle. All
+ * scroll-clock: a stopped page has frozen dust. */
+const DUST_VERTEX = /* glsl */ `
+  attribute float aDepth;
+  attribute float aPhase;
+  attribute float aAlpha;
+  uniform float uD;
+  uniform float uS;
+  uniform float uAspect;
+  uniform float uDensity;
+  uniform float uEnergy;
+  uniform float uPixelRatio;
+  varying float vAlpha;
 
-/* --- directional rotation tuning (spec §4.3, dt-compensated everywhere) --
- * scroll 2000 px/s fling → 0.12 idle + 1.2 = ~1.3 rad/s; the cap keeps even
- * a violent trackpad flick from turning the sigil into a blur. */
-const K_SCROLL = 0.0006
-const ROT_MAX = 1.8
-const IDLE_SPIN = 0.12
-const ROT_K = 6
-/* --- morph tuning: 1 - e^(-3.2·t) ≈ 91% after 0.8s — the spec's organic
- * route-transition window. */
-const MORPH_K = 3.2
+  void main() {
+    float x = position.x * uAspect + sin(uS * 0.0009 + aPhase) * 0.03;
+    float y = mod(position.y + uD * 0.00009 * aDepth + 1.0, 2.0) - 1.0;
+    vec4 mv = modelViewMatrix * vec4(x, y, 0.0, 1.0);
+    gl_Position = projectionMatrix * mv;
+    gl_PointSize = clamp((0.6 + 0.4 * aDepth) * uPixelRatio * 2.2, 1.0, 4.0);
+    vAlpha = uDensity * aAlpha * (0.18 + 0.22 * (0.5 + 0.5 * sin(uS * 0.002 + aPhase * 1.7)) + 0.25 * uEnergy);
+  }
+`
 
-/** Interpolation goal set — preset scalars + THREE.Color targets. */
-interface RuneGoals {
-  amp: number
-  freq: number
-  twist: number
-  morph: number
-  speed: number
-  scale: number
-  colorA: THREE.Color
-  colorB: THREE.Color
-  colorC: THREE.Color
-  colorG: THREE.Color
-  haloA: THREE.Color
-  haloB: THREE.Color
+const DUST_FRAGMENT = /* glsl */ `
+  uniform vec3 uColor;
+  varying float vAlpha;
+  void main() {
+    vec2 uv = gl_PointCoord - 0.5;
+    float d = length(uv);
+    float a = 1.0 - smoothstep(0.05, 0.5, d);
+    gl_FragColor = vec4(uColor, a * vAlpha);
+  }
+`
+
+/* Wash — the atmosphere layer («الخلفية تتماشى معها»): huge soft radial
+ * fields roaming with the same clocks, under everything else. */
+const WASH_VERTEX = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+
+const WASH_FRAGMENT = /* glsl */ `
+  uniform vec3 uColor;
+  uniform float uAlpha;
+  varying vec2 vUv;
+  void main() {
+    float d = length(vUv - 0.5);
+    float a = (1.0 - smoothstep(0.12, 0.5, d)) * uAlpha;
+    gl_FragColor = vec4(uColor, a);
+  }
+`
+
+/** Damping toward a goal — 1 - e^(-k·t) style, expressed as a pure
+ *  module function (the opaque call result gives the compiler fresh
+ *  provenance, the sanctioned external-value write shape). */
+function dampNum(cur: number, goal: number, s: number): number {
+  return cur + (goal - cur) * s
 }
 
-function makeGoals(p: RunePreset): RuneGoals {
+/* --- tuning ---------------------------------------------------------- */
+const HALO_COUNT = 64
+const DUST_COUNT = 260
+/** Route-morph damping: 1 - e^(-4·t) ≈ 95% after 0.75s — the organic
+ *  route-transition window. */
+const MORPH_K = 4
+/** Convergence threshold — below this residual the morph stops chaining
+ *  frames (the freeze contract extends to transitions). */
+const MORPH_EPS = 0.0015
+
+/* --- runtime slot state ---------------------------------------------- *
+ * Mutable per-slot values that damp toward the preset goals. The color
+ * instances are the VERY uniform values the materials read (lerp mutates
+ * them in place — zero per-frame allocation). */
+interface SlotCur {
+  ax: number; ay: number; rax: number; ray: number
+  fx: number; fy: number; px: number; py: number
+  depth: number; base: number; sk: number; sp: number
+  breathe: number; spin: number
+  amp: number; freq: number; twist: number; morph: number
+  halo: number; opacity: number
+  colorA: THREE.Color; colorB: THREE.Color; colorC: THREE.Color; colorG: THREE.Color
+  haloA: THREE.Color; haloB: THREE.Color
+}
+
+interface WashCur {
+  ax: number; ay: number; rax: number; ray: number
+  fx: number; fy: number; px: number; py: number
+  scale: number; alpha: number
+  color: THREE.Color
+}
+
+const SLOT_NUM_KEYS = [
+  'ax', 'ay', 'rax', 'ray', 'fx', 'fy', 'px', 'py',
+  'depth', 'base', 'sk', 'sp', 'breathe', 'spin',
+  'amp', 'freq', 'twist', 'morph', 'halo', 'opacity',
+] as const
+
+const WASH_NUM_KEYS = [
+  'ax', 'ay', 'rax', 'ray', 'fx', 'fy', 'px', 'py', 'scale', 'alpha',
+] as const
+
+/** Goal set — the preset's values with colors pre-converted (ONE object
+ *  per preset change; the SAME runtime state keeps interpolating toward
+ *  it, which is what makes route morphs continuous, never a remount). */
+/** Goal aliases — the runtime state's own shape, read as targets. */
+type SlotGoal = SlotCur
+type WashGoal = WashCur
+interface FieldGoals {
+  runes: readonly [SlotGoal, SlotGoal, SlotGoal, SlotGoal]
+  washes: readonly [WashGoal, WashGoal]
+  dust: number
+}
+
+function slotGoal(src: RuneFieldPreset['runes'][number]): SlotGoal {
   return {
-    amp: p.amp,
-    freq: p.freq,
-    twist: p.twist,
-    morph: p.morph,
-    speed: p.speed,
-    scale: p.scale,
-    colorA: new THREE.Color(p.colorA),
-    colorB: new THREE.Color(p.colorB),
-    colorC: new THREE.Color(p.colorC),
-    colorG: new THREE.Color(p.colorG),
-    haloA: new THREE.Color(p.haloA),
-    haloB: new THREE.Color(p.haloB),
+    ax: src.ax, ay: src.ay, rax: src.rax, ray: src.ray,
+    fx: src.fx, fy: src.fy, px: src.px, py: src.py,
+    depth: src.depth, base: src.base, sk: src.sk, sp: src.sp,
+    breathe: src.breathe, spin: src.spin,
+    amp: src.amp, freq: src.freq, twist: src.twist, morph: src.morph,
+    halo: src.halo, opacity: src.opacity,
+    colorA: new THREE.Color(src.colorA),
+    colorB: new THREE.Color(src.colorB),
+    colorC: new THREE.Color(src.colorC),
+    colorG: new THREE.Color(src.colorG),
+    haloA: new THREE.Color(src.haloA),
+    haloB: new THREE.Color(src.haloB),
   }
 }
 
-/* Dev-only introspection handle (never built into production bundles —
- * NODE_ENV is statically inlined). Powers the G2/G4/G5 verification gates:
- * FPS, directional rotation sign, and the goal-vs-current morph values. */
+function washGoal(src: RuneFieldPreset['washes'][number]): WashGoal {
+  return {
+    ax: src.ax, ay: src.ay, rax: src.rax, ray: src.ray,
+    fx: src.fx, fy: src.fy, px: src.px, py: src.py,
+    scale: src.scale, alpha: src.alpha,
+    color: new THREE.Color(src.color),
+  }
+}
+
+function makeGoals(preset: RuneFieldPreset): FieldGoals {
+  return {
+    runes: [slotGoal(preset.runes[0]), slotGoal(preset.runes[1]), slotGoal(preset.runes[2]), slotGoal(preset.runes[3])],
+    washes: [washGoal(preset.washes[0]), washGoal(preset.washes[1])],
+    dust: preset.dust,
+  }
+}
+
+/* --- imperative scene graph ------------------------------------------ *
+ * Built ONCE per mount (lazy state initializer — Math.random lives
+ * there only, the React 19 purity convention shared with
+ * capability-scene), driven imperatively by the single useFrame below,
+ * disposed per-resource on unmount (FIX(2-c/10) pattern). */
+interface SlotObj {
+  group: THREE.Group
+  material: THREE.ShaderMaterial
+  haloMaterial: THREE.ShaderMaterial
+  cur: SlotCur
+  /** Exactly-typed uniform records (ShaderMaterial.uniforms' string
+   *  indexer widens to `IUniform | undefined` under
+   *  noUncheckedIndexedAccess — these keep every writer exact). */
+  uniforms: RuneUniforms
+  haloUniforms: HaloUniforms
+}
+
+interface RuneUniforms {
+  // index signature for ShaderMaterial assignability; explicit members
+  // above stay exactly-typed for every writer (they win over the index)
+  [key: string]: THREE.IUniform
+  uS: { value: number }
+  uAmp: { value: number }
+  uFreq: { value: number }
+  uTwist: { value: number }
+  uMorph: { value: number }
+  uPhase: { value: number }
+  uOpacity: { value: number }
+  uEnergy: { value: number }
+  uColorA: { value: THREE.Color }
+  uColorB: { value: THREE.Color }
+  uColorC: { value: THREE.Color }
+  uColorG: { value: THREE.Color }
+}
+
+interface HaloUniforms {
+  [key: string]: THREE.IUniform
+  uS: { value: number }
+  uPixelRatio: { value: number }
+  uFade: { value: number }
+  uEnergy: { value: number }
+  uHaloA: { value: THREE.Color }
+  uHaloB: { value: THREE.Color }
+}
+
+interface DustUniforms {
+  [key: string]: THREE.IUniform
+  uD: { value: number }
+  uS: { value: number }
+  uAspect: { value: number }
+  uDensity: { value: number }
+  uEnergy: { value: number }
+  uPixelRatio: { value: number }
+  uColor: { value: THREE.Color }
+}
+
+interface WashUniforms {
+  [key: string]: THREE.IUniform
+  uColor: { value: THREE.Color }
+  uAlpha: { value: number }
+}
+
+interface FieldObj {
+  root: THREE.Group
+  slots: [SlotObj, SlotObj, SlotObj, SlotObj]
+  dustMaterial: THREE.ShaderMaterial
+  dustUniforms: DustUniforms
+  washMeshes: [THREE.Mesh, THREE.Mesh]
+  washMaterials: [THREE.ShaderMaterial, THREE.ShaderMaterial]
+  washUniforms: [WashUniforms, WashUniforms]
+  washCur: [WashCur, WashCur]
+  dispose: () => void
+}
+
+/** Deterministic PRNG (mulberry32) — a Math.random-free scene build so
+ *  the whole field graph is a PURE function (React 19 render purity —
+ *  double-render-stable — and the memo lint), while the halo/dust
+ *  scatter still reads organic. */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0
+  return () => {
+    a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+function makeHaloGeometry(seed: number): THREE.BufferGeometry {
+  const rand = mulberry32(seed)
+  const positions = new Float32Array(HALO_COUNT * 3)
+  const scales = new Float32Array(HALO_COUNT)
+  const phases = new Float32Array(HALO_COUNT)
+  const mixes = new Float32Array(HALO_COUNT)
+  for (let i = 0; i < HALO_COUNT; i++) {
+    const theta = rand() * Math.PI * 2
+    const phi = Math.acos(2 * rand() - 1)
+    const r = 1.35 + rand() * 0.4
+    positions[i * 3 + 0] = r * Math.sin(phi) * Math.cos(theta)
+    positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta) * 0.85
+    positions[i * 3 + 2] = r * Math.cos(phi)
+    scales[i] = 0.5 + rand() * 1.1
+    phases[i] = rand() * Math.PI * 2
+    mixes[i] = rand()
+  }
+  const g = new THREE.BufferGeometry()
+  g.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+  g.setAttribute('aScale', new THREE.BufferAttribute(scales, 1))
+  g.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1))
+  g.setAttribute('aMix', new THREE.BufferAttribute(mixes, 1))
+  return g
+}
+
+function makeDustGeometry(seed: number): THREE.BufferGeometry {
+  const rand = mulberry32(seed)
+  const positions = new Float32Array(DUST_COUNT * 3)
+  const depths = new Float32Array(DUST_COUNT)
+  const phases = new Float32Array(DUST_COUNT)
+  const alphas = new Float32Array(DUST_COUNT)
+  for (let i = 0; i < DUST_COUNT; i++) {
+    positions[i * 3 + 0] = rand() * 2 - 1
+    positions[i * 3 + 1] = rand() * 2 - 1
+    positions[i * 3 + 2] = 0
+    depths[i] = 0.5 + rand()
+    phases[i] = rand() * Math.PI * 2
+    alphas[i] = 0.35 + rand() * 0.65
+  }
+  const g = new THREE.BufferGeometry()
+  g.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+  g.setAttribute('aDepth', new THREE.BufferAttribute(depths, 1))
+  g.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1))
+  g.setAttribute('aAlpha', new THREE.BufferAttribute(alphas, 1))
+  return g
+}
+
+/** One rune slot — mesh + orbit halo in a shared group + its mutable
+ *  runtime state (the material uniforms reference the SAME Color
+ *  instances, so lerp-in-place drives them with zero allocation). */
+function buildSlot(
+  root: THREE.Group,
+  blobGeo: THREE.BufferGeometry,
+  haloGeos: THREE.BufferGeometry[],
+  haloSeed: number
+): SlotObj {
+  const cur: SlotCur = {
+    ax: 0.5, ay: 0.5, rax: 0.1, ray: 0.1,
+    fx: 0.001, fy: 0.001, px: 0, py: 0,
+    depth: 0.8, base: 0, sk: 0.003, sp: 0,
+    breathe: 0.4, spin: 0.0006,
+    amp: 0.12, freq: 1, twist: 0, morph: 0.35,
+    halo: 0, opacity: 0,
+    colorA: new THREE.Color(), colorB: new THREE.Color(),
+    colorC: new THREE.Color(), colorG: new THREE.Color(),
+    haloA: new THREE.Color(), haloB: new THREE.Color(),
+  }
+  const uniforms: RuneUniforms = {
+    uS: { value: 0 },
+    uAmp: { value: cur.amp },
+    uFreq: { value: cur.freq },
+    uTwist: { value: cur.twist },
+    uMorph: { value: cur.morph },
+    uPhase: { value: cur.sp },
+    uOpacity: { value: 0 },
+    uEnergy: { value: 0.35 },
+    uColorA: { value: cur.colorA },
+    uColorB: { value: cur.colorB },
+    uColorC: { value: cur.colorC },
+    uColorG: { value: cur.colorG },
+  }
+  const material = new THREE.ShaderMaterial({
+    vertexShader: RUNE_VERTEX,
+    fragmentShader: RUNE_FRAGMENT,
+    uniforms,
+    transparent: true,
+    depthWrite: false,
+  })
+  const mesh = new THREE.Mesh(blobGeo, material)
+  mesh.renderOrder = 12
+  mesh.frustumCulled = false
+
+  const haloGeo = makeHaloGeometry(haloSeed)
+  haloGeos.push(haloGeo)
+  const haloUniforms: HaloUniforms = {
+    uS: { value: 0 },
+    uPixelRatio: { value: 1 },
+    uFade: { value: 0 },
+    uEnergy: { value: 0.35 },
+    uHaloA: { value: cur.haloA },
+    uHaloB: { value: cur.haloB },
+  }
+  const haloMaterial = new THREE.ShaderMaterial({
+    vertexShader: HALO_VERTEX,
+    fragmentShader: HALO_FRAGMENT,
+    uniforms: haloUniforms,
+    transparent: true,
+    depthWrite: false,
+  })
+  const halo = new THREE.Points(haloGeo, haloMaterial)
+  halo.renderOrder = 13
+  halo.frustumCulled = false
+
+  const group = new THREE.Group()
+  group.add(mesh, halo)
+  root.add(group)
+  return { group, material, haloMaterial, cur, uniforms, haloUniforms }
+}
+
+/** One wash — a huge soft radial plane + its mutable state. */
+function buildWash(
+  root: THREE.Group,
+  planeGeo: THREE.BufferGeometry
+): { mesh: THREE.Mesh; material: THREE.ShaderMaterial; cur: WashCur; washUniforms: WashUniforms } {
+  const cur: WashCur = {
+    ax: 0.5, ay: 0.5, rax: 0.1, ray: 0.1,
+    fx: 0.0005, fy: 0.0005, px: 0, py: 0,
+    scale: 1, alpha: 0,
+    color: new THREE.Color(),
+  }
+  const washUniforms: WashUniforms = {
+    // the color uniform VALUE is the wash's own mutable color instance —
+    // lerp-in-place, same as the slot colors (zero allocation)
+    uColor: { value: cur.color },
+    uAlpha: { value: 0 },
+  }
+  const material = new THREE.ShaderMaterial({
+    vertexShader: WASH_VERTEX,
+    fragmentShader: WASH_FRAGMENT,
+    uniforms: washUniforms,
+    transparent: true,
+    depthWrite: false,
+  })
+  const mesh = new THREE.Mesh(planeGeo, material)
+  mesh.renderOrder = 0
+  mesh.frustumCulled = false
+  root.add(mesh)
+  return { mesh, material, cur, washUniforms }
+}
+
+function buildField(): FieldObj {
+  const root = new THREE.Group()
+
+  const blobGeo = new THREE.IcosahedronGeometry(1, 5)
+  const planeGeo = new THREE.PlaneGeometry(1, 1)
+  const haloGeos: THREE.BufferGeometry[] = []
+
+  // exactly-typed 4-tuples (array literals under tuple annotations —
+  // noUncheckedIndexedAccess-proof at both construction and use sites)
+  const slots: [SlotObj, SlotObj, SlotObj, SlotObj] = [
+    buildSlot(root, blobGeo, haloGeos, 0x5eed0001),
+    buildSlot(root, blobGeo, haloGeos, 0x5eed0002),
+    buildSlot(root, blobGeo, haloGeos, 0x5eed0003),
+    buildSlot(root, blobGeo, haloGeos, 0x5eed0004),
+  ]
+
+  const dustGeo = makeDustGeometry(0x5eed0042)
+  const dustUniforms: DustUniforms = {
+    uD: { value: 0 },
+    uS: { value: 0 },
+    uAspect: { value: 1 },
+    uDensity: { value: 1 },
+    uEnergy: { value: 0.35 },
+    uPixelRatio: { value: 1 },
+    uColor: { value: new THREE.Color(BRAND_COLORS.gBlueLight) },
+  }
+  const dustMaterial = new THREE.ShaderMaterial({
+    vertexShader: DUST_VERTEX,
+    fragmentShader: DUST_FRAGMENT,
+    uniforms: dustUniforms,
+    transparent: true,
+    depthWrite: false,
+  })
+  const dust = new THREE.Points(dustGeo, dustMaterial)
+  dust.renderOrder = 1
+  dust.frustumCulled = false
+  root.add(dust)
+
+  const wA = buildWash(root, planeGeo)
+  const wB = buildWash(root, planeGeo)
+  const washMeshes: [THREE.Mesh, THREE.Mesh] = [wA.mesh, wB.mesh]
+  const washMaterials: [THREE.ShaderMaterial, THREE.ShaderMaterial] = [wA.material, wB.material]
+  const washUniforms: [WashUniforms, WashUniforms] = [wA.washUniforms, wB.washUniforms]
+  const washCur: [WashCur, WashCur] = [wA.cur, wB.cur]
+
+  const dispose = () => {
+    blobGeo.dispose()
+    planeGeo.dispose()
+    for (const g of haloGeos) g.dispose()
+    dustGeo.dispose()
+    for (const s of slots) {
+      s.material.dispose()
+      s.haloMaterial.dispose()
+    }
+    dustMaterial.dispose()
+    for (const m of washMaterials) m.dispose()
+  }
+
+  return { root, slots, dustMaterial, dustUniforms, washMeshes, washMaterials, washUniforms, washCur, dispose }
+}
+
+/* --- dev-only introspection ------------------------------------------- *
+ * Powers the verification gates: `frames` is the freeze-proof counter
+ * (constant across an idle window ⇒ the GPU is rendering nothing). */
 interface RuneDebug {
   preset: RunePresetKey
-  mount: number
-  active: boolean
-  rotY: number
-  rotVel: number
-  vy: number
+  frames: number
   fps: number
-  cur: { amp: number; freq: number; twist: number; morph: number }
-  goal: { amp: number; freq: number; twist: number; morph: number }
+  D: number
+  S: number
+  vy: number
+  vel01: number
+  morphDelta: number
+  runes: { x: number; y: number; scale: number; opacity: number }[]
 }
 
 declare global {
@@ -327,221 +760,230 @@ declare global {
 }
 
 const DEV = process.env.NODE_ENV !== 'production'
-let mountSeq = 0
 
-function RuneCore({ presetKey, active }: { presetKey: RunePresetKey; active: boolean }) {
-  const spinner = useRef<THREE.Group>(null)
-  const haloRef = useRef<THREE.Points>(null)
-  // scene-local time (LOOP-3 FIX 7 pattern): R3F resets clock.elapsedTime on
-  // every 'never'↔'always' frameloop transition; accumulating from delta
-  // keeps the surface flowing seamlessly across tab-hide resumes.
-  const tRef = useRef(0)
-  const speedRef = useRef(1)
-  const scaleRef = useRef(1)
-  const rotVel = useRef(IDLE_SPIN)
-  const fps = useRef(60)
-  // First-frame snap flag: uniforms start NEUTRAL and jump to the current
-  // preset goals inside the first useFrame (below) — the shape is correct
-  // from the first RENDERED frame no matter when the route/preset settles,
-  // and no eslint-disable is needed to keep the memos dependency-clean.
+function RuneFieldCore({ presetKey }: { presetKey: RunePresetKey }) {
+  // Built ONCE per mount via useMemo (deterministic — seeded PRNG, no
+  // Math.random — so the memo is purity-clean); mutated imperatively in
+  // useFrame, the canonical R3F owned-three.js-state pattern (RUNE-1
+  // lineage: the repo's immutability lint does not flag memo returns).
+  const field = useMemo(() => buildField(), [])
+  const goals = useMemo(() => makeGoals(RUNE_FIELD_PRESETS[presetKey]), [presetKey])
+  const invalidate = useThree((s) => s.invalidate)
+
+  // First-frame snap: neutral runtime state jumps STRAIGHT to the current
+  // goals inside the first useFrame — the formation is correct from the
+  // first RENDERED frame; later preset changes settle through damping.
   const snapped = useRef(false)
-  const mount = useRef(0)
+  const frames = useRef(0)
+  const fps = useRef(60)
 
-  // Route goals — a NEW object per preset change; the SAME uniforms below
-  // keep interpolating toward it, which is what makes the route morph
-  // continuous instead of a remount flash.
-  const goals = useMemo(() => makeGoals(RUNE_PRESETS[presetKey]), [presetKey])
-
-  // Uniforms are created ONCE (neutral values — dependency-free on
-  // purpose: later preset changes must flow through the interpolation
-  // engine, never through a re-created uniforms object) and snap to the
-  // current goals in the first useFrame, so a direct landing renders the
-  // correct shape from frame 1 with no boot-up morph.
-  const uniforms = useMemo(() => ({
-    uTime: { value: 0 },
-    uAmp: { value: 0.12 },
-    uFreq: { value: 1 },
-    uTwist: { value: 0 },
-    uMorph: { value: 0.35 },
-    uColorA: { value: new THREE.Color() },
-    uColorB: { value: new THREE.Color() },
-    uColorC: { value: new THREE.Color() },
-    uColorG: { value: new THREE.Color() },
-  }), [])
-
-  const blobGeo = useMemo(() => new THREE.IcosahedronGeometry(1, 5), [])
-  const blobMat = useMemo(
-    () =>
-      new THREE.ShaderMaterial({
-        vertexShader: RUNE_VERTEX,
-        fragmentShader: RUNE_FRAGMENT,
-        uniforms,
-      }),
-    [uniforms]
-  )
-
-  // Halo buffers — generated ONCE per mount; Math.random lives in the lazy
-  // state initializer only (React 19 purity convention, capability-scene).
-  const [haloBuffers] = useState(() => {
-    const positions = new Float32Array(HALO_COUNT * 3)
-    const scales = new Float32Array(HALO_COUNT)
-    const phases = new Float32Array(HALO_COUNT)
-    const mixes = new Float32Array(HALO_COUNT)
-    for (let i = 0; i < HALO_COUNT; i++) {
-      const theta = Math.random() * Math.PI * 2
-      const phi = Math.acos(2 * Math.random() - 1)
-      const r = 1.5 + Math.random() * 0.45
-      positions[i * 3 + 0] = r * Math.sin(phi) * Math.cos(theta)
-      positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta) * 0.8
-      positions[i * 3 + 2] = r * Math.cos(phi)
-      scales[i] = 0.5 + Math.random() * 1.1
-      phases[i] = Math.random() * Math.PI * 2
-      mixes[i] = Math.random()
-    }
-    return { positions, scales, phases, mixes }
-  })
-  const haloGeo = useMemo(() => {
-    const g = new THREE.BufferGeometry()
-    g.setAttribute('position', new THREE.BufferAttribute(haloBuffers.positions, 3))
-    g.setAttribute('aScale', new THREE.BufferAttribute(haloBuffers.scales, 1))
-    g.setAttribute('aPhase', new THREE.BufferAttribute(haloBuffers.phases, 1))
-    g.setAttribute('aMix', new THREE.BufferAttribute(haloBuffers.mixes, 1))
-    return g
-  }, [haloBuffers])
-  const haloUniforms = useMemo(
-    () => ({
-      uTime: { value: 0 },
-      uPixelRatio: { value: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, 1.75) },
-      // neutral — snapped to the preset goals in the first useFrame
-      uHaloA: { value: new THREE.Color() },
-      uHaloB: { value: new THREE.Color() },
-    }),
-    []
-  )
-  const haloMat = useMemo(
-    () =>
-      new THREE.ShaderMaterial({
-        vertexShader: HALO_VERTEX,
-        fragmentShader: HALO_FRAGMENT,
-        uniforms: haloUniforms,
-        transparent: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      }),
-    [haloUniforms]
-  )
-
-  // FIX(2-c/10) pattern: R3F does not dispose prop-passed resources — free
-  // each GPU resource exactly once, per-resource (V-1 L3-2a P3).
-  useEffect(() => () => blobGeo.dispose(), [blobGeo])
-  useEffect(() => () => blobMat.dispose(), [blobMat])
-  useEffect(() => () => haloGeo.dispose(), [haloGeo])
-  useEffect(() => () => haloMat.dispose(), [haloMat])
-
-  // Dev-debug mount id — assigned in an effect (never during render), so
-  // G3 can detect an unintended remount by watching `mount` change.
+  // Per-resource disposal + invalidate-bus registration + a kick on
+  // every preset change (a frozen field must wake to morph routes).
+  // NOTE: `field` is deliberately NEVER a hook-argument (dep array) —
+  // routing disposal through a stable ref keeps the owned three.js
+  // state mutable inside useFrame (RUNE-1 uniforms lineage: closures over
+  // memos are escape-analyzed, dep-array values are frozen).
+  const fieldRef = useRef(field)
   useEffect(() => {
-    mount.current = ++mountSeq
+    const f = fieldRef.current
+    return () => f.dispose()
   }, [])
+  useEffect(() => {
+    setRuneInvalidate(invalidate)
+    invalidate()
+    return () => setRuneInvalidate(null)
+  }, [invalidate])
+  useEffect(() => {
+    invalidate()
+  }, [invalidate, goals])
 
   useFrame((state, delta) => {
     const dt = delta > 0 ? Math.min(delta, 0.1) : 1 / 60
+    const { D, S, vy } = getScrollClocks()
+    const energy = scrollEnergy()
+    const aspect = state.size.width / state.size.height
 
-    // First-frame snap: neutral uniforms jump STRAIGHT to the current
-    // preset goals (render-correct from the first frame, no boot morph).
-    // Later preset changes settle through the damped interpolation below.
+    // noUncheckedIndexedAccess-safe views (literal indices on tuples are
+    // exact; loop variables would widen to `| undefined`)
+    const slotList: SlotObj[] = [field.slots[0], field.slots[1], field.slots[2], field.slots[3]]
+    const runeGoals: SlotGoal[] = [goals.runes[0], goals.runes[1], goals.runes[2], goals.runes[3]]
+    const washList: WashCur[] = [field.washCur[0], field.washCur[1]]
+    const washGoalList: WashGoal[] = [goals.washes[0], goals.washes[1]]
+    const washMeshList: THREE.Mesh[] = [field.washMeshes[0], field.washMeshes[1]]
+    const washUList: WashUniforms[] = [field.washUniforms[0], field.washUniforms[1]]
+    const dustUList: [DustUniforms] = [field.dustUniforms]
+
+    // ortho rig self-heal: map the whole viewport to world units
+    // (y ∈ [-1, 1], x ∈ [-aspect, aspect]). Runs on every rendered frame
+    // BEFORE the draw, so the very first frame is already correct, and
+    // re-asserts the mapping after R3F-managed resize resets. state.camera
+    // (the useFrame argument) is owned three.js state — the canonical
+    // mutable pattern.
+    const cam = state.camera as THREE.OrthographicCamera
+    if (cam.top !== 1 || cam.bottom !== -1 || Math.abs(cam.right - aspect) > 1e-3) {
+      cam.left = -aspect
+      cam.right = aspect
+      cam.top = 1
+      cam.bottom = -1
+      cam.position.set(0, 0, 10)
+      cam.updateProjectionMatrix()
+    }
+
     if (!snapped.current) {
       snapped.current = true
-      uniforms.uAmp.value = goals.amp
-      uniforms.uFreq.value = goals.freq
-      uniforms.uTwist.value = goals.twist
-      uniforms.uMorph.value = goals.morph
-      uniforms.uColorA.value.copy(goals.colorA)
-      uniforms.uColorB.value.copy(goals.colorB)
-      uniforms.uColorC.value.copy(goals.colorC)
-      uniforms.uColorG.value.copy(goals.colorG)
-      haloUniforms.uHaloA.value.copy(goals.haloA)
-      haloUniforms.uHaloB.value.copy(goals.haloB)
-      speedRef.current = goals.speed
-      scaleRef.current = goals.scale
-      if (spinner.current) spinner.current.scale.setScalar(goals.scale)
+      for (let i = 0; i < slotList.length; i++) {
+        const slot = slotList[i]
+        const goal = runeGoals[i]
+        if (!slot || !goal) continue
+        const cur = slot.cur
+        for (const k of SLOT_NUM_KEYS) cur[k] = goal[k]
+        cur.colorA.copy(goal.colorA)
+        cur.colorB.copy(goal.colorB)
+        cur.colorC.copy(goal.colorC)
+        cur.colorG.copy(goal.colorG)
+        cur.haloA.copy(goal.haloA)
+        cur.haloB.copy(goal.haloB)
+      }
+      for (let i = 0; i < washList.length; i++) {
+        const cur = washList[i]
+        const goal = washGoalList[i]
+        if (!cur || !goal) continue
+        for (const k of WASH_NUM_KEYS) cur[k] = goal[k]
+        cur.color.copy(goal.color)
+      }
+      // dust density eases in through the morph damper below (no direct
+      // write — the immutable-memo lint owns that path)
     }
 
-    // scene-local time — the shader's "energy" advances at the preset's
-    // own speed (interpolated), immune to R3F frameloop clock resets.
-    tRef.current += dt * speedRef.current
-    const t = tRef.current
-
-    // --- scroll → directional rotation (the owner's literal request) ----
-    const { vy, dir } = sampleScroll(dt)
-    const speed = Math.min(Math.abs(vy) * K_SCROLL, ROT_MAX - IDLE_SPIN)
-    const target = dir === -1 ? -(IDLE_SPIN + speed) : IDLE_SPIN + speed
-    const rotS = 1 - Math.exp(-ROT_K * dt)
-    rotVel.current += (target - rotVel.current) * rotS
-
-    // --- preset morph: damp every scalar toward its goal ---------------
-    // (THREE uniform objects are owned three.js state — the canonical R3F
-    // per-frame mutation pattern; the repo's immutability lint does not
-    // flag these assignments, so no directives are used here.)
+    // --- route morph: damp every scalar toward its goal ----------------
     const s = 1 - Math.exp(-MORPH_K * dt)
-    uniforms.uAmp.value += (goals.amp - uniforms.uAmp.value) * s
-    uniforms.uFreq.value += (goals.freq - uniforms.uFreq.value) * s
-    uniforms.uTwist.value += (goals.twist - uniforms.uTwist.value) * s
-    uniforms.uMorph.value += (goals.morph - uniforms.uMorph.value) * s
-    speedRef.current += (goals.speed - speedRef.current) * s
-    scaleRef.current += (goals.scale - scaleRef.current) * s
-    uniforms.uTime.value = t
-    uniforms.uColorA.value.lerp(goals.colorA, s)
-    uniforms.uColorB.value.lerp(goals.colorB, s)
-    uniforms.uColorC.value.lerp(goals.colorC, s)
-    uniforms.uColorG.value.lerp(goals.colorG, s)
-    haloUniforms.uTime.value = t
-    haloUniforms.uHaloA.value.lerp(goals.haloA, s)
-    haloUniforms.uHaloB.value.lerp(goals.haloB, s)
-    // uPixelRatio live sync (LOOP-3 FIX 6): state.viewport.dpr is R3F's
-    // clamped actual dpr, so gl_PointSize always matches the render scale.
-    haloUniforms.uPixelRatio.value = state.viewport.dpr
-
-    if (spinner.current) {
-      spinner.current.rotation.y += rotVel.current * dt
-      // broken-axis secondary tilt — the elegant "ميل مكسور" of spec §4.3
-      spinner.current.rotation.x += rotVel.current * 0.35 * dt
-      spinner.current.scale.setScalar(scaleRef.current)
+    let morphDelta = 0
+    for (let i = 0; i < slotList.length; i++) {
+      const slot = slotList[i]
+      const goal = runeGoals[i]
+      if (!slot || !goal) continue
+      const cur = slot.cur
+      for (const k of SLOT_NUM_KEYS) {
+        const d = goal[k] - cur[k]
+        cur[k] += d * s
+        const r = Math.abs(goal[k] - cur[k])
+        if (r > morphDelta) morphDelta = r
+      }
+      cur.colorA.lerp(goal.colorA, s)
+      cur.colorB.lerp(goal.colorB, s)
+      cur.colorC.lerp(goal.colorC, s)
+      cur.colorG.lerp(goal.colorG, s)
+      cur.haloA.lerp(goal.haloA, s)
+      cur.haloB.lerp(goal.haloB, s)
     }
-    if (haloRef.current) {
-      // halo couples to a quarter of the spin + its own slow drift, so the
-      // dust reads as environment, not part of the object
-      haloRef.current.rotation.y += (rotVel.current * 0.22 + 0.03) * dt
+    for (let i = 0; i < washList.length; i++) {
+      const cur = washList[i]
+      const goal = washGoalList[i]
+      if (!cur || !goal) continue
+      for (const k of WASH_NUM_KEYS) {
+        const d = goal[k] - cur[k]
+        cur[k] += d * s
+        const r = Math.abs(goal[k] - cur[k])
+        if (r > morphDelta) morphDelta = r
+      }
+      cur.color.lerp(goal.color, s)
+    }
+    // (dust density damps inside the dust block below — same aliased
+    // uniform path the compiler already accepts)
+
+    // --- slot transforms: PURE functions of D and S --------------------
+    for (let i = 0; i < slotList.length; i++) {
+      const slot = slotList[i]
+      if (!slot) continue
+      const cur = slot.cur
+      const De = D * cur.depth
+      const x = (cur.ax * 2 - 1) * aspect + cur.rax * 2 * Math.sin(De * cur.fx + cur.px)
+      const y = (cur.ay * 2 - 1) + cur.ray * 2 * Math.sin(De * cur.fy + cur.py)
+      const scale = Math.max(cur.base * (1 + cur.breathe * 0.5 * Math.sin(S * cur.sk + cur.sp)), 0.0001)
+      const g = slot.group
+      g.position.set(x, y, 0)
+      g.scale.setScalar(scale)
+      g.rotation.set(
+        0.22 + Math.sin(S * 0.0016 + cur.sp) * 0.12,
+        De * cur.spin,
+        De * cur.spin * 0.18
+      )
+
+      const u = slot.uniforms
+      u.uS.value = S
+      u.uAmp.value = cur.amp
+      u.uFreq.value = cur.freq
+      u.uTwist.value = cur.twist
+      u.uMorph.value = cur.morph
+      u.uPhase.value = cur.sp
+      u.uOpacity.value = cur.opacity
+      u.uEnergy.value = energy
+      const h = slot.haloUniforms
+      h.uS.value = S
+      h.uFade.value = cur.opacity * cur.halo
+      h.uEnergy.value = energy
+      h.uPixelRatio.value = state.viewport.dpr
     }
 
+    // --- washes: the atmosphere roams with the same clocks -------------
+    for (let i = 0; i < washList.length; i++) {
+      const cur = washList[i]
+      if (!cur) continue
+      const x = (cur.ax * 2 - 1) * aspect + cur.rax * 2 * Math.sin(D * cur.fx + cur.px)
+      const y = (cur.ay * 2 - 1) + cur.ray * 2 * Math.sin(D * cur.fy + cur.py)
+      const mesh = washMeshList[i]
+      if (mesh) {
+        mesh.position.set(x, y, 0)
+        mesh.scale.setScalar(Math.max(cur.scale * 2, 0.0001))
+      }
+      const mat = washUList[i]
+      if (mat) mat.uAlpha.value = cur.alpha
+    }
+
+    // --- dust -----------------------------------------------------------
+    // (dustUList — local array literal, the same provenance break the
+    // slot/wash morph loops ride; direct field.dustUniforms chains are
+    // compiler-frozen for self-referential writes)
+    const du = dustUList[0]
+    const dd = Math.abs(goals.dust - du.uDensity.value)
+    du.uDensity.value = dampNum(du.uDensity.value, goals.dust, s)
+    if (dd > morphDelta) morphDelta = dd
+    du.uD.value = D
+    du.uS.value = S
+    du.uAspect.value = aspect
+    du.uEnergy.value = energy
+    du.uPixelRatio.value = state.viewport.dpr
+
+    // --- frame chaining: scroll events already poke the bus; keep the
+    // loop alive only while the glow tail drains or a morph settles.
+    const tailActive = tickScrollTail(dt)
+    if (tailActive || morphDelta > MORPH_EPS) invalidate()
+
+    // --- dev introspection ----------------------------------------------
     if (DEV) {
+      frames.current += 1
       const measured = dt > 0 ? 1 / dt : 60
       fps.current += (measured - fps.current) * 0.1
       window.__elyraRuneDebug = {
         preset: presetKey,
-        mount: mount.current,
-        active,
-        rotY: spinner.current ? spinner.current.rotation.y : 0,
-        rotVel: rotVel.current,
-        vy,
+        frames: frames.current,
         fps: fps.current,
-        cur: {
-          amp: uniforms.uAmp.value as number,
-          freq: uniforms.uFreq.value as number,
-          twist: uniforms.uTwist.value as number,
-          morph: uniforms.uMorph.value as number,
-        },
-        goal: { amp: goals.amp, freq: goals.freq, twist: goals.twist, morph: goals.morph },
+        D,
+        S,
+        vy,
+        vel01: energy,
+        morphDelta,
+        runes: slotList.map((slot) => ({
+          x: slot.group.position.x,
+          y: slot.group.position.y,
+          scale: slot.group.scale.x,
+          opacity: slot.cur.opacity,
+        })),
       }
     }
   })
 
-  return (
-    <group ref={spinner} rotation={[0.25, 0, 0.08]}>
-      <mesh geometry={blobGeo} material={blobMat} />
-      <points ref={haloRef} geometry={haloGeo} material={haloMat} frustumCulled={false} />
-    </group>
-  )
+  return <primitive object={field.root} />
 }
 
 /** Context-loss guard — same contract as hero-canvas / capability-scene
@@ -552,7 +994,7 @@ function ContextLossGuard() {
     const canvas = gl.domElement
     const onLost = (e: Event) => {
       e.preventDefault()
-      console.warn('[EdgeRune] WebGL context lost')
+      console.warn('[RuneField] WebGL context lost')
     }
     canvas.addEventListener('webglcontextlost', onLost)
     return () => canvas.removeEventListener('webglcontextlost', onLost)
@@ -561,8 +1003,7 @@ function ContextLossGuard() {
 }
 
 export interface RuneSceneProps {
-  /** Tab-visibility gate — 'never' frameloop while hidden (the rune is
-   *  fixed and always "in viewport", so IO gating is meaningless here). */
+  /** Tab-visibility gate — 'never' frameloop while hidden. */
   active: boolean
   /** Locale-stripped route preset key — drives the morph goals. */
   presetKey: RunePresetKey
@@ -571,20 +1012,21 @@ export interface RuneSceneProps {
 export function RuneScene({ active, presetKey }: RuneSceneProps) {
   return (
     <Canvas
-      dpr={[1, 1.75]}
-      frameloop={active ? 'always' : 'never'}
-      camera={{ position: [0, 0, 3.4], fov: 45 }}
+      orthographic
+      frameloop={active ? 'demand' : 'never'}
+      dpr={[1, 1.5]}
+      camera={{ position: [0, 0, 10], near: 0.1, far: 50, zoom: 1 }}
       gl={{ antialias: true, alpha: true }}
       style={{
         background: 'transparent',
         // R3F defaults its container to pointer-events:auto (its event
-        // system needs raycast hits); the rune is pure decoration — user
-        // style spreads LAST in R3F's container, so this overrides the
-        // default and every child inherits none (G8 click-through).
+        // system needs raycast hits); the field is pure decoration — the
+        // user style spreads LAST in R3F's container, so this overrides
+        // the default and every child inherits none (G8 click-through).
         pointerEvents: 'none',
       }}
     >
-      <RuneCore presetKey={presetKey} active={active} />
+      <RuneFieldCore presetKey={presetKey} />
       <ContextLossGuard />
     </Canvas>
   )
