@@ -673,6 +673,9 @@ export function AutomationSimulator({
               role="log"
               aria-live="off"
               dir="ltr"
+              // data-lenis-prevent: wheel over the terminal log scrolls the
+              // log itself, not the page (REF-2 Phase A — Lenis selector).
+              data-lenis-prevent=""
               className="elyra-mono scroll-dark max-h-48 min-h-0 flex-1 overflow-y-auto px-4 py-3 font-mono text-[11px] leading-relaxed"
             >
               {logLines.length === 0 ? (

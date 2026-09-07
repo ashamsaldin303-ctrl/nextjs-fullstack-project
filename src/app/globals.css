@@ -155,7 +155,11 @@
     @apply border-border outline-ring/50;
   }
   html {
-    scroll-behavior: smooth;
+    /* REF-2 Phase A: Lenis owns the smoothness now — a CSS smooth here
+       would double-ease native/programmatic scrolls and Lenis warns
+       about it. Native fallback (reduced motion, no-JS) stays instant,
+       which is exactly what those users prefer. */
+    scroll-behavior: auto;
   }
   body {
     @apply bg-background text-foreground;
@@ -650,7 +654,10 @@ html[data-page-wait] .hero-build-fx * {
 /* Hairline guides — draw themselves from one edge. */
 .hb-line {
   position: absolute;
-  background: rgba(148, 178, 255, 0.15);
+  /* REF-2 Phase D: 0.15 → 0.10 — the blueprint grid was vibrating
+     against the headline (VLM: “grid lines too prominent … text harder
+     to read”); one notch quieter keeps the drafting-table cue. */
+  background: rgba(148, 178, 255, 0.10);
   opacity: 0;
 }
 .hb-v {
@@ -1455,7 +1462,11 @@ html[data-page-wait] .hero-build-fx * {
   inset: 0;
   z-index: 90; /* above the intro overlay (80); below the cursor (200) */
   pointer-events: none;
-  opacity: 0.045;
+  /* REF-2 Phase D: 0.045 → 0.03 — VLM read the old level as a
+     “low-res noise texture” making the dark hero look cheap. Halving
+     toward imperceptible keeps the celluloid feel without the noise
+     competing with type (silencio's sterile-canvas lesson). */
+  opacity: 0.03;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 240px 240px;

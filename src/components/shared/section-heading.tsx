@@ -49,7 +49,11 @@ export function SectionHeading({
         <h2
           id={titleId}
           className={cn(
-            'max-w-3xl text-balance text-3xl font-semibold leading-tight tracking-tight sm:text-4xl md:text-5xl',
+          /* REF-2 Phase D: one notch of typographic authority (award refs
+             sit at 4.5–5vw+): 3xl → 4xl floor keeps mobile safe while
+             md grows 5xl → 6xl for the editorial dominance the gap
+             analysis called for. */
+          'max-w-3xl text-balance text-4xl font-semibold leading-tight tracking-tight sm:text-4xl md:text-6xl',
             onDark ? 'text-white' : 'text-foreground',
             centered && 'mx-auto'
           )}

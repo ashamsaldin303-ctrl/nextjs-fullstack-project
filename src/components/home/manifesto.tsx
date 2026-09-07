@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
+import { VelocitySkew } from '@/components/scroll/velocity-skew'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 
 /**
@@ -119,6 +120,7 @@ export function Manifesto() {
       <div className="elyra-container max-w-container">
         <RevealKicker>{t('kicker')}</RevealKicker>
 
+        <VelocitySkew max={2.2}>
         <h2
           id="manifesto-title"
           ref={titleRef}
@@ -126,7 +128,7 @@ export function Manifesto() {
              the :lang(ar) h1-h4 1.3 line-height floor so the designed
              leading-[1.45] survives in AR (it computed 1.3 before — see
              globals.css for the documented opt-out). */
-          className="ar-lh-loose mt-8 max-w-4xl text-3xl font-bold leading-[1.45] text-foreground sm:text-4xl lg:text-[2.8rem] lg:leading-[1.4]"
+          className="ar-lh-loose mt-8 max-w-4xl text-3xl font-bold leading-[1.45] text-foreground sm:text-4xl lg:text-[3.2rem] lg:leading-[1.32]"
         >
           {words.map((word, i) => (
             <span key={i}>
@@ -141,6 +143,7 @@ export function Manifesto() {
             </span>
           ))}
         </h2>
+        </VelocitySkew>
 
         <p
           ref={sigRef}

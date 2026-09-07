@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { Reveal } from '@/components/shared/reveal'
 import { SectionHeading } from '@/components/shared/section-heading'
+import { Parallax } from '@/components/scroll/parallax'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 import { cn } from '@/lib/utils'
 
@@ -146,12 +147,21 @@ export function TrustBar() {
               >
                 <dt className="sr-only">{item.label}</dt>
                 <dd>
-                  <span
-                    className="block text-4xl font-bold tracking-tight text-primary tabular-nums sm:text-5xl lg:text-6xl"
-                    style={{ fontVariationSettings: '"wght" 700' }}
+                  {/* REF-2 Phase B — twin-depth parallax: the OUTER numerals
+                      lag more than the inner pair (30/14/14/30), so the
+                      strip reads as a shallow curved plane while it passes.
+                      Transform-only, reversible, still outside the band. */}
+                  <Parallax
+                    speed={[30, 14, 14, 30][i % 4]}
+                    className="block"
                   >
-                    <Counter value={Number(item.value)} suffix={item.suffix} />
-                  </span>
+                    <span
+                      className="block text-4xl font-bold tracking-tight text-primary tabular-nums sm:text-5xl lg:text-6xl"
+                      style={{ fontVariationSettings: '"wght" 700' }}
+                    >
+                      <Counter value={Number(item.value)} suffix={item.suffix} />
+                    </span>
+                  </Parallax>
                   <span className="mt-3 block text-sm font-normal tracking-normal text-muted-foreground">{item.label}</span>
                 </dd>
               </Reveal>

@@ -62,11 +62,13 @@ const DUST_VERTEX = /* glsl */ `
   uniform float uDensity;
   uniform float uEnergy;
   uniform float uPixelRatio;
+  uniform float uParX;
+  uniform float uParY;
   varying float vAlpha;
 
   void main() {
-    float x = position.x * uAspect + sin(uS * 0.0009 + aPhase) * 0.03;
-    float y = mod(position.y + uD * 0.00009 * aDepth + 1.0, 2.0) - 1.0;
+    float x = position.x * uAspect + sin(uS * 0.0009 + aPhase) * 0.03 + uParX;
+    float y = mod(position.y + uD * 0.00009 * aDepth + uParY + 1.0, 2.0) - 1.0;
     vec4 mv = modelViewMatrix * vec4(x, y, 0.0, 1.0);
     gl_Position = projectionMatrix * mv;
     gl_PointSize = clamp((0.6 + 0.4 * aDepth) * uPixelRatio * 2.2, 1.0, 4.0);
@@ -106,6 +108,31 @@ const WASH_FRAGMENT = /* glsl */ `
     gl_FragColor = vec4(uColor, a);
   }
 `
+
+/* REF-2 Phase C — the ground-shadow sprite (shared, page-lifetime):
+ * a soft white radial that a dark MeshBasicMaterial tints into ink;
+ * plane-scaled per landmark into the elliptical drop shadow that
+ * GROUNDS each floating body in the UI (VLM: “add drop shadows so
+ * they feel grounded, not pasted on top”). */
+let shadowTex: THREE.CanvasTexture | null = null
+
+function groundShadowSprite(): THREE.CanvasTexture {
+  if (shadowTex) return shadowTex
+  const c = document.createElement('canvas')
+  c.width = 64
+  c.height = 64
+  const ctx = c.getContext('2d')
+  if (ctx) {
+    const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 31)
+    grad.addColorStop(0, 'rgba(255,255,255,0.9)')
+    grad.addColorStop(0.6, 'rgba(255,255,255,0.35)')
+    grad.addColorStop(1, 'rgba(255,255,255,0)')
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, 64, 64)
+  }
+  shadowTex = new THREE.CanvasTexture(c)
+  return shadowTex
+}
 
 /* ------------------------------------------------------------------ *
  * Tuning
@@ -177,6 +204,14 @@ interface LandmarkRT {
   /** Last computed travel progress (debug + wash weighting). */
   p: number
   env: number
+  /** REF-2 Phase C — the ground shadow (root-level, never spins with
+   * the holder; driven to sit just under the assembly's bbox). */
+  shadow: THREE.Mesh
+  shadowMat: THREE.MeshBasicMaterial
+  shadowW: number
+  shadowH: number
+  /** bbox bottom in ASSEMBLY-LOCAL y (world offset = this × scale). */
+  shadowY: number
 }
 
 interface WashRT {
@@ -202,6 +237,8 @@ interface DustUniforms {
   uDensity: { value: number }
   uEnergy: { value: number }
   uPixelRatio: { value: number }
+  uParX: { value: number }
+  uParY: { value: number }
   uColor: { value: THREE.Color }
 }
 
@@ -225,11 +262,16 @@ function resolveSection(id: string): HTMLElement | null {
   return (section as HTMLElement | null) ?? heading
 }
 
-/** Build the landmark set for a route (assemblies + holders). */
+/** Build the landmark set for a route (assemblies + holders + ground
+ *  shadows). The shadow is a ROOT-level billboard: it must NOT inherit
+ *  the holder's spin (a rotating ground makes no physical sense), so the
+ *  driver places it from the same x/y/scale every frame. */
 function buildLandmarks(routeKey: RunePresetKey): { list: LandmarkRT[]; dispose: () => void } {
   const specs = LANDMARK_ROUTES[routeKey].landmarks
   const list: LandmarkRT[] = []
   const disposables: { dispose: () => void }[] = []
+  const shadowPlane = new THREE.PlaneGeometry(1, 1)
+  disposables.push({ dispose: () => shadowPlane.dispose() })
   for (const spec of specs) {
     const assembly = buildAssembly(spec)
     disposables.push({ dispose: assembly.dispose })
@@ -240,7 +282,32 @@ function buildLandmarks(routeKey: RunePresetKey): { list: LandmarkRT[]; dispose:
     holder.traverse((o) => {
       o.renderOrder = 10
     })
-    list.push({ spec, holder, assembly, el: null, p: 0, env: 0 })
+
+    // ground shadow from the assembly's rest-pose bbox
+    assembly.group.updateMatrixWorld(true)
+    const box = new THREE.Box3().setFromObject(assembly.group)
+    const size = box.getSize(new THREE.Vector3())
+    const center = box.getCenter(new THREE.Vector3())
+    const shadowMat = new THREE.MeshBasicMaterial({
+      color: 0x0f1c33,
+      map: groundShadowSprite(),
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    })
+    disposables.push({ dispose: () => shadowMat.dispose() })
+    const shadow = new THREE.Mesh(shadowPlane, shadowMat)
+    shadow.renderOrder = 9
+    shadow.frustumCulled = false
+    shadow.visible = false
+
+    list.push({
+      spec, holder, assembly, el: null, p: 0, env: 0,
+      shadow, shadowMat,
+      shadowW: Math.max(size.x, 0.02),
+      shadowH: Math.max(size.y, 0.02),
+      shadowY: center.y - size.y * 0.5,
+    })
   }
   return {
     list,
@@ -255,6 +322,22 @@ function buildLandmarks(routeKey: RunePresetKey): { list: LandmarkRT[]; dispose:
 function buildField(): FieldRT {
   const root = new THREE.Group()
 
+  // REF-2 Phase C — the FIXED light rig for the cel ramp (toon fills).
+  // Key from upper-start, cool rim from the opposite corner: every
+  // rotated/tilted volume gains hard-stepped light/mid/shadow bands
+  // (illoca's art direction) while the ink edges stay crisp. The rig
+  // never animates — lighting is a DESIGN CONSTANT, so a given scroll
+  // position always produces the identical frame.
+  const keyLight = new THREE.DirectionalLight(0xffffff, 1.05)
+  keyLight.position.set(1.6, 2.2, 3)
+  const ambLight = new THREE.AmbientLight(0xffffff, 0.85)
+  // VLM round 1: rim too weak on dark bands — 0.45 → 0.75 so rotated
+  // volumes carry a cool edge highlight that separates them from the
+  // dark section backgrounds.
+  const rimLight = new THREE.DirectionalLight(new THREE.Color(BRAND_COLORS.gBlueLight), 0.75)
+  rimLight.position.set(-2.2, -1.4, 1.5)
+  root.add(keyLight, ambLight, rimLight)
+
   const dustGeo = makeDustGeometry(0x5eed0042)
   const dustUniforms: DustUniforms = {
     uD: { value: 0 },
@@ -263,6 +346,8 @@ function buildField(): FieldRT {
     uDensity: { value: 1 },
     uEnergy: { value: 0.35 },
     uPixelRatio: { value: 1 },
+    uParX: { value: 0 },
+    uParY: { value: 0 },
     uColor: { value: new THREE.Color(BRAND_COLORS.gBlueLight) },
   }
   const dustMaterial = new THREE.ShaderMaterial({
@@ -369,6 +454,24 @@ function LandmarksCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'rtl
   const rescans = useRef(0)
   const dustGoal = useRef(LANDMARK_ROUTES[presetKey].dust)
 
+  // REF-2 Phase C — pointer micro-parallax targets (ATMOSPHERE only:
+  // dust + washes drift a few hundredths of a world unit against the
+  // cursor; landmarks stay GLUED to their sections — the glue contract
+  // is untouchable). Pointer input is user input: when the pointer
+  // stops, the ease converges and the frame loop goes back to sleep.
+  const parTarget = useRef({ x: 0, y: 0 })
+  const par = useRef({ x: 0, y: 0 })
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      const w = window.innerWidth || 1
+      const h = window.innerHeight || 1
+      parTarget.current.x = ((e.clientX / w) * 2 - 1) * 0.05
+      parTarget.current.y = -((e.clientY / h) * 2 - 1) * 0.035
+    }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    return () => window.removeEventListener('pointermove', onMove)
+  }, [])
+
   // Per-resource disposal + invalidate-bus registration. The field is
   // read through the MEMO closure inside useFrame (the RUNE-1 lineage:
   // closures over memos are escape-analyzed; the ref exists only for
@@ -438,10 +541,16 @@ function LandmarksCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'rtl
         fade.current = 0
         const next = pendingKey.current
         if (next !== null && next !== builtKey.current) {
-          for (const lm of reg.list) f.root.remove(lm.holder)
+          for (const lm of reg.list) {
+            f.root.remove(lm.holder)
+            f.root.remove(lm.shadow)
+          }
           reg.dispose()
           const built = buildLandmarks(next)
-          for (const lm of built.list) f.root.add(lm.holder)
+          for (const lm of built.list) {
+            f.root.add(lm.holder)
+            f.root.add(lm.shadow)
+          }
           reg.list = built.list
           reg.dispose = built.dispose
           builtKey.current = next
@@ -475,6 +584,7 @@ function LandmarksCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'rtl
         lm.env = 0
         lm.p = 0
         lm.holder.visible = false
+        lm.shadow.visible = false
         continue
       }
       const rect = el.getBoundingClientRect()
@@ -488,6 +598,7 @@ function LandmarksCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'rtl
       const alpha = env * fadeV
       if (alpha <= 0.015) {
         lm.holder.visible = false
+        lm.shadow.visible = false
         continue
       }
       lm.holder.visible = true
@@ -522,6 +633,18 @@ function LandmarksCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'rtl
 
       lm.assembly.tick(p, D, S, energy, alpha)
 
+      // REF-2 Phase C — ground shadow: root-level billboard glued just
+      // under the assembly's bbox bottom (it scales/breathes WITH the
+      // body but never inherits the spin — grounds, not decorates).
+      lm.shadow.visible = true
+      lm.shadow.position.set(x, y + lm.shadowY * scale - 0.018 * scale, -0.02)
+      lm.shadow.scale.set(
+        Math.max(lm.shadowW * scale * 0.78, 1e-4),
+        Math.max(lm.shadowH * scale * 0.2, 1e-4),
+        1,
+      )
+      lm.shadowMat.opacity = 0.24 * alpha
+
       if (env > activeEnv) {
         activeEnv = env
         activeId = spec.id
@@ -531,6 +654,14 @@ function LandmarksCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'rtl
       cy += y * env
       cw += env
     }
+
+    // --- pointer parallax (atmosphere only — REF-2 Phase C) ------------
+    const pks = 1 - Math.exp(-8 * dt)
+    par.current.x += (parTarget.current.x - par.current.x) * pks
+    par.current.y += (parTarget.current.y - par.current.y) * pks
+    const parDelta =
+      Math.abs(parTarget.current.x - par.current.x) +
+      Math.abs(parTarget.current.y - par.current.y)
 
     // --- washes: the atmosphere follows the ensemble ----------------------
     // (local-array provenance break — the RUNE-2 washCur lineage)
@@ -560,7 +691,8 @@ function LandmarksCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'rtl
       w.scale += (w.goalScale - w.scale) * ws
       w.alpha += (w.goalAlpha - w.alpha) * ws
       w.color.lerp(w.goalColor, ws)
-      w.mesh.position.set(w.x, w.y, 0)
+      // atmosphere-only pointer parallax rides the wash position
+      w.mesh.position.set(w.x + par.current.x * 0.6, w.y + par.current.y * 0.4, 0)
       w.mesh.scale.setScalar(Math.max(w.scale * 2, 0.0001))
       // uniform write through the sanctioned local-alias path
       const wU = w.material.uniforms
@@ -582,13 +714,16 @@ function LandmarksCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'rtl
       d0.uAspect.value = aspect
       d0.uEnergy.value = energy
       d0.uPixelRatio.value = state.viewport.dpr
+      d0.uParX.value = par.current.x
+      d0.uParY.value = par.current.y
     }
 
     // --- frame chaining: scroll events already poke the bus; keep the
-    // loop alive only while the fade/wash/dust settle or the velocity
-    // tail drains. Idle page ⇒ zero rendered frames (freeze proof).
+    // loop alive only while the fade/wash/dust settle, the pointer
+    // parallax eases, or the velocity tail drains. Idle page (no scroll,
+    // no pointer motion) ⇒ zero rendered frames (freeze proof).
     const tailActive = tickScrollTail(dt)
-    if (tailActive || settleDelta > FADE_EPS) invalidate()
+    if (tailActive || settleDelta > FADE_EPS || parDelta > 0.0015) invalidate()
 
     // --- dev introspection ---------------------------------------------------
     if (DEV) {

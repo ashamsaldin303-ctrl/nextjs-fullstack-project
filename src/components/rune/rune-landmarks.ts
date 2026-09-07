@@ -35,7 +35,9 @@
  *                        calc→dials
  *   work    «المعرض»     hero→galleryFrames  (مروحة الإطارات)
  *                        grid→galleryFrames  (نسخة هامشية)
- *   about   «الرحلة»     hero→sheetFlow      (مقدمة الاستوديو)
+ *   about   «الرحلة»     hero→astrolabe    (الإسطرلاب الدمشقي — أداة الرصد
+ *                        والقياس؛ الشبكية تدور مع التمرير والعضادة تقيس
+ *                        عكسها: هوية الاستوديو “بدقة العلماء”)
  *                        story→journeyPath   (المسار يرسم نفسه + المحطات)
  *                        values→blockStack   (رصّ القيم — داكن)
  *                        team→constellation  (عناقيد الفريق)
@@ -73,6 +75,7 @@ export type RunePresetKey =
 
 /** The semantic object vocabulary (built by rune-assemblies.ts). */
 export type LandmarkKind =
+  | 'astrolabe' // الإسطرلاب — the Damascus instrument of precision (REF-2 C)
   | 'orbitSystem' // نواة/مركز — hub sphere, tilted rings, orbiting satellites
   | 'constellation' // حصيلة/فريق — ascending cluster of octahedra
   | 'sheetFlow' // بيان — a curved sheet of the written statement
@@ -249,8 +252,12 @@ export const LANDMARK_ROUTES: Record<RunePresetKey, LandmarkRoute> = {
   about: {
     landmarks: [
       {
-        id: 'page-hero-title', kind: 'sheetFlow', side: 'end', yFrac: 0.5,
-        scale: 0.5, spin: 0.0002, breath: 0.12, phase: 0.0, palette: g.dark, tilt: 0.3,
+        // REF-2 Phase C — the original high-detail astrolabe opens the
+        // journey page: the studio's identity instrument («بدقة
+        // العلماء»). Scale 0.64 + tilt 0.78 (museum-display angle): the cylindrical body and
+        // layered machinery need the size and the angle to read.
+        id: 'page-hero-title', kind: 'astrolabe', side: 'end', yFrac: 0.5,
+        scale: 0.64, spin: 0.00022, breath: 0.1, phase: 0.0, palette: g.dark, tilt: 0.78,
       },
       {
         id: 'story-title', kind: 'journeyPath', side: 'end', yFrac: 0.55,

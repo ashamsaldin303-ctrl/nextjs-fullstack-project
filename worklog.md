@@ -3075,3 +3075,23 @@ Stage Summary:
 - Our 7 gaps identified (G1–G7, strengths kept: RUNE-3 semantics, cursor, magnetic, grain).
 - Plan approved-pending owner: Phase A (Lenis + unified scroll clock) is the single highest-impact first move; framer-motion (not GSAP) for DOM choreography; toon/matcap (not PBR) for materials; keep dark identity.
 - No code changed this task. Artifacts: upload/elyra-ref-analysis.md + .scratch/ref-analysis/*.{json,png} (untracked).
+
+---
+Task ID: REF-2
+Agent: main (Full Stack Agent)
+Task: تنفيذ خطة REF-1 كاملة (المراحل A–E) بموافقة المالك «نفذ الخطة» + طلب مجسمات أصلية عالية الجودة.
+
+Work Log:
+- A (إحساس التمرير): bun add lenis@1.3.26 (التبعية الجديدة الوحيدة). sensory/smooth-scroll.tsx (lerp 0.1, autoRaf, anchors:-96, touch native, reduced-motion=off) + lib/lenis-holder.ts (singleton + lenisScrollTo) + تركيب في [locale]/layout. scroll-behavior: smooth → auto (تعارض Lenis). data-lenis-prevent على سجل المحاكي. عقد التجميد محفوظ: أحداث Lenis تتوقف مع نضوب الزخم → frameloop demand ينام (برهان: 129=129 إطار و44=44 خلال 3ث خمول).
+- B (كوريغرافيا DOM): مجلد components/scroll/ جديد — velocity-skew (±3° spring من useVelocity، صفر عند السكون)، clip-curve (حدود quadratic 150px تتحوّر مع التمرير بتقنية useMotionTemplate — توقيع aardvark)، depth-exit (عمود البطل ينسحب 30%/0.94/تلاشٍ متأخر)، parallax (طبقات متعددة السرعة). طبّقت: h1 البطل (skew) + العمود (depth-exit) + watermark (parallax 48) + منحنى hero→trust + أرقام الإحصاءات (twin-depth 30/14/14/30) + بيان manifesto (skew 2.2°) + رفع الماركي فوق حزام المنحنى.
+- C (وفاء 3D): makeKit: MeshBasic → MeshToonMaterial بمنحدر 3-درجات مشترك ([80,190,255] بعد جولة VLM) + رِج إضاءة ثابت في buildField (key 1.05 + ambient 0.85 + rim gBlueLight 0.75). ظلال تلامسية: billboard تحت bbox كل معلم (root-level، لا يدور مع spin، renderOrder 9، ink #0f1c33 @0.24·alpha) — تؤرّض المجسمات في الواجهة. parallax مؤشر للغلاف الجوي فقط (uParX/Y للغبار + إزاحة الغسيلات) — المعالم تبقى ملتصقة، والتجميد محفوظ (parDelta في شرط invalidate). 
+- C (المجسم الأصلي): بحث GLB خارجي بأمانة: poly.pizza CDN محجوب بـCloudflare 403، Khronos سليم التحميل لكن دلالياً لا يليق (خوذة معركة/بطة!)، Quaternius GitHub غير مباشر. القرار الموثق: مجسم أصلي مصنوع إجرائياً — الإسطرلاب الدمشقي (~95 primitive): أسطوانة جسم زجاجية عميقة gBlue@0.55 + طبق tympan فاتح + 72 تدريجاً + شبكية مضيئة (8 إبرارات مخروطية بذيول ثقل، نجوم، boss) + حزام بروجي مائل 23.4° مقسم 12 + عضادة عريضة برفّين + حلقة تعليق. أربع جولات VLM: 2/10 (بوصلة مسطحة) → 3/10 → 6/10 (فرق cel ظاهر لكن الجسم شفاف 18%) → **8.5/10** (قطع ناقص مائل، جسم أسطواني مرئي، طبقات، «أداة فلكية أصلية احترافية»). رُكّب كبطل /about (scale 0.64, tilt 0.78, spin D).
+- D (طباعة): SectionHeading md:text-5xl→6xl وtext-3xl→4xl؛ manifesto lg 2.8→3.2rem؛ حبيبات 0.045→0.03؛ شبكة blueprint 0.15→0.10.
+- E (قصة اللون): المنحنى يحمل تسليم الألوان dark→light عند البطل (بوابة اللون الجوهرية)؛ الغسيلات تتبع المعالم كما في RUNE-3.
+- البوابات: tsc=0، eslint=0، parity 736/736، صفر أسرار، تبعية جديدة واحدة مخططة (lenis). مسار مورف حي /about عبر Link (frames متصلة بلا remount) + إسطرلاب found=true env=1 عند الذروة + دوران الشبكية/العضادة مع D (d1=-93→d2=1662، scale 0.649→0.027 ذوبان حرفي). dev.log نظيف (خادم dev انطفأ مرة — أُعيد فوراً 200).
+
+Stage Summary:
+- العناصر الجديدة: components/scroll/{velocity-skew,clip-curve,depth-exit,parallax}.tsx، sensory/smooth-scroll.tsx، lib/lenis-holder.ts، buildAstrolabe + نوع 'astrolabe' في rune-landmarks.
+- المعدّلة: layout (تركيب SmoothScroll)، globals.css (scroll-behavior/grain/hb-line)، hero.tsx (DepthExit/VelocacitySkew/ClipCurve/Parallax+موضع الماركي)، trust-bar (parallax أرقام)، manifesto (skew+حجم)، section-heading (حجم)، automation-simulator (data-lenis-prevent)، rune-assemblies (toon kit + الإسطرلاب + LineBasic ثابتة)، rune-scene (إضاءة+ظلال+uPar+منحدر أعمق)، rune-landmarks (astrolabe كبطل about).
+- عقد المالك الثلاثة محفوظة حرفياً: (1) دلالية المجسمات (الإسطرلاب أداة الرصد الدمشقية لبطل «الرحلة»)، (2) التمرير هو الزمن (برهان تجميد مزدوج بعد Lenis: home 44=44 وabout 129=129)، (3) كل إطار مدروس (دوال خالصة، الإضاءة ثابتة تصميمياً، الحركة الوحيدة غير التمريرية = مؤشر المستخدم).
+- منتج وسيط: .scratch/ref-analysis/ (لقطات + VLM json) غير متتبَّع.

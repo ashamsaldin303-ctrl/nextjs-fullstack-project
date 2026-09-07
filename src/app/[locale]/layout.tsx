@@ -13,6 +13,7 @@ import { ScrollProgress } from '@/components/layout/scroll-progress'
 import { Toaster } from '@/components/ui/sonner'
 import { CustomCursor } from '@/components/sensory/custom-cursor'
 import { GrainOverlay } from '@/components/sensory/grain-overlay'
+import { SmoothScroll } from '@/components/sensory/smooth-scroll'
 import { EdgeRune } from '@/components/rune/edge-rune'
 import '../globals.css'
 
@@ -218,6 +219,10 @@ export default async function LocaleLayout({
             {t('skipToContent')}
           </a>
           <Navbar />
+          {/* REF-2 Phase A — Lenis smooth scroll (renders nothing; reduced
+              motion → native scroll untouched). Mounted before the navbar
+              so its instance exists for anchor routing on first paint. */}
+          <SmoothScroll />
           <ScrollProgress />
           <main id="main" className="flex-1">
             {children}

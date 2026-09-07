@@ -8,6 +8,10 @@ import { ArrowRight, ArrowUpLeft, MapPin, Play } from 'lucide-react'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 import { useCursorVelocity } from '@/lib/use-cursor-velocity'
 import { useMagnetic } from '@/lib/use-magnetic'
+import { DepthExit } from '@/components/scroll/depth-exit'
+import { VelocitySkew } from '@/components/scroll/velocity-skew'
+import { ClipCurve } from '@/components/scroll/clip-curve'
+import { Parallax } from '@/components/scroll/parallax'
 import { KineticHeading } from './kinetic-heading'
 
 const HeroCanvas = dynamic(
@@ -135,7 +139,7 @@ function HeroMarquee({ items }: { items: string[] }) {
   )
   return (
     <div
-      className="hero-marquee absolute inset-x-0 bottom-0 z-10"
+      className="hero-marquee absolute inset-x-0 bottom-[150px] z-10"
       dir="ltr"
       data-bg-layer=""
       aria-hidden="true"
@@ -413,7 +417,12 @@ export function Hero() {
           data-bg-layer: exempt from .elyra-spotlight's content-lift rule
           (which would force position:relative and push the column down). */}
       <div className="hero-watermark" data-bg-layer="" aria-hidden="true">
-        {t('watermark')}
+        {/* REF-2 Phase B — the outlined watermark drifts slower than the
+            page (far layer): one compositor transform, pure scroll
+            function, fully reversible. */}
+        <Parallax speed={48} className="block">
+          {t('watermark')}
+        </Parallax>
       </div>
 
       {/* Vertical scroll rail on the empty edge (desktop only).
@@ -443,6 +452,11 @@ export function Hero() {
           and the fluid 1152→1280→1440→1568px ladder (1440 at ≥1536px,
           1568 at ≥1920px) instead of the fixed 1280px clamp. navbar.tsx
           was ported to the same system in G3-6. */}
+      {/* REF-2 Phase B — DepthExit: the whole content column REcedes
+          (drift + 0.94 scale + late fade) as the hero scrolls out — the
+          camera-pull-back depth cue; the marquee & curve stay pinned to
+          the section edge so the exit reads as layered stage scenery. */}
+      <DepthExit>
       <div className="relative z-10 elyra-container max-w-container flex min-h-[100svh] flex-col justify-center pb-32 pt-24 text-start lg:pb-28">
         {/* Kicker row — pulse dot, agency line, place + live time.
             R9: inline delay synced to the tightened build scan line (~25%
@@ -468,12 +482,16 @@ export function Hero() {
           </span>
         </div>
 
-        <KineticHeading
-          id="hero-title"
-          titleTopKey="titleTop"
-          titleAccentKey="titleAccent"
-          titleBottomKey="titleBottom"
-        />
+        {/* REF-2 Phase B — VelocitySkew: the h1 leans ±3° into the fling
+            direction (clamped, spring-damped, exactly 0 at rest). */}
+        <VelocitySkew>
+          <KineticHeading
+            id="hero-title"
+            titleTopKey="titleTop"
+            titleAccentKey="titleAccent"
+            titleBottomKey="titleBottom"
+          />
+        </VelocitySkew>
 
         <p
           className="hero-enter mt-7 max-w-xl text-base leading-relaxed text-white/70 sm:text-lg"
@@ -517,9 +535,16 @@ export function Hero() {
           <OrbitBadge label={t('ctaSecondary')} />
         </div>
       </div>
+      </DepthExit>
 
-      {/* Service marquee — the hero's bottom edge. */}
+      {/* Service marquee — sits directly above the curved boundary
+          (REF-2: lifted by the 150px band below). */}
       {marqueeItems.length > 0 ? <HeroMarquee items={marqueeItems} /> : null}
+
+      {/* REF-2 Phase B — ClipCurve: the dark hero bleeds into the light
+          trust bar along a scroll-deepening quadratic (the aardvark
+          is--inner-clip signature). Decorative, click-through. */}
+      <ClipCurve fillClass="text-background" height={150} />
     </section>
   )
 }
