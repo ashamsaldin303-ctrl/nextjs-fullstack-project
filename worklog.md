@@ -3057,3 +3057,21 @@ Stage Summary:
 - عقود المالك الثلاثة مُحقَّقة: (1) مجسّمات دلالية تمثل محتوى كل قسم في كل صفحة، (2) الموقع مُهيكل للتمرير: كل معلم يلتصق بقسمه ويكبر/يصغر بمغلف مصمم مع التمرير صعوداً وهبوطاً (عكس حرفي)، (3) حركة مدروسة بكل إطار — دوال خالصة، صفر عشوائية، صفر مصطلح زمني، وتجميد مطلق برهِين عند التوقف.
 - «إعادة هيكلة الموقع» تحققت بارتكاز المعالم على أقسام DOM الحقيقية (بلا تعديل DOM: aria-labelledby موجود أصلاً) + هوامش مصممة لكل قسم + تناوب جهات start/end لإيقاع قراءة متقاطع.
 - منتج وسيط في .scratch/rune3/ (لقطات + vlm json) — غير متتبَّع.
+
+---
+Task ID: REF-1
+Agent: main (Full Stack Agent)
+Task: Analyze 4 award-winning reference sites (silencio.es, animejs.com, illoca.unseen.co, aardvarkbookclub.com) + awwwards.com/websites/3d/ and produce a detailed gap analysis + application plan for Elyra's motion/3D/scroll professionalism.
+
+Work Log:
+- Fetched all 5 URLs via page_reader (raw HTML audits): silencio 108KB/9 sections; animejs 46KB/20 sections; illoca = WebGL-gated (title becomes "Error creating WebGL context" without GL — full-viewport WebGL experience, lenis-active); aardvark 258KB/33 sections with GSAP+Lenis+Three signatures and is--inner-clip/is--outer-clip curved section transitions; awwwards 3D list (62 cards) extracted.
+- agent-browser 1440×900 real rendering + screenshots at multiple scroll positions for silencio/animejs/illoca/aardvark(aardvark crashed CDP mid-scroll — heavy real-time site; 2 shots + full HTML structure captured) + our own site for comparison.
+- VLM glm-5v multi-image analyses: per-site technical breakdowns + a brutal silencio-vs-elyra gap critique.
+- Code audit of ours: no lenis/gsap (native scroll); DOM layer scroll participation nearly absent (2 files whileInView, 2 sticky) — the scroll story lives only in the WebGL rune layer; MeshBasicMaterial assemblies (no shadows/env).
+- Wrote full analysis + phased application plan to upload/elyra-ref-analysis.md (Phases A–E: Lenis foundation → DOM scroll choreography → toon/matcap 3D fidelity → typography authority → color story; freeze-contract compatibility argued; zero-new-deps choices preferred).
+
+Stage Summary:
+- Reference patterns distilled: smooth scroll, DOM-layer scroll choreography (pinned/scrub/velocity-skew/clip-path curved transitions), intentional 3D placement with grounded shadows + one disciplined art direction (toon/matcap), massive type + negative space, motion-as-content.
+- Our 7 gaps identified (G1–G7, strengths kept: RUNE-3 semantics, cursor, magnetic, grain).
+- Plan approved-pending owner: Phase A (Lenis + unified scroll clock) is the single highest-impact first move; framer-motion (not GSAP) for DOM choreography; toon/matcap (not PBR) for materials; keep dark identity.
+- No code changed this task. Artifacts: upload/elyra-ref-analysis.md + .scratch/ref-analysis/*.{json,png} (untracked).
