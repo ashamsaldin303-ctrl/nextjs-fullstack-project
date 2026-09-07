@@ -8,7 +8,7 @@ import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 import { useMobileTier } from '@/lib/use-mobile-tier'
 import { probeWebGL } from '@/lib/use-webgl'
 import { pokeRuneField } from './rune-bus'
-import { runeDirForPath, runePresetKeyForPath, type RunePresetKey } from './rune-landmarks'
+import { runeDirForPath, runePresetKeyForPath, type RunePresetKey } from './model-registry'
 
 /**
  * Rune Landmarks root (RUNE-3) — the full-viewport semantic layer

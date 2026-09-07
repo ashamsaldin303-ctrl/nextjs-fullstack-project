@@ -3095,3 +3095,49 @@ Stage Summary:
 - المعدّلة: layout (تركيب SmoothScroll)، globals.css (scroll-behavior/grain/hb-line)، hero.tsx (DepthExit/VelocacitySkew/ClipCurve/Parallax+موضع الماركي)، trust-bar (parallax أرقام)، manifesto (skew+حجم)، section-heading (حجم)، automation-simulator (data-lenis-prevent)، rune-assemblies (toon kit + الإسطرلاب + LineBasic ثابتة)، rune-scene (إضاءة+ظلال+uPar+منحدر أعمق)، rune-landmarks (astrolabe كبطل about).
 - عقد المالك الثلاثة محفوظة حرفياً: (1) دلالية المجسمات (الإسطرلاب أداة الرصد الدمشقية لبطل «الرحلة»)، (2) التمرير هو الزمن (برهان تجميد مزدوج بعد Lenis: home 44=44 وabout 129=129)، (3) كل إطار مدروس (دوال خالصة، الإضاءة ثابتة تصميمياً، الحركة الوحيدة غير التمريرية = مؤشر المستخدم).
 - منتج وسيط: .scratch/ref-analysis/ (لقطات + VLM json) غير متتبَّع.
+
+---
+Task ID: 2-a
+Agent: model-sourcing (general-purpose)
+Task: Download 11 realistic CC0 Blender-made Poly Haven models into public/models for the heavy-model layer
+
+Work Log:
+- Read worklog context first: RUNE-3 (semantic scroll-driven landmarks) + REF-2 (Lenis/toon/astrolabe; external GLB sourcing had failed: poly.pizza 403, Khronos semantically unfit) — this task provides the real-asset layer GLTFLoader can consume at runtime.
+- Metadata: used existing /tmp/ph_test.json (521 models, keyed by slug) for polycount + dimensions (raw values are millimeters → converted to meters in manifest).
+- API queries: fetched https://api.polyhaven.com/files/{slug} for all 11 slugs → /tmp/ph_files_{slug}.json; used j.gltf[variant].gltf.url (main file) and j.gltf[variant].gltf.include (sidecar map); ignored blend/fbx/texture-map top-level keys.
+- Wrote /tmp/ph_pipeline.ts (bun orchestrator): per slug, curl -s -L --max-time 120 downloads with automatic single retry on curl failure, byte-size mismatch, or md5 mismatch (md5 verified via Bun.CryptoHasher). Main gltf saved exactly as {slug}.gltf; every include key saved preserving its relative path ({slug}.bin at model root, textures/*.jpg in textures/ subfolder) so URIs inside the .gltf resolve on disk as-is.
+- Downloaded 11/11 models into public/models/{slug}/ (57 files incl. manifest): hero vintage_grandfather_clock_01 @2k, the other 10 @1k.
+- Verification (bun, independent second pass): every .gltf parses as JSON; every buffers[].uri and images[].uri exists on disk → 52/52 OK / 0 BAD; every sidecar byte size AND md5 matched API-declared values (zero retries were needed — all first-try exact); every local .bin ≥ declared buffers.byteLength (all exact); collected per model: animations, node count, ALL node names, meshCount, materialNames, extensionsUsed, totalMB.
+- Wrote /home/z/my-project/public/models/manifest.json (generatedAt + 11 entries: slug/variant/mainFile/totalMB/polycount/dimensionsMeters/animations/nodeNames/meshCount/materialNames/extensionsUsed/files).
+- Scope respected: only writes were public/models/** and this worklog append (+ /tmp scratch); zero changes under src/; no dev/build/lint run.
+
+Stage Summary:
+- 11/11 models OK, 0 skipped, 31.62 MB total (per-model 1.3–6.8 MB; grandfather clock 6.82 MB @2k, radio transceiver 6.01 MB with a second accessories texture set, 8 files).
+- Anomaly 1 — animations: NO gltf contains animation clips ([] everywhere): Poly Haven exports rigs as separate named nodes, not clips. Runtime part-driving must set rotations directly; manifest.json nodeNames is the driver map, e.g. vintage_grandfather_clock_01_minute_hand + _houd_hand ("houd" typo is in the asset itself = hour hand), seadogs_compass_needle/_lid, retro_multimeter_needle_LOD0/_dial_LOD0/_knob_LOD0, vintage_microscope_adjustment/_revolver/_mirror_arm, vintage_radio_transceiver_morse_key_arm/_antenna/_dial, brass_diya_lantern_chain, vintage_binocular_focus/_diopter, mantel_clock_01 (only body+glass nodes).
+- Anomaly 2 — extensions: only the two clock models use ["KHR_materials_clearcoat","KHR_materials_specular","KHR_materials_ior"] (three.js GLTFLoader supports them natively; PBR path required — do not override these two with MeshToonMaterial or clearcoat/specular is lost); the other 9 use no extensions.
+- All textures are the packed ARM (AO/Rough/Metal) + nor_gl + diff jpg set referenced relatively — load path: "/models/{slug}/{slug}.gltf" (public/ root).
+
+---
+Task ID: HEAVY-1
+Agent: main (Full Stack Agent + Task 2-a model-sourcing subagent)
+Task: قرار المالك 2025: رفض الأجسام الإجرائية بالكامل ( primitives + الإسطرلاب) — المطلوب: أجسام 3D ثقيلة واقعية من نوع خاص مصنوعة ببلندر أو ما يماثله، تُبحث وتُجلب من الإنترنت، والأهم والأولاً: ضبط تموضع الأجسام والأنيميشن الخاصة بها «حاول وحاول حتى تضبطها».
+
+Work Log:
+- البحث والمصدر (Task 2-a): اختبار الشبكة الحي — Poly Haven API سليم (خلافاً لـ poly.pizza المحجوب 403 في REF-2): تنزيل 11 مجسماً واقعياً CC0 مصنوعة ببلندر (31.6MB) إلى public/models/{slug}/ (gltf + bin + textures بمسارات نسبية سليمة) + manifest.json بالعقد والأسماء: ساعة جدارية كبيرة (عقارب دقائق/ساعات كعقد مستقلة!)، بوصلة نحاسية (عقدة needle!)، متعدد قياس (needle/knob!)، راديو (antenna/dial/morse_key!)، منظار، كاميرا فيديو، منارة يدوية، فانوس نحاسي (سلسلة!)، مجهر (revolver!)، صخرة قمر، ساعة رخامية. التحقق: 57 ملفاً بمطابقة md5/حجم تامة.
+- القرار المعماري «مرصد إيليرا»: عائلة أدوات نحاسية واحدة متناسقة دلالياً لكل مسار (الوقت = التمرير). الحذف الكامل: rune-assemblies.ts (~1000 سطر) + rune-landmarks.ts (~370) — استُبدلا بـ model-registry.ts (جداول slots نقية TS) + model-loader.ts (كاش GLTFLoader على مستوى الوحدة).
+- إعادة كتابة rune-scene.tsx بالكامل: كاميرا منظورية fov 34 z 7.5 (إحساس عمق حقيقي + parallax مؤشر بين مستويات z)؛ الرصد f(rect, D, S) كما هو لكن بوحدات frustum؛ dust shader بمعامل uHalfH (امتداد مجال الغبار لمستوى المنظور)؛ washes بحجم frustum عند z=-2.5؛ إضاءة استوديو ثابتة: key دافئ 2.1 + ambient 0.28 + rim بارد 1.25 + Spotlight متحفي دافئ (55/0.45rad) على منطقة plinth البطلة + بيئة PMREM RoomEnvironment (بدون شبكة، مطبقة envMap لكل مادة).
+- «تموضع صحيح»: SLOT ثابت مستقر لكل مجسّم — حجم ثابت (viewFrac من ارتفاع الشاشة)، عمق z ثابت، موضع من rect القسم + yFrac، مادة materialize (fade + rise + settle rotation -0.4rad) عند دخول القسم وانعكاس حرفي عند الخروج — لا تجوال ولا تنفّع بالوني (رفض صريح لسلوك RUNE-2/3 القديم).
+- «أنيميشن صحيحة» ثلاث طبقات: (1) scrub كامل الجسم = scrub·ease(p) راديان عبر رحلة القسم — عكسي إطارياً؛ (2) drives مسماة: عقارب الساعة odometers بـ D (الدقيقة 0.0011 rad/px والساعة 1/12)، إبرة البوصلة Y بـ D، إبرة المتعدد sweep مطلق مع p، هوائي الراديو ينهض مع القسم، ذراع المورس يطرق sin(D)، برج المجهر يقفز steps مع p، سلسلة الفانوس تتأرجح؛ (3) parallax كاميرا مخمدة ±0.06.
+- انضباط الزجاج (جولات VLM 2-4): زجاج الأصول المدخّن يقرأ كمرآة سوداء تبتلع القرود خلفها → تعتيم عالمي لكل مادة اسمها glass (envMapIntensity ×0.25 + opacity ×0.45) — القرود أصبحت مقروءة خلف لمعان خفيف.
+- 5 جولات VLM ضبط فعلية بناءً على أدلة: الساعة من manifesto (كانت تغطي نص البيان كاملاً 5/10) → بطل الصفحة الرئيسية hero-title (9/10، قرص مقروء بعقارب)؛ المنظار كان يغطي H1 (6/10) → تقليص + xPad (9/10)؛ الكاميرا 7.5→9؛ الفانوس «سلسلة عائمة» 6/10 → تركيب معلق: yOff 0.55 والسلسلة تخرج من أعلى الإطار (9/10)؛ المجهر 7.5 → تقليص/إزاحة؛ متعدد القياس 8.5 مع قرص+إبرة مقروءين؛ المنارة 9.
+- البوابات: tsc=0، eslint=0، dev.log نظيف، صفر أخطاء console، صفر تبعيات جديدة.
+- برهان الأنيميشن آلياً (drives في مقبض التصحيح): D=0 → عقرب الدقيقة -0.356؛ D=450 → +0.139 (بالضبط 450×0.0011)؛ العودة لأعلى → -0.356 حرفياً — عكسي مثالي بثلاث خانات عشرية.
+- برهان التجميد (عقد المالك): بعد الاستقرار frames=21=21=21 عبر ~5 ثوان خمول تام، presence 0.999 ساكنة — صفر إطارات GPU.
+- البوابة الجوالة 375×812: لا وجود للحقل (canvasCount=1 فقط قماش البطل)؛ النقر يخترق: elementFromPoint(720,450) يصيب SPAN محتوى البطل.
+- ملاحظة تشغيل مُوثقة: خادم dev قُتل OOM أربع مرات أثناء الجلسة (next-server ~1.96GB RSS + متصفح SwiftShader PBR بالتوازي — الخطر الموثق تاريخياً)؛ أُعيد تشغيله فوراً كل مرة وثبت 200.
+
+Stage Summary:
+- الجديد: model-registry.ts، model-loader.ts، public/models/** (11 مجسماً + manifest.json)، إعادة كتابة rune-scene.tsx (منظورية + PBR + أدوات حقيقية)؛ المحذوف: rune-assemblies.ts + rune-landmarks.ts؛ edge-rune.tsx (استيراد model-registry فقط).
+- النتيجة النهائية على 9 مشاهد مُتحقق منها: 8-9/10 في كل مشهد (كانت 5-6 في البداية) — مجسمات واقعية ثقيلة بوضع مستقر مضبوط وحركة مصممة ثلاثية الطبقات، بلا أي تغطية نصوص.
+- عقود المالك محفوظة آلياً: التمرير هو الزمن (عقارب odometer برهان رياضي + عكس مثالي)، التوقف = صفر إطارات (برهان frames)، وضع صحيح (slots لاصقة بأقسام DOM بأحجام ثابتة)، مجسمات بلندر حقيقية CC0 (Poly Haven).
+- منتج وسيط: .scratch/heavy1/ (لقطات + json VLM) غير متتبَّع.
