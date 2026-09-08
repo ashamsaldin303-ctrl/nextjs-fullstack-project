@@ -2724,6 +2724,13 @@ export function BeforeAfter({
   const containerRef = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState(50) // 0-100
   const dragging = useRef(false)
+  // N2 (REF-3 T1) — handle squash & stretch (Olssons §2.3): `grabbed` is
+  // STATE (exactly two renders per drag — start + end) while the
+  // positional drag itself stays ref'd + rAF-coalesced, so the knob's
+  // stretch never re-renders on pointermove. Pointer-events only: the
+  // keyboard slider path intentionally skips the squash (event-driven
+  // feedback for the physical grab gesture).
+  const [grabbed, setGrabbed] = useState(false)
 
   // G3-4: the palette's primary IS the scene accent when a palette is
   // provided (single source of truth); bare callers keep the accent prop.
@@ -2779,6 +2786,7 @@ export function BeforeAfter({
 
   const onPointerDown = (e: React.PointerEvent) => {
     dragging.current = true
+    setGrabbed(true) // N2 — knob stretches for as long as the drag is held
     ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
     setFromClientX(e.clientX) // single event — apply synchronously
   }
@@ -2789,6 +2797,7 @@ export function BeforeAfter({
   }
   const onPointerUp = () => {
     dragging.current = false
+    setGrabbed(false) // N2 — release: squash settles back over 300ms
     // Drag-end: cancel any queued frame and apply the final pending
     // position immediately (pre-fix behavior had every move applied by
     // now — this preserves the final-position guarantee).
@@ -2867,7 +2876,28 @@ export function BeforeAfter({
         style={isRtl ? { right: `${pos}%` } : { left: `${pos}%` }}
         aria-hidden="true"
       >
-        <div className="absolute top-1/2 left-1/2 flex size-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-white/90 text-elyra-dark shadow-lg">
+        {/* N2 (REF-3 T1) — handle squash & stretch (Olssons §2.3): the
+            knob — the handle's visual — stretches while grabbed (scaleX
+            0.94 / scaleY 1.06, "pulled" by the pointer) and settles back
+            to 1/1 over a 300ms ease-out on release. Structural safety
+            (the critical check): the drag logic repositions the OUTER
+            hairline via left/right (inset properties — never transform)
+            and reveals via clipPath on the after-layer; this knob's only
+            transform-ish CSS is the Tailwind `translate` centering, so
+            the independent CSS `scale` property composes with it —
+            nothing clobbers anything. Tailwind 4's transition-transform
+            covers `transform, translate, scale, rotate`, so the scale
+            flip is transitioned; since no drag code writes transforms
+            on this element mid-drag, the transition can never fight the
+            drag (per the plan's "handle is free" case — no inner
+            wrapper needed). The 2px hairline stays unscaled on purpose:
+            scaleX(0.94) on 2px is imperceptible and scaleY(1.06) on an
+            inset-y-0 line would only clip against the container. Reduced
+            motion → no scale at all (static knob). */}
+        <div
+          className="absolute top-1/2 left-1/2 flex size-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-white/90 text-elyra-dark shadow-lg transition-transform duration-300 ease-out"
+          style={reduced ? undefined : { scale: grabbed ? '0.94 1.06' : '1 1' }}
+        >
           <MoveHorizontal className="size-4" />
         </div>
       </div>

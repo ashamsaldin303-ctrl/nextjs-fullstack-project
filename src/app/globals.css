@@ -57,6 +57,8 @@
   --color-g-red: var(--g-red);
   --color-g-yellow: var(--g-yellow);
   --color-g-green: var(--g-green);
+  --color-elyra-gold: var(--elyra-gold);
+  --color-elyra-gold-strong: var(--elyra-gold-strong);
 
   --font-sans: var(--font-app);
 
@@ -125,6 +127,14 @@
   --g-red: #EA4335;
   --g-yellow: #FBBC05;
   --g-green: #34A853;
+  /* N5/N9 (REF-3 T2) — Damascus gold. Distinct from --g-yellow (the
+     bright Google "star" gold): this is the muted, antique damascene
+     brass used by the self-drawing arabesque ornament and the Fresnel
+     edge glow on luxury spec cards. #C9A961 reads as metal leaf on both
+     light (#F5F5F7: 2.4:1 — decorative only, never body text) and dark
+     surfaces. Strong variant for strokes that must hold on light. */
+  --elyra-gold: #C9A961;
+  --elyra-gold-strong: #A8853F;
 
   /* shadcn semantic tokens mapped to the Elyra palette */
   --background: #F5F5F7;
@@ -533,26 +543,51 @@ html[data-page-wait] .hero-build-fx * {
 }
 
 /* =========================================================================
-   W2-04 (D14) — CSS-only page-enter ([locale]/template.tsx, zero JS).
-   A Next.js template re-renders per navigation, so .page-enter wraps every
-   route's content and slides it in 0.45s on the one site curve. LCP-safe
-   by decision D14: opacity is CONSTANT 1 — the template also runs on the
-   very first load, and a fade-from-0 would hold content invisible and
-   delay LCP (content is painted, then slides). transform-only → zero
-   layout work, direction-neutral (RTL-safe). The global kill-switch at the
-   top of this file collapses this to ~0ms under prefers-reduced-motion.
+   W2-04 (D14) → T3-11 (REF-3) — CSS-only page-enter
+   ([locale]/template.tsx, zero JS). A Next.js template re-renders per
+   navigation, so .page-enter wraps every route's content. The original
+   W2-04 slide (translateY 10px, 0.45s) was upgraded to the organic
+   circular reveal below.
    ========================================================================= */
+/* T3-11 (REF-3) — the slide became an ORGANIC CIRCULAR REVEAL (Aardvark
+   §5.3 mechanic, framer-free like everything in this file): the incoming
+   page sweeps in as an expanding circle from the reading-start top
+   corner — 850ms on the report's curve cubic-bezier(0.77,0,0.175,1).
+   The end keyframe's 150vmax radius covers the VIEWPORT; the page below
+   is never cut because the animation does not retain its final clip
+   (fill: backwards — see the rule below). LCP-safety (decision D14,
+   kept): opacity stays CONSTANT 1 and the start radius is 24% (not 0) —
+   the page's heading zone paints within the first frames, and the
+   first-visit load plays UNDER the fully-opaque intro curtain anyway
+   (finished before it lifts). clip-path animates with zero layout work.
+   RTL: the origin mirrors to the reading-start corner (physical top
+   right in Arabic) — logical mirroring, not a second animation. The
+   global kill-switch collapses this to ~0ms under reduced motion. */
 .page-enter {
-  animation: page-enter 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --pe-ox: 7%;
+  --pe-oy: 6%;
+  /* Fill mode BACKWARDS (not both/forwards): once the reveal ends the
+     clip-path must REVERT to the element's unanimated value (none).
+     `both` kept circle(150vmax) applied forever — and since 150vmax is
+     viewport-scaled while the element is PAGE-HEIGHT tall, everything
+     below ~2200px stayed clipped: visually cut off AND (Chromium
+     accounts for ancestor clip-path in hit-testing/IntersectionObserver)
+     the lazy IO gates never flipped → methodology/calculator/simulator
+     never mounted. Backwards fill keeps the first keyframe armed during
+     any future animation-delay while leaving the end state clean. */
+  animation: page-enter 0.85s cubic-bezier(0.77, 0, 0.175, 1) backwards;
+}
+[dir='rtl'] .page-enter {
+  --pe-ox: 93%;
 }
 @keyframes page-enter {
   from {
     opacity: 1;
-    transform: translateY(10px);
+    clip-path: circle(24% at var(--pe-ox) var(--pe-oy));
   }
   to {
     opacity: 1;
-    transform: none;
+    clip-path: circle(150vmax at var(--pe-ox) var(--pe-oy));
   }
 }
 /* G4 eye-check fallback (plan W2-04): the slide plays UNDER the fully
@@ -561,6 +596,53 @@ html[data-page-wait] .hero-build-fx * {
    the hero choreography (e.g. after future timing changes), uncomment to
    disable page-enter while the intro is armed:
    html[data-intro] .page-enter { animation: none; } */
+
+/* =========================================================================
+   N9 (REF-3 T2) — Fresnel gold edge for luxury spec cards.
+   A 1px gold ring whose intensity follows the pointer: a client wrapper
+   (components/shared/fresnel-edge.tsx) writes --fx/--fy (pointer %) and
+   --fi (0..1, enter/leave) on the element; this paint layer turns them
+   into a Schlick-flavored spotlight on the BORDER ONLY (the mask
+   composite keeps the card's own background untouched). Paint is scoped
+   to the hairline ring; opacity eases so leaving is soft. Intensity
+   ceiling ≈ R₀ 0.82 Schlick flavor — decorative, never
+   information-bearing. Reduced motion: pointer-follow is positional
+   (no animation loop); the enter/leave opacity transition is collapsed
+   by the global kill-switch, harmless either way.
+   ========================================================================= */
+.fresnel-edge {
+  position: relative;
+  --fx: 50%;
+  --fy: 50%;
+  --fi: 0;
+}
+.fresnel-edge::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: var(--fi);
+  transition: opacity 0.45s ease;
+  background: radial-gradient(
+    260px circle at var(--fx) var(--fy),
+    rgba(201, 169, 97, 0.9),
+    rgba(201, 169, 97, 0.35) 40%,
+    rgba(168, 133, 63, 0.18) 62%,
+    transparent 78%
+  );
+  /* Border-only paint: fill everything, then exclude the inner box
+     (1px ring). -webkit- prefix = Safari. */
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  padding: 1px;
+}
 
 /* =========================================================================
    Phase 3 — Performance: CSS-only scroll reveal + kinetic words + hero

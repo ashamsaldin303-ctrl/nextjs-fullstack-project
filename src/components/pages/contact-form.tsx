@@ -2,15 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { Send } from 'lucide-react'
+import { Check, Package, Send } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { playSuccess } from '@/lib/sound'
+import { playImpact, playSuccess } from '@/lib/sound'
+import { tiltFromName } from '@/lib/tilt'
 import {
   leadEmailSchema,
   leadMessageSchema,
@@ -153,6 +155,15 @@ export function ContactForm({
   }, [prefillService, prefillIdea, locale, service, buildTemplate])
   const [errors, setErrors] = useState<FormErrors>({})
   const [submitting, setSubmitting] = useState(false)
+  // N7 (REF-3 T2) — the success-box ritual state: null = closed box; a
+  // string (possibly '' when a 201 body was malformed — the API contract
+  // guarantees { reference }, that arm is pure defense since the success
+  // toast was removed and silence would read as failure) = open, carrying
+  // the reference token revealed inside the box.
+  const [successRef, setSuccessRef] = useState<string | null>(null)
+  // N7: "send another" returns focus to the first field — the visitor's
+  // hands are already on the keyboard after the ritual.
+  const nameInputRef = useRef<HTMLInputElement>(null)
   // FIX(2-c/18): honeypot trap — bots autofill hidden "companyWebsite"
   // fields; humans never see it. The value rides along in the JSON body
   // and the API silently discards bot submissions with a fake success.
@@ -222,8 +233,15 @@ export function ContactForm({
       })
 
       if (res.status === 201) {
+        // N7 (REF-3 T2): the API returns { reference } — read it like the
+        // calculator does (null-safe parse).
+        const data = (await res.json().catch(() => null)) as
+          | { reference?: string }
+          | null
         playSuccess() // sensory feedback — fires on REAL success only
-        toast.success(t('successTitle'), { description: t('successDesc') })
+        // N7: the box lands — the organic thud doubles the arrival.
+        playImpact(1)
+        setSuccessRef(data?.reference ?? '')
         setValues({ name: '', email: '', whatsapp: '', message: '' })
         setService(null)
         // Sync the re-seed guard to the post-reset state (R5 P2): the
@@ -272,7 +290,23 @@ export function ContactForm({
   })
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4" noValidate>
+    <>
+      {/* N7 (REF-3 T2) — the lid-opening ritual replaces the success toast
+          (error toasts stay): role="status" announces the panel, the chest
+          lid hinges open revealing the recessed reference. */}
+      <AnimatePresence>
+        {successRef !== null && (
+          <SuccessBox
+            reference={successRef}
+            onSendAnother={() => {
+              setSuccessRef(null)
+              nameInputRef.current?.focus()
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <form onSubmit={onSubmit} className="space-y-4" noValidate>
       {/* Honeypot — bots fill it, humans never see it (API silently discards).
           L1-C P3 (fix 2-d): logical inset + fixed positioning — the old
           physical `-left-[9999px]` absolute offset inflated the RTL body
@@ -301,6 +335,11 @@ export function ContactForm({
               onClick={() => onToggleService(id)}
               aria-pressed={service === id}
               data-cursor="magnet"
+              /* N3 (REF-3 T1/T2): hash-seeded angular dispersion — every
+                 service chip settles at its own stable tiltFromName(id)
+                 (±3.5°), the "hand-placed, not machine-perfect" look. The
+                 independent CSS `rotate` property stays compositor-only. */
+              style={{ rotate: `${tiltFromName(id)}deg` }}
               className={cn(
                 'inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 service === id
@@ -318,7 +357,15 @@ export function ContactForm({
         <Label htmlFor="cf-name" className="text-sm">{t('name')}</Label>
         {/* LOW-9: required communicated to AT (3.3.2) — attributes only;
             validation stays in the zod schema (form is noValidate). */}
-        <Input id="cf-name" autoComplete="name" required aria-required="true" className="mt-1.5" {...field('name')} />
+        <Input
+          id="cf-name"
+          ref={nameInputRef}
+          autoComplete="name"
+          required
+          aria-required="true"
+          className="mt-1.5"
+          {...field('name')}
+        />
         {errors.name ? <p id="cf-name-err" role="alert" className="mt-1 text-xs text-destructive">{errors.name}</p> : null}
       </div>
       <div>
@@ -363,7 +410,15 @@ export function ContactForm({
         />
         {errors.message ? <p id="cf-message-err" role="alert" className="mt-1 text-xs text-destructive">{errors.message}</p> : null}
       </div>
-      <Button type="submit" data-cursor="magnet" disabled={submitting} className={cn('h-11 w-full gap-2 sm:w-auto')}>
+      {/* N2 (REF-3 T1/T2): submit press scale — the active-state squash
+          (0.97) of the Olssons §2.3 family; independent `scale` property,
+          compositor-only. */}
+      <Button
+        type="submit"
+        data-cursor="magnet"
+        disabled={submitting}
+        className={cn('active:scale-[0.97] h-11 w-full gap-2 sm:w-auto')}
+      >
         {submitting ? (
           <>
             <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true" />
@@ -376,6 +431,142 @@ export function ContactForm({
           </>
         )}
       </Button>
-    </form>
+      </form>
+    </>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* N7 (REF-3 T2) — the contact success box                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The success ritual (Aardvark §5.2 box-lid hinge): a bordered panel
+ * (mirroring the calculator's success treatment — green Check chip,
+ * focusable h3, LTR-island mono reference) plus a small chest whose LID
+ * hinges open around its TOP edge, revealing the recessed reference.
+ *
+ * Hinge math + sign convention: the report's −120°·(1−cos(πt/2)) assumes
+ * a Y-up sign convention where NEGATIVE tips the top edge away from the
+ * viewer. CSS rotateX is the mirrored sign (Y-down right-hand rule) —
+ * the same physical swing is POSITIVE rotateX here, so we animate
+ * 0 → +120 with the identical cosine ease-out:
+ *   rotateX(t) = 120° · (1 − cos(πt/2)).
+ * The hinge EDGE (see the VLM-round-2 note on the lid element below) is
+ * the lid's top edge, so the resting state stays a visible opened plane.
+ *
+ * Reduced motion: the lid renders at its FINAL state (rotateX 120, no
+ * transition, no impact timer) — the "already-open box lid" house
+ * contract. Freeze-safe: one-shot tweens only (mount animation + hinge);
+ * the single impact timer is cleaned on unmount.
+ */
+function SuccessBox({
+  reference,
+  onSendAnother,
+}: {
+  /** The API reference token ('' = success without a token — defensive). */
+  reference: string
+  onSendAnother: () => void
+}) {
+  const t = useTranslations('pages.contact.form')
+  const reduced = useReducedMotion()
+  const headingRef = useRef<HTMLHeadingElement>(null)
+
+  // Calculator pattern: the focused submit button just went disabled —
+  // move focus to the success heading so screen readers announce the
+  // panel (tabIndex={-1}: programmatically focusable, out of tab order).
+  // The effect runs after the mount commits, so the ref is attached.
+  useEffect(() => {
+    headingRef.current?.focus()
+  }, [])
+
+  // The thud lands mid-swing (0.15s settle delay + ~0.35s into the 0.85s
+  // hinge ≈ 0.5s) — one-shot timer, cleaned on unmount; playImpact
+  // self-gates on mute. No timer under reduced motion (lid is open).
+  useEffect(() => {
+    if (reduced) return
+    const id = window.setTimeout(() => playImpact(0.9), 500)
+    return () => window.clearTimeout(id)
+  }, [reduced])
+
+  return (
+    <motion.div
+      role="status"
+      initial={reduced ? false : { opacity: 0, y: 16, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 8 }}
+      transition={reduced ? { duration: 0 } : { duration: 0.3 }}
+    >
+      <div className="rounded-2xl border border-border bg-card p-6 text-center">
+        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-g-green/15 text-g-green">
+          <Check className="size-8" aria-hidden="true" />
+        </div>
+        <h3 ref={headingRef} tabIndex={-1} className="mt-5 text-2xl font-semibold">
+          {t('successTitle')}
+        </h3>
+        <p className="mt-2 text-muted-foreground">{t('successDesc')}</p>
+
+        {/* THE BOX — the lid-opening ritual. Perspective on the parent so
+            the hinge reads as a 3D chest, not a flat skew. */}
+        <div className="relative mx-auto mt-5 h-24 w-56" style={{ perspective: '600px' }}>
+          {/* The reference recess — revealed underneath the lid. Gold
+              strengths raised (VLM round 2): /40 borders on white read as
+              "a flat white rectangle"; /60+/10 keeps the recess legibly
+              golden at rest. */}
+          <div className="absolute inset-0 flex items-center justify-center rounded-xl border border-elyra-gold/60 bg-elyra-gold/10">
+            {/* L6-R4 P3 (calculator precedent): only the Latin reference
+                token is a font-mono LTR island; the label keeps the
+                default face so the Arabic «رقمك المرجعي:» never falls into
+                the latin-only mono stack. */}
+            <p className="px-3 text-sm font-semibold text-foreground">
+              {t('referenceLabel')}{' '}
+              {reference ? (
+                <span dir="ltr" className="font-mono tracking-wide">{reference}</span>
+              ) : null}
+            </p>
+          </div>
+          {/* The lid — the chest's closed front, hinged at its TOP edge
+              (origin-top). VLM round 2 correction: with a bottom hinge the
+              120° resting state swings the lid DOWN-BEHIND the recess
+              where it is completely hidden — the "opened chest" vanished
+              after the animation. Hinging at the top edge instead swings
+              the lid's bottom edge UP and back, so at rest it stays
+              visible as a foreshortened golden plane RISING ABOVE the box
+              — the readable opened-lid silhouette. Same 0→120°, same
+              (1−cos(πt/2)) hinge curve, 0.15s after the panel settles. */}
+          <motion.div
+            className="absolute inset-0 origin-top rounded-xl border border-elyra-gold/70 bg-gradient-to-b from-card to-background shadow-lg"
+            initial={reduced ? false : { rotateX: 0 }}
+            animate={{ rotateX: 120 }}
+            transition={
+              reduced
+                ? { duration: 0 }
+                : { duration: 0.85, delay: 0.15, ease: (t: number) => 1 - Math.cos((Math.PI * t) / 2) }
+            }
+            style={{ backfaceVisibility: 'visible' }}
+          >
+            {/* Handle glyph — a gold hairline flanking the package knot. */}
+            <span
+              aria-hidden="true"
+              className="flex h-full w-full items-center justify-center gap-3"
+            >
+              <span className="block h-px w-10 bg-elyra-gold/60" />
+              <Package className="size-4 text-elyra-gold" aria-hidden="true" />
+              <span className="block h-px w-10 bg-elyra-gold/60" />
+            </span>
+          </motion.div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onSendAnother}
+          /* Gold-tinted outline (VLM round 2: the plain border-border pill
+             read as "solid gray" and untied the ritual's palette). */
+          className="mt-6 inline-flex h-11 items-center gap-2 rounded-full border border-elyra-gold/40 px-5 text-sm font-medium text-foreground transition-colors hover:border-elyra-gold/60 hover:bg-elyra-gold/5"
+        >
+          {t('sendAnother')}
+        </button>
+      </div>
+    </motion.div>
   )
 }

@@ -17,7 +17,8 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { leadEmailSchema, leadNameSchema, leadWhatsappSchema } from '@/lib/lead-fields'
-import { playSuccess } from '@/lib/sound'
+import { playImpact, playSuccess } from '@/lib/sound'
+import { tiltFromName } from '@/lib/tilt'
 import { toast } from 'sonner'
 import { RingGauge } from './ring-gauge'
 import {
@@ -111,7 +112,20 @@ export function Calculator() {
     advanced: t('result.advanced'),
   } as const
 
-  const goNext = () => { setDir(1); setStep((s) => Math.min(2, s + 1) as Step) }
+  // N1 (REF-3 T1) — impact wiring (plan item 5): the organic wood-knock
+  // thud fires ONLY when the destination step is 2 (the estimate result —
+  // the "landing"), where the N2 squash & stretch numbers below land in the
+  // same instant: sound + motion arriving together is the tactile read.
+  // playImpact is self-gated by the mute state inside sound.ts, so it is
+  // safe to call unconditionally. The closure `step` is fresh here — the
+  // Next button only renders while step < 2 (see the controls guard below),
+  // so next = step + 1 ∈ {1, 2} exactly like the old Math.min form.
+  const goNext = () => {
+    const next = Math.min(2, step + 1) as Step
+    if (next === 2) playImpact(0.85)
+    setDir(1)
+    setStep(next)
+  }
   const goBack = () => { setDir(-1); setStep((s) => Math.max(0, s - 1) as Step) }
 
   const toggleIntegration = (key: IntegrationKey) => {
@@ -177,6 +191,9 @@ export function Calculator() {
         setReference(data.reference ?? null)
         setDone(true)
         playSuccess() // Phase 2 sensory feedback — fires on REAL success only
+        // N1 (REF-3 T1) — the success "landing" gets the impact thud layered
+        // UNDER playSuccess (full intensity 1): chime + knock = a sealed deal.
+        playImpact(1)
         return
       }
 
@@ -299,7 +316,14 @@ export function Calculator() {
                           key={id}
                           type="button"
                           data-cursor="magnet"
-                          onClick={() => setInput((p) => ({ ...p, service: id }))}
+                          // N1 (REF-3 T1) — service capture: the softer
+                          // wood-knock (0.5 = the "pick up" moment; the
+                          // louder 0.85 landing is reserved for the estimate
+                          // step, keeping the two tiers distinguishable).
+                          onClick={() => {
+                            playImpact(0.5)
+                            setInput((p) => ({ ...p, service: id }))
+                          }}
                           aria-pressed={active}
                           className={cn(
                             'group relative overflow-hidden rounded-2xl border p-5 text-start transition-all',
@@ -440,6 +464,15 @@ export function Calculator() {
                             type="button"
                             onClick={() => toggleIntegration(key)}
                             aria-pressed={active}
+                            // N3 (REF-3 T1) — hash-seeded angular dispersion
+                            // (Olssons §2.2): each integration chip settles at
+                            // its own stable tilt from tiltFromName(key) — the
+                            // same angle every render and every locale
+                            // ("hand-placed, not machine-perfect"). Uses the
+                            // independent CSS `rotate` property, which
+                            // composes without touching `transform`; ±3.5°
+                            // keeps the min-h-11 hit targets safe.
+                            style={{ rotate: `${tiltFromName(key)}deg` }}
                             className={cn(
                               'inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors',
                               active ? 'border-primary bg-primary/10 text-primary-strong' : 'border-border hover:bg-foreground/[0.02]'
@@ -560,15 +593,41 @@ export function Calculator() {
                           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                             {t('result.budget')}
                           </p>
-                          <p className="mt-2 text-3xl font-bold tracking-tight text-primary sm:text-4xl">
+                          {/* N2 (REF-3 T1) — squash & stretch landing
+                              (Olssons §2.3), 380ms: this branch mounts via
+                              AnimatePresence key={step}, so the reveal is a
+                              ONE-SHOT tween per mount (freeze-contract safe —
+                              nothing loops, nothing listens). Keyframes
+                              scaleY 1.08→0.96→1 / scaleX 0.92→1.03→1 read as
+                              the figure physically "landing" on the card,
+                              with a fast 0.18s opacity so the number is
+                              readable almost immediately. origin-center keeps
+                              the squash centered. Reduced motion → static
+                              final state: initial={false} + animate to the
+                              settled values with a 0s transition — numbers
+                              appear instantly, zero motion. */}
+                          <motion.p
+                            className="mt-2 origin-center text-3xl font-bold tracking-tight text-primary sm:text-4xl"
+                            initial={reduced ? false : { opacity: 0, scaleY: 1.08, scaleX: 0.92 }}
+                            animate={reduced ? { opacity: 1 } : { opacity: 1, scaleY: [1.08, 0.96, 1], scaleX: [0.92, 1.03, 1] }}
+                            transition={reduced ? { duration: 0 } : { duration: 0.38, ease: 'easeOut', opacity: { duration: 0.18 } }}
+                          >
                             {formatMoney(result.min, locale)} – {formatMoney(result.max, locale)}
-                          </p>
+                          </motion.p>
                           <p className="mt-4 text-xs font-medium uppercase tracking-wider text-muted-foreground">
                             {t('result.duration')}
                           </p>
-                          <p className="mt-1 text-xl font-semibold">
+                          {/* N2 (REF-3 T1) — same squash & stretch landing on
+                              the duration figure (identical one-shot 380ms
+                              tween, identical reduced-motion static path). */}
+                          <motion.p
+                            className="mt-1 origin-center text-xl font-semibold"
+                            initial={reduced ? false : { opacity: 0, scaleY: 1.08, scaleX: 0.92 }}
+                            animate={reduced ? { opacity: 1 } : { opacity: 1, scaleY: [1.08, 0.96, 1], scaleX: [0.92, 1.03, 1] }}
+                            transition={reduced ? { duration: 0 } : { duration: 0.38, ease: 'easeOut', opacity: { duration: 0.18 } }}
+                          >
                             {t('result.weeks', { min: result.weeksMin, max: result.weeksMax })}
-                          </p>
+                          </motion.p>
                         </div>
 
                         <div className="mt-4">
@@ -659,7 +718,11 @@ export function Calculator() {
                             ) : null}
                           </div>
                         </div>
-                        <Button type="submit" data-cursor="magnet" disabled={submitting} className="mt-6 h-11 w-full gap-2">
+                        {/* N2 (REF-3 T1) — press confirmation on the submit
+                            button: active:scale-[0.97] (rides the base
+                            Button's transition-all; disabled buttons never
+                            receive :active). */}
+                        <Button type="submit" data-cursor="magnet" disabled={submitting} className="mt-6 h-11 w-full gap-2 active:scale-[0.97]">
                           {submitting ? (
                             <>
                               <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true" />
@@ -701,7 +764,10 @@ export function Calculator() {
                 type="button"
                 data-cursor="magnet"
                 onClick={goNext}
-                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform hover:scale-105"
+                /* N2 (REF-3 T1) — press confirmation: active:scale-[0.97]
+                   layered after hover:scale-105 — Tailwind orders active
+                   after hover, so the press wins while held. */
+                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform hover:scale-105 active:scale-[0.97]"
               >
                 {step === 1 ? t('calculate') : t('next')}
                 {/* ArrowRight flips to point left ("forward") in RTL */}

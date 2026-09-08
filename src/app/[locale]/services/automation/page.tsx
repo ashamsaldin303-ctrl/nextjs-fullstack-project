@@ -12,6 +12,7 @@ import { PageHero } from '@/components/shared/page-hero'
 import { CTA } from '@/components/shared/cta'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { Reveal } from '@/components/shared/reveal'
+import { FresnelEdge } from '@/components/shared/fresnel-edge'
 import { SimulatorLazy } from '@/components/home/simulator-lazy'
 import { CalculatorLazy } from '@/components/home/calculator-lazy'
 import { ServiceProse } from '@/components/shared/service-prose'
@@ -88,13 +89,22 @@ export default async function AutomationPage({
                     rounded-2xl/p-6/shadow-md/size-11 outlier; now identical
                     to the websites types + about values + service prose
                     shells. */}
-                <article className="group h-full rounded-2xl border border-border bg-card p-8 transition-all hover:border-primary/40 hover:shadow-lg">
-                  <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-transform group-hover:scale-110">
-                    <Icon className="size-6" aria-hidden="true" />
-                  </div>
-                  <h3 className="mt-5 font-semibold tracking-tight">{t(`integrations.items.${key}.title`)}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{t(`integrations.items.${key}.desc`)}</p>
-                </article>
+                {/* N9 (REF-3 T2) — Fresnel gold edge (Atelier §4.6 Schlick
+                    R₀=0.82 flavor): the client wrapper writes --fx/--fy/--fi
+                    and the .fresnel-edge paint layer (globals.css) gilds the
+                    card's hairline border on hover. rounded-2xl mirrors the
+                    article's radius so the ::after ring (border-radius:
+                    inherit) follows the same corners; h-full keeps the
+                    grid-cell → article chain intact. */}
+                <FresnelEdge className="h-full rounded-2xl">
+                  <article className="group h-full rounded-2xl border border-border bg-card p-8 transition-all hover:border-primary/40 hover:shadow-lg">
+                    <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-transform group-hover:scale-110">
+                      <Icon className="size-6" aria-hidden="true" />
+                    </div>
+                    <h3 className="mt-5 font-semibold tracking-tight">{t(`integrations.items.${key}.title`)}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{t(`integrations.items.${key}.desc`)}</p>
+                  </article>
+                </FresnelEdge>
               </Reveal>
             ))}
           </div>

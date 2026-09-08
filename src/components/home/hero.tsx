@@ -14,6 +14,7 @@ import { ClipCurve } from '@/components/scroll/clip-curve'
 import { Parallax } from '@/components/scroll/parallax'
 import { KineticHeading } from './kinetic-heading'
 import { DamascusClock } from '@/components/layout/damascus-clock'
+import { CursorRadar } from '@/components/sensory/cursor-radar'
 
 const HeroCanvas = dynamic(
   () => import('./hero-canvas').then((m) => m.HeroCanvas),
@@ -329,6 +330,10 @@ export function Hero() {
       className="elyra-spotlight relative min-h-[100svh] overflow-hidden bg-elyra-deep text-elyra-on-dark"
       aria-labelledby="hero-title"
     >
+      {/* N6 (REF-3 T2) — live X/Y instrument readout over the hero zone
+          (fine pointer + motion allowed only; below the cursor layer). */}
+      <CursorRadar tone="dark" />
+
       {/* Background — data-bg-layer opts out of .elyra-spotlight's
           content-lifting rule (see globals.css). */}
       <div className="absolute inset-0" data-bg-layer="">

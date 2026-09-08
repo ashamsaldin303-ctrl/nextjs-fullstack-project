@@ -1529,6 +1529,8 @@
         "sending": "Sending…",
         "successTitle": "Your Message Arrived!",
         "successDesc": "We’ll get back to you within one business day at most.",
+        "referenceLabel": "Your reference:",
+        "sendAnother": "Send another message",
         "errors": {
           "name": "Name is required (at least 2 characters)",
           "email": "Please enter a valid email address",

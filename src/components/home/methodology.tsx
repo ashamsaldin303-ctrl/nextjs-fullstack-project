@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react'
 import { Compass, PencilRuler, Hammer, Rocket, type LucideIcon } from 'lucide-react'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { bindHeroScroll } from '@/lib/hero-scroll'
+import { useIsRtl } from '@/lib/use-rtl'
 import { cn } from '@/lib/utils'
 
 interface StepDef {
@@ -35,20 +36,46 @@ function MethodologyStep({
 }) {
   const t = useTranslations('methodology')
   const Icon = step.icon
+  const isRtl = useIsRtl()
   const start = index / total
   const end = (index + 1) / total
   // R9 (user request — "cards stack and the text stops being readable
   // because of the transparency"): the scroll-linked OPACITY fade (1 →
   // 0.55) is GONE. When a card scrolls under the next sticky card its
   // visible strip kept fading to ~55% — on text that read as broken
-  // contrast, not depth. Depth is now carried by a much gentler scale
-  // (1 → 0.965) plus the opaque bg-card surface and the rail dot, so
-  // every word stays fully readable throughout the stack.
-  const scale = useTransform(progress, [start, end], [1, 0.965])
+  // contrast, not depth. Depth is carried by the opaque bg-card surface,
+  // the rail dot and the fan below, so every word stays fully readable
+  // throughout the stack.
+  //
+  // N4 (REF-3 T1) — deck fanning (Aardvark §5.1/§5.5): a card completing
+  // its scroll window now slides under the stack with a card-fan read
+  // instead of the old flat 1 → 0.965 uniform scale:
+  //   • scale cascade  Sᵢ = 1 − 0.045·(N−1−i)  — deeper cards shrink more
+  //     as they slide under (the LAST card ends at 1, the first at
+  //     ≈0.865 for N=4);
+  //   • rotation  θᵢ = (−1)ⁱ·3.5°·p over the SAME [start, end] window —
+  //     alternating tilt, with the physical sign mirrored for RTL
+  //     (locale 'ar') so the fan leans toward the reading direction.
+  //     θmax was raised 2.5° → 3.5° after two VLM critique rounds read
+  //     the Aardvark value as visually absent in the mid-stack capture
+  //     (a feature fresh eyes cannot perceive effectively doesn't ship);
+  //     3.5° also matches the N3 chip-dispersion magnitude — one
+  //     consistent "hand-placed" grammar across the tactile layer;
+  //   • transformOrigin 'center top' — the fan pivot per the plan.
+  // Both transforms are compositor-only, scroll-linked one-ways that
+  // consume the SAME shared W2-01 spring clock as the rail (one clock,
+  // no drift). The start-side gutter dot lives inside this article, so
+  // it rotates with the fanned card — intended: it reads as part of that
+  // card, and its ring keeps it visually anchored to the rail. Reduced
+  // motion → no style at all (static full-readability stack, house
+  // rule 3: reduced-motion = static final state).
+  const scale = useTransform(progress, [start, end], [1, 1 - 0.045 * (total - 1 - index)])
+  const tiltEnd = (index % 2 === 0 ? 3.5 : -3.5) * (isRtl ? -1 : 1)
+  const rotate = useTransform(progress, [start, end], [0, tiltEnd])
 
   return (
     <motion.article
-      style={reduced ? undefined : { scale }}
+      style={reduced ? undefined : { scale, rotate, transformOrigin: 'center top' }}
       className={cn(
         'relative rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-10',
         'sticky top-24',

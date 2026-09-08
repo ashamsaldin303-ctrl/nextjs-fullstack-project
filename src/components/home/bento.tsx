@@ -13,6 +13,7 @@ import { useRouter } from '@/i18n/navigation'
 import { useIsRtl } from '@/lib/use-rtl'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { Reveal } from '@/components/shared/reveal'
+import { CursorRadar } from '@/components/sensory/cursor-radar'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 import { asProducts, asStringArray, discountPct } from '@/lib/catalog-guards'
 
@@ -1106,7 +1107,11 @@ export function ServicesBento() {
   const t = useTranslations('bento')
 
   return (
-    <section className="bg-background py-20 sm:py-28" aria-labelledby="bento-title">
+    <section className="relative bg-background py-20 sm:py-28" aria-labelledby="bento-title">
+      {/* N6 (REF-3 T2) — live X/Y instrument readout over the bento card
+          field (fine pointer + motion allowed only). `relative` anchors the
+          readout's absolute wrapper to this section. */}
+      <CursorRadar tone="light" />
       <div className="elyra-container max-w-container">
         <SectionHeading
           kicker={t('kicker')}

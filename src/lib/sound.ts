@@ -175,6 +175,65 @@ export function playSuccess(): void {
 }
 
 /* ------------------------------------------------------------------ */
+/* N1 (REF-3 T1) — organic impact thud                                 */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Heavy organic "thud" (REF-3 report · Olssons §2.5): a sine oscillator
+ * dropped 190→32Hz over 120ms through a 320Hz lowpass (Q 1.2) + an
+ * exponential gain envelope. Reads as a knock on heavy wood — the sonic
+ * layer for "landing" moments (estimate reveal, submit success, the
+ * success-box lid). Event-driven by construction (one scheduled
+ * oscillator, zero loops); muted-by-default and teardown-safe exactly
+ * like every other tone here.
+ *
+ * `intensity` (0.3–1, clamped) scales the start frequency AND the peak
+ * gain together so quiet impacts are also duller — the physical coupling
+ * a real object has.
+ */
+export function playImpact(intensity = 1): void {
+  const i = Math.min(Math.max(intensity, 0.3), 1)
+  if (getSoundSnapshot() !== 'on') return
+  const c = ensureContext()
+  if (!c || !master) return
+  try {
+    const t0 = c.currentTime
+    const osc = c.createOscillator()
+    const gain = c.createGain()
+    const filter = c.createBiquadFilter()
+
+    // 320Hz lowpass · Q 1.2 — the "muffle" that makes it wood, not beep.
+    filter.type = 'lowpass'
+    filter.frequency.value = 320
+    filter.Q.value = 1.2
+
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(190 * i, t0)
+    osc.frequency.exponentialRampToValueAtTime(32, t0 + 0.12)
+
+    // Faster attack than playTone (a knock is percussive, not soft).
+    gain.gain.setValueAtTime(0.0001, t0)
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.42 * i, 0.0002), t0 + 0.006)
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.12)
+
+    osc.connect(filter)
+    filter.connect(gain)
+    gain.connect(master)
+    // Same explicit teardown contract as playTone (double-disconnect is a
+    // no-op) — the filter node is disconnected with the gain.
+    osc.onended = () => {
+      gain.disconnect()
+      filter.disconnect()
+      osc.disconnect()
+    }
+    osc.start(t0)
+    osc.stop(t0 + 0.14)
+  } catch {
+    /* silent failure */
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Global pointer-effect delegation                                    */
 /* ------------------------------------------------------------------ */
 

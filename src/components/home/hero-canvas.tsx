@@ -8,6 +8,7 @@ import { noteGlLost, noteGlRestored } from '@/lib/gl-health'
 import { getHeroScroll } from '@/lib/hero-scroll'
 import { useMobileTier } from '@/lib/use-mobile-tier'
 import { probeWebGL } from '@/lib/use-webgl'
+import { DotGridField } from '@/components/sensory/dot-grid'
 
 /**
  * Elyra Hero Canvas — signature 3D (Batch 3 items 12/13/15).
@@ -696,7 +697,21 @@ export function HeroCanvas({ active }: HeroCanvasProps) {
     return () => window.removeEventListener('pointermove', onMove)
   }, [])
 
-  if (!glAvailable) return null
+  /* N8 (REF-3 T3): no-WebGL compensation tier — the same wrapper div the
+     GL canvas occupies hosts a Canvas-2D proximity dot-grid instead of
+     returning null (which left only the static CSS gradient). The field
+     is pointer-driven and parks its rAF loop when settled (freeze
+     contract — see components/sensory/dot-grid.tsx). Reduced-motion
+     visitors never reach this branch (hero.tsx gates show3D), and the
+     permanent-loss architecture note below still holds: this branch is
+     the designed fallback, not an error state. */
+  if (!glAvailable) {
+    return (
+      <div className="absolute inset-0 -z-0">
+        <DotGridField />
+      </div>
+    )
+  }
 
   return (
     <div className="absolute inset-0 -z-0">

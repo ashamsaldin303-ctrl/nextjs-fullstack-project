@@ -8,6 +8,7 @@ import { PageHero } from '@/components/shared/page-hero'
 import { CTA } from '@/components/shared/cta'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { Reveal } from '@/components/shared/reveal'
+import { FresnelEdge } from '@/components/shared/fresnel-edge'
 import { ThreeDSection } from '@/components/home/three-d-section'
 import { CalculatorLazy } from '@/components/home/calculator-lazy'
 import { ServiceProse } from '@/components/shared/service-prose'
@@ -81,24 +82,33 @@ export default async function WebsitesPage({
                     size-12 rounded-2xl chip · size-6 icon) — the same family
                     as about values + service prose; automation's
                     integrations adopt it too (see that page). */}
-                <article className="group h-full overflow-hidden rounded-2xl border border-border bg-card p-8 transition-all hover:border-primary/40 hover:shadow-lg">
-                  <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-transform group-hover:scale-110">
-                    <Icon className="size-6" aria-hidden="true" />
-                  </div>
-                  <h3 className="mt-5 text-2xl font-semibold tracking-tight">{t(`types.${key}.title`)}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{t(`types.${key}.desc`)}</p>
-                  <ul className="mt-5 space-y-2">
-                    {/* L6-R2 (fix 6): runtime-narrowed catalog read (was
-                        `as string[]` — guards live in lib/catalog-guards,
-                        usable from this server component too). */}
-                    {asStringArray(t.raw(`types.${key}.features`)).map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm text-foreground/80">
-                        <Check className="size-4 text-g-green" aria-hidden="true" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                </article>
+                {/* N9 (REF-3 T2) — Fresnel gold edge (Atelier §4.6 Schlick
+                    R₀=0.82 flavor): the client wrapper writes --fx/--fy/--fi
+                    and the .fresnel-edge paint layer (globals.css) gilds the
+                    card's hairline border on hover. rounded-2xl mirrors the
+                    article's radius so the ::after ring (border-radius:
+                    inherit) follows the same corners; h-full keeps the
+                    grid-cell → article chain intact. */}
+                <FresnelEdge className="h-full rounded-2xl">
+                  <article className="group h-full overflow-hidden rounded-2xl border border-border bg-card p-8 transition-all hover:border-primary/40 hover:shadow-lg">
+                    <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-transform group-hover:scale-110">
+                      <Icon className="size-6" aria-hidden="true" />
+                    </div>
+                    <h3 className="mt-5 text-2xl font-semibold tracking-tight">{t(`types.${key}.title`)}</h3>
+                    <p className="mt-2 text-sm text-muted-foreground">{t(`types.${key}.desc`)}</p>
+                    <ul className="mt-5 space-y-2">
+                      {/* L6-R2 (fix 6): runtime-narrowed catalog read (was
+                          `as string[]` — guards live in lib/catalog-guards,
+                          usable from this server component too). */}
+                      {asStringArray(t.raw(`types.${key}.features`)).map((f) => (
+                        <li key={f} className="flex items-center gap-2 text-sm text-foreground/80">
+                          <Check className="size-4 text-g-green" aria-hidden="true" />
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                  </article>
+                </FresnelEdge>
               </Reveal>
             ))}
           </div>

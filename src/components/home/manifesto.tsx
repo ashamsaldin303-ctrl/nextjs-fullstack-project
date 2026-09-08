@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { VelocitySkew } from '@/components/scroll/velocity-skew'
+import { GoldenArabesque } from '@/components/shared/golden-arabesque'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 
 /**
@@ -159,6 +160,13 @@ export function Manifesto() {
         >
           {t('signature')}
         </p>
+
+        {/* N5 (REF-3 T2) — the section's closing flourish: the self-drawing
+            golden arabesque (scroll-scrubbed pathLength; fully drawn for
+            no-JS / reduced motion — see the component header). No fixed
+            wrapper height (VLM round 2): the ornament auto-sizes to
+            width × 1/10 (viewBox 1200×120) — a fixed h-16 letterboxed it. */}
+        <GoldenArabesque className="mx-auto mt-12 block w-full max-w-3xl" />
       </div>
     </section>
   )

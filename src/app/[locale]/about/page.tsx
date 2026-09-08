@@ -9,6 +9,7 @@ import { PageHero } from '@/components/shared/page-hero'
 import { CTA } from '@/components/shared/cta'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { Reveal } from '@/components/shared/reveal'
+import { GoldenArabesque } from '@/components/shared/golden-arabesque'
 import { buildPageMetadata } from '@/lib/seo'
 
 const VALUES = [
@@ -80,6 +81,12 @@ export default async function AboutPage({
           kicker+h2 drift). */}
       <section className="bg-background py-20 sm:py-28" aria-labelledby="story-title">
         <div className="elyra-container max-w-3xl">
+          {/* N5 (REF-3 T2) — the story's golden crown (a client island
+              inside this server component): draws itself as the story
+              heading enters the viewport; fully drawn for no-JS /
+              reduced motion. Auto-height (the fixed h-14 clipped the
+              10:1 viewBox — VLM round 2 fix). */}
+          <GoldenArabesque className="mx-auto mb-8 block w-full max-w-xl" />
           <SectionHeading
             kicker={t('story.kicker')}
             title={t('story.title')}

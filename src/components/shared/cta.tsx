@@ -63,8 +63,11 @@ export function CTA({
           <Link
             href={href}
             data-cursor="magnet"
+            // N2 (REF-3 T1) — press confirmation: active:scale-[0.97] —
+            // Tailwind orders active after hover, so the press wins over
+            // hover:scale-105.
             className={cn(
-              'group mt-8 inline-flex h-12 items-center gap-2 rounded-full px-6 text-base font-medium transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              'group mt-8 inline-flex h-12 items-center gap-2 rounded-full px-6 text-base font-medium transition-transform hover:scale-105 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
               onDark
                 ? 'bg-primary text-primary-foreground focus-visible:ring-offset-elyra-dark'
                 : 'bg-primary text-primary-foreground focus-visible:ring-offset-background'
