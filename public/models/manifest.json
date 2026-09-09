@@ -1,284 +1,33 @@
 {
-  "generatedAt": "2026-09-09T11:11:23.215Z",
+  "generatedAt": "2026-09-09T13:13:38.140Z",
   "models": [
     {
-      "slug": "brass_vase_01",
-      "variant": "2k",
-      "mainFile": "public/models/brass_vase_01/brass_vase_01_2k.gltf",
-      "totalMB": 1.66,
-      "polycount": 11550,
+      "slug": "circuit_board",
+      "variant": "1k",
+      "mainFile": "public/models/circuit_board/circuit_board_1k.gltf",
+      "totalMB": 3.14,
+      "polycount": 18273,
       "dimensionsMeters": [
-        0.2273,
-        0.6925,
-        0.2273
+        0.4035,
+        0.0783,
+        0.3974
       ],
       "animations": [],
       "nodeNames": [
-        "brass_vase_01"
+        "circuit_board"
       ],
       "meshCount": 1,
       "materialNames": [
-        "brass_vase_001"
+        "circuit_board",
+        "circuit_board_alpha"
       ],
       "extensionsUsed": [],
       "files": [
-        "brass_vase_01_2k.gltf",
-        "textures/brass_vase_01_arm_2k.jpg",
-        "brass_vase_01.bin",
-        "textures/brass_vase_01_diff_2k.jpg",
-        "textures/brass_vase_01_nor_gl_2k.jpg"
-      ]
-    },
-    {
-      "slug": "magnifying_glass_01",
-      "variant": "1k",
-      "mainFile": "public/models/magnifying_glass_01/magnifying_glass_01_1k.gltf",
-      "totalMB": 0.45,
-      "polycount": 4331,
-      "dimensionsMeters": [
-        0.1321,
-        0.2716,
-        0.0267
-      ],
-      "animations": [],
-      "nodeNames": [
-        "magnifying_glass_01"
-      ],
-      "meshCount": 1,
-      "materialNames": [
-        "magnifying_glass_01",
-        "magnifying_glass_01_lense"
-      ],
-      "extensionsUsed": [
-        "KHR_materials_transmission"
-      ],
-      "files": [
-        "magnifying_glass_01_1k.gltf",
-        "textures/magnifying_glass_01_arm_1k.jpg",
-        "textures/magnifying_glass_01_nor_gl_1k.jpg",
-        "textures/magnifying_glass_01_diff_1k.jpg",
-        "textures/magnifying_glass_01_rough_1k.jpg",
-        "magnifying_glass_01.bin"
-      ]
-    },
-    {
-      "slug": "projector_screen",
-      "variant": "1k",
-      "mainFile": "public/models/projector_screen/projector_screen_1k.gltf",
-      "totalMB": 2.96,
-      "polycount": 6769,
-      "dimensionsMeters": [
-        1.0936,
-        1.6009,
-        0.9158
-      ],
-      "animations": [],
-      "nodeNames": [
-        "projector_screen",
-        "projector_screen_frame"
-      ],
-      "meshCount": 2,
-      "materialNames": [
-        "projector_screen_frame",
-        "projector_screen"
-      ],
-      "extensionsUsed": [],
-      "files": [
-        "projector_screen_1k.gltf",
-        "textures/projector_screen_frame_nor_gl_1k.jpg",
-        "textures/projector_screen_frame_diff_1k.jpg",
-        "textures/projector_screen_frame_arm_1k.jpg",
-        "textures/projector_screen_nor_gl_1k.jpg",
-        "textures/projector_screen_diff_1k.jpg",
-        "textures/projector_screen_arm_1k.jpg",
-        "projector_screen.bin"
-      ]
-    },
-    {
-      "slug": "drill_press_01",
-      "variant": "1k",
-      "mainFile": "public/models/drill_press_01/drill_press_01_1k.gltf",
-      "totalMB": 3.85,
-      "polycount": 48755,
-      "dimensionsMeters": [
-        0.3267,
-        1.2742,
-        0.6369
-      ],
-      "animations": [],
-      "nodeNames": [
-        "drill_press_01",
-        "drill_press_01_plate",
-        "drill_press_01_catch",
-        "drill_press_01_lid",
-        "drill_press_01_belt",
-        "drill_press_01_gear_b",
-        "drill_press_01_gear_a",
-        "drill_press_01_handle",
-        "drill_press_01_button_a",
-        "drill_press_01_limiter",
-        "drill_press_01_bit",
-        "drill_press_01_plug",
-        "drill_press_01_button_b"
-      ],
-      "meshCount": 13,
-      "materialNames": [
-        "drill_press_01"
-      ],
-      "extensionsUsed": [],
-      "files": [
-        "drill_press_01_1k.gltf",
-        "textures/drill_press_01_nor_gl_1k.jpg",
-        "textures/drill_press_01_diff_1k.jpg",
-        "textures/drill_press_01_arm_1k.jpg",
-        "drill_press_01.bin"
-      ]
-    },
-    {
-      "slug": "Camera_01",
-      "variant": "2k",
-      "mainFile": "public/models/Camera_01/Camera_01_2k.gltf",
-      "totalMB": 5.9,
-      "polycount": 21347,
-      "dimensionsMeters": [
-        0.2139,
-        0.0778,
-        0.2628
-      ],
-      "animations": [],
-      "nodeNames": [
-        "Camera_01_strap",
-        "Camera_01"
-      ],
-      "meshCount": 2,
-      "materialNames": [
-        "Camera_01_strap",
-        "Camera_01_lens_body",
-        "Camera_01_lens",
-        "Camera_01_body"
-      ],
-      "extensionsUsed": [
-        "KHR_materials_transmission"
-      ],
-      "files": [
-        "Camera_01_2k.gltf",
-        "textures/Camera_01_body_nor_gl_2k.jpg",
-        "textures/Camera_01_lens_body_diff_2k.jpg",
-        "Camera_01.bin",
-        "textures/Camera_01_lens_body_nor_gl_2k.jpg",
-        "textures/Camera_01_strap_nor_gl_2k.jpg",
-        "textures/Camera_01_strap_arm_2k.jpg",
-        "textures/Camera_01_lens_body_arm_2k.jpg",
-        "textures/Camera_01_strap_diff_2k.jpg",
-        "textures/Camera_01_body_diff_2k.jpg",
-        "textures/Camera_01_body_arm_2k.jpg"
-      ]
-    },
-    {
-      "slug": "hand_plane_no4",
-      "variant": "1k",
-      "mainFile": "public/models/hand_plane_no4/hand_plane_no4_1k.gltf",
-      "totalMB": 2.43,
-      "polycount": 5623,
-      "dimensionsMeters": [
-        0.3308,
-        0.1978,
-        0.0843
-      ],
-      "animations": [],
-      "nodeNames": [
-        "hand_plane_no4"
-      ],
-      "meshCount": 1,
-      "materialNames": [
-        "hand_plane_no4"
-      ],
-      "extensionsUsed": [],
-      "files": [
-        "hand_plane_no4_1k.gltf",
-        "textures/hand_plane_no4_diff_1k.jpg",
-        "textures/hand_plane_no4_arm_1k.jpg",
-        "textures/hand_plane_no4_nor_gl_1k.jpg",
-        "hand_plane_no4.bin"
-      ]
-    },
-    {
-      "slug": "book_encyclopedia_set_01",
-      "variant": "1k",
-      "mainFile": "public/models/book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf",
-      "totalMB": 3.11,
-      "polycount": 67003,
-      "dimensionsMeters": [
-        0.0387,
-        0.2374,
-        0.1631
-      ],
-      "animations": [],
-      "nodeNames": [
-        "book_encyclopedia_set_01_book01",
-        "book_encyclopedia_set_01_book02",
-        "book_encyclopedia_set_01_book03",
-        "book_encyclopedia_set_01_book04",
-        "book_encyclopedia_set_01_book05",
-        "book_encyclopedia_set_01_book06",
-        "book_encyclopedia_set_01_book07",
-        "book_encyclopedia_set_01_book08",
-        "book_encyclopedia_set_01_book09",
-        "book_encyclopedia_set_01_book10",
-        "book_encyclopedia_set_01_book11",
-        "book_encyclopedia_set_01_book12",
-        "book_encyclopedia_set_01_book13",
-        "book_encyclopedia_set_01_book14",
-        "book_encyclopedia_set_01_book15",
-        "book_encyclopedia_set_01_book16",
-        "book_encyclopedia_set_01_book17",
-        "book_encyclopedia_set_01_book18",
-        "book_encyclopedia_set_01_book19",
-        "book_encyclopedia_set_01_book20"
-      ],
-      "meshCount": 20,
-      "materialNames": [
-        "book_encyclopedia_set_01_cover",
-        "book_encyclopedia_set_01_paper"
-      ],
-      "extensionsUsed": [],
-      "files": [
-        "book_encyclopedia_set_01_1k.gltf",
-        "textures/book_encyclopedia_set_01_cover_diff_1k.jpg",
-        "book_encyclopedia_set_01.bin",
-        "textures/book_encyclopedia_set_01_paper_nor_gl_1k.jpg",
-        "textures/book_encyclopedia_set_01_cover_arm_1k.jpg",
-        "textures/book_encyclopedia_set_01_cover_nor_gl_1k.jpg",
-        "textures/book_encyclopedia_set_01_paper_diff_1k.jpg",
-        "textures/book_encyclopedia_set_01_paper_roughness_1k.jpg"
-      ]
-    },
-    {
-      "slug": "lightbulb_led",
-      "variant": "1k",
-      "mainFile": "public/models/lightbulb_led/lightbulb_led_1k.gltf",
-      "totalMB": 1.17,
-      "polycount": 4004,
-      "dimensionsMeters": [
-        0.0614,
-        0.1003,
-        0.0614
-      ],
-      "animations": [],
-      "nodeNames": [
-        "lightbulb_led"
-      ],
-      "meshCount": 1,
-      "materialNames": [
-        "lightbulb_led"
-      ],
-      "extensionsUsed": [],
-      "files": [
-        "lightbulb_led_1k.gltf",
-        "lightbulb_led.bin",
-        "textures/lightbulb_led_nor_gl_1k.jpg",
-        "textures/lightbulb_led_diff_1k.jpg",
-        "textures/lightbulb_led_arm_1k.jpg"
+        "circuit_board_1k.gltf",
+        "textures/circuit_board_nor_gl_1k.jpg",
+        "textures/circuit_board_diff_1k.jpg",
+        "textures/circuit_board_arm_1k.jpg",
+        "circuit_board.bin"
       ]
     },
     {
@@ -310,6 +59,60 @@
         "rubber_duck_toy.bin",
         "textures/rubber_duck_toy_arm_1k.jpg",
         "textures/rubber_duck_toy_nor_gl_1k.jpg"
+      ]
+    }
+  ],
+  "proceduralKits": [
+    {
+      "kit": "serverRack",
+      "section": "home hero",
+      "nodes": [
+        "fan_a",
+        "fan_b",
+        "fan_c"
+      ]
+    },
+    {
+      "kit": "cpuChip",
+      "section": "home method",
+      "nodes": []
+    },
+    {
+      "kit": "laptopStudio",
+      "section": "websites hero",
+      "nodes": [
+        "lid"
+      ]
+    },
+    {
+      "kit": "robotArm",
+      "section": "automation hero",
+      "nodes": [
+        "shoulder",
+        "elbow",
+        "wrist",
+        "grip_l",
+        "grip_r"
+      ]
+    },
+    {
+      "kit": "smartphone",
+      "section": "work hero",
+      "nodes": []
+    },
+    {
+      "kit": "dataStack",
+      "section": "about story",
+      "nodes": [
+        "sled_c"
+      ]
+    },
+    {
+      "kit": "dishAntenna",
+      "section": "contact hero",
+      "nodes": [
+        "azimuth",
+        "elevation"
       ]
     }
   ]

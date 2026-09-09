@@ -1,22 +1,25 @@
 /**
- * MODEL-2 verification — the semantic 3D set, end-to-end.
+ * MODEL-3 verification — the technical-essence 3D set, end-to-end.
  *
- * For every route: waits for the real models to load, then verifies
+ * For every route: waits for the bodies to load (authored kits resolve
+ * instantly; circuit_board + duck load over the network), then verifies
  * the «right place / right movement / right time» contract:
- *   · PLACE  — each slot's section resolves (found) and the model
+ *   · PLACE  — each slot's section resolves (found) and the body
  *              reaches full presence at the section's stage;
- *   · MOVE   — part drives actually rotate (D-odometers change with
- *              scroll; sweeps sit at their eased mid-value);
+ *   · MOVE   — part drives actually move: D-odometers (fans) change
+ *              rotation with scroll; sweeps (arm joints, dish) sit at
+ *              their eased mid-values; the SLIDE drive (pulled sled)
+ *              advances its POSITION (rotation stays 0 by design);
  *   · TIME   — presence is ~0 before the section arrives and ~1 on
  *              stage (the materialise envelope);
  *   · FREEZE — an idle page parks the frame loop (frames counter).
- * Screenshots land in /tmp/m2/ for the VLM critique rounds.
+ * Screenshots land in /tmp/m3/ for the VLM critique rounds.
  */
 import { getChromium } from './_playwright.mjs'
 import { mkdirSync } from 'node:fs'
 
 const BASE = 'http://localhost:3000'
-const SHOTS = '/tmp/m2'
+const SHOTS = '/tmp/m3'
 mkdirSync(SHOTS, { recursive: true })
 
 const results = []
@@ -27,27 +30,27 @@ const ok = (name, pass, detail = '') => {
 
 const ROUTES = [
   { key: 'home', path: '/', slots: [
-    { id: 'hero-title', slug: 'brass_vase_01', hero: true },
-    { id: 'method-title', slug: 'magnifying_glass_01' },
+    { id: 'hero-title', slug: 'serverRack', hero: true, drives: true },
+    { id: 'method-title', slug: 'cpuChip' },
   ] },
   { key: 'websites', path: '/services/websites', slots: [
-    { id: 'page-hero-title', slug: 'projector_screen', hero: true },
+    { id: 'page-hero-title', slug: 'laptopStudio', hero: true, drives: true },
   ] },
   { key: 'automation', path: '/services/automation', slots: [
-    { id: 'page-hero-title', slug: 'drill_press_01', hero: true, drives: true },
+    { id: 'page-hero-title', slug: 'robotArm', hero: true, drives: true },
   ] },
   { key: 'work', path: '/work', slots: [
-    { id: 'page-hero-title', slug: 'Camera_01', hero: true },
+    { id: 'page-hero-title', slug: 'smartphone', hero: true },
   ] },
   { key: 'about', path: '/about', slots: [
-    { id: 'page-hero-title', slug: 'hand_plane_no4', hero: true },
-    { id: 'story-title', slug: 'book_encyclopedia_set_01', drives: true },
+    { id: 'page-hero-title', slug: 'circuit_board', hero: true },
+    { id: 'story-title', slug: 'dataStack', drives: true, slide: true },
   ] },
   { key: 'contact', path: '/contact', slots: [
-    { id: 'page-hero-title', slug: 'lightbulb_led', hero: true },
+    { id: 'page-hero-title', slug: 'dishAntenna', hero: true, drives: true },
   ] },
   { key: 'default', path: '/definitely-missing-page-404', slots: [
-    { id: 'nf-recovery-heading', slug: 'rubber_duck_toy' },
+    { id: 'nf-recovery-heading', slug: 'rubber_duck_toy', drives: true },
   ] },
 ]
 
@@ -69,7 +72,7 @@ async function readDebug(page) {
         ready: m.ready, found: m.found,
         x: Math.round(m.x * 100) / 100, y: Math.round(m.y * 100) / 100,
         scale: Math.round(m.scale * 1000) / 1000,
-        drives: m.drives.map((dd) => ({ node: dd.node, rot: dd.rot })),
+        drives: m.drives.map((dd) => ({ node: dd.node, rot: dd.rot, pos: dd.pos })),
       })),
     }
   })
@@ -123,9 +126,10 @@ for (const route of ROUTES) {
     if (slot.hero) {
       await page.evaluate(() => window.scrollTo(0, 0))
     } else {
-      // Lazy sections (home methodology etc.) mount via IntersectionObserver
-      // — the heading id doesn't exist until the gate flips. Scroll deep
-      // in probes to wake the IO gate, THEN anchor the real section.
+      // Lazy sections (home methodology, about story) mount via
+      // IntersectionObserver — the heading id doesn't exist until the
+      // gate flips. Scroll deep in probes to wake the IO gate, THEN
+      // anchor the real section.
       await page.evaluate(async (id) => {
         const probes = [2400, 4800, 7200, 9600, 12800]
         for (const y of probes) {
@@ -138,7 +142,7 @@ for (const route of ROUTES) {
         document.getElementById(id)?.closest('section')?.scrollIntoView({ block: 'center' })
       }, slot.id)
     }
-    await sleep(1200)
+    await sleep(2200)
     const onStage = await readDebug(page)
     const m = onStage?.models.find((x) => x.id === slot.id)
     ok(`${route.key}/${slot.id}: presence on stage`, !!m && m.presence > 0.6,
@@ -150,16 +154,16 @@ for (const route of ROUTES) {
     await page.screenshot({ path: shot })
     console.log(`  📸 ${shot}`)
 
-    // drives: rotate the odometers by scrolling, then read again.
+    // drives: advance the odometers/sweeps by scrolling, then read again.
     // NOTE: the scroll store consumes the FIRST event after mount as
     // its initialization sample (no motion) — scroll in TWO steps so
     // the second genuinely advances D.
     if (m && m.drives.length > 0) {
-      const before = m.drives.map((d) => d.rot)
+      const before = m.drives.map((d) => ({ rot: d.rot, pos: d.pos }))
       // Step 0: prime — the store's first event is the init sample.
       await page.evaluate(() => window.scrollBy(0, 150))
       await sleep(400)
-      // Step 1: partial scroll (model still on stage, parts rotated) —
+      // Step 1: partial scroll (model still on stage, parts moved) —
       // capture the DRIVE-state evidence HERE, mid-envelope.
       await page.evaluate(() => window.scrollBy(0, 200))
       await sleep(500)
@@ -171,20 +175,32 @@ for (const route of ROUTES) {
       await sleep(700)
       const after = await readDebug(page)
       const m2 = after?.models.find((x) => x.id === slot.id)
-      const rot2 = m2?.drives.map((d) => d.rot) ?? []
-      const changed = rot2.some((r, i) => Math.abs((r ?? 0) - (before[i] ?? 0)) > 0.01)
-      ok(`${route.key}/${slot.id}: drives rotate`, changed,
-        before.map((r, i) => `${m.drives[i].node}:${(before[i] ?? 0).toFixed(2)}→${(rot2[i] ?? 0).toFixed(2)}`).join(' '))
+      const after2 = m2?.drives.map((d) => ({ rot: d.rot, pos: d.pos })) ?? []
+      // A drive "moved" if its ROTATION advanced (odometers/sweeps) OR
+      // its POSITION advanced (the pulled sled's slide drive — its
+      // rotation stays 0 by design).
+      const changed = after2.some((r, i) =>
+        Math.abs((r.rot ?? 0) - (before[i]?.rot ?? 0)) > 0.01 ||
+        Math.abs((r.pos ?? 0) - (before[i]?.pos ?? 0)) > 0.01)
+      const fmt = (i) => {
+        const b = before[i] ?? { rot: 0, pos: 0 }
+        const a = after2[i] ?? { rot: 0, pos: 0 }
+        return `${m.drives[i].node}:rot ${b.rot.toFixed(2)}→${a.rot.toFixed(2)}${Math.abs((a.pos ?? 0) - (b.pos ?? 0)) > 0.01 ? `,pos ${b.pos.toFixed(2)}→${a.pos.toFixed(2)}` : ''}`
+      }
+      ok(`${route.key}/${slot.id}: drives move`, changed, before.map((_, i) => fmt(i)).join(' '))
+      if (slot.slide) {
+        // the sled's slide specifically: position must advance while
+        // rotation is designed to stay put
+        const si = m2?.drives.findIndex((d) => d.node === 'sled_c') ?? -1
+        const posMoved = si >= 0 && Math.abs((after2[si]?.pos ?? 0) - (before[si]?.pos ?? 0)) > 0.01
+        ok(`${route.key}/${slot.id}: sled slides out (position)`, posMoved,
+          si >= 0 ? `pos ${(before[si]?.pos ?? 0).toFixed(2)}→${(after2[si]?.pos ?? 0).toFixed(2)}` : 'sled_c not resolved')
+      }
     } else if (slot.drives) {
       ok(`${route.key}/${slot.id}: drives resolved`, false, 'expected drives, got none')
     } else {
       ok(`${route.key}/${slot.id}: no drives (scrub-only body)`, true)
     }
-
-    // drives scroll moves the page — re-anchor the section BEFORE the
-    // next slot's checks (keep the placement evidence above untouched).
-
-    // (screenshot for the VLM round was captured above)
   }
 
   // freeze contract: idle page parks (settle the velocity tail first)

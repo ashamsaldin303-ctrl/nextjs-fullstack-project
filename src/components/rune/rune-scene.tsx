@@ -8,7 +8,7 @@ import { getScrollClocks, scrollEnergy, tickScrollTail } from '@/lib/scroll-stor
 import { pokeRuneField, setRuneInvalidate } from './rune-bus'
 import { BRAND_COLORS } from '@/lib/brand-colors'
 import { MODEL_LIBRARY, MODEL_ROUTES, SLOT_PALETTES, type ModelDef, type PartDrive, type RunePresetKey } from './model-registry'
-import { loadInstrument, type RawInstrument } from './model-loader'
+import { resolveModel, type RawInstrument } from './model-loader'
 
 /**
  * Rune Instruments scene (HEAVY-1) — the REAL-MODEL core.
@@ -240,6 +240,8 @@ interface DriveRT {
   node: THREE.Object3D
   axis: 'x' | 'y' | 'z'
   base: number
+  /** Base position on the axis (slide drives offset from this). */
+  basePos: number
   drive: PartDrive
 }
 
@@ -300,7 +302,9 @@ function buildInstrument(def: ModelDef, raw: RawInstrument): InstrumentRT {
       const std = c as THREE.MeshStandardMaterial
       if ('envMapIntensity' in std) {
         if (studioEnv) std.envMap = studioEnv
-        std.envMapIntensity = def.envIntensity ?? 1
+        // MODEL-3: kit materials may pre-tune their own env intensity
+        // (silver brighter, cream dimmer) — compose, don't clobber.
+        std.envMapIntensity = (std.envMapIntensity ?? 1) * (def.envIntensity ?? 1)
       }
       // IDEA-GLOW (MODEL-2, VLM r3): optional uniform warm emissive —
       // the lightbulb's inner idea-glow («الفكرة تبدأ بمحادثة»). A pure
@@ -329,7 +333,9 @@ function buildInstrument(def: ModelDef, raw: RawInstrument): InstrumentRT {
   const drives: DriveRT[] = []
   for (const d of def.drives ?? []) {
     const node = findNode(clone, d.node)
-    if (node) drives.push({ node, axis: d.axis, base: node.rotation[d.axis], drive: d })
+    if (node) {
+      drives.push({ node, axis: d.axis, base: node.rotation[d.axis], basePos: node.position[d.axis], drive: d })
+    }
   }
 
   const fitDim =
@@ -467,7 +473,7 @@ function buildSlots(routeKey: RunePresetKey): { list: SlotRT[]; dispose: () => v
       holder.clear()
     })
 
-    loadInstrument(def.src)
+    resolveModel(def)
       .then((raw) => {
         if (!token.alive) return
         const inst = buildInstrument(def, raw)
@@ -481,7 +487,7 @@ function buildSlots(routeKey: RunePresetKey): { list: SlotRT[]; dispose: () => v
         pokeRuneField()
       })
       .catch((err: unknown) => {
-        console.warn('[RuneInstruments] load failed:', def.src, err)
+        console.warn('[RuneInstruments] load failed:', def.src ?? def.kit, err)
       })
   }
 
@@ -609,7 +615,7 @@ interface RuneDebug {
   fade: number
   fadePhase: 'in' | 'out'
   active: string
-  models: { id: string; slug: string; p: number; env: number; presence: number; ready: boolean; found: boolean; x: number; y: number; scale: number; drives: { node: string; rot: number }[] }[]
+  models: { id: string; slug: string; p: number; env: number; presence: number; ready: boolean; found: boolean; x: number; y: number; scale: number; drives: { node: string; rot: number; pos: number }[] }[]
 }
 
 declare global {
@@ -849,17 +855,29 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       if (inst) {
         const pe = ease01(p)
         for (const d of inst.drives) {
-          let rot = d.base
           const drive = d.drive
+          if (drive.slide) {
+            // SLIDE (position offset over the travel, eased) — the
+            // pulled storage sled leaving the data stack's array.
+            const from = drive.slide[0] ?? 0
+            const to = drive.slide[1] ?? 0
+            d.node.position[d.axis] = d.basePos + from + (to - from) * pe
+            continue
+          }
+          let rot = d.base
           if (drive.sweep) {
             const from = drive.sweep[0] ?? 0
             const to = drive.sweep[1] ?? 0
             rot = from + (to - from) * pe
+          } else if (drive.swing !== undefined) {
+            // SWING sways around the rest pose — rate is the SWING
+            // FREQUENCY only (MODEL-3 fix: it used to also accumulate
+            // as an odometer, which slowly closed the laptop lid and
+            // tipped the duck over — «يتحرك بالشكل المنصوص» means the
+            // lid breathes, not folds).
+            rot += Math.sin(D * (drive.rate ?? 0.01)) * drive.swing
           } else {
             if (drive.rate !== undefined) rot += D * drive.rate
-            if (drive.swing !== undefined) {
-              rot += Math.sin(D * (drive.rate ?? 0.01)) * drive.swing
-            }
             if (drive.steps !== undefined) {
               rot += Math.floor(pe * drive.steps) * ((Math.PI * 2) / drive.steps)
             }
@@ -884,11 +902,13 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       rt.shadow.visible = presence > 0.02
       rt.shadow.position.set(x, y + rt.shadowY * scale - 0.02 * scale, slot.z - 0.02)
       rt.shadow.scale.set(
-        Math.max(rt.shadowW * scale * 0.95, 1e-4),
-        Math.max(rt.shadowW * scale * 0.26, 1e-4),
+        Math.max(rt.shadowW * scale * 1.05, 1e-4),
+        Math.max(rt.shadowW * scale * 0.28, 1e-4),
         1,
       )
-      rt.shadowMat.opacity = 0.38 * presence
+      // MODEL-3 r1–r3: deeper + wider contact ink — the VLM rounds kept
+      // asking for grounding on the heavier technical bodies.
+      rt.shadowMat.opacity = 0.5 * presence
 
       if (env > activeEnv) {
         activeEnv = env
@@ -998,6 +1018,7 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
           drives: (rt.instrument?.drives ?? []).map((d) => ({
             node: d.node.name,
             rot: Math.round(d.node.rotation[d.axis] * 1000) / 1000,
+            pos: Math.round(d.node.position[d.axis] * 1000) / 1000,
           })),
         })),
       }
