@@ -253,18 +253,22 @@ for (const route of ROUTES) {
   }
 }
 
-// console clean across all routes (the not-found document's own 404
-// status — and its console twin — is correct behavior, filtered;
-// order-independent: count each side, then drop the pairs)
-let expectedDoc404s = 0
+// console clean across all routes. The not-found document's own 404
+// status — and its console twin — is correct behavior: this script
+// deliberately visits it, so drop one console twin per counted
+// response (order-independent: count each side, drop the pairs; the
+// floor of 1 covers a soft-rewritten 200 that logged no response).
 let doc404ConsoleMsgs = 0
 for (const t of consoleErrors) {
   if (/status of 404/.test(t)) doc404ConsoleMsgs += 1
 }
-const dropped404s = Math.min(doc404ConsoleMsgs, Math.max(expectedDoc404sCount, 1))
-var expectedDoc404sCount = expectedDoc404s
+const dropped404s = Math.min(doc404ConsoleMsgs, Math.max(expectedDoc404s, 1))
+let toDrop = dropped404s
 const realErrors = consoleErrors.filter((t) => {
-  if (/status of 404/.test(t) && dropped404s > 0) return false
+  if (toDrop > 0 && /status of 404/.test(t)) {
+    toDrop -= 1
+    return false
+  }
   return true
 })
 ok('console clean (no errors)', realErrors.length === 0,

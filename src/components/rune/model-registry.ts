@@ -160,18 +160,24 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     tilt: 0.26, // read the top screen AND the layers' depth separation
     envIntensity: 1.05,
     react: { lean: 0.12, hover: 1 },
-    // THE EXPERIENCE ASSEMBLES: the three offering layers arrive
-    // EXPLODED and settle into the aligned stack through the entry
-    // window; the gyroscope rings run on the scroll odometer; the
-    // automation packet wakes mid-stay; hovering re-opens the layers
-    // (peek) — the exploded view answers your hand.
+    // THE EXPERIENCE ASSEMBLES (VLM r2 retune): the three offering
+    // layers hold a WIDE exploded separation through the entry and
+    // only lock across the middle third — at the natural reading
+    // position (p≈0.5) the strata are visibly DISTINCT (the r1 verdict
+    // "finished static kiosk" was the layers settling too early); the
+    // gyroscope rings run on the scroll odometer; each layer's EDGE
+    // LIGHT wakes with its arrival; the automation packet blinks on
+    // the scroll clock; hovering re-opens the layers (peek) — the
+    // exploded view answers your hand.
     drives: [
-      { node: 'layer_site', axis: 'y', slide: [0.17, 0], win: [0.06, 0.5], peek: 0.13 },
-      { node: 'layer_flow', axis: 'y', slide: [-0.17, 0], win: [0.06, 0.5], peek: -0.13 },
-      { node: 'gyro_ring_a', axis: 'x', rate: 0.012 },
-      { node: 'gyro_ring_b', axis: 'y', rate: -0.009 },
-      { node: 'gyro_core', axis: 'z', glow: [0, 1.4], win: [0.3, 0.8], boost: 1.2 },
-      { node: 'flow_packet', axis: 'z', glow: [0, 3.2], win: [0.5, 0.85], boost: 1.5 },
+      { node: 'layer_site', axis: 'y', slide: [0.3, 0], win: [0.08, 0.62], peek: 0.22 },
+      { node: 'layer_flow', axis: 'y', slide: [-0.3, 0], win: [0.08, 0.62], peek: -0.22 },
+      { node: 'gyro_ring_a', axis: 'x', rate: 0.02 },
+      { node: 'gyro_ring_b', axis: 'y', rate: -0.016 },
+      { node: 'gyro_core', axis: 'z', glow: [0, 1.4], win: [0.2, 0.7], boost: 1.2 },
+      { node: 'site_edge', axis: 'z', glow: [0, 2.2], win: [0.18, 0.6], boost: 1.1 },
+      { node: 'flow_edge', axis: 'z', glow: [0, 0.9], win: [0.38, 0.78], boost: 0.8 },
+      { node: 'flow_packet', axis: 'z', glow: [0, 2.4], win: [0.45, 0.85], boost: 1.5, blink: true },
     ],
   },
   pipelineJourney: {
@@ -182,17 +188,20 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     tilt: 0.52, // the rail reads from above — the journey's direction
     envIntensity: 1.1,
     react: { lean: 0.1, hover: 0.8 },
-    // THE JOURNEY RUNS: the workpiece rides the rail through the four
-    // gates; each gate's LED ignites exactly as the workpiece passes
-    // (windows matched to the ride); the launch beacon lights at the
-    // far end — «من الفكرة إلى الإطلاق», reversible step by step.
+    // THE JOURNEY RUNS (VLM r2 retune): the workpiece rides the rail
+    // across the WHOLE presence band; each gate's LED ignites exactly
+    // as the workpiece CROSSES it (windows computed from the ride:
+    // x = −0.72 + lp·1.44, gates at −0.55/−0.18/0.19/0.56) and BLINKS
+    // on the scroll clock — the gates stay alive while you scroll,
+    // deterministically; the launch beacon lights at the far end —
+    // «من الفكرة إلى الإطلاق», reversible step by step.
     drives: [
-      { node: 'workpiece', axis: 'x', slide: [0, 1.44] },
-      { node: 'gate_led_0', axis: 'z', glow: [0, 1.8], win: [0.16, 0.34] },
-      { node: 'gate_led_1', axis: 'z', glow: [0, 1.8], win: [0.34, 0.52] },
-      { node: 'gate_led_2', axis: 'z', glow: [0, 1.8], win: [0.52, 0.7] },
-      { node: 'gate_led_3', axis: 'z', glow: [0, 1.8], win: [0.7, 0.88] },
-      { node: 'beacon_tip', axis: 'z', glow: [0, 2.2], win: [0.86, 1] },
+      { node: 'workpiece', axis: 'x', slide: [0, 1.44], win: [0.08, 0.92] },
+      { node: 'gate_led_0', axis: 'z', glow: [0, 2], win: [0.08, 0.22], blink: true },
+      { node: 'gate_led_1', axis: 'z', glow: [0, 2], win: [0.34, 0.48], blink: true },
+      { node: 'gate_led_2', axis: 'z', glow: [0, 2], win: [0.6, 0.74], blink: true },
+      { node: 'gate_led_3', axis: 'z', glow: [0, 2], win: [0.85, 0.98], blink: true },
+      { node: 'beacon_tip', axis: 'z', glow: [0, 2.2], win: [0.9, 1], blink: true },
     ],
   },
   siteCanvas: {
@@ -203,20 +212,22 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     tilt: 0.1,
     envIntensity: 1.15,
     react: { lean: 0.07, hover: 0.9 },
-    // THE WEBSITE BUILDS ITSELF: chrome first, then the URL loading,
-    // then the content blocks rising into place in sequence (nav →
-    // hero → cards → CTA), the CTA warming as it lands — while the
-    // on-screen cursor mirrors the visitor's real pointer (follow):
-    // the site assembles under your hand.
+    // THE WEBSITE BUILDS ITSELF (VLM r2 retune): chrome first, then
+    // the URL loading, then the content blocks rising into place in
+    // sequence (nav → hero → cards → CTA) across the WHOLE stay —
+    // wider amplitudes so the assembly reads at any reading position;
+    // the CTA warming as it lands — while the on-screen cursor mirrors
+    // the visitor's real pointer (follow): the site assembles under
+    // your hand.
     drives: [
-      { node: 'blk_nav', axis: 'y', slide: [0.14, 0], win: [0.04, 0.2] },
-      { node: 'url_load', axis: 'x', slide: [0, 0.22], win: [0.04, 0.3] },
-      { node: 'blk_hero', axis: 'y', slide: [0.2, 0], win: [0.16, 0.38] },
-      { node: 'blk_aside', axis: 'y', slide: [0.2, 0], win: [0.24, 0.46] },
-      { node: 'blk_card_0', axis: 'y', slide: [0.18, 0], win: [0.34, 0.52] },
-      { node: 'blk_card_1', axis: 'y', slide: [0.18, 0], win: [0.42, 0.6] },
-      { node: 'blk_card_2', axis: 'y', slide: [0.18, 0], win: [0.5, 0.68] },
-      { node: 'blk_cta', axis: 'y', slide: [0.14, 0], win: [0.6, 0.75], glow: [0, 1.4], boost: 1.2 },
+      { node: 'blk_nav', axis: 'y', slide: [0.2, 0], win: [0.08, 0.26] },
+      { node: 'url_load', axis: 'x', slide: [0, 0.24], win: [0.06, 0.3] },
+      { node: 'blk_hero', axis: 'y', slide: [0.28, 0], win: [0.18, 0.42] },
+      { node: 'blk_aside', axis: 'y', slide: [0.28, 0], win: [0.26, 0.5] },
+      { node: 'blk_card_0', axis: 'y', slide: [0.26, 0], win: [0.36, 0.58] },
+      { node: 'blk_card_1', axis: 'y', slide: [0.26, 0], win: [0.44, 0.66] },
+      { node: 'blk_card_2', axis: 'y', slide: [0.26, 0], win: [0.52, 0.74] },
+      { node: 'blk_cta', axis: 'y', slide: [0.2, 0], win: [0.62, 0.82], glow: [0, 1.4], boost: 1.3 },
       { node: 'ui_cursor', axis: 'x', slide: [0.34, 0.2], follow: true },
     ],
   },
@@ -228,18 +239,25 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     tilt: 0.36, // look INTO the graph — the wires' zigzag reads
     envIntensity: 1.1,
     react: { lean: 0.1, hover: 1 },
-    // THE WORKFLOW RUNS: three packets hop node-to-node in sequence,
-    // each node's LED igniting on arrival (windows matched to the
-    // hops); every node also glows brighter when the pointer nears
+    // THE WORKFLOW RUNS (VLM r2 retune): three packets hop
+    // node-to-node in sequence — now each packet's OWN glow BLINKS on
+    // the scroll clock while it flies (the r1 verdict "where are the
+    // packets hopping?" was stills catching dark, settled packets);
+    // each node's LED ignites on arrival (node_2 lights as its packet
+    // departs); every node also glows brighter when the pointer nears
     // (boost) — the system feels you touching it.
     drives: [
       { node: 'packet_0', axis: 'x', slide: [0, 0.23], win: [0.06, 0.3] },
       { node: 'packet_0', axis: 'y', slide: [0, 0.21] },
+      { node: 'packet_0', axis: 'z', glow: [0, 2.6], win: [0.06, 0.3], blink: true },
       { node: 'packet_1', axis: 'x', slide: [0, 0.22], win: [0.36, 0.6] },
       { node: 'packet_1', axis: 'y', slide: [0, 0.22] },
+      { node: 'packet_1', axis: 'z', glow: [0, 2.6], win: [0.36, 0.6], blink: true },
       { node: 'packet_2', axis: 'x', slide: [0, 0.23], win: [0.66, 0.9] },
       { node: 'packet_2', axis: 'y', slide: [0, -0.17] },
+      { node: 'packet_2', axis: 'z', glow: [0, 2.6], win: [0.66, 0.9], blink: true },
       { node: 'node_1', axis: 'z', glow: [0, 1.6], win: [0.24, 0.4], boost: 1.4 },
+      { node: 'node_2', axis: 'z', glow: [0, 1.4], win: [0.34, 0.5], boost: 1.4 },
       { node: 'node_3', axis: 'z', glow: [0, 1.6], win: [0.54, 0.7], boost: 1.4 },
       { node: 'node_4', axis: 'z', glow: [0, 1.9], win: [0.84, 1], boost: 1.6 },
       { node: 'node_0', axis: 'z', glow: [0, 1.2], boost: 1.4 },
@@ -253,16 +271,18 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     tilt: 0.14,
     envIntensity: 1.05,
     react: { lean: 0.11, hover: 1 },
-    // THE RESULTS GROW: the carousel turns with the travel (each
-    // project screen rotating to face you), while the front screen's
-    // bar chart RISES bar after bar — «نتائج تتحدث بالأرقام», the
-    // numbers themselves ascending. The hub LED wakes with the chart.
+    // THE RESULTS GROW (VLM r2 retune, gallery-ring rebuild): the
+    // carousel turns gently with the travel (60° — the front screen
+    // stays readable; the r1 "screens angled awkwardly" was the full
+    // 120° turn), while the front screen's bar chart RISES bar after
+    // bar across the whole stay — «نتائج تتحدث بالأرقام», the numbers
+    // themselves ascending. The hub LED wakes with the chart.
     drives: [
-      { node: 'chart_bar_0', axis: 'y', scale: [0.02, 1], win: [0.12, 0.45] },
-      { node: 'chart_bar_1', axis: 'y', scale: [0.02, 1], win: [0.26, 0.58] },
-      { node: 'chart_bar_2', axis: 'y', scale: [0.02, 1], win: [0.4, 0.72] },
-      { node: 'chart_bar_3', axis: 'y', scale: [0.02, 1], win: [0.54, 0.86] },
-      { node: 'hub_led', axis: 'z', glow: [0, 2], win: [0.3, 0.7], boost: 1.2 },
+      { node: 'chart_bar_0', axis: 'y', scale: [0.02, 1], win: [0.15, 0.5] },
+      { node: 'chart_bar_1', axis: 'y', scale: [0.02, 1], win: [0.28, 0.62] },
+      { node: 'chart_bar_2', axis: 'y', scale: [0.02, 1], win: [0.42, 0.75] },
+      { node: 'chart_bar_3', axis: 'y', scale: [0.02, 1], win: [0.55, 0.88] },
+      { node: 'hub_led', axis: 'z', glow: [0, 2.2], win: [0.3, 0.72], boost: 1.2 },
     ],
   },
   explodedDetail: {
@@ -274,15 +294,16 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     envIntensity: 1.2,
     react: { lean: 0.12, hover: 1 },
     // SMALL THING, OPENED: the compact module's five plates fan out
-    // through the entry (authored exploded — drives compact them at
-    // p=0 and release), the LED waking mid-stay; hovering pulls the
-    // plates further apart (peek) — the obsession, on demand.
+    // through the entry and hold the open span into the middle of the
+    // stay (the fan is the point — r2 keeps it readable longer); the
+    // LED waking mid-stay; hovering pulls the plates further apart
+    // (peek) — the obsession, on demand.
     drives: [
-      { node: 'plate_0', axis: 'y', slide: [-0.12, 0], win: [0.05, 0.4], peek: -0.07 },
-      { node: 'plate_1', axis: 'y', slide: [-0.06, 0], win: [0.1, 0.45], peek: -0.04 },
-      { node: 'plate_3', axis: 'y', slide: [0.06, 0], win: [0.1, 0.45], peek: 0.04 },
-      { node: 'plate_4', axis: 'y', slide: [0.12, 0], win: [0.05, 0.4], peek: 0.07 },
-      { node: 'detail_led', axis: 'z', glow: [0, 1.8], win: [0.35, 0.65], boost: 1.3 },
+      { node: 'plate_0', axis: 'y', slide: [-0.12, 0], win: [0.08, 0.55], peek: -0.08 },
+      { node: 'plate_1', axis: 'y', slide: [-0.06, 0], win: [0.12, 0.6], peek: -0.05 },
+      { node: 'plate_3', axis: 'y', slide: [0.06, 0], win: [0.12, 0.6], peek: 0.05 },
+      { node: 'plate_4', axis: 'y', slide: [0.12, 0], win: [0.08, 0.55], peek: 0.08 },
+      { node: 'detail_led', axis: 'z', glow: [0, 1.8], win: [0.35, 0.68], boost: 1.3 },
     ],
   },
   braidMerge: {
@@ -310,20 +331,22 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     tilt: 0.06,
     envIntensity: 1.1,
     react: { lean: 0.08, hover: 1 },
-    // THE CONVERSATION STARTS: the three lines TYPE themselves in
-    // (scale-x from their right anchor, one after another), the caret
-    // blinking on the scroll clock (blink); the send button wakes and
-    // pops, then FIRES its packet toward the reading column (mirror)
-    // — «لنبدأ الحديث», the message sending itself.
+    // THE CONVERSATION STARTS (VLM r2 retune): the three lines TYPE
+    // themselves in across the whole stay, the caret blinking on the
+    // scroll clock; the send button wakes and pops mid-stay, then
+    // FIRES its packet toward the reading column (mirror) well inside
+    // the presence band (the r1 verdict "static Figma export" was the
+    // send ritual hiding at the exit, past the dissolve) — «لنبدأ
+    // الحديث», the message sending itself.
     drives: [
-      { node: 'line_0', axis: 'x', scale: [0.02, 1], win: [0.06, 0.3] },
+      { node: 'line_0', axis: 'x', scale: [0.02, 1], win: [0.1, 0.34] },
       { node: 'line_1', axis: 'x', scale: [0.02, 1], win: [0.3, 0.54] },
-      { node: 'line_2', axis: 'x', scale: [0.02, 1], win: [0.54, 0.78] },
-      { node: 'caret', axis: 'z', glow: [0.4, 2.2], win: [0.4, 0.85], blink: true, boost: 1.2 },
-      { node: 'send_btn', axis: 'y', slide: [0, 0.02], win: [0.78, 0.95] },
-      { node: 'send_btn', axis: 'z', glow: [0.2, 1.5], win: [0.78, 0.95], boost: 1.2 },
-      { node: 'fly_packet', axis: 'x', slide: [0, 0.3], win: [0.88, 1], mirror: true },
-      { node: 'fly_packet', axis: 'y', slide: [0, 0.17], win: [0.88, 1] },
+      { node: 'line_2', axis: 'x', scale: [0.02, 1], win: [0.5, 0.74] },
+      { node: 'caret', axis: 'z', glow: [0.4, 2.2], win: [0.15, 0.9], blink: true, boost: 1.2 },
+      { node: 'send_btn', axis: 'y', slide: [0, 0.02], win: [0.58, 0.72] },
+      { node: 'send_btn', axis: 'z', glow: [0.2, 1.5], win: [0.58, 0.72], boost: 1.2 },
+      { node: 'fly_packet', axis: 'x', slide: [0, 0.3], win: [0.72, 0.94], mirror: true },
+      { node: 'fly_packet', axis: 'y', slide: [0, 0.17], win: [0.72, 0.94] },
     ],
   },
   brokenLink: {
@@ -401,15 +424,20 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
     slots: [
       {
         model: 'experienceStack', id: 'hero-title', side: 'end',
-        yFrac: 0.56, viewFrac: 0.46, z: -0.5, scrub: 0.15, palette: 'dark',
-        xPad: -0.12, // serverRack lineage: tucked deep into the free
-        // margin, clear of the h1's tail (MODEL-2 VLM r1/r2 geometry).
+        yFrac: 0.56, viewFrac: 0.5, z: -0.5, scrub: 0.15, palette: 'dark',
+        xPad: -0.03, // VLM r1: xFrac 0.12 parked the stack in a dead
+        // corner "divorced from the headline" — brought inward to
+        // xFrac 0.21 so the assembled experience stands IN the margin,
+        // and enlarged (0.46→0.5) to anchor the hero. Still clear of
+        // the h1's tail (MODEL-2 r1/r2 geometry).
       },
       {
         model: 'pipelineJourney', id: 'method-title', side: 'end',
-        yFrac: 0.26, viewFrac: 0.44, z: -0.3, scrub: 0.25, palette: 'light',
-        xPad: -0.14, // cpuChip lineage: the flat wide body needs the
-        // visual weight and depth of the headline's margin.
+        yFrac: 0.26, viewFrac: 0.36, z: -0.3, scrub: 0.25, palette: 'light',
+        xPad: -0.02, // VLM r2: still "clipped awkwardly on the left" —
+        // pulled inward (xFrac 0.22) and sized 0.36 so the whole
+        // portal journey sits composed inside the margin, nothing
+        // grazing the edge.
       },
     ],
     dust: 1,
@@ -423,9 +451,10 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
     slots: [
       {
         model: 'siteCanvas', id: 'page-hero-title', side: 'end',
-        yFrac: 0.48, viewFrac: 0.4, z: -0.35, scrub: 0.28, palette: 'dark',
-        xPad: -0.09, // laptopStudio lineage: the page-hero text is
-        // max-w-4xl CENTERED — the open canvas fits the margin whole.
+        yFrac: 0.48, viewFrac: 0.42, z: -0.35, scrub: 0.28, palette: 'dark',
+        xPad: -0.06, // VLM r1: raised viewFrac (0.4→0.42) and eased the
+        // tuck (−0.09→−0.06) — the assembling canvas should OWN its
+        // margin, not whisper from it ("sticker pasted" verdict).
       },
     ],
     dust: 0.85,
@@ -454,10 +483,10 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
     slots: [
       {
         model: 'resultsDeck', id: 'page-hero-title', side: 'end',
-        yFrac: 0.5, viewFrac: 0.42, z: -0.45, scrub: 2.09, palette: 'dark',
-        xPad: -0.07, // smartphone lineage: tucked clear of the centered
-        // column; the carousel's scrub (one 120° turn) walks the
-        // screens past the viewer across the section.
+        yFrac: 0.5, viewFrac: 0.46, z: -0.45, scrub: 1.05, palette: 'dark',
+        xPad: -0.04, // VLM r2: the gallery-ring rebuild reads bigger
+        // (0.42→0.46, tuck −0.07→−0.04) and the scrub is a 60° stroll
+        // (was the full 120° turn that angled every screen away).
       },
     ],
     dust: 1,

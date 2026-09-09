@@ -470,52 +470,63 @@ function wire(a: THREE.Vector3, b: THREE.Vector3, r = 0.004): THREE.Mesh {
 function buildExperienceStack(): THREE.Group {
   const g = node('experienceStack')
 
-  // LAYER 1 — the WEBSITE: a floating browser window (slab + screen).
+  // LAYER 1 — the WEBSITE: a floating browser window (slab + screen)
+  // with a gold EDGE LIGHT under its frame (VLM r1: the strata must
+  // read as DISTINCT layers even while assembled — the authored edge
+  // glows carry each layer's identity; glow drives modulate them).
+  // VLM r2: "barely a whisper, I asked for a light, not a yellow
+  // line" — thicker, deeper, and the registry drives it to 4+.
   const layerTop = node('layer_site', 0, 0.36, 0)
   layerTop.add(mesh(new RoundedBoxGeometry(0.92, 0.58, 0.035, 3, 0.016), M.ink))
   const screen1 = mesh(new THREE.PlaneGeometry(0.86, 0.52), screenMaterial('browser'), 0, 0, 0.019)
   layerTop.add(screen1)
+  const siteEdge = node('site_edge', 0, -0.306, 0)
+  siteEdge.add(mesh(new RoundedBoxGeometry(0.95, 0.028, 0.06, 2, 0.01), M.ledGold))
+  layerTop.add(siteEdge)
   g.add(layerTop)
 
   // LAYER 2 — the 3D EXPERIENCE: a gyroscope — two orbiting rings and a
   // glowing emerald core (the rings are D-odometers: the 3D engine runs
-  // exactly as far as you scroll).
+  // exactly as far as you scroll). VLM r1: bigger rings — the middle
+  // stratum must hold its own against the browser slab.
   const layerMid = node('layer_3d', 0, 0, 0)
   const ringA = node('gyro_ring_a')
-  const torusA = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.009, 10, 40), M.gold)
+  const torusA = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.011, 10, 48), M.gold)
   torusA.rotation.x = Math.PI / 2
   ringA.add(torusA)
   layerMid.add(ringA)
   const ringB = node('gyro_ring_b')
-  const torusB = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.008, 10, 36), M.silver)
+  const torusB = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.009, 10, 40), M.silver)
   torusB.rotation.y = Math.PI / 2
   ringB.add(torusB)
   layerMid.add(ringB)
   const core = node('gyro_core')
-  core.add(mesh(new THREE.IcosahedronGeometry(0.085, 0), M.coreGlass))
+  core.add(mesh(new THREE.IcosahedronGeometry(0.1, 0), M.coreGlass))
   layerMid.add(core)
   g.add(layerMid)
 
   // LAYER 3 — the AUTOMATION: a node ribbon — three pills wired in a
-  // chain, one packet glowing on the wire (n8n in miniature).
+  // chain, one packet glowing on the wire (n8n in miniature), with an
+  // emerald status strip along its spine (the flow layer's identity).
   const layerBot = node('layer_flow', 0, -0.34, 0)
-  const pillGeo = new RoundedBoxGeometry(0.1, 0.05, 0.03, 2, 0.012)
-  for (const px of [-0.15, 0, 0.15]) {
+  const pillGeo = new RoundedBoxGeometry(0.13, 0.06, 0.034, 2, 0.014)
+  for (const px of [-0.22, 0, 0.22]) {
     layerBot.add(mesh(pillGeo, px === 0 ? M.panel : M.silver, px, 0, 0))
   }
-  layerBot.add(wire(new THREE.Vector3(-0.1, 0, 0), new THREE.Vector3(-0.05, 0, 0), 0.005))
-  layerBot.add(wire(new THREE.Vector3(0.05, 0, 0), new THREE.Vector3(0.1, 0, 0), 0.005))
-  const packet = mesh(new THREE.SphereGeometry(0.016, 10, 8), M.signal, 0.075, 0, 0.006)
+  layerBot.add(wire(new THREE.Vector3(-0.15, 0, 0), new THREE.Vector3(-0.065, 0, 0), 0.005))
+  layerBot.add(wire(new THREE.Vector3(0.065, 0, 0), new THREE.Vector3(0.15, 0, 0), 0.005))
+  const packet = mesh(new THREE.SphereGeometry(0.02, 12, 10), M.signal, 0.11, 0, 0.008)
   packet.name = 'flow_packet'
   layerBot.add(packet)
-  layerBot.add(led(M.ledGreen, 0.008, -0.15, 0.028, 0.016))
+  layerBot.add(led(M.ledGreen, 0.009, -0.22, 0.034, 0.018))
+  const flowEdge = node('flow_edge', 0, -0.036, 0)
+  flowEdge.add(mesh(new RoundedBoxGeometry(0.6, 0.012, 0.02, 1, 0.005), M.ledGreen))
+  layerBot.add(flowEdge)
   g.add(layerBot)
 
-  // The vertical guide pins that visually thread the three layers
-  // together (read as the stack's axis — the assembled experience).
-  for (const px of [-0.34, 0.34]) {
-    g.add(mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.86, 6), M.silver, px, 0, 0))
-  }
+  // (VLM r2: the guide pins are GONE — "thin, fragile-looking sticks
+  // holding up a massive screen… unstable". The exploded strata float
+  // as an exploded DIAGRAM should; nothing pretends to be furniture.)
 
   return g
 }
@@ -532,30 +543,56 @@ function buildPipelineJourney(): THREE.Group {
   const X1 = 0.72
   const RAIL_Y = -0.06
 
-  // the rail — a precision track with end caps
+  // the rail — a precision track with end caps and a gold centerline
+  // (VLM r2: "the rail is boring, visually flat" — the gold line gives
+  // the track a finished, machined read)
   g.add(mesh(new RoundedBoxGeometry(1.62, 0.028, 0.09, 2, 0.01), M.silver, 0, RAIL_Y, 0))
+  g.add(mesh(new THREE.BoxGeometry(1.56, 0.007, 0.02), M.gold, 0, RAIL_Y + 0.018, 0))
   g.add(mesh(new RoundedBoxGeometry(0.06, 0.1, 0.11, 2, 0.012), M.ink, X0 - 0.03, RAIL_Y, 0))
   g.add(mesh(new RoundedBoxGeometry(0.06, 0.1, 0.11, 2, 0.012), M.ink, X1 + 0.03, RAIL_Y, 0))
 
-  // FOUR GATES (الاكتشاف / التصميم / البناء / الإطلاق) — posts + beam + LED
+  // FOUR GATES (الاكتشاف / التصميم / البناء / الإطلاق) — VLM r2
+  // REJECTED the posts+beam "sawhorse" build outright: «If I see
+  // sticks again, we're having a different conversation». These are
+  // true PORTAL FRAMES: a closed silver rectangle (two posts, lintel,
+  // SILL) the workpiece passes THROUGH, a gold badge on the lintel and
+  // the lamp on its crown — a gate, at portal scale, readable at any
+  // body size.
   const gateXs = [-0.55, -0.18, 0.19, 0.56]
-  const postGeo = new THREE.CylinderGeometry(0.011, 0.011, 0.24, 8)
+  const postGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.46, 8)
+  const lintelGeo = new RoundedBoxGeometry(0.38, 0.05, 0.07, 2, 0.012)
   for (let i = 0; i < 4; i++) {
     const gx = gateXs[i] as number
     const gate = node(`gate_${i}`, gx, RAIL_Y + 0.02, 0)
-    gate.add(mesh(postGeo, M.panel, -0.085, 0.12, 0))
-    gate.add(mesh(postGeo, M.panel, 0.085, 0.12, 0))
-    gate.add(mesh(new RoundedBoxGeometry(0.23, 0.035, 0.05, 2, 0.01), M.panel, 0, 0.24, 0))
-    const lamp = led(M.ledGreen, 0.011, 0, 0.28, 0.02)
+    // posts — the frame's uprights
+    gate.add(mesh(postGeo, M.silver, -0.155, 0.23, 0))
+    gate.add(mesh(postGeo, M.silver, 0.155, 0.23, 0))
+    // lintel + sill — closing the rectangle
+    gate.add(mesh(lintelGeo, M.silver, 0, 0.47, 0))
+    gate.add(mesh(new RoundedBoxGeometry(0.38, 0.036, 0.07, 2, 0.012), M.silver, 0, 0.02, 0))
+    // the gold BADGE on the lintel — each gate's phase mark
+    gate.add(mesh(new RoundedBoxGeometry(0.1, 0.034, 0.028, 1, 0.008), M.gold, 0, 0.47, 0.042))
+    // the lamp on the lintel's crown
+    const lamp = led(M.ledGreen, 0.016, 0, 0.522, 0.03)
     lamp.name = `gate_led_${i}`
     gate.add(lamp)
     g.add(gate)
   }
 
-  // the WORKPIECE — the project itself, riding the rail
+  // the WORKPIECE — the project itself, riding the rail (VLM r2:
+  // "tiny and lost" — bigger core, wider gold ring, and an additive
+  // halo so it reads as the energy of the journey at any zoom)
   const work = node('workpiece', X0, RAIL_Y + 0.055, 0.02)
-  work.add(mesh(new THREE.SphereGeometry(0.045, 14, 12), M.signal))
-  work.add(mesh(new THREE.TorusGeometry(0.062, 0.006, 8, 24), M.gold))
+  work.add(mesh(new THREE.SphereGeometry(0.055, 16, 14), M.signal))
+  work.add(mesh(new THREE.TorusGeometry(0.082, 0.008, 8, 28), M.gold))
+  const workHalo = mesh(
+    new THREE.SphereGeometry(0.11, 10, 8),
+    new THREE.MeshBasicMaterial({
+      color: BRAND_COLORS.gGreen, transparent: true, opacity: 0.3,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    }),
+  )
+  work.add(workHalo)
   g.add(work)
 
   // the LAUNCH beacon at the far end — the goal
@@ -703,43 +740,56 @@ function buildFlowGraph(): THREE.Group {
 function buildResultsDeck(): THREE.Group {
   const g = node('resultsDeck')
 
-  // the hub — a gold-capped spindle
-  g.add(mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.56, 10), M.silver, 0, 0, 0))
-  g.add(mesh(new THREE.CylinderGeometry(0.05, 0.038, 0.035, 12), M.gold, 0, 0.3, 0))
-  g.add(mesh(new THREE.CylinderGeometry(0.05, 0.038, 0.035, 12), M.gold, 0, -0.3, 0))
-  const hubLed = led(M.ledGreen, 0.012, 0, 0.335, 0)
+  // VLM r1 rebuilt the body: the tall spindle read as "an abstract
+  // metallic pole — compositionally heavy and confusing". The results
+  // carousel is now a GALLERY RING: a flat gold track the three project
+  // screens STAND ON (the carousel itself — «معرض النتائج»), one compact
+  // hub with its LED, each screen hanging from its own stand.
+  // the track — a flat gold ring the screens ride on
+  const track = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.014, 10, 64), M.gold)
+  track.rotation.x = Math.PI / 2
+  g.add(track)
+  // the compact hub — a gold-capped drum (short: the RING is the body)
+  g.add(mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.13, 12), M.silver, 0, 0.0, 0))
+  g.add(mesh(new THREE.CylinderGeometry(0.052, 0.044, 0.03, 12), M.gold, 0, 0.08, 0))
+  const hubLed = led(M.ledGreen, 0.013, 0, 0.105, 0)
   hubLed.name = 'hub_led'
   g.add(hubLed)
 
-  // three screens at 120° — the front one (θ=0) is the analytics card
-  const R = 0.29
+  // three screens at 120° STANDING ON the ring — the front one (θ=0)
+  // is the analytics card; bigger + dead-on at rest (VLM r1: "charts
+  // too small to read, screens angled awkwardly")
+  const R = 0.34
   for (let i = 0; i < 3; i++) {
     const theta = (i / 3) * Math.PI * 2
     const arm = node(`screen_${i}`, Math.sin(theta) * R, 0, Math.cos(theta) * R)
     arm.rotation.y = theta
-    const card = node(`card_${i}`, 0, 0, 0.05)
+    const card = node(`card_${i}`, 0, 0.22, 0)
+    // the stand under each screen (grounding the card on the ring)
+    card.add(mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.44, 6), M.silver, 0, -0.22, 0))
+    card.add(mesh(new RoundedBoxGeometry(0.1, 0.016, 0.06, 1, 0.006), M.panel, 0, -0.43, 0))
     if (i === 0) {
       // THE ANALYTICS SCREEN — «بالأرقام»: backdrop + growing bars
-      card.add(mesh(new RoundedBoxGeometry(0.44, 0.3, 0.02, 2, 0.012), M.ink))
-      card.add(led(M.ledGreen, 0.007, -0.17, 0.115, 0.014))
-      const barHs = [0.07, 0.11, 0.09, 0.16]
+      card.add(mesh(new RoundedBoxGeometry(0.52, 0.36, 0.022, 2, 0.012), M.ink))
+      card.add(led(M.ledGreen, 0.008, -0.2, 0.14, 0.016))
+      const barHs = [0.09, 0.14, 0.11, 0.2]
       for (let b = 0; b < 4; b++) {
         const h = barHs[b] as number
-        const geo = new RoundedBoxGeometry(0.055, h, 0.016, 1, 0.005)
+        const geo = new RoundedBoxGeometry(0.072, h, 0.02, 1, 0.006)
         geo.translate(0, h / 2, 0) // origin at the bar's base — grows UP
-        const bar = mesh(geo, b === 3 ? M.signal : M.panel, -0.135 + b * 0.09, -0.06, 0.018)
+        const bar = mesh(geo, b === 3 ? M.signal : M.panel, -0.16 + b * 0.107, -0.08, 0.02)
         bar.name = `chart_bar_${b}`
         card.add(bar)
       }
       // a thin baseline under the bars
-      card.add(mesh(new RoundedBoxGeometry(0.38, 0.008, 0.008, 1, 0.003), M.silver, 0, -0.062, 0.018))
+      card.add(mesh(new RoundedBoxGeometry(0.46, 0.009, 0.009, 1, 0.003), M.silver, 0, -0.084, 0.02))
     } else {
       // the portfolio pieces: store + app mini screens
-      card.add(mesh(new RoundedBoxGeometry(0.44, 0.3, 0.02, 2, 0.012), M.ink))
+      card.add(mesh(new RoundedBoxGeometry(0.52, 0.36, 0.022, 2, 0.012), M.ink))
       card.add(mesh(
-        new THREE.PlaneGeometry(0.4, 0.26),
+        new THREE.PlaneGeometry(0.48, 0.32),
         screenMaterial(i === 1 ? 'storeMini' : 'appMini'),
-        0, 0, 0.012,
+        0, 0, 0.014,
       ))
     }
     arm.add(card)

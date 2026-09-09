@@ -7,9 +7,11 @@
       "section": "home hero",
       "nodes": [
         "layer_site",
+        "site_edge",
         "gyro_ring_a",
         "gyro_ring_b",
         "gyro_core",
+        "flow_edge",
         "flow_packet"
       ]
     },

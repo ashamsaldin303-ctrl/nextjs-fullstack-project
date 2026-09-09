@@ -3723,3 +3723,41 @@ Stage Summary:
 - The «المكان المناسب / الحركة المناسحة / الوقت المناسب» contract re-proven per route: stable composed slots (VLM 8–10/10 after six rounds), all motion pure f(rect, D, p) (odometer fans, sweep joints, slide sled, breathing lid), presence envelope unchanged, freeze contract intact (56/56 machine checks, frames park on idle).
 - One latent MODEL-2 bug fixed as a side effect: swing drives no longer accumulate drift.
 - Push: via the owner's fine-grained PAT under the zero-persistence protocol (token lives at /tmp/.gh_tok for this sandbox's lifetime per «احفظها عندك»; never committed, never in .git/config).
+---
+Task ID: MODEL-4
+Agent: Coordinator (direct, VLM/browser iteration loop; entry reconstructed from commit 83ca310 after a context loss)
+Task: Owner's fourth verdict: the technical theme was right, but no body showed it BELONGED to its section («الموضوع صحيح، لكن لا يوجد أي شيء يدل على أن هذا المجسم ينتمي أو يتحدث عن الفكرة الموضوعة له») — find objects that match each section's words EXACTLY («متطابقة تمامًا مع ما نتحدث عنه»), and make them INTERACTIVE, living and reacting to scroll and the user on every move («تعيش وتتفاعل مع السكرول ومع المستخدم في كل تحرك»).
+
+Work Log:
+- The mapping was rebuilt FROM THE COPY, not from categories: every section's own words name its body (hero «نصنعُ تجاربَ رقميةً» → the assembling experienceStack; method «رحلة واضحة من الفكرة إلى الإطلاق» → pipelineJourney; websites «مواقع تُبنى لتبهر» → siteCanvas; automation «أنظمة تعمل، وأنت نائم» → flowGraph; work «نتائج تتحدث بالأرقام» → resultsDeck; about «صغيرة الحجم، كبيرة الهوس» → explodedDetail; story «قررنا ألا نختار» → braidMerge; contact «لنبدأ الحديث» → messageComposer; 404 «الطريق للرئيسية قريب» → brokenLink).
+- tech-kits.ts: 9 authored kits, named drive nodes, cache-owned materials, brand-token emissives.
+- INTERACTIVITY layer (freeze-contract safe — pure f(rect, D, S, pointer)): every pointermove pokes the invalidate bus; per-slot lean springs + proximity eases (hover lift, peek exploded-open, glow boost); follow drives (siteCanvas's on-screen cursor mirrors the visitor's hand); blink lamps on the D scroll clock; per-drive p-WINDOWS sequencing the scroll choreography; PartDrive gains glow/scale/slide/follow/peek/boost/blink/mirror.
+- Purge: circuit_board + rubber_duck_toy photoscans (−10 files); manifest.json → procedural kits only.
+- scripts/verify-models-m4.mjs: 99 machine checks (route resolution, kit ready, section found, presence, body identity, drives move with scroll, POINTER moves advance frames, proximity rises over body, lean springs deflect, frame loop parks on idle, console clean — 404 twins pair-dropped order-independently).
+- Gates: tsc 0, eslint 0, secrets 0, parity 738/738, mobile 375px clean.
+
+Stage Summary:
+- The semantic-match layer shipped: every route's body IS its section's literal subject, and every body answers BOTH scroll (windowed drive choreography) and pointer (lean/lift/peek/boost/follow) — converging to zero frames when all input stops.
+- Committed as bb38380 (later reworded to 83ca310 — the original message was a stray UUID).
+
+---
+Task ID: MODEL-4-R2
+Agent: Coordinator (direct, VLM/browser iteration loop)
+Task: Verify MODEL-4 end-to-end in this session, then close the VLM's verdict gaps: bodies must not only MEAN their section but read as PREMIUM, GROUNDED, and visibly ALIVE at every reading position.
+
+Work Log:
+- Rebuilt state after the context loss (git status clean, HEAD unpushed): found + fixed a broken half-committed tail in verify-models-m4.mjs (duplicate `let expectedDoc404s` declaration + a hoisted var referenced before assignment → NaN) — the pair-drop 404 filter now counts each side then drops min(pairs, floor 1). 99/99 checks passed.
+- Screenshot harvester scripts/shoot-model4.mjs (Xvfb + wheel events, same environment contract as the verifier) → /tmp/m4.
+- VLM ROUND 1 (3 juries, 24 shots): strong — explodedDetail 9, messageComposer 9, brokenLink 9, braidMerge 8, flowGraph 8, siteCanvas 7; WEAK — experienceStack 3/4/2 («generic tech stock illustration… static closed kiosk… dead left corner»), resultsDeck 6/4/3 («abstract metallic pole… screens angled awkwardly, charts unreadable»), pipelineJourney gates read as «sawhorses on sticks». ROOT CAUSE identified: the natural reading position is p≈0.5, and most drive windows ENDED at ≤0.5 — the bodies showed their FINISHED states exactly where visitors actually look.
+- Registry retune (all 9): windows spread across the full presence band [0.05, 0.95], amplitudes widened, gate-LED windows recomputed from the workpiece's crossing positions (x = −0.72 + lp·1.44), packets + caret + gate lamps BLINK on the D clock (alive while scrolling, pure f(D)), the contact send ritual moved INSIDE the presence band (was hiding at the exit, past the dissolve).
+- Kit rebuilds: resultsDeck — the spindle POLE replaced by a gold GALLERY RING with screens on stands (front analytics screen dead-on, bigger bars; scrub 120° → 60°); pipelineJourney — true PORTAL FRAMES (closed silver rectangles: posts + lintel + SILL, gold badge, crown lamp — the workpiece passes THROUGH); experienceStack — guide pins REMOVED (read as fragile sticks), gold edge light under the browser layer + emerald strip on the flow layer (each stratum's identity), bigger gyroscope, wider pill row.
+- Slot fixes: home hero xPad −0.12 → −0.03 + viewFrac 0.5 (out of the dead corner, anchoring the hero); method xPad → −0.02 + viewFrac 0.36 (rail no longer grazing the edge); websites 0.42/−0.06; work 0.46/−0.04.
+- GROUNDING: dark-band slots now carry a WARM FLOOR POOL (additive #f2dfae, 0.16·presence, wide ellipse) instead of the invisible dark-on-dark ink drop; light bands keep the 0.5 ink shadow — the «sticker pasted onto the screen» verdict addressed at the root.
+- VLM ROUND 2: work APPROVED (9/8/9), hero conditionally fixed (pins verdict), method REJECTED (sawhorses) → VLM ROUND 3 (portal rebuild + pins removed + stronger edge light): hero 9/8/9 FIXED, method 9/7/9 FIXED, work 10/9 FIXED. Final jury (websites/automation/contact/404): 9/9/8/9 — «APPROVED FOR PRODUCTION».
+- Re-verified after every rebuild: tsc 0 · eslint 0 · 99/99 machine checks · mobile 375px clean (no overflow, rune layer unmounted) · dev.log clean · parity 738/738 · secrets 0.
+- Also: bb38380's stray-UUID commit message reworded to a proper MODEL-4 message (83ca310); manifest.json experienceStack node list gained site_edge/flow_edge.
+
+Stage Summary:
+- MODEL-4 is now visually AND machine verified end-to-end: every body means its section's exact words, holds a composed premium slot, is grounded (warm pools on dark bands), and is visibly ALIVE across the whole stay — scroll-driven windowed choreography that peaks where the visitor actually reads, D-clock blinking lamps, and the full pointer interactivity layer (lean/lift/peek/boost/follow).
+- VLM final board: hero 9, method 9, websites 9, automation 9, work 10, about 9, story 8, contact 8, 404 9 — average 8.9.
+- Committed locally with the mangled parent reworded; PUSH BLOCKED-ON-OWNER: /tmp/.gh_tok was wiped with /tmp (zero-persistence held); a fresh PAT is needed to push 2 commits (83ca310 + this round).

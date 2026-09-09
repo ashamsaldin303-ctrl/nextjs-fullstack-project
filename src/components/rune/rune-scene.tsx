@@ -473,13 +473,21 @@ function buildSlots(routeKey: RunePresetKey): { list: SlotRT[]; dispose: () => v
 
     const holder = new THREE.Group()
     holder.visible = false
+    // MODEL-4 r2: dark bands get a WARM FLOOR POOL (additive) instead
+    // of the ink drop — a dark-on-dark shadow is invisible, and the VLM
+    // r1 verdicts read the ungrounded bodies as "stickers pasted onto
+    // the screen". A soft pool of the museum light catching the plinth
+    // floor grounds the same geometry; light bands keep the deep ink.
+    const isPool = slot.palette === 'dark'
     const shadowMat = new THREE.MeshBasicMaterial({
-      color: 0x050a18, // MODEL-2: deeper ink — grounds bodies on BOTH the
-      // light bands and the dark bands (VLM r1–r3 "floating" notes).
+      color: isPool ? 0xf2dfae : 0x050a18, // MODEL-2: deeper ink —
+      // grounds bodies on BOTH the light bands and the dark bands
+      // (VLM r1–r3 "floating" notes).
       map: groundShadowSprite(),
       transparent: true,
       opacity: 0,
       depthWrite: false,
+      blending: isPool ? THREE.AdditiveBlending : THREE.NormalBlending,
     })
     disposables.push(() => shadowMat.dispose())
     const shadow = new THREE.Mesh(shadowPlane, shadowMat)
@@ -1029,12 +1037,14 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       rt.shadow.position.set(x, y + rt.shadowY * scale - 0.02 * scale, slot.z - 0.02)
       rt.shadow.scale.set(
         Math.max(rt.shadowW * scale * 1.05, 1e-4),
-        Math.max(rt.shadowW * scale * 0.28, 1e-4),
+        Math.max(rt.shadowW * scale * (rt.slot.palette === 'dark' ? 0.36 : 0.28), 1e-4),
         1,
       )
       // MODEL-3 r1–r3: deeper + wider contact ink — the VLM rounds kept
-      // asking for grounding on the heavier technical bodies.
-      rt.shadowMat.opacity = 0.5 * presence
+      // asking for grounding on the heavier technical bodies. MODEL-4
+      // r2: dark-band warm pools run softer (additive — full ink
+      // strength would bloom); light-band ink keeps its 0.5 drop.
+      rt.shadowMat.opacity = (rt.slot.palette === 'dark' ? 0.16 : 0.5) * presence
 
       if (env > activeEnv) {
         activeEnv = env
