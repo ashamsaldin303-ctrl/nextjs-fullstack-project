@@ -1,373 +1,315 @@
 {
-  "generatedAt": "2026-09-07T19:31:16.379Z",
+  "generatedAt": "2026-09-09T11:11:23.215Z",
   "models": [
     {
-      "slug": "vintage_grandfather_clock_01",
+      "slug": "brass_vase_01",
       "variant": "2k",
-      "mainFile": "public/models/vintage_grandfather_clock_01/vintage_grandfather_clock_01.gltf",
-      "totalMB": 6.82,
-      "polycount": 12604,
+      "mainFile": "public/models/brass_vase_01/brass_vase_01_2k.gltf",
+      "totalMB": 1.66,
+      "polycount": 11550,
       "dimensionsMeters": [
-        0.9966,
-        0.7952,
-        2.1906
+        0.2273,
+        0.6925,
+        0.2273
       ],
       "animations": [],
       "nodeNames": [
-        "vintage_grandfather_clock_01_body",
-        "vintage_grandfather_clock_01_minute_hand",
-        "vintage_grandfather_clock_01_houd_hand"
+        "brass_vase_01"
       ],
-      "meshCount": 3,
+      "meshCount": 1,
       "materialNames": [
-        "vintage_grandfather_clock_01",
-        "vintage_grandfather_clock_01_glass"
+        "brass_vase_001"
       ],
-      "extensionsUsed": [
-        "KHR_materials_clearcoat",
-        "KHR_materials_specular",
-        "KHR_materials_ior"
-      ],
+      "extensionsUsed": [],
       "files": [
-        "vintage_grandfather_clock_01.gltf",
-        "textures/vintage_grandfather_clock_01_nor_gl_2k.jpg",
-        "textures/vintage_grandfather_clock_01_arm_2k.jpg",
-        "vintage_grandfather_clock_01.bin",
-        "textures/vintage_grandfather_clock_01_diff_2k.jpg"
+        "brass_vase_01_2k.gltf",
+        "textures/brass_vase_01_arm_2k.jpg",
+        "brass_vase_01.bin",
+        "textures/brass_vase_01_diff_2k.jpg",
+        "textures/brass_vase_01_nor_gl_2k.jpg"
       ]
     },
     {
-      "slug": "mantel_clock_01",
+      "slug": "magnifying_glass_01",
       "variant": "1k",
-      "mainFile": "public/models/mantel_clock_01/mantel_clock_01.gltf",
-      "totalMB": 2.31,
-      "polycount": 29742,
+      "mainFile": "public/models/magnifying_glass_01/magnifying_glass_01_1k.gltf",
+      "totalMB": 0.45,
+      "polycount": 4331,
       "dimensionsMeters": [
-        0.4837,
-        0.2508,
-        0.1609
+        0.1321,
+        0.2716,
+        0.0267
       ],
       "animations": [],
       "nodeNames": [
-        "mantel_clock_01",
-        "mantel_clock_01_glass"
+        "magnifying_glass_01"
+      ],
+      "meshCount": 1,
+      "materialNames": [
+        "magnifying_glass_01",
+        "magnifying_glass_01_lense"
+      ],
+      "extensionsUsed": [
+        "KHR_materials_transmission"
+      ],
+      "files": [
+        "magnifying_glass_01_1k.gltf",
+        "textures/magnifying_glass_01_arm_1k.jpg",
+        "textures/magnifying_glass_01_nor_gl_1k.jpg",
+        "textures/magnifying_glass_01_diff_1k.jpg",
+        "textures/magnifying_glass_01_rough_1k.jpg",
+        "magnifying_glass_01.bin"
+      ]
+    },
+    {
+      "slug": "projector_screen",
+      "variant": "1k",
+      "mainFile": "public/models/projector_screen/projector_screen_1k.gltf",
+      "totalMB": 2.96,
+      "polycount": 6769,
+      "dimensionsMeters": [
+        1.0936,
+        1.6009,
+        0.9158
+      ],
+      "animations": [],
+      "nodeNames": [
+        "projector_screen",
+        "projector_screen_frame"
       ],
       "meshCount": 2,
       "materialNames": [
-        "mantel_clock_01",
-        "mantel_clock_01_glass"
+        "projector_screen_frame",
+        "projector_screen"
+      ],
+      "extensionsUsed": [],
+      "files": [
+        "projector_screen_1k.gltf",
+        "textures/projector_screen_frame_nor_gl_1k.jpg",
+        "textures/projector_screen_frame_diff_1k.jpg",
+        "textures/projector_screen_frame_arm_1k.jpg",
+        "textures/projector_screen_nor_gl_1k.jpg",
+        "textures/projector_screen_diff_1k.jpg",
+        "textures/projector_screen_arm_1k.jpg",
+        "projector_screen.bin"
+      ]
+    },
+    {
+      "slug": "drill_press_01",
+      "variant": "1k",
+      "mainFile": "public/models/drill_press_01/drill_press_01_1k.gltf",
+      "totalMB": 3.85,
+      "polycount": 48755,
+      "dimensionsMeters": [
+        0.3267,
+        1.2742,
+        0.6369
+      ],
+      "animations": [],
+      "nodeNames": [
+        "drill_press_01",
+        "drill_press_01_plate",
+        "drill_press_01_catch",
+        "drill_press_01_lid",
+        "drill_press_01_belt",
+        "drill_press_01_gear_b",
+        "drill_press_01_gear_a",
+        "drill_press_01_handle",
+        "drill_press_01_button_a",
+        "drill_press_01_limiter",
+        "drill_press_01_bit",
+        "drill_press_01_plug",
+        "drill_press_01_button_b"
+      ],
+      "meshCount": 13,
+      "materialNames": [
+        "drill_press_01"
+      ],
+      "extensionsUsed": [],
+      "files": [
+        "drill_press_01_1k.gltf",
+        "textures/drill_press_01_nor_gl_1k.jpg",
+        "textures/drill_press_01_diff_1k.jpg",
+        "textures/drill_press_01_arm_1k.jpg",
+        "drill_press_01.bin"
+      ]
+    },
+    {
+      "slug": "Camera_01",
+      "variant": "2k",
+      "mainFile": "public/models/Camera_01/Camera_01_2k.gltf",
+      "totalMB": 5.9,
+      "polycount": 21347,
+      "dimensionsMeters": [
+        0.2139,
+        0.0778,
+        0.2628
+      ],
+      "animations": [],
+      "nodeNames": [
+        "Camera_01_strap",
+        "Camera_01"
+      ],
+      "meshCount": 2,
+      "materialNames": [
+        "Camera_01_strap",
+        "Camera_01_lens_body",
+        "Camera_01_lens",
+        "Camera_01_body"
       ],
       "extensionsUsed": [
-        "KHR_materials_clearcoat",
+        "KHR_materials_transmission"
+      ],
+      "files": [
+        "Camera_01_2k.gltf",
+        "textures/Camera_01_body_nor_gl_2k.jpg",
+        "textures/Camera_01_lens_body_diff_2k.jpg",
+        "Camera_01.bin",
+        "textures/Camera_01_lens_body_nor_gl_2k.jpg",
+        "textures/Camera_01_strap_nor_gl_2k.jpg",
+        "textures/Camera_01_strap_arm_2k.jpg",
+        "textures/Camera_01_lens_body_arm_2k.jpg",
+        "textures/Camera_01_strap_diff_2k.jpg",
+        "textures/Camera_01_body_diff_2k.jpg",
+        "textures/Camera_01_body_arm_2k.jpg"
+      ]
+    },
+    {
+      "slug": "hand_plane_no4",
+      "variant": "1k",
+      "mainFile": "public/models/hand_plane_no4/hand_plane_no4_1k.gltf",
+      "totalMB": 2.43,
+      "polycount": 5623,
+      "dimensionsMeters": [
+        0.3308,
+        0.1978,
+        0.0843
+      ],
+      "animations": [],
+      "nodeNames": [
+        "hand_plane_no4"
+      ],
+      "meshCount": 1,
+      "materialNames": [
+        "hand_plane_no4"
+      ],
+      "extensionsUsed": [],
+      "files": [
+        "hand_plane_no4_1k.gltf",
+        "textures/hand_plane_no4_diff_1k.jpg",
+        "textures/hand_plane_no4_arm_1k.jpg",
+        "textures/hand_plane_no4_nor_gl_1k.jpg",
+        "hand_plane_no4.bin"
+      ]
+    },
+    {
+      "slug": "book_encyclopedia_set_01",
+      "variant": "1k",
+      "mainFile": "public/models/book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf",
+      "totalMB": 3.11,
+      "polycount": 67003,
+      "dimensionsMeters": [
+        0.0387,
+        0.2374,
+        0.1631
+      ],
+      "animations": [],
+      "nodeNames": [
+        "book_encyclopedia_set_01_book01",
+        "book_encyclopedia_set_01_book02",
+        "book_encyclopedia_set_01_book03",
+        "book_encyclopedia_set_01_book04",
+        "book_encyclopedia_set_01_book05",
+        "book_encyclopedia_set_01_book06",
+        "book_encyclopedia_set_01_book07",
+        "book_encyclopedia_set_01_book08",
+        "book_encyclopedia_set_01_book09",
+        "book_encyclopedia_set_01_book10",
+        "book_encyclopedia_set_01_book11",
+        "book_encyclopedia_set_01_book12",
+        "book_encyclopedia_set_01_book13",
+        "book_encyclopedia_set_01_book14",
+        "book_encyclopedia_set_01_book15",
+        "book_encyclopedia_set_01_book16",
+        "book_encyclopedia_set_01_book17",
+        "book_encyclopedia_set_01_book18",
+        "book_encyclopedia_set_01_book19",
+        "book_encyclopedia_set_01_book20"
+      ],
+      "meshCount": 20,
+      "materialNames": [
+        "book_encyclopedia_set_01_cover",
+        "book_encyclopedia_set_01_paper"
+      ],
+      "extensionsUsed": [],
+      "files": [
+        "book_encyclopedia_set_01_1k.gltf",
+        "textures/book_encyclopedia_set_01_cover_diff_1k.jpg",
+        "book_encyclopedia_set_01.bin",
+        "textures/book_encyclopedia_set_01_paper_nor_gl_1k.jpg",
+        "textures/book_encyclopedia_set_01_cover_arm_1k.jpg",
+        "textures/book_encyclopedia_set_01_cover_nor_gl_1k.jpg",
+        "textures/book_encyclopedia_set_01_paper_diff_1k.jpg",
+        "textures/book_encyclopedia_set_01_paper_roughness_1k.jpg"
+      ]
+    },
+    {
+      "slug": "lightbulb_led",
+      "variant": "1k",
+      "mainFile": "public/models/lightbulb_led/lightbulb_led_1k.gltf",
+      "totalMB": 1.17,
+      "polycount": 4004,
+      "dimensionsMeters": [
+        0.0614,
+        0.1003,
+        0.0614
+      ],
+      "animations": [],
+      "nodeNames": [
+        "lightbulb_led"
+      ],
+      "meshCount": 1,
+      "materialNames": [
+        "lightbulb_led"
+      ],
+      "extensionsUsed": [],
+      "files": [
+        "lightbulb_led_1k.gltf",
+        "lightbulb_led.bin",
+        "textures/lightbulb_led_nor_gl_1k.jpg",
+        "textures/lightbulb_led_diff_1k.jpg",
+        "textures/lightbulb_led_arm_1k.jpg"
+      ]
+    },
+    {
+      "slug": "rubber_duck_toy",
+      "variant": "1k",
+      "mainFile": "public/models/rubber_duck_toy/rubber_duck_toy_1k.gltf",
+      "totalMB": 0.7,
+      "polycount": 2489,
+      "dimensionsMeters": [
+        0.2135,
+        0.2855,
+        0.3
+      ],
+      "animations": [],
+      "nodeNames": [
+        "rubber_duck_toy"
+      ],
+      "meshCount": 1,
+      "materialNames": [
+        "rubber_duck_toy"
+      ],
+      "extensionsUsed": [
         "KHR_materials_specular",
         "KHR_materials_ior"
       ],
       "files": [
-        "mantel_clock_01.gltf",
-        "textures/mantel_clock_01_diff_1k.jpg",
-        "textures/mantel_clock_01_arm_1k.jpg",
-        "textures/mantel_clock_01_nor_gl_1k.jpg",
-        "mantel_clock_01.bin"
-      ]
-    },
-    {
-      "slug": "seadogs_compass",
-      "variant": "1k",
-      "mainFile": "public/models/seadogs_compass/seadogs_compass.gltf",
-      "totalMB": 2.57,
-      "polycount": 11645,
-      "dimensionsMeters": [
-        0.0813,
-        0.1501,
-        0.0872
-      ],
-      "animations": [],
-      "nodeNames": [
-        "seadogs_compass",
-        "seadogs_compass_lid",
-        "seadogs_compass_needle"
-      ],
-      "meshCount": 3,
-      "materialNames": [
-        "seadogs_compass"
-      ],
-      "extensionsUsed": [],
-      "files": [
-        "seadogs_compass.gltf",
-        "textures/seadogs_compass_nor_gl_1k.jpg",
-        "textures/seadogs_compass_diff_1k.jpg",
-        "textures/seadogs_compass_arm_1k.jpg",
-        "seadogs_compass.bin"
-      ]
-    },
-    {
-      "slug": "vintage_binocular",
-      "variant": "1k",
-      "mainFile": "public/models/vintage_binocular/vintage_binocular.gltf",
-      "totalMB": 2.62,
-      "polycount": 19362,
-      "dimensionsMeters": [
-        0.194,
-        0.1992,
-        0.0684
-      ],
-      "animations": [],
-      "nodeNames": [
-        "vintage_binocular_left_lens",
-        "vintage_binocular_left_prism",
-        "vintage_binocular_right_prism",
-        "vintage_binocular_middle",
-        "vintage_binocular_right_lens",
-        "vintage_binocular_eye_relief",
-        "vintage_binocular_focus",
-        "vintage_binocular_diopter"
-      ],
-      "meshCount": 8,
-      "materialNames": [
-        "vintage_binocular"
-      ],
-      "extensionsUsed": [],
-      "files": [
-        "vintage_binocular.gltf",
-        "textures/vintage_binocular_nor_gl_1k.jpg",
-        "textures/vintage_binocular_diff_1k.jpg",
-        "textures/vintage_binocular_arm_1k.jpg",
-        "vintage_binocular.bin"
-      ]
-    },
-    {
-      "slug": "retro_multimeter",
-      "variant": "1k",
-      "mainFile": "public/models/retro_multimeter/retro_multimeter.gltf",
-      "totalMB": 1.33,
-      "polycount": 13356,
-      "dimensionsMeters": [
-        0.216,
-        0.2026,
-        0.2786
-      ],
-      "animations": [],
-      "nodeNames": [
-        "retro_multimeter_LOD0",
-        "retro_multimeter_buttons_LOD0",
-        "retro_multimeter_handle_LOD0",
-        "retro_multimeter_dial_LOD0",
-        "retro_multimeter_knob_LOD0",
-        "retro_multimeter_cables_LOD0",
-        "retro_multimeter_needle_LOD0"
-      ],
-      "meshCount": 7,
-      "materialNames": [
-        "retro_multimeter",
-        "retro_multimeter_glass"
-      ],
-      "extensionsUsed": [],
-      "files": [
-        "retro_multimeter.gltf",
-        "textures/retro_multimeter_nor_gl_1k.jpg",
-        "textures/retro_multimeter_diff_1k.jpg",
-        "textures/retro_multimeter_arm_1k.jpg",
-        "retro_multimeter.bin"
-      ]
-    },
-    {
-      "slug": "vintage_video_camera",
-      "variant": "1k",
-      "mainFile": "public/models/vintage_video_camera/vintage_video_camera.gltf",
-      "totalMB": 2.58,
-      "polycount": 18682,
-      "dimensionsMeters": [
-        0.0712,
-        0.1326,
-        0.145
-      ],
-      "animations": [],
-      "nodeNames": [
-        "vintage_video_camera"
-      ],
-      "meshCount": 1,
-      "materialNames": [
-        "vintage_video_camera",
-        "vintage_video_camera_glass"
-      ],
-      "extensionsUsed": [],
-      "files": [
-        "vintage_video_camera.gltf",
-        "textures/vintage_video_camera_nor_gl_1k.jpg",
-        "textures/vintage_video_camera_diff_1k.jpg",
-        "textures/vintage_video_camera_arm_1k.jpg",
-        "vintage_video_camera.bin"
-      ]
-    },
-    {
-      "slug": "vintage_radio_transceiver",
-      "variant": "1k",
-      "mainFile": "public/models/vintage_radio_transceiver/vintage_radio_transceiver.gltf",
-      "totalMB": 6.01,
-      "polycount": 42350,
-      "dimensionsMeters": [
-        0.6182,
-        0.4179,
-        0.4344
-      ],
-      "animations": [],
-      "nodeNames": [
-        "vintage_radio_transceiver",
-        "vintage_radio_transceiver_dial",
-        "vintage_radio_transceiver_cable",
-        "vintage_radio_transceiver_antenna",
-        "vintage_radio_transceiver_antenna_plug_a",
-        "vintage_radio_transceiver_antenna_plug_b",
-        "vintage_radio_transceiver_cable_curve",
-        "vintage_radio_transceiver_microphone",
-        "vintage_radio_transceiver_microphone_plug",
-        "vintage_radio_transceiver_morse_key_arm",
-        "vintage_radio_transceiver_morse_key_base",
-        "vintage_radio_transceiver_morse_key_plug",
-        "vintage_radio_transceiver_speaker",
-        "vintage_radio_transceiver_speaker_plug",
-        "vintage_radio_transceiver_cables"
-      ],
-      "meshCount": 14,
-      "materialNames": [
-        "vintage_radio_transceiver",
-        "vintage_radio_transceiver_accessories"
-      ],
-      "extensionsUsed": [],
-      "files": [
-        "vintage_radio_transceiver.gltf",
-        "textures/vintage_radio_transceiver_nor_gl_1k.jpg",
-        "textures/vintage_radio_transceiver_diff_1k.jpg",
-        "textures/vintage_radio_transceiver_arm_1k.jpg",
-        "textures/vintage_radio_transceiver_accessories_nor_gl_1k.jpg",
-        "textures/vintage_radio_transceiver_accessories_diff_1k.jpg",
-        "textures/vintage_radio_transceiver_accessories_arm_1k.jpg",
-        "vintage_radio_transceiver.bin"
-      ]
-    },
-    {
-      "slug": "portable_searchlight",
-      "variant": "1k",
-      "mainFile": "public/models/portable_searchlight/portable_searchlight.gltf",
-      "totalMB": 1.84,
-      "polycount": 18802,
-      "dimensionsMeters": [
-        0.1653,
-        0.2534,
-        0.1853
-      ],
-      "animations": [],
-      "nodeNames": [
-        "portable_searchlight"
-      ],
-      "meshCount": 1,
-      "materialNames": [
-        "portable_searchlight",
-        "portable_searchlight_glass"
-      ],
-      "extensionsUsed": [],
-      "files": [
-        "portable_searchlight.gltf",
-        "textures/portable_searchlight_nor_gl_1k.jpg",
-        "textures/portable_searchlight_diff_1k.jpg",
-        "textures/portable_searchlight_arm_1k.jpg",
-        "portable_searchlight.bin"
-      ]
-    },
-    {
-      "slug": "brass_diya_lantern",
-      "variant": "1k",
-      "mainFile": "public/models/brass_diya_lantern/brass_diya_lantern.gltf",
-      "totalMB": 1.88,
-      "polycount": 12742,
-      "dimensionsMeters": [
-        0.123,
-        0.123,
-        0.3808
-      ],
-      "animations": [],
-      "nodeNames": [
-        "brass_diya_lantern_connection",
-        "brass_diya_lantern",
-        "brass_diya_lantern_chain"
-      ],
-      "meshCount": 3,
-      "materialNames": [
-        "brass_diya_lantern",
-        "brass_diya_lantern_glass",
-        "brass_diya_lantern_flame"
-      ],
-      "extensionsUsed": [],
-      "files": [
-        "brass_diya_lantern.gltf",
-        "textures/brass_diya_lantern_nor_gl_1k.jpg",
-        "textures/brass_diya_lantern_arm_1k.jpg",
-        "brass_diya_lantern.bin",
-        "textures/brass_diya_lantern_diff_1k.jpg"
-      ]
-    },
-    {
-      "slug": "vintage_microscope",
-      "variant": "1k",
-      "mainFile": "public/models/vintage_microscope/vintage_microscope.gltf",
-      "totalMB": 2.21,
-      "polycount": 20631,
-      "dimensionsMeters": [
-        0.1068,
-        0.1819,
-        0.3996
-      ],
-      "animations": [],
-      "nodeNames": [
-        "vintage_microscope_mirror_arm",
-        "vintage_microscope_condenser",
-        "vintage_microscope_rack_mount_support",
-        "vintage_microscope_base",
-        "vintage_microscope_mirror_base",
-        "vintage_microscope_eye_piece",
-        "vintage_microscope_adjustment",
-        "vintage_microscope_revolver"
-      ],
-      "meshCount": 8,
-      "materialNames": [
-        "vintage_microscope",
-        "vintage_microscope_glass"
-      ],
-      "extensionsUsed": [],
-      "files": [
-        "vintage_microscope.gltf",
-        "textures/vintage_microscope_nor_gl_1k.jpg",
-        "textures/vintage_microscope_diff_1k.jpg",
-        "textures/vintage_microscope_arm_1k.jpg",
-        "vintage_microscope.bin"
-      ]
-    },
-    {
-      "slug": "moon_rock_02",
-      "variant": "1k",
-      "mainFile": "public/models/moon_rock_02/moon_rock_02.gltf",
-      "totalMB": 1.45,
-      "polycount": 6194,
-      "dimensionsMeters": [
-        0.2472,
-        0.2519,
-        0.2023
-      ],
-      "animations": [],
-      "nodeNames": [
-        "moon_rock_02_LOD0"
-      ],
-      "meshCount": 1,
-      "materialNames": [
-        "moon_rock_02"
-      ],
-      "extensionsUsed": [],
-      "files": [
-        "moon_rock_02.gltf",
-        "textures/moon_rock_02_nor_gl_1k.jpg",
-        "textures/moon_rock_02_diff_1k.jpg",
-        "textures/moon_rock_02_arm_1k.jpg",
-        "moon_rock_02.bin"
+        "rubber_duck_toy_1k.gltf",
+        "textures/rubber_duck_toy_diff_1k.jpg",
+        "rubber_duck_toy.bin",
+        "textures/rubber_duck_toy_arm_1k.jpg",
+        "textures/rubber_duck_toy_nor_gl_1k.jpg"
       ]
     }
   ]
