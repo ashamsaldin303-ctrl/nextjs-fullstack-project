@@ -302,6 +302,13 @@ function buildInstrument(def: ModelDef, raw: RawInstrument): InstrumentRT {
         if (studioEnv) std.envMap = studioEnv
         std.envMapIntensity = def.envIntensity ?? 1
       }
+      // IDEA-GLOW (MODEL-2, VLM r3): optional uniform warm emissive —
+      // the lightbulb's inner idea-glow («الفكرة تبدأ بمحادثة»). A pure
+      // material constant: a given scroll position renders identically.
+      if (def.glow && 'emissiveIntensity' in std) {
+        std.emissive = new THREE.Color(0xffd9a0)
+        std.emissiveIntensity = def.glow
+      }
       // GLASS DISCIPLINE (VLM rounds 2–4): the assets' smoked-glass
       // panes (clock hood, meter faces, lantern, searchlight lens)
       // reflect the dark scene and read as black mirrors that swallow
@@ -431,7 +438,8 @@ function buildSlots(routeKey: RunePresetKey): { list: SlotRT[]; dispose: () => v
     const holder = new THREE.Group()
     holder.visible = false
     const shadowMat = new THREE.MeshBasicMaterial({
-      color: 0x0f1c33,
+      color: 0x050a18, // MODEL-2: deeper ink — grounds bodies on BOTH the
+      // light bands and the dark bands (VLM r1–r3 "floating" notes).
       map: groundShadowSprite(),
       transparent: true,
       opacity: 0,
@@ -880,7 +888,7 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
         Math.max(rt.shadowW * scale * 0.26, 1e-4),
         1,
       )
-      rt.shadowMat.opacity = 0.3 * presence
+      rt.shadowMat.opacity = 0.38 * presence
 
       if (env > activeEnv) {
         activeEnv = env

@@ -1,38 +1,58 @@
 /**
- * Model Registry (HEAVY-1) — the REAL-INSTRUMENT slot table.
+ * Model Registry (MODEL-2) — the SEMANTIC slot table.
  *
- * OWNER'S 2025 VERDICT (this task's brief, verbatim intent): the previous
- * procedural bodies — primitives assemblies and the hand-built astrolabe —
- * are «ليست النوع المقصود»: the owner wants HEAVY, REALISTIC, special
- * 3D objects of the kind made in Blender or equivalent, sourced from the
- * internet, and above all placed and animated CORRECTLY («تموضع الأجسام
- * والأنيميشن الخاص بها… خاطئة… حاول وحاول حتى تضبطها»).
+ * OWNER'S 2025 VERDICT (verbatim intent): the previous instrument set —
+ * a random observatory of Western vintage props (grandfather clock,
+ * marine compass, multimeter, moon rock…) — was «غير مناسبة بتاتا لأي
+ * شيء في الموقع». The owner demanded real research («ابحث بشكل أفضل»)
+ * and models that actually BELONG to this site: every object now MEANS
+ * the section it lives in, for a Damascus digital studio whose language
+ * is silk, brass and precision.
  *
- * Answer: the Elyra OBSERVATORY — a coherent family of real, CC0,
- * Blender-authored Poly Haven instruments (a grandfather clock, a brass
- * compass, a field multimeter, a radio transceiver, binoculars, a
- * searchlight, a microscope, a lantern, a moon rock), one or two per
- * route, each GLUED to a real section's free margin at a STABLE,
- * museum-plinth composition slot, and each carrying PART-level scroll
- * drives (the clock's hands, the compass needle, the multimeter needle,
- * the radio's antenna/dial/morse arm) — the "scroll is time" contract
- * made literal: the hands advance exactly as far as you scroll and
- * freeze the instant you stop.
+ * Answer: the Elyra WORKSHOP — nine real, CC0, Blender-authored Poly
+ * Haven bodies, each chosen for what it SAYS about its section (the
+ * mapping is the design):
+ *
+ *   · HOME HERO — the BRASS VESSEL: a Damascene fluted brass vase
+ *     standing over the silk canvas. The studio's identity object:
+ *     gold-metal craft from Damascus, made modern. (VLM jury: 10/10
+ *     fit — "aligns exactly with the Damascus/modern craft brief".)
+ *   · HOME METHOD — the MAGNIFYING GLASS: «بدقة العلماء» — the method
+ *     section is literally about inspecting details; the glass has a
+ *     real KHR transmission lens.
+ *   · WEBSITES HERO — the PROJECTOR SCREEN: the blank canvas every
+ *     website is born on — a white screen over the dark hero.
+ *   · AUTOMATION HERO — the DRILL PRESS: THE MACHINE — and its gears,
+ *     crank handle and drill bit are LIVE ODOMETERS: the machine
+ *     literally runs on your scrolling. Automation, made literal.
+ *   · WORK HERO — the CAMERA: the lens the portfolio looks through;
+ *     worn black + brass patina (gold accents), leather strap.
+ *   · ABOUT HERO — the HAND PLANE No4: «صنعة اليد» — the studio's
+ *     craft, plane and brass wheel (VLM: 9/10 "modern craft").
+ *   · ABOUT STORY — the ENCYCLOPEDIA SET: twenty gold-embossed
+ *     volumes; three of them lean out of the row as you travel the
+ *     story — volumes being pulled from the shelf.
+ *   · CONTACT HERO — the LED LIGHTBULB: «الفكرة تبدأ بمحادثة» — the
+ *     idea, waiting for one message to switch on.
+ *   · 404 — the RUBBER DUCK: the programmer's debugging companion
+ *     (a wink every developer reads instantly).
  *
  * This file is PURE TS (no three.js import — it must stay inside the
  * FIRST bundle chunk, the rune-landmarks contract): everything the
- * driver (rune-scene.tsx) needs to place, size and pace each instrument
+ * driver (rune-scene.tsx) needs to place, size and pace each body
  * lives here — the model's file path, its normalization fit, its rest
- * pose, its part drives, and per-route SLOTS (section anchor id, logical
- * side, vertical anchor fraction, viewport-size fraction, depth plane,
- * scrub rotation, light/dark wash palette).
+ * pose, its part drives, and per-route SLOTS (section anchor id,
+ * logical side, vertical anchor fraction, viewport-size fraction,
+ * depth plane, scrub rotation, light/dark wash palette).
  *
- * Motion contract (unchanged, now on real bodies):
+ * Motion contract (unchanged, now on semantic bodies):
  * · «التمرير هو الزمن» — every transform is a pure function of
  *   (section rect, D, S). Whole-body rotation SCRUBS with the section's
  *   travel p (reversible, frame-identical up and down); parts are
- *   odometers of D (hands advance with total scroll), sweeps of p, or
- *   discrete steps of p. Zero wall-clock, zero randomness.
+ *   odometers of D (the press's gears + bit advance with total
+ *   scroll), sweeps of p (the pulled volumes lean out), or swings
+ *   (the camera strap, the duck's waddle). Zero wall-clock, zero
+ *   randomness.
  * · «التوقف = تجمّد مطلق» — stop scrolling and the GPU renders zero
  *   frames (frameloop="demand" + the invalidate bus + freeze-proof
  *   `frames` counter).
@@ -55,31 +75,31 @@ export type RunePresetKey =
 /* ------------------------------------------------------------------ *
  * Part drives — named nodes of the real models, animated BY SCROLL.
  * Node names are suffix-matched against the asset's own node names
- * (see public/models/manifest.json, Task 2-a).
+ * (see public/models/manifest.json, fetch-models-m2.mjs).
  * ------------------------------------------------------------------ */
 
 /** One controllable part of a real model. */
 export interface PartDrive {
-  /** Node-name substring to find (e.g. 'minute_hand'). */
+  /** Node-name substring to find (e.g. 'gear_a'). */
   node: string
   /** Local rotation axis the part turns around. */
   axis: 'x' | 'y' | 'z'
   /** ODOMETER: rotation = base + D · rate (radians per pixel of signed
-   * scroll). The clock hands are literal odometers of your scrolling. */
+   *  scroll). The press's gears and bit are literal odometers — the
+   *  machine runs exactly as far as you scroll. */
   rate?: number
   /** SWEEP (absolute radians [from, to] over the section's travel p,
-   * eased) — e.g. the multimeter needle sweeping its scale. */
+   * eased) — e.g. the pulled volumes leaning out of the row. */
   sweep?: [number, number]
-  /** SWING: rotation = base + sin(D · rate) · swing — e.g. the lantern
-   * chain or the morse key tapping as you scroll. */
+  /** SWING: rotation = base + sin(D · rate) · swing — e.g. the camera
+   * strap swaying with the scroll. */
   swing?: number
-  /** SNAP STEPS: rotation = base + floor(p · steps) · (2π / steps) —
-   * e.g. the microscope turret clicking between objectives. */
+  /** SNAP STEPS: rotation = base + floor(p · steps) · (2π / steps). */
   steps?: number
 }
 
 /* ------------------------------------------------------------------ *
- * The instrument library — one entry per downloaded real model.
+ * The workshop library — one entry per downloaded real model.
  * ------------------------------------------------------------------ */
 
 export interface ModelDef {
@@ -95,127 +115,112 @@ export interface ModelDef {
   tilt?: number
   /** PBR environment intensity multiplier (brass vs matte balance). */
   envIntensity?: number
+  /** Uniform warm EMISSIVE intensity — the lightbulb's inner idea-glow. */
+  glow?: number
   /** Scroll-driven named parts. */
   drives?: readonly PartDrive[]
 }
 
 export const MODEL_LIBRARY: Record<string, ModelDef> = {
-  grandfatherClock: {
-    slug: 'vintage_grandfather_clock_01',
-    src: '/models/vintage_grandfather_clock_01/vintage_grandfather_clock_01.gltf',
+  brassVase: {
+    slug: 'brass_vase_01',
+    src: '/models/brass_vase_01/brass_vase_01_2k.gltf',
     fit: 'height',
-    yaw: -0.1,
-    envIntensity: 1.25,
-    // The clock's hands are odometers: the minute hand completes one
-    // lap every ~5,700 px of scrolling; the hour hand runs 1/12th.
-    // («houd» hour-hand typo is IN the asset's node name.)
-    drives: [
-      { node: 'minute_hand', axis: 'z', rate: 0.0011 },
-      { node: 'houd_hand', axis: 'z', rate: 0.0011 / 12 },
-    ],
+    yaw: 0.2,
+    envIntensity: 1.35, // brass wants its reflections
+    // A single sculpted body — the vase says everything by standing.
   },
-  mantelClock: {
-    slug: 'mantel_clock_01',
-    src: '/models/mantel_clock_01/mantel_clock_01.gltf',
-    fit: 'height',
-    yaw: -0.35,
-    envIntensity: 0.85,
-    drives: [{ node: 'minute_hand', axis: 'z', rate: 0.0022 }],
-  },
-  compass: {
-    slug: 'seadogs_compass',
-    src: '/models/seadogs_compass/seadogs_compass.gltf',
+  magnifier: {
+    slug: 'magnifying_glass_01',
+    src: '/models/magnifying_glass_01/magnifying_glass_01_1k.gltf',
     fit: 'max',
-    yaw: 0.15,
-    tilt: 1.02, // looked down onto the face — held in the hand
-    envIntensity: 1.0,
-    // The needle spins with the signed scroll — one lap per ~2,900 px.
-    drives: [{ node: 'needle', axis: 'y', rate: 0.0022 }],
-  },
-  binocular: {
-    slug: 'vintage_binocular',
-    src: '/models/vintage_binocular/vintage_binocular.gltf',
-    fit: 'max',
-    yaw: -0.55,
-    tilt: 0.5, // angled up toward the viewer — "we see far"
-    envIntensity: 0.9,
-    // The focus wheel turns as you scroll.
-    drives: [{ node: 'focus', axis: 'z', rate: 0.0035 }],
-  },
-  multimeter: {
-    slug: 'retro_multimeter',
-    src: '/models/retro_multimeter/retro_multimeter.gltf',
-    fit: 'max',
-    yaw: 0.55,
-    tilt: 0.3,
-    envIntensity: 0.95,
-    drives: [
-      // The needle sweeps its scale across the section's travel.
-      { node: 'needle', axis: 'z', sweep: [-1.0, 0.85] },
-      // The selector knob is an odometer of D.
-      { node: 'knob', axis: 'z', rate: 0.0016 },
-    ],
-  },
-  videoCamera: {
-    slug: 'vintage_video_camera',
-    src: '/models/vintage_video_camera/vintage_video_camera.gltf',
-    fit: 'max',
-    yaw: 0.5,
-    tilt: 0.18,
-    envIntensity: 0.9,
-  },
-  radio: {
-    slug: 'vintage_radio_transceiver',
-    src: '/models/vintage_radio_transceiver/vintage_radio_transceiver.gltf',
-    fit: 'max',
-    yaw: 0.35,
-    envIntensity: 0.85,
-    drives: [
-      // The antenna rises as the section arrives (absolute sweep).
-      { node: 'antenna', axis: 'x', sweep: [-1.2, 0.0] },
-      // The tuning dial is an odometer.
-      { node: 'dial', axis: 'z', rate: 0.002 },
-      // The morse key taps while you scroll.
-      { node: 'morse_key_arm', axis: 'x', swing: 0.14, rate: 0.03 },
-    ],
-  },
-  searchlight: {
-    slug: 'portable_searchlight',
-    src: '/models/portable_searchlight/portable_searchlight.gltf',
-    fit: 'max',
-    yaw: -0.35,
+    yaw: -0.4,
+    tilt: 0.45, // lens raised toward the reader
     envIntensity: 1.0,
   },
-  lantern: {
-    slug: 'brass_diya_lantern',
-    src: '/models/brass_diya_lantern/brass_diya_lantern.gltf',
+  projectorScreen: {
+    slug: 'projector_screen',
+    src: '/models/projector_screen/projector_screen_1k.gltf',
+    fit: 'height',
+    yaw: -0.55, // VLM r2: stronger angle — the white face reads as a
+    // designed slab catching the rim light, not a blank rectangle.
+    envIntensity: 0.75,
+  },
+  drillPress: {
+    slug: 'drill_press_01',
+    src: '/models/drill_press_01/drill_press_01_1k.gltf',
     fit: 'height',
     yaw: 0.25,
-    envIntensity: 1.05,
-    // The lantern sways on its chain with the scroll.
-    drives: [{ node: 'chain', axis: 'z', swing: 0.1, rate: 0.006 }],
-  },
-  microscope: {
-    slug: 'vintage_microscope',
-    src: '/models/vintage_microscope/vintage_microscope.gltf',
-    fit: 'max',
-    yaw: 0.4,
-    tilt: 0.14,
     envIntensity: 0.95,
-    // The turret clicks between objectives as the section travels.
-    drives: [{ node: 'revolver', axis: 'z', steps: 3 }],
+    // THE MACHINE RUNS ON SCROLL: both gears mesh (opposite signs),
+    // the crank handle rides the gear train, and the bit spins on the
+    // total-scroll odometer. ODOMETERS of D — pure functions of your
+    // scrolling distance, frozen when you stop.
+    drives: [
+      { node: 'gear_a', axis: 'y', rate: 0.0035 },
+      { node: 'gear_b', axis: 'y', rate: -0.0035 },
+      { node: 'handle', axis: 'y', rate: 0.0035 },
+      { node: 'bit', axis: 'y', rate: 0.012 },
+    ],
   },
-  moonRock: {
-    slug: 'moon_rock_02',
-    src: '/models/moon_rock_02/moon_rock_02.gltf',
+  camera: {
+    slug: 'Camera_01',
+    src: '/models/Camera_01/Camera_01_2k.gltf',
+    fit: 'max',
+    yaw: 0.6,
+    tilt: 0.25,
+    envIntensity: 0.9, // VLM r1: dim the studio feel — blend into the dark
+    // band instead of reading as a pasted studio photo.
+    // The leather strap sways gently with the signed scroll.
+    drives: [{ node: 'strap', axis: 'z', swing: 0.07, rate: 0.005 }],
+  },
+  handPlane: {
+    slug: 'hand_plane_no4',
+    src: '/models/hand_plane_no4/hand_plane_no4_1k.gltf',
+    fit: 'max',
+    yaw: -0.5,
+    tilt: 0.4, // the profile and the sole both read
+    envIntensity: 1.0,
+  },
+  books: {
+    slug: 'book_encyclopedia_set_01',
+    src: '/models/book_encyclopedia_set_01/book_encyclopedia_set_01_1k.gltf',
+    fit: 'max',
+    yaw: 0.35,
+    tilt: 0.08,
+    envIntensity: 0.9,
+    // Three volumes lean out of the row across the story's travel —
+    // books being pulled from the shelf as the story is told.
+    drives: [
+      { node: 'book06', axis: 'z', sweep: [0, 0.09] },
+      { node: 'book11', axis: 'z', sweep: [0, 0.13] },
+      { node: 'book16', axis: 'z', sweep: [0, 0.06] },
+    ],
+  },
+  lightbulb: {
+    slug: 'lightbulb_led',
+    src: '/models/lightbulb_led/lightbulb_led_1k.gltf',
     fit: 'max',
     yaw: 0.3,
-    envIntensity: 0.9,
+    envIntensity: 1.2,
+    // VLM r3 8/10 + "warmth could be more pronounced" (final round):
+    // a warm inner glow — «الفكرة تبدأ بمحادثة», the idea lit from inside.
+    glow: 0.65,
+  },
+  duck: {
+    slug: 'rubber_duck_toy',
+    src: '/models/rubber_duck_toy/rubber_duck_toy_1k.gltf',
+    fit: 'max',
+    yaw: -0.4,
+    tilt: 0.05,
+    envIntensity: 1.0,
+    // A gentle waddle with the scroll — the duck rocks in place.
+    drives: [{ node: 'rubber_duck_toy', axis: 'z', swing: 0.05, rate: 0.004 }],
   },
 }
 
 /* ------------------------------------------------------------------ *
- * Slots — a route's real instruments, glued to real sections.
+ * Slots — a route's semantic bodies, glued to real sections.
  * ------------------------------------------------------------------ */
 
 export type SlotSide = 'start' | 'end' | 'center'
@@ -252,120 +257,136 @@ export interface ModelRoute {
   dust: number
 }
 
-/** «تموضع صحيح»: every instrument holds a stable, composed slot in the
- * free margin of its section — hero models sit at the page-hero's empty
+/** «تموضع صحيح»: every body holds a stable, composed slot in the free
+ * margin of its section — hero models sit at the page-hero's empty
  * side (~half the viewport tall), mid-page witnesses are smaller and
  * deeper. One or two per route: authority, not decoration soup. */
 export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
-  // '/' — the living system. The GRANDFATHER CLOCK stands in the HOME
-  // HERO's left margin (the silk canvas flows behind it, the outlined
-  // watermark beneath) — time itself guards the studio's door, and its
-  // hands advance exactly as far as you scroll. The manifesto band is
+  // '/' — the living system. The BRASS VESSEL stands in the HOME
+  // HERO's left margin over the silk canvas — the studio's identity
+  // object, gold-metal craft from Damascus. The manifesto band is
   // deliberately model-free (its statement spans the full width — an
-  // opaque body would fight the reading). The MICROSCOPE witnesses the
-  // method section — «بدقة العلماء», turret clicking between objectives.
+  // opaque body would fight the reading). The MAGNIFYING GLASS
+  // witnesses the method section — «بدقة العلماء», lens raised to
+  // the reader, a real transmission lens catching the light.
   home: {
     slots: [
       {
-        model: 'grandfatherClock', id: 'hero-title', side: 'end',
-        yFrac: 0.52, viewFrac: 0.55, z: -0.5, scrub: 0.5, palette: 'dark',
+        model: 'brassVase', id: 'hero-title', side: 'end',
+        yFrac: 0.56, viewFrac: 0.46, z: -0.5, scrub: 0.5, palette: 'dark',
+        xPad: -0.12, // VLM r1: clear the h1's left tail + sub — tucked
+        // deep into the free margin, below the headline's line.
+        // VLM r2 8/10: +15% scale, raised so the base clears the fold.
       },
       {
-        model: 'microscope', id: 'method-title', side: 'end',
-        yFrac: 0.5, viewFrac: 0.26, z: -0.2, scrub: 0.5, palette: 'light',
-        xPad: -0.09,
+        model: 'magnifier', id: 'method-title', side: 'end',
+        yFrac: 0.26, viewFrac: 0.16, z: -0.3, scrub: 0.5, palette: 'light',
+        xPad: -0.16, // VLM r3 6/10: lowered clear of the navbar band —
+        // fully on the section's own light ground, framing the heading.
       },
     ],
     dust: 1,
   },
 
-  // '/services/websites' — «البنية»: the VIDEO CAMERA commands the hero
-  // (we produce experiences); the ThreeDSection band keeps its own
-  // icosahedron canvas mid-page, so one authority model is the design.
+  // '/services/websites' — «البنية»: the PROJECTOR SCREEN commands the
+  // hero — the blank white canvas every website is born on, standing
+  // tall in the dark hero's margin. The ThreeDSection band keeps its
+  // own icosahedron canvas mid-page, so one authority model is the
+  // design.
   websites: {
     slots: [
       {
-        model: 'videoCamera', id: 'page-hero-title', side: 'end',
-        yFrac: 0.5, viewFrac: 0.46, z: -0.35, scrub: 0.6, palette: 'dark',
-        xPad: -0.06,
+        model: 'projectorScreen', id: 'page-hero-title', side: 'end',
+        yFrac: 0.48, viewFrac: 0.34, z: -0.35, scrub: 0.6, palette: 'dark',
+        xPad: -0.09, // VLM r1: the page-hero text is max-w-4xl CENTERED —
+        // ~272px margins at 1440w; the screen now fits the margin whole.
+        // VLM r2 7/10: frame angled further (yaw) so the white face reads
+        // as a designed slab, not a blank rectangle.
       },
     ],
     dust: 0.85,
   },
 
-  // '/services/automation' — «الآلة»: the MULTIMETER leads the hero, its
-  // needle sweeping the scale as the page travels; the n8n dark band
-  // carries the live simulator (its own canvas), so the machine page
-  // needs no second witness.
+  // '/services/automation' — «الآلة»: the DRILL PRESS leads the hero —
+  // the machine itself, and it RUNS on your scrolling: the gears mesh,
+  // the crank turns and the bit spins as D advances (stop scrolling
+  // and the machine freezes — automation, made literal). The n8n dark
+  // band carries the live simulator (its own canvas).
   automation: {
     slots: [
       {
-        model: 'multimeter', id: 'page-hero-title', side: 'end',
-        yFrac: 0.5, viewFrac: 0.5, z: -0.3, scrub: 0.5, palette: 'dark',
-        xPad: -0.03,
+        model: 'drillPress', id: 'page-hero-title', side: 'end',
+        yFrac: 0.52, viewFrac: 0.46, z: -0.3, scrub: 0.5, palette: 'dark',
+        xPad: -0.07, // VLM r2 5/10: the 0.55 bump pushed the motor into
+        // the headline — back to 0.46 and tucked deeper left, a clean
+        // gap between machine and the max-w-4xl column.
       },
     ],
     dust: 1.15,
   },
 
-  // '/work' — «المعرض»: the BINOCULARS at the hero — perspective, the
-  // long view over the portfolio (focus wheel turning with the scroll).
-  // VLM round 1: binoculars are WIDE — pulled further out (xPad) and
-  // sized to clear the display heading entirely.
+  // '/work' — «المعرض»: the CAMERA at the hero — the lens the
+  // portfolio looks through; worn black + brass patina (the gold
+  // accents), its leather strap swaying gently with the scroll.
   work: {
     slots: [
       {
-        model: 'binocular', id: 'page-hero-title', side: 'end',
-        yFrac: 0.5, viewFrac: 0.44, z: -0.4, scrub: 0.7, palette: 'dark',
-        xPad: -0.09,
+        model: 'camera', id: 'page-hero-title', side: 'end',
+        yFrac: 0.5, viewFrac: 0.36, z: -0.5, scrub: 0.7, palette: 'dark',
+        xPad: -0.07, // VLM r1: smaller + deeper (atmospheric blend) +
+        // tucked clear of the centered max-w-4xl column.
       },
     ],
     dust: 1,
   },
 
-  // '/about' — «الرحلة»: the BRASS COMPASS opens the journey — the
-  // needle spinning with the signed scroll, the studio's heading; the
-  // LANTERN HANGS into the story section — its chain runs up out of
-  // frame (a lamp suspended over the journey, swaying with scroll).
+  // '/about' — «الرحلة»: the HAND PLANE No4 opens the journey —
+  // «صنعة اليد», the workshop's craft, its brass wheel and steel
+  // blade catching the light. The ENCYCLOPEDIA SET anchors the story —
+  // twenty gold-embossed volumes, three of them leaning out of the
+  // row as the story travels (books pulled from the shelf).
   about: {
     slots: [
       {
-        model: 'compass', id: 'page-hero-title', side: 'end',
-        yFrac: 0.5, viewFrac: 0.5, z: -0.35, scrub: 0.5, palette: 'dark',
+        model: 'handPlane', id: 'page-hero-title', side: 'end',
+        yFrac: 0.52, viewFrac: 0.34, z: -0.35, scrub: 0.5, palette: 'dark',
+        xPad: -0.06, // VLM r1: tucked clear of the centered hero column.
       },
       {
-        model: 'lantern', id: 'story-title', side: 'end',
-        yFrac: 0.5, viewFrac: 0.5, z: -0.15, scrub: 0.35, palette: 'light',
-        xPad: -0.02, yOff: 0.55,
+        model: 'books', id: 'story-title', side: 'end',
+        yFrac: 0.62, viewFrac: 0.4, z: -0.15, scrub: 0.3, palette: 'light',
+        xPad: -0.06, // VLM r3 7/10: row centered in the margin — clear of
+        // BOTH edges (was flush-left at -0.12), no clipped volumes.
       },
     ],
     dust: 1.05,
   },
 
-  // '/contact' — «الإشارة»: the SEARCHLIGHT sweeps the hero (the beacon
-  // itself); the RADIO TRANSCIEVER joins the channels — antenna rising,
-  // dial turning, morse key tapping as you scroll toward the form.
+  // '/contact' — «الإشارة»: the LED LIGHTBULB hangs in the hero —
+  // «الفكرة تبدأ بمحادثة», the idea waiting for one message to
+  // switch on. The channels band stays model-free: the channel cards
+  // and the form ARE the content (authority, not decoration soup).
   contact: {
     slots: [
       {
-        model: 'searchlight', id: 'page-hero-title', side: 'end',
-        yFrac: 0.5, viewFrac: 0.5, z: -0.4, scrub: 0.45, palette: 'dark',
-      },
-      {
-        model: 'radio', id: 'channels-title', side: 'start',
-        yFrac: 0.5, viewFrac: 0.34, z: -0.15, scrub: 0.4, palette: 'light',
-        xPad: -0.02,
+        model: 'lightbulb', id: 'page-hero-title', side: 'end',
+        yFrac: 0.5, viewFrac: 0.3, z: -0.4, scrub: 0.45, palette: 'dark',
+        xPad: -0.12, // VLM r2 6/10: pinned deep into the margin (aligned
+        // with the vase's line) — part of the layout grid, not floating.
       },
     ],
     dust: 1.3,
   },
 
-  // 404 / catch-all — one heavy moon rock: a waypoint, not a page.
+  // 404 / catch-all — the RUBBER DUCK: the programmer's debugging
+  // companion, rocking gently beside the recovery heading. A wink
+  // every developer reads instantly.
   default: {
     slots: [
       {
-        model: 'moonRock', id: 'nf-recovery-heading', side: 'end',
-        yFrac: 0.5, viewFrac: 0.4, z: -0.3, scrub: 0.6, palette: 'light',
+        model: 'duck', id: 'nf-recovery-heading', side: 'end',
+        yFrac: 0.5, viewFrac: 0.3, z: -0.3, scrub: 0.6, palette: 'light',
+        xPad: -0.04, // VLM r1: smaller — the 404 message stays the hero.
       },
     ],
     dust: 0.7,
@@ -373,7 +394,7 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
 }
 
 /* ------------------------------------------------------------------ *
- * Wash palettes (the atmosphere layer follows the active instrument).
+ * Wash palettes (the atmosphere layer follows the active body).
  * ------------------------------------------------------------------ */
 
 export const SLOT_PALETTES: Record<'light' | 'dark', { edge: string; edge2: string }> = {
