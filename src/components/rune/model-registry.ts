@@ -66,10 +66,33 @@ export type RunePresetKey =
   | 'default'
 
 /* ------------------------------------------------------------------ *
- * Part drives — named nodes of the kits, driven by SCROLL (p, D) and
- * modulated by POINTER proximity. Node names are matched against the
- * kit's own node names (tech-kits.ts).
+ * Part drives — named nodes of the kits, driven by SCROLL (p, D),
+ * modulated by POINTER proximity, and kept ALIVE by the life clock
+ * (MODEL-5). Node names are matched against the kit's own node
+ * names (tech-kits.ts).
  * ------------------------------------------------------------------ */
+
+/** MODEL-5 idle spec — the drive's own LIFE-CLOCK choreography while
+ * its body is visible (all presence-scaled in the scene; frozen by
+ * construction when the loop parks — the life clock only advances
+ * while frames render).
+ *  · harmonic (slides/rotations): amp·sin(life·2π·hz + phase)
+ *  · unipolar (scales/glows):    amp·(0.5 + 0.5·sin(…)) — never below
+ *    the authored base
+ *  · spin (rotations):           amp·life — linear rad/s, the
+ *    odometers keep turning for the reading visitor. */
+export interface IdleSpec {
+  /** Amplitude — world units (slides), radians (rotations/spins) or
+   *  delta units (scales/glows) per the drive's mode. */
+  amp: number
+  /** Frequency in HERTZ (ignored for spin — amp there is rad/s). */
+  hz: number
+  /** Phase offset (radians) — staggers siblings so a kit's parts
+   *  never move in lockstep. */
+  phase?: number
+  /** Linear spin mode: rot += amp·life (amp = rad/s). */
+  spin?: boolean
+}
 
 /** One controllable part of a body. */
 export interface PartDrive {
@@ -116,14 +139,19 @@ export interface PartDrive {
   /** BOOST: extra glow delta added in proportion to pointer
    *  proximity — graph nodes feeling your presence. */
   boost?: number
-  /** BLINK: glow delta is multiplied by a D-clocked pulse
-   *  (0.55 + 0.45·sin(D·0.05)) — the caret types while you scroll,
-   *  deterministically (pure f(D), no wall-clock). */
+  /** BLINK: glow delta is multiplied by a LIFE-clocked pulse
+   *  (0.55 + 0.45·sin(life·6.2)) — the caret types and the lamps
+   *  breathe for the READING visitor (MODEL-5: alive while visible;
+   *  pure f(life), frozen when the loop parks). */
   blink?: boolean
   /** MIRROR: slide-x offsets flip sign when the writing direction is
    *  LTR (kits are authored RTL-first) — packets fly toward the
    *  reading column in both locales. */
   mirror?: boolean
+  /** MODEL-5 IDLE: this part's life-clock choreography (see IdleSpec)
+   *  — the workpiece hovers on its rail, plates breathe, lamps pulse,
+   *  gyro rings keep spinning while the body is visible. */
+  idle?: IdleSpec
 }
 
 /* ------------------------------------------------------------------ *
@@ -147,6 +175,11 @@ export interface ModelDef {
    *  pointer (radians at full NDC deflection) and its hover-lift
    *  weight (0 = no lift; 1 = the full designed lift). */
   react?: { lean?: number; hover?: number }
+  /** MODEL-5 IDLE ENERGY — this body's temperament multiplier for the
+   *  whole-body breathing (bob/sway/breath): 1 = the default calm
+   *  presence, <1 = a stiller body (the obsessively precise exploded
+   *  detail), >1 = a busier one (the always-running flow graph). */
+  idleEnergy?: number
   /** Scroll-driven named parts. */
   drives?: readonly PartDrive[]
 }
@@ -160,6 +193,7 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     tilt: 0.26, // read the top screen AND the layers' depth separation
     envIntensity: 1.05,
     react: { lean: 0.12, hover: 1 },
+    idleEnergy: 1,
     // THE EXPERIENCE ASSEMBLES (VLM r2 retune): the three offering
     // layers hold a WIDE exploded separation through the entry and
     // only lock across the middle third — at the natural reading
@@ -170,13 +204,17 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     // the scroll clock; hovering re-opens the layers (peek) — the
     // exploded view answers your hand.
     drives: [
-      { node: 'layer_site', axis: 'y', slide: [0.3, 0], win: [0.08, 0.62], peek: 0.22 },
-      { node: 'layer_flow', axis: 'y', slide: [-0.3, 0], win: [0.08, 0.62], peek: -0.22 },
-      { node: 'gyro_ring_a', axis: 'x', rate: 0.02 },
-      { node: 'gyro_ring_b', axis: 'y', rate: -0.016 },
-      { node: 'gyro_core', axis: 'z', glow: [0, 1.4], win: [0.2, 0.7], boost: 1.2 },
-      { node: 'site_edge', axis: 'z', glow: [0, 2.2], win: [0.18, 0.6], boost: 1.1 },
-      { node: 'flow_edge', axis: 'z', glow: [0, 0.9], win: [0.38, 0.78], boost: 0.8 },
+      // MODEL-5 idle: the assembled experience keeps breathing — the
+      // site and flow layers float in counter-phase (the stack gently
+      // re-explodes/re-assembles), the gyroscope rings keep spinning,
+      // the edge lights and core shimmer.
+      { node: 'layer_site', axis: 'y', slide: [0.3, 0], win: [0.08, 0.62], peek: 0.22, idle: { amp: 0.018, hz: 0.16 } },
+      { node: 'layer_flow', axis: 'y', slide: [-0.3, 0], win: [0.08, 0.62], peek: -0.22, idle: { amp: 0.018, hz: 0.16, phase: Math.PI } },
+      { node: 'gyro_ring_a', axis: 'x', rate: 0.02, idle: { amp: 0.45, hz: 0, spin: true } },
+      { node: 'gyro_ring_b', axis: 'y', rate: -0.016, idle: { amp: -0.32, hz: 0, spin: true } },
+      { node: 'gyro_core', axis: 'z', glow: [0, 1.4], win: [0.2, 0.7], boost: 1.2, idle: { amp: 0.6, hz: 0.45 } },
+      { node: 'site_edge', axis: 'z', glow: [0, 2.2], win: [0.18, 0.6], boost: 1.1, idle: { amp: 0.5, hz: 0.35 } },
+      { node: 'flow_edge', axis: 'z', glow: [0, 0.9], win: [0.38, 0.78], boost: 0.8, idle: { amp: 0.35, hz: 0.28, phase: 1.5 } },
       { node: 'flow_packet', axis: 'z', glow: [0, 2.4], win: [0.45, 0.85], boost: 1.5, blink: true },
     ],
   },
@@ -188,6 +226,7 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     tilt: 0.52, // the rail reads from above — the journey's direction
     envIntensity: 1.1,
     react: { lean: 0.1, hover: 0.8 },
+    idleEnergy: 0.9,
     // THE JOURNEY RUNS (VLM r2 retune): the workpiece rides the rail
     // across the WHOLE presence band; each gate's LED ignites exactly
     // as the workpiece CROSSES it (windows computed from the ride:
@@ -196,11 +235,14 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     // deterministically; the launch beacon lights at the far end —
     // «من الفكرة إلى الإطلاق», reversible step by step.
     drives: [
-      { node: 'workpiece', axis: 'x', slide: [0, 1.44], win: [0.08, 0.92] },
-      { node: 'gate_led_0', axis: 'z', glow: [0, 2], win: [0.08, 0.22], blink: true },
-      { node: 'gate_led_1', axis: 'z', glow: [0, 2], win: [0.34, 0.48], blink: true },
-      { node: 'gate_led_2', axis: 'z', glow: [0, 2], win: [0.6, 0.74], blink: true },
-      { node: 'gate_led_3', axis: 'z', glow: [0, 2], win: [0.85, 0.98], blink: true },
+      // MODEL-5 idle: the workpiece HOVERS along the rail (the journey
+      // never quite stops breathing) and the gate lamps keep watch with
+      // staggered pulses (blink rides the life clock now).
+      { node: 'workpiece', axis: 'x', slide: [0, 1.44], win: [0.08, 0.92], idle: { amp: 0.02, hz: 0.22 } },
+      { node: 'gate_led_0', axis: 'z', glow: [0, 2], win: [0.08, 0.22], blink: true, idle: { amp: 0.5, hz: 0.5 } },
+      { node: 'gate_led_1', axis: 'z', glow: [0, 2], win: [0.34, 0.48], blink: true, idle: { amp: 0.5, hz: 0.5, phase: 1.57 } },
+      { node: 'gate_led_2', axis: 'z', glow: [0, 2], win: [0.6, 0.74], blink: true, idle: { amp: 0.5, hz: 0.5, phase: 3.14 } },
+      { node: 'gate_led_3', axis: 'z', glow: [0, 2], win: [0.85, 0.98], blink: true, idle: { amp: 0.5, hz: 0.5, phase: 4.71 } },
       { node: 'beacon_tip', axis: 'z', glow: [0, 2.2], win: [0.9, 1], blink: true },
     ],
   },
@@ -212,6 +254,7 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     tilt: 0.1,
     envIntensity: 1.15,
     react: { lean: 0.07, hover: 0.9 },
+    idleEnergy: 0.8,
     // THE WEBSITE BUILDS ITSELF (VLM r2 retune): chrome first, then
     // the URL loading, then the content blocks rising into place in
     // sequence (nav → hero → cards → CTA) across the WHOLE stay —
@@ -220,14 +263,17 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     // the visitor's real pointer (follow): the site assembles under
     // your hand.
     drives: [
+      // MODEL-5 idle: the born page keeps settling into place — the
+      // hero block breathes its height, the CTA warms rhythmically.
+      // (The cursor stays pure-follow: it mirrors YOUR hand.)
       { node: 'blk_nav', axis: 'y', slide: [0.2, 0], win: [0.08, 0.26] },
-      { node: 'url_load', axis: 'x', slide: [0, 0.24], win: [0.06, 0.3] },
-      { node: 'blk_hero', axis: 'y', slide: [0.28, 0], win: [0.18, 0.42] },
+      { node: 'url_load', axis: 'x', slide: [0, 0.24], win: [0.06, 0.3], idle: { amp: 0.012, hz: 0.3 } },
+      { node: 'blk_hero', axis: 'y', slide: [0.28, 0], win: [0.18, 0.42], idle: { amp: 0.02, hz: 0.2 } },
       { node: 'blk_aside', axis: 'y', slide: [0.28, 0], win: [0.26, 0.5] },
       { node: 'blk_card_0', axis: 'y', slide: [0.26, 0], win: [0.36, 0.58] },
       { node: 'blk_card_1', axis: 'y', slide: [0.26, 0], win: [0.44, 0.66] },
       { node: 'blk_card_2', axis: 'y', slide: [0.26, 0], win: [0.52, 0.74] },
-      { node: 'blk_cta', axis: 'y', slide: [0.2, 0], win: [0.62, 0.82], glow: [0, 1.4], boost: 1.3 },
+      { node: 'blk_cta', axis: 'y', slide: [0.2, 0], win: [0.62, 0.82], glow: [0, 1.4], boost: 1.3, idle: { amp: 0.45, hz: 0.4 } },
       { node: 'ui_cursor', axis: 'x', slide: [0.34, 0.2], follow: true },
     ],
   },
@@ -239,6 +285,7 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     tilt: 0.36, // look INTO the graph — the wires' zigzag reads
     envIntensity: 1.1,
     react: { lean: 0.1, hover: 1 },
+    idleEnergy: 1.25,
     // THE WORKFLOW RUNS (VLM r2 retune): three packets hop
     // node-to-node in sequence — now each packet's OWN glow BLINKS on
     // the scroll clock while it flies (the r1 verdict "where are the
@@ -247,20 +294,24 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     // departs); every node also glows brighter when the pointer nears
     // (boost) — the system feels you touching it.
     drives: [
-      { node: 'packet_0', axis: 'x', slide: [0, 0.23], win: [0.06, 0.3] },
-      { node: 'packet_0', axis: 'y', slide: [0, 0.21] },
+      // MODEL-5 idle: the system RUNS while you watch — packets jitter
+      // along their wires (data still flowing), the node lamps wave in
+      // sequence (an idle heartbeat through the workflow) — the most
+      // energetic body in the set («أنظمة تعمل، وأنت نائم»).
+      { node: 'packet_0', axis: 'x', slide: [0, 0.23], win: [0.06, 0.3], idle: { amp: 0.02, hz: 0.35 } },
+      { node: 'packet_0', axis: 'y', slide: [0, 0.21], idle: { amp: 0.014, hz: 0.35, phase: 1.5 } },
       { node: 'packet_0', axis: 'z', glow: [0, 2.6], win: [0.06, 0.3], blink: true },
-      { node: 'packet_1', axis: 'x', slide: [0, 0.22], win: [0.36, 0.6] },
-      { node: 'packet_1', axis: 'y', slide: [0, 0.22] },
+      { node: 'packet_1', axis: 'x', slide: [0, 0.22], win: [0.36, 0.6], idle: { amp: 0.02, hz: 0.35, phase: 2.1 } },
+      { node: 'packet_1', axis: 'y', slide: [0, 0.22], idle: { amp: 0.014, hz: 0.35, phase: 3.6 } },
       { node: 'packet_1', axis: 'z', glow: [0, 2.6], win: [0.36, 0.6], blink: true },
-      { node: 'packet_2', axis: 'x', slide: [0, 0.23], win: [0.66, 0.9] },
-      { node: 'packet_2', axis: 'y', slide: [0, -0.17] },
+      { node: 'packet_2', axis: 'x', slide: [0, 0.23], win: [0.66, 0.9], idle: { amp: 0.02, hz: 0.35, phase: 4.2 } },
+      { node: 'packet_2', axis: 'y', slide: [0, -0.17], idle: { amp: 0.014, hz: 0.35, phase: 5.1 } },
       { node: 'packet_2', axis: 'z', glow: [0, 2.6], win: [0.66, 0.9], blink: true },
-      { node: 'node_1', axis: 'z', glow: [0, 1.6], win: [0.24, 0.4], boost: 1.4 },
-      { node: 'node_2', axis: 'z', glow: [0, 1.4], win: [0.34, 0.5], boost: 1.4 },
-      { node: 'node_3', axis: 'z', glow: [0, 1.6], win: [0.54, 0.7], boost: 1.4 },
-      { node: 'node_4', axis: 'z', glow: [0, 1.9], win: [0.84, 1], boost: 1.6 },
-      { node: 'node_0', axis: 'z', glow: [0, 1.2], boost: 1.4 },
+      { node: 'node_1', axis: 'z', glow: [0, 1.6], win: [0.24, 0.4], boost: 1.4, idle: { amp: 0.5, hz: 0.25 } },
+      { node: 'node_2', axis: 'z', glow: [0, 1.4], win: [0.34, 0.5], boost: 1.4, idle: { amp: 0.5, hz: 0.25, phase: 1.256 } },
+      { node: 'node_3', axis: 'z', glow: [0, 1.6], win: [0.54, 0.7], boost: 1.4, idle: { amp: 0.5, hz: 0.25, phase: 2.512 } },
+      { node: 'node_4', axis: 'z', glow: [0, 1.9], win: [0.84, 1], boost: 1.6, idle: { amp: 0.55, hz: 0.25, phase: 3.768 } },
+      { node: 'node_0', axis: 'z', glow: [0, 1.2], boost: 1.4, idle: { amp: 0.5, hz: 0.25, phase: 5.024 } },
     ],
   },
   resultsDeck: {
@@ -271,6 +322,7 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     tilt: 0.14,
     envIntensity: 1.05,
     react: { lean: 0.11, hover: 1 },
+    idleEnergy: 0.85,
     // THE RESULTS GROW (VLM r2 retune, gallery-ring rebuild): the
     // carousel turns gently with the travel (60° — the front screen
     // stays readable; the r1 "screens angled awkwardly" was the full
@@ -278,11 +330,14 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     // bar across the whole stay — «نتائج تتحدث بالأرقام», the numbers
     // themselves ascending. The hub LED wakes with the chart.
     drives: [
-      { node: 'chart_bar_0', axis: 'y', scale: [0.02, 1], win: [0.15, 0.5] },
-      { node: 'chart_bar_1', axis: 'y', scale: [0.02, 1], win: [0.28, 0.62] },
-      { node: 'chart_bar_2', axis: 'y', scale: [0.02, 1], win: [0.42, 0.75] },
-      { node: 'chart_bar_3', axis: 'y', scale: [0.02, 1], win: [0.55, 0.88] },
-      { node: 'hub_led', axis: 'z', glow: [0, 2.2], win: [0.3, 0.72], boost: 1.2 },
+      // MODEL-5 idle: the numbers keep living — the chart bars swell in
+      // a staggered heartbeat (results GROW even while you read), the
+      // hub lamp breathes.
+      { node: 'chart_bar_0', axis: 'y', scale: [0.02, 1], win: [0.15, 0.5], idle: { amp: 0.03, hz: 0.18 } },
+      { node: 'chart_bar_1', axis: 'y', scale: [0.02, 1], win: [0.28, 0.62], idle: { amp: 0.03, hz: 0.18, phase: 0.8 } },
+      { node: 'chart_bar_2', axis: 'y', scale: [0.02, 1], win: [0.42, 0.75], idle: { amp: 0.03, hz: 0.18, phase: 1.6 } },
+      { node: 'chart_bar_3', axis: 'y', scale: [0.02, 1], win: [0.55, 0.88], idle: { amp: 0.03, hz: 0.18, phase: 2.4 } },
+      { node: 'hub_led', axis: 'z', glow: [0, 2.2], win: [0.3, 0.72], boost: 1.2, idle: { amp: 0.6, hz: 0.4 } },
     ],
   },
   explodedDetail: {
@@ -293,17 +348,22 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     tilt: 0.48, // look INTO the opened stack — the details are the point
     envIntensity: 1.2,
     react: { lean: 0.12, hover: 1 },
+    idleEnergy: 0.6,
     // SMALL THING, OPENED: the compact module's five plates fan out
     // through the entry and hold the open span into the middle of the
     // stay (the fan is the point — r2 keeps it readable longer); the
     // LED waking mid-stay; hovering pulls the plates further apart
     // (peek) — the obsession, on demand.
     drives: [
-      { node: 'plate_0', axis: 'y', slide: [-0.12, 0], win: [0.08, 0.55], peek: -0.08 },
-      { node: 'plate_1', axis: 'y', slide: [-0.06, 0], win: [0.12, 0.6], peek: -0.05 },
-      { node: 'plate_3', axis: 'y', slide: [0.06, 0], win: [0.12, 0.6], peek: 0.05 },
-      { node: 'plate_4', axis: 'y', slide: [0.12, 0], win: [0.08, 0.55], peek: 0.08 },
-      { node: 'detail_led', axis: 'z', glow: [0, 1.8], win: [0.35, 0.68], boost: 1.3 },
+      // MODEL-5 idle: the exploded stack BREATHES — plates drift in
+      // counter-phase (a slow, precise open/close, the obsessive detail
+      // examining itself), the inspection lamp glows steadily. The
+      // stillest body in the set.
+      { node: 'plate_0', axis: 'y', slide: [-0.12, 0], win: [0.08, 0.55], peek: -0.08, idle: { amp: 0.014, hz: 0.14 } },
+      { node: 'plate_1', axis: 'y', slide: [-0.06, 0], win: [0.12, 0.6], peek: -0.05, idle: { amp: 0.011, hz: 0.14, phase: 1.05 } },
+      { node: 'plate_3', axis: 'y', slide: [0.06, 0], win: [0.12, 0.6], peek: 0.05, idle: { amp: 0.011, hz: 0.14, phase: 2.1 } },
+      { node: 'plate_4', axis: 'y', slide: [0.12, 0], win: [0.08, 0.55], peek: 0.08, idle: { amp: 0.014, hz: 0.14, phase: 3.15 } },
+      { node: 'detail_led', axis: 'z', glow: [0, 1.8], win: [0.35, 0.68], boost: 1.3, idle: { amp: 0.5, hz: 0.3 } },
     ],
   },
   braidMerge: {
@@ -314,13 +374,17 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     tilt: 0.06,
     envIntensity: 1.0,
     react: { lean: 0.1, hover: 0.9 },
+    idleEnergy: 0.7,
     // THE DECISION WEAVES: the two strands (gold = الجمال, emerald =
     // الدقة) converge into the collar — «قررنا ألا نختار» — and the
     // two-tone braid RISES from the collar as the story travels,
     // its tip lighting once the weave is complete.
     drives: [
-      { node: 'braid', axis: 'y', scale: [0.02, 1], win: [0.2, 0.72] },
-      { node: 'braid_tip', axis: 'z', glow: [0, 3.4], win: [0.72, 0.95], boost: 1.5 },
+      // MODEL-5 idle: the braid SWELLS as it holds itself together — a
+      // slow breath along the weave, the fusion tip glowing rhythmically
+      // («الجمال + الدقة» breathing as one strand).
+      { node: 'braid', axis: 'y', scale: [0.02, 1], win: [0.2, 0.72], idle: { amp: 0.02, hz: 0.15 } },
+      { node: 'braid_tip', axis: 'z', glow: [0, 3.4], win: [0.72, 0.95], boost: 1.5, idle: { amp: 0.8, hz: 0.35 } },
     ],
   },
   messageComposer: {
@@ -331,6 +395,7 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     tilt: 0.06,
     envIntensity: 1.1,
     react: { lean: 0.08, hover: 1 },
+    idleEnergy: 1.05,
     // THE CONVERSATION STARTS (VLM r2 retune): the three lines TYPE
     // themselves in across the whole stay, the caret blinking on the
     // scroll clock; the send button wakes and pops mid-stay, then
@@ -339,12 +404,16 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     // send ritual hiding at the exit, past the dissolve) — «لنبدأ
     // الحديث», the message sending itself.
     drives: [
-      { node: 'line_0', axis: 'x', scale: [0.02, 1], win: [0.1, 0.34] },
-      { node: 'line_1', axis: 'x', scale: [0.02, 1], win: [0.3, 0.54] },
-      { node: 'line_2', axis: 'x', scale: [0.02, 1], win: [0.5, 0.74] },
+      // MODEL-5 idle: the message KEEPS TYPING — the caret blinks on
+      // the life clock (pure f(life) now: it types for the reading
+      // visitor, not only while scrolling), the lines shimmer as if
+      // reconsidering, the send button warms.
+      { node: 'line_0', axis: 'x', scale: [0.02, 1], win: [0.1, 0.34], idle: { amp: 0.012, hz: 0.3 } },
+      { node: 'line_1', axis: 'x', scale: [0.02, 1], win: [0.3, 0.54], idle: { amp: 0.012, hz: 0.3, phase: 1.05 } },
+      { node: 'line_2', axis: 'x', scale: [0.02, 1], win: [0.5, 0.74], idle: { amp: 0.012, hz: 0.3, phase: 2.1 } },
       { node: 'caret', axis: 'z', glow: [0.4, 2.2], win: [0.15, 0.9], blink: true, boost: 1.2 },
       { node: 'send_btn', axis: 'y', slide: [0, 0.02], win: [0.58, 0.72] },
-      { node: 'send_btn', axis: 'z', glow: [0.2, 1.5], win: [0.58, 0.72], boost: 1.2 },
+      { node: 'send_btn', axis: 'z', glow: [0.2, 1.5], win: [0.58, 0.72], boost: 1.2, idle: { amp: 0.4, hz: 0.5 } },
       { node: 'fly_packet', axis: 'x', slide: [0, 0.3], win: [0.72, 0.94], mirror: true },
       { node: 'fly_packet', axis: 'y', slide: [0, 0.17], win: [0.72, 0.94] },
     ],
@@ -357,17 +426,22 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     tilt: 0.08,
     envIntensity: 1.1,
     react: { lean: 0.07, hover: 0.9 },
+    idleEnergy: 1,
     // THE LINK HEALS: the severed halves reach for each other and
     // align as you scroll toward the recovery links; the hot red
     // spark in the gap calms and the emerald one wakes — «الطريق
     // للرئيسية قريب», the connection restoring itself.
     drives: [
+      // MODEL-5 idle: the broken halves SWAY against each other (still
+      // reaching — the link never quite gives up), the red spark ticks
+      // (blink on the life clock), the green way-out light glows
+      // steadily brighter: «الطريق للرئيسية قريب».
       { node: 'link_left', axis: 'x', slide: [-0.05, 0], win: [0.25, 0.68] },
-      { node: 'link_left', axis: 'z', sweep: [0.35, 0], win: [0.25, 0.68] },
+      { node: 'link_left', axis: 'z', sweep: [0.35, 0], win: [0.25, 0.68], idle: { amp: 0.05, hz: 0.25 } },
       { node: 'link_right', axis: 'x', slide: [-0.05, 0], win: [0.25, 0.68] },
-      { node: 'link_right', axis: 'z', sweep: [-0.35, 0], win: [0.25, 0.68] },
+      { node: 'link_right', axis: 'z', sweep: [-0.35, 0], win: [0.25, 0.68], idle: { amp: 0.05, hz: 0.25, phase: Math.PI } },
       { node: 'spark_red', axis: 'z', glow: [2.2, 0], win: [0.25, 0.6], blink: true },
-      { node: 'spark_green', axis: 'z', glow: [0, 2.6], win: [0.62, 0.9], boost: 1.2 },
+      { node: 'spark_green', axis: 'z', glow: [0, 2.6], win: [0.62, 0.9], boost: 1.2, idle: { amp: 0.6, hz: 0.45 } },
     ],
   },
 }

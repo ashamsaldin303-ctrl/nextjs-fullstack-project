@@ -14,6 +14,7 @@ import { useIsRtl } from '@/lib/use-rtl'
 import { useRouter } from '@/i18n/navigation'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { playSuccess } from '@/lib/sound'
+import { lenisScrollTo } from '@/lib/lenis-holder'
 
 type StepId =
   | 'receive' | 'validate' | 'crm' | 'email' | 'telegram'
@@ -219,12 +220,13 @@ export function AutomationSimulator({
     // working"): the run button now lives directly ABOVE the stage, and a
     // run glides the stage itself into comfortable view (only when it
     // isn't already fully visible), so the nodes lighting up are never
-    // happening offscreen below the fold. NOTE: window.scrollTo with
-    // computed math, NOT element.scrollIntoView — the stage wrapper is
-    // itself a scroll container (overflow-x-auto for the 680px min-width
-    // canvas), and Chromium routes scrollIntoView into the stage's own
-    // (non-scrollable) axis, leaving the page untouched (verified live).
-    // Reduced motion: behavior 'auto'.
+    // happening offscreen below the fold. NOTE: routed through
+    // lenisScrollTo (SCROLL-FIX) — a native window.scrollTo({behavior:
+    // 'smooth'}) animates OUTSIDE Lenis while Lenis keeps writing its own
+    // scrollTop each tick: two competing animators = the stutter the
+    // owner reported on this page. Lenis's own glide is the single
+    // smooth writer now (immediate under reduced motion, native
+    // fallback when Lenis is absent).
     requestAnimationFrame(() => {
       const stage = stageRef.current
       if (!stage) return
@@ -233,10 +235,7 @@ export function AutomationSimulator({
       if (!fullyVisible) {
         const target =
           window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2
-        window.scrollTo({
-          top: Math.max(0, target),
-          behavior: reduced ? 'auto' : 'smooth',
-        })
+        lenisScrollTo(Math.max(0, target), { immediate: reduced ?? false })
       }
     })
 

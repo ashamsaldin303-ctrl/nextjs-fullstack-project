@@ -19,7 +19,15 @@
  *  · INTERACTIVITY: pointer moves advance the frame counter (the poke
  *    bus answers every move); hovering the body raises prox; the lean
  *    springs deflect (sprx/spry leave zero)
- *  · FREEZE: once all input stops, the frame counter parks (Δ=0)
+ *  · MODEL-5 ALIVE: with the body VISIBLE and ALL input stopped, the
+ *    loop KEEPS RENDERING — the alive gate is open, the life clock
+ *    advances, frames strictly increase (idle choreography lives for
+ *    the reading visitor)
+ *  · MODEL-5 OFFSCREEN PARK: scrolled past every body (page bottom),
+ *    the gate closes and the frame counter parks (Δ=0 over a strict
+ *    flat window) — zero frames while nothing is visible; a
+ *    legitimately-short page (404 keeps its body on stage) takes the
+ *    documented alternative branch (alive stays true)
  *  · console clean
  *
  * Plus the follow-cursor special (websites): the on-screen cursor's
@@ -218,26 +226,57 @@ for (const route of ROUTES) {
       ok(`${tag} ${slot.id}: proximity rises over body`, false, 'body not on stage for hover test')
     }
 
-    // 5. FREEZE — input stops, the loop parks. Long wheel travels leave
-    // a genuine Lenis easing tail (real scroll motion — the scene is
-    // SUPPOSED to render while the page still glides): poll until the
-    // frames stabilise (≤8s), then assert a strict 900ms flat window.
-    let stable = false
-    let prev = -1
-    for (let i = 0; i < 16 && !stable; i++) {
-      await page.waitForTimeout(500)
-      const f = (await readDebug())?.frames ?? 0
-      stable = prev === f
-      prev = f
-    }
-    ok(`${tag} ${slot.id}: frame loop settles after input`, stable, `frames=${prev}`)
-    const fA = (await readDebug())?.frames ?? 0
+    // 5. MODEL-5 ALIVE — the body is VISIBLE and all input has stopped
+    // (any Lenis tail + lean-spring settle has drained): the loop must
+    // KEEP RENDERING. The alive gate is open, the life clock advances,
+    // frames strictly increase — the bodies live for the reading
+    // visitor (owner's «أن تظهر الأنميشنز بشكل صحيح ومباشر للمستخدم»).
+    await page.waitForTimeout(1300)
+    const aA = await readDebug()
+    const fA = aA?.frames ?? 0
+    const lA = aA?.life ?? 0
     await page.waitForTimeout(900)
-    const fB = (await readDebug())?.frames ?? 0
-    ok(`${tag} ${slot.id}: frame loop parks on idle`, fA === fB, `${fA} → ${fB}`)
+    const aB = await readDebug()
+    const fB = aB?.frames ?? 0
+    const lB = aB?.life ?? 0
+    ok(`${tag} ${slot.id}: alive gate open while visible`, aB?.alive === true, `alive=${aB?.alive}`)
+    ok(`${tag} ${slot.id}: bodies LIVE with zero input`, fB > fA && lB > lA,
+      `frames ${fA} → ${fB}, life ${lA?.toFixed(2)} → ${lB?.toFixed(2)}`)
   }
 
-  // 6. follow-cursor special (websites): on-screen cursor tracks pointer
+  // 6. MODEL-5 OFFSCREEN PARK — scroll past EVERY body (page bottom:
+  // the last slot's envelope dissolved long before the footer), drain
+  // the presence/wash settle, then require the parked loop (alive=false,
+  // zero frames over a strict flat window). A legitimately-short page
+  // (404's recovery stage keeps its body on stage everywhere) takes the
+  // documented alternative branch: alive stays true WITH a visible body
+  // — living by contract (owner's «ألا يتم تفعيل الأنميشن بينما لا
+  // تظهر المجسمات» — the inverse: visible ⇒ alive).
+  const maxY = await page.evaluate(() => document.body.scrollHeight)
+  await wheelTo(Math.max(0, maxY - 20))
+  let settled = false
+  let prevF = -1
+  for (let i = 0; i < 20 && !settled; i++) {
+    await page.waitForTimeout(500)
+    const d = await readDebug()
+    // alive ⇒ the loop never parks (by design) — exit the poll early.
+    settled = d?.alive === true || (prevF === (d?.frames ?? 0))
+    prevF = d?.frames ?? 0
+  }
+  const dP = await readDebug()
+  if (dP?.alive === false) {
+    const fA = dP?.frames ?? 0
+    await page.waitForTimeout(900)
+    const fB = (await readDebug())?.frames ?? 0
+    ok(`${tag} offscreen: alive gate closed`, true, `alive=false`)
+    ok(`${tag} offscreen: frame loop parks (zero frames)`, fA === fB, `${fA} → ${fB}`)
+  } else {
+    const visible = (dP?.models ?? []).some((mm) => (mm.presence ?? 0) > 0.05)
+    ok(`${tag} offscreen: alive gate closed`, visible,
+      visible ? 'alive=true with a body still on stage (short page) — living by contract' : 'alive=true with NO body visible — GATE LEAK')
+  }
+
+  // 7. follow-cursor special (websites): on-screen cursor tracks pointer
   if (route.followCursor) {
     await wheelTo(0)
     await page.waitForTimeout(900)

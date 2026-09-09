@@ -28,22 +28,33 @@ import { resolveModel, type RawInstrument } from './model-loader'
  *    MATERIALIZES (fade + rise + settle) as its section arrives and
  *    dissolves as it leaves — scrolling up replays it in reverse.
  * 3. «تعيش وتتفاعل مع السكرول ومع المستخدم في كل تحرك» — the motion
- *    layers, all PURE functions of USER INPUT (rect, D, S, pointer),
- *    zero wall-clock, zero randomness:
+ *    layers: f(rect, D, S, pointer) PLUS (MODEL-5 amendment) the LIFE
+ *    clock — a wall-clock accumulator that advances ONLY while frames
+ *    render:
  *      · whole-body SCRUB — rotation.y sweeps `scrub` radians across
  *        the section's travel (reversible, frame-identical);
  *      · PART drives — named nodes driven by D (odometers), by the
  *        eased section progress p (windowed sweeps, slides, scales,
- *        glow deltas — the designed SEQUENCES: blocks rising one
- *        after another, packets hopping, gates igniting), and by the
- *        pointer (follow cursors, peek expansions, glow boosts);
+ *        glow deltas — the designed SEQUENCES), by the pointer (follow
+ *        cursors, peek expansions, glow boosts), and by the life clock
+ *        (idle harmonics + spins + glow pulses — each kit's own
+ *        personality, presence-scaled so a body NEVER idle-animates
+ *        while off screen);
  *      · pointer micro-parallax — the camera eases ±0.06 world units
  *        (depth planes separate subtly) PLUS per-body lean springs
  *        and proximity hover — every body answers every pointer move
  *        (each move pokes the invalidate bus).
- *    Stop scrolling AND stop moving the pointer ⇒ the GPU renders
- *    ZERO frames — frameloop="demand" + the invalidate bus + the
- *    freeze-proof `frames` counter (the standing freeze contract).
+ *    MODEL-5 (owner's instruction, verbatim intent): «أن تظهر
+ *    الأنميشنز بشكل صحيح ومباشر للمستخدم» — the animations must show
+ *    DIRECTLY to the reading visitor, i.e. the bodies keep LIVING
+ *    while visible even with zero input; «ألا يتم تفعيل الأنميشن
+ *    بينما لا تظهر المجسمات» — nothing animates while the bodies are
+ *    NOT visible. The amended freeze contract: ALIVE while any body
+ *    is on stage (the loop keeps rendering), ZERO frames once every
+ *    body is off screen (the offscreen guarantee is now machine-
+ *    checked on the same `frames` counter).
+ *    (Tab hidden ⇒ frameloop 'never'; reduced-motion / mobile ⇒ the
+ *    layer never mounts — gated upstream in edge-rune.tsx.)
  *
  * Atmosphere (unchanged physics, frustum-adapted math): the dust field
  * streams with the same clocks; the two washes follow the ACTIVE
@@ -391,6 +402,16 @@ interface SlotRT {
   shadowMat: THREE.MeshBasicMaterial
   /** Resolved SECTION node; null while (possibly lazy) not mounted. */
   el: HTMLElement | null
+  /** Cached section rect — top/height read ONCE per rescan tick, then
+   *  the per-frame top is derived as rectTop − (scrollY − rectAt).
+   *  SCROLL-FIX: the old loop called getBoundingClientRect up to 4×
+   *  per slot per rendered frame; with Lenis writing scrollTop every
+   *  tick each read forced a synchronous layout — 9 slots × every
+   *  frame was a main-thread stall factory (the «تسريع مفاجئ» jank
+   *  source). The cache makes the hot path layout-free. */
+  rectTop: number
+  rectH: number
+  rectAt: number
   p: number
   env: number
   /** Damped materialise/dissolve value (0..1). */
@@ -498,7 +519,8 @@ function buildSlots(routeKey: RunePresetKey): { list: SlotRT[]; dispose: () => v
     const token = { alive: true }
     const rt: SlotRT = {
       slot, def, holder, shadow, shadowMat,
-      el: null, p: 0, env: 0, presence: 0, ready: false, instrument: null, token,
+      el: null, rectTop: 0, rectH: 0, rectAt: 0,
+      p: 0, env: 0, presence: 0, ready: false, instrument: null, token,
       spr: { x: 0, y: 0 }, prox: 0,
       shadowW: 1, shadowY: -0.5,
     }
@@ -647,6 +669,11 @@ interface RuneDebug {
   route: RunePresetKey | null
   frames: number
   fps: number
+  /** MODEL-5: the life clock (s) — advances while frames render; the
+   *  idle choreography's time base. */
+  life: number
+  /** MODEL-5: true while any body is on stage (the alive gate). */
+  alive: boolean
   D: number
   S: number
   vy: number
@@ -686,6 +713,16 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
   const dirRef = useRef(dir)
   const rescans = useRef(0)
   const dustGoal = useRef(MODEL_ROUTES[presetKey].dust)
+  /** LIFE CLOCK (MODEL-5) — wall-clock seconds accumulated ONLY inside
+   *  useFrame: it advances exactly while the scene renders frames, so
+   *  every idle harmonic/spin/pulse is frozen by construction the
+   *  moment the loop parks (all bodies off screen ⇒ zero frames ⇒ the
+   *  clock stops). Continuous, deterministic (pure sin of life), and
+   *  never advances on a hidden tab (frameloop 'never'). */
+  const life = useRef(0)
+  /** Viewport height at the last rect cache — a resize invalidates the
+   *  cache (reflow moved the sections), forcing an immediate rescan. */
+  const lastVh = useRef(0)
 
   // Studio environment — generated once per mount; materials pick it
   // up at clone time (see buildInstrument).
@@ -767,6 +804,14 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
     const vh = state.size.height
     const tanHalf = Math.tan((FOV * Math.PI) / 360)
     const halfH0 = tanHalf * CAM_Z
+    // MODEL-5: the life clock ticks with rendered time — the idle
+    // choreography below breathes on it while a body is visible, and
+    // freezes the instant the loop parks (no frames ⇒ no ticks).
+    life.current += dt
+    const lifeT = life.current
+    // A viewport resize means reflow — the rect cache is stale, rescan.
+    const vhChanged = lastVh.current !== vh
+    if (vhChanged) lastVh.current = vh
 
     // Camera: fixed stage rig + damped pointer micro-parallax. Setting
     // it every frame is deterministic (pure function of par) — no
@@ -818,29 +863,43 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
     const fadeV = fade.current
     let settleDelta = Math.abs(1 - fadeV)
 
-    // --- instrument driver: pure f(rect, D, S) --------------------------
+    // --- instrument driver: pure f(rect, D, S, life, pointer) ---------
     rescans.current += 1
-    const doRescan = rescans.current % RESCAN_EVERY === 1
+    const doRescan = rescans.current % RESCAN_EVERY === 1 || vhChanged
     let activeId = ''
     let activeEnv = 0
     let cfx = 0
     let cfy = 0
     let cw = 0
     let dominant: SlotRT | null = null
+    // MODEL-5 alive gate — flips true while ANY body is on stage; the
+    // invalidate chain below then keeps the loop rendering (the bodies
+    // live for the reading visitor). All bodies off screen ⇒ false ⇒
+    // the loop parks once the fades/settles drain.
+    let anyAlive = false
 
     // Narrower viewports shrink the instruments a touch (margins are
     // tighter); wide screens get the full composed size.
     const sizeK = aspect / 1.55 < 0.62 ? 0.62 : aspect / 1.55 > 1 ? 1 : aspect / 1.55
 
+    let slotIdx = -1
     for (const rt of reg.list) {
+      slotIdx += 1
       if (doRescan || rt.el === null) {
         rt.el = resolveSection(rt.slot.id)
+        if (rt.el) {
+          // Cache ONCE — the hot path below derives the live top from
+          // this rect + ΔscrollY (SCROLL-FIX: no per-frame gBCR → no
+          // forced layout under Lenis's scrollTop writes).
+          const r = rt.el.getBoundingClientRect()
+          rt.rectTop = r.top
+          rt.rectH = r.height
+          rt.rectAt = window.scrollY
+        }
       }
       const el = rt.el
-      const rawP =
-        el === null
-          ? 0
-          : (vh - el.getBoundingClientRect().top) / (el.getBoundingClientRect().height + vh)
+      const liveTop = el === null ? 0 : rt.rectTop - (window.scrollY - rt.rectAt)
+      const rawP = el === null ? 0 : (vh - liveTop) / (rt.rectH + vh)
       const p = rawP < 0 ? 0 : rawP > 1 ? 1 : rawP
       const env = el === null ? 0 : envelope(p)
       rt.p = p
@@ -861,6 +920,7 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
         continue
       }
       rt.holder.visible = true
+      anyAlive = true
 
       const slot = rt.slot
       const inst = rt.instrument
@@ -880,10 +940,26 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
               : 0.76) + (slot.xPad ?? 0)
       const maxX = halfH * aspect - 0.35
       const x = Math.max(-maxX, Math.min(maxX, (xFrac * 2 - 1) * halfH * aspect))
-      const anchorPx = el === null ? 0 : el.getBoundingClientRect().top + el.getBoundingClientRect().height * slot.yFrac
+      const anchorPx = el === null ? 0 : liveTop + rt.rectH * slot.yFrac
       const fy = anchorPx / vh
       const modelH = slot.viewFrac * 2 * halfH
       const rise = (1 - presence) * -0.12 * halfH
+
+      // --- MODEL-5 IDLE (whole body) ------------------------------------
+      // The life layer: a per-slot breathing (bob ±1.2% of the body's
+      // height, a slow ±3° sway, ±1% scale breath) phased by the golden
+      // angle so neighbouring bodies never sync. presence-scaled ⇒ a
+      // dissolving body calms as it fades; off screen ⇒ zero (the gate
+      // above already skipped it). idleEnergy tunes each kit's
+      // temperament (registry). Subtle by design — the SLOT stays
+      // composed (the VLM-tuned stability); the life reads through the
+      // per-part drives below plus this gentle breathing.
+      const idx = slotIdx
+      const iE = (rt.def.idleEnergy ?? 1) * presence
+      const ph = (idx * 2.399) % (Math.PI * 2)
+      const bob = iE * 0.012 * modelH * Math.sin(lifeT * 1.1 + ph)
+      const sway = iE * 0.05 * Math.sin(lifeT * 0.5 + ph * 0.6)
+      const breath = 1 + iE * 0.01 * Math.sin(lifeT * 0.7 + ph * 0.8)
 
       // --- POINTER INTERACTIVITY (MODEL-4) ------------------------------
       // Lean springs: each body eases toward the raw pointer NDC with
@@ -921,31 +997,45 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       // height) when the pointer is over the body; the slot stays
       // composed, the body just breathes up toward your hand.
       const hoverLift = rt.prox * 0.04 * modelH * hoverW
-      const y = baseY + hoverLift
+      const y = baseY + hoverLift + bob
 
       const holder = rt.holder
       holder.position.set(x, y, slot.z)
 
       // STABLE scale — a fraction of the viewport held constant (plus
-      // the proximity breath, ≤4.5%, still a pure pointer function).
+      // the proximity breath, ≤4.5%, still a pure pointer function) and
+      // the MODEL-5 idle breath (±1%).
       const fitDim = inst ? inst.fitDim : 1
-      const scale = Math.max((sizeK * modelH) / fitDim, 1e-4) * (1 + rt.prox * 0.045 * hoverW)
+      const scale = Math.max((sizeK * modelH) / fitDim, 1e-4) * (1 + rt.prox * 0.045 * hoverW) * breath
       holder.scale.setScalar(scale)
 
       // Whole-body scrub (reversible) + yaw + dissolve settle + the
       // POINTER LEAN (the body turns its face toward your hand — pure
-      // function of the damped springs, converges when input stops).
+      // function of the damped springs, converges when input stops) +
+      // the MODEL-5 idle sway.
       holder.rotation.y =
-        rt.def.yaw + slot.scrub * ease01(p) + (1 - presence) * -0.4 + lean * rt.spr.x
+        rt.def.yaw + slot.scrub * ease01(p) + (1 - presence) * -0.4 + lean * rt.spr.x + sway
       holder.rotation.x = (rt.def.tilt ?? 0) - lean * rt.spr.y * 0.7
 
-      // Part drives — real named nodes, pure functions of (D, p, prox).
+      // Part drives — real named nodes, functions of (D, p, prox, life).
       if (inst) {
         const pe = ease01(p)
         const rtl = dirRef.current === 'rtl'
         const prox = rt.prox
         for (const d of inst.drives) {
           const drive = d.drive
+          // MODEL-5 IDLE term — the drive's own life harmonic:
+          // harmonic: amp·sin(life·2π·hz + phase) (slides/rotations),
+          // unipolar: amp·(0.5+0.5·sin(…)) (scales/glows — never below
+          // the authored base), spin: amp·life (linear radians/sec —
+          // odometers that keep turning while visible). All
+          // presence-scaled via the whole-body gate (this loop only
+          // runs for present bodies) and pure functions of lifeT.
+          const idle = drive.idle
+          const idleHz = idle ? lifeT * Math.PI * 2 * idle.hz : 0
+          const idlePhase = idle?.phase ?? 0
+          const idleH = idle ? (idle.spin ? idle.amp * lifeT : idle.amp * Math.sin(idleHz + idlePhase)) : 0
+          const idleU = idle ? idle.amp * (0.5 + 0.5 * Math.sin(idleHz + idlePhase)) : 0
           // PROGRESS WINDOW — the designed SEQUENCE (absent = whole
           // travel): smoothstepped local progress lp.
           let lp = pe
@@ -965,26 +1055,31 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
             continue
           }
           // GLOW — emissive-intensity delta over the window (+ pointer
-          // boost; blink = the D-clocked caret pulse — pure f(D)).
+          // boost; blink = the LIFE-clocked pulse — MODEL-5: lamps blink
+          // for the reading visitor, not only while scrolling; pure
+          // f(lifeT), frozen when the loop parks).
           if (drive.glow) {
             const from = drive.glow[0] ?? 0
             const to = drive.glow[1] ?? 0
             let delta = from + (to - from) * lp
             if (drive.boost) delta += drive.boost * prox
+            if (idle) delta += idleU
             let mult = 1
-            if (drive.blink) mult = 0.55 + 0.45 * Math.sin(D * 0.05)
+            if (drive.blink) mult = 0.55 + 0.45 * Math.sin(lifeT * 6.2 + idlePhase)
             for (const gm of d.mats) {
               gm.mat.emissiveIntensity = Math.max(0, gm.base + delta * mult)
             }
             continue
           }
           // SCALE — absolute uniform (typing lines, the rising braid,
-          // the growing chart bars).
+          // the growing chart bars) + the idle swell (unipolar — bars
+          // breathe UP from their authored height, never shrink).
           if (drive.scale) {
             const from = drive.scale[0] ?? 0.02
             const to = drive.scale[1] ?? 1
             let s = from + (to - from) * lp
             if (drive.peek) s *= 1 + drive.peek * prox
+            if (idle) s *= 1 + idleU
             d.node.scale.setScalar(Math.max(s, 1e-3) * d.baseScale)
             continue
           }
@@ -992,11 +1087,13 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
             // SLIDE (position offset over the windowed progress) —
             // assemblies rising into place, packets hopping, the
             // workpiece riding the rail (+ peek under the pointer;
-            // mirror flips x for LTR: kits are authored RTL-first).
+            // mirror flips x for LTR: kits are authored RTL-first) +
+            // the idle harmonic (the workpiece hovers, plates breathe).
             const from = drive.slide[0] ?? 0
             const to = drive.slide[1] ?? 0
             let off = from + (to - from) * lp
             if (drive.peek) off += drive.peek * prox
+            if (idle) off += idleH
             if (drive.mirror && !rtl) off = -off
             d.node.position[d.axis] = d.basePos + off
             continue
@@ -1016,6 +1113,9 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
               rot += Math.floor(lp * drive.steps) * ((Math.PI * 2) / drive.steps)
             }
           }
+          // Idle rotation/spin composes on every rot branch (the gyro
+          // rings keep turning, the broken halves keep swaying).
+          if (idle) rot += idleH
           d.node.rotation[d.axis] = rot
         }
 
@@ -1117,19 +1217,24 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       d0.uParY.value = par.current.y * 1.6
     }
 
-    // --- frame chaining: scroll events already poke the bus (and,
-    // MODEL-4, every POINTER move pokes it too — the bodies answer
-    // each move); keep the loop alive only while the fade/presence/
-    // wash/dust settle, the pointer springs + proximity eases, or the
-    // velocity tail drain. Idle page (no scroll, no pointer motion)
-    // ⇒ zero rendered frames — the freeze contract holds.
+    // --- frame chaining: the MODEL-5 ALIVE gate + the settle tail -------
+    // anyAlive (a body is on stage) keeps the loop rendering — the
+    // bodies LIVE for the reading visitor (idle choreography, blinking
+    // lamps, lean springs). Scroll events and pointer moves still poke
+    // the bus from outside. When EVERY body is off screen the gate
+    // closes and the loop parks after the fades/washes/presence
+    // dissolve and the velocity tail drain: idle page with no body
+    // visible ⇒ zero rendered frames — the OFFSCREEN guarantee
+    // (machine-checked on the same `frames` counter).
     const tailActive = tickScrollTail(dt)
-    if (tailActive || settleDelta > FADE_EPS || parDelta > 0.0015) invalidate()
+    if (anyAlive || tailActive || settleDelta > FADE_EPS || parDelta > 0.0015) invalidate()
     if (DEV) {
       ;(window as unknown as { __elyraRuneChain?: unknown }).__elyraRuneChain = {
         settle: Math.round(settleDelta * 10000) / 10000,
         par: Math.round(parDelta * 10000) / 10000,
         tail: tailActive,
+        alive: anyAlive,
+        life: Math.round(lifeT * 1000) / 1000,
       }
     }
 
@@ -1142,6 +1247,8 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
         route: builtKey.current,
         frames: frames.current,
         fps: fps.current,
+        life: Math.round(lifeT * 1000) / 1000,
+        alive: anyAlive,
         D,
         S,
         vy,

@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { Globe } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { lenisScrollTo } from '@/lib/lenis-holder'
 
 /**
  * Scroll-position preservation across an AR↔EN switch (Batch 2 item 11a).
@@ -93,7 +94,12 @@ function useLocaleSwitch() {
       } catch {
         /* ignore */
       }
-      window.scrollTo(0, y)
+      // SCROLL-FIX: route the restore through Lenis's own immediate
+      // write — a raw window.scrollTo while Lenis holds a stale target
+      // gets overridden by the very next lenis tick (the page "yanks
+      // back"); lenisScrollTo updates BOTH the value and the target, so
+      // the restored position sticks (no animation: `immediate`).
+      lenisScrollTo(y, { immediate: true })
     }, 150)
     return () => window.clearTimeout(id)
   }, [locale])
