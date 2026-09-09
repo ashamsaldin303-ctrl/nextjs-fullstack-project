@@ -11,44 +11,49 @@ import { MODEL_LIBRARY, MODEL_ROUTES, SLOT_PALETTES, type ModelDef, type PartDri
 import { resolveModel, type RawInstrument } from './model-loader'
 
 /**
- * Rune Instruments scene (HEAVY-1) — the REAL-MODEL core.
+ * Rune Instruments scene (HEAVY-1 / MODEL-4) — the SEMANTIC-BODY core.
  *
- * OWNER'S CONTRACT (2025, restated as enforced invariants):
- * 1. «أجسام ثقيلة واقعية مصنوعة ببلندر» — every body is now a REAL,
- *    downloaded, CC0, Blender-authored instrument (Poly Haven), loaded
- *    through the GLTF cache and rendered with full PBR (studio
- *    environment, warm key + cool rim, contact ground shadow).
- * 2. «تموضع صحيح» — each instrument holds ONE STABLE, composed slot in
- *    its section's free margin: constant size (a fraction of the
- *    viewport), constant depth plane, museum-plinth position from the
+ * OWNER'S CONTRACT (restated as enforced invariants):
+ * 1. «متطابقة تمامًا مع ما نتحدث عنه» — every body IS its section's
+ *    literal subject (authored kits from tech-kits.ts: the assembling
+ *    experience, the pipeline journey, the site canvas, the flow
+ *    graph, the results deck, the exploded detail, the braid, the
+ *    message composer, the broken link), loaded through the module
+ *    cache and rendered with full PBR (studio environment, warm key +
+ *    cool rim, contact ground shadow).
+ * 2. «تموضع صحيح» — each body holds ONE STABLE, composed slot in its
+ *    section's free margin: constant size (a fraction of the
+ *    viewport), constant depth plane, plinth position from the
  *    section's own rect. It does NOT roam and does NOT balloon; it
  *    MATERIALIZES (fade + rise + settle) as its section arrives and
  *    dissolves as it leaves — scrolling up replays it in reverse.
- * 3. «أنيميشن صحيحة» — three designed motion layers, all pure
- *    functions of (section rect, D, S), zero wall-clock, zero
- *    randomness:
+ * 3. «تعيش وتتفاعل مع السكرول ومع المستخدم في كل تحرك» — the motion
+ *    layers, all PURE functions of USER INPUT (rect, D, S, pointer),
+ *    zero wall-clock, zero randomness:
  *      · whole-body SCRUB — rotation.y sweeps `scrub` radians across
  *        the section's travel (reversible, frame-identical);
- *      · PART drives — the clock's hands, the compass needle, the
- *        multimeter needle, the radio's antenna/dial/morse key: real
- *        named nodes of the real models, driven by D (odometers — the
- *        hands advance exactly as far as you scroll) or by the eased
- *        section progress p (sweeps and discrete steps);
- *      · pointer micro-parallax — the camera eases ±0.06 world units;
- *        the depth planes (models vs atmosphere) separate subtly.
- *    Stop scrolling (and stop moving the pointer) and the GPU renders
+ *      · PART drives — named nodes driven by D (odometers), by the
+ *        eased section progress p (windowed sweeps, slides, scales,
+ *        glow deltas — the designed SEQUENCES: blocks rising one
+ *        after another, packets hopping, gates igniting), and by the
+ *        pointer (follow cursors, peek expansions, glow boosts);
+ *      · pointer micro-parallax — the camera eases ±0.06 world units
+ *        (depth planes separate subtly) PLUS per-body lean springs
+ *        and proximity hover — every body answers every pointer move
+ *        (each move pokes the invalidate bus).
+ *    Stop scrolling AND stop moving the pointer ⇒ the GPU renders
  *    ZERO frames — frameloop="demand" + the invalidate bus + the
- *    freeze-proof `frames` counter.
+ *    freeze-proof `frames` counter (the standing freeze contract).
  *
  * Atmosphere (unchanged physics, frustum-adapted math): the dust field
  * streams with the same clocks; the two washes follow the ACTIVE
- * instrument (position + palette), so the background literally travels
- * with the object, section by section.
+ * body (position + palette), so the background literally travels with
+ * the object, section by section.
  *
- * Route changes (and the first build): the instrument SET differs per
+ * Route changes (and the first build): the body set differs per
  * route, so transitions run through one fade-out → rebuild → fade-in
  * machine — no popping, no remount of the GL context, one damped
- * `fade`. Models load asynchronously through the module cache; a slot
+ * `fade`. Kits build synchronously through the module cache; a slot
  * stays dark until its model resolves, then its own damped presence
  * carries it in.
  */
@@ -64,8 +69,8 @@ const WASH_Z = -2.5
 const FADE_K = 6
 /** Convergence threshold below which settling stops chaining frames. */
 const FADE_EPS = 0.002
-/** Presence damping for each instrument's materialise/dissolve. */
-const PRESENCE_K = 5.5
+/** Presence damping for each body's materialise/dissolve. */
+const PRESENCE_K = 7
 /** Element rescan cadence (rendered frames) — catches lazy sections. */
 const RESCAN_EVERY = 45
 
@@ -242,6 +247,13 @@ interface DriveRT {
   base: number
   /** Base position on the axis (slide drives offset from this). */
   basePos: number
+  /** Full base position (follow drives write x AND y). */
+  basePosVec: THREE.Vector3
+  /** Base uniform scale (scale drives are absolute). */
+  baseScale: number
+  /** Cloned MeshStandardMaterials under the node (glow drives) with
+   *  their authored emissive-intensity bases. */
+  mats: { mat: THREE.MeshStandardMaterial; base: number }[]
   drive: PartDrive
 }
 
@@ -306,19 +318,11 @@ function buildInstrument(def: ModelDef, raw: RawInstrument): InstrumentRT {
         // (silver brighter, cream dimmer) — compose, don't clobber.
         std.envMapIntensity = (std.envMapIntensity ?? 1) * (def.envIntensity ?? 1)
       }
-      // IDEA-GLOW (MODEL-2, VLM r3): optional uniform warm emissive —
-      // the lightbulb's inner idea-glow («الفكرة تبدأ بمحادثة»). A pure
-      // material constant: a given scroll position renders identically.
-      if (def.glow && 'emissiveIntensity' in std) {
-        std.emissive = new THREE.Color(0xffd9a0)
-        std.emissiveIntensity = def.glow
-      }
-      // GLASS DISCIPLINE (VLM rounds 2–4): the assets' smoked-glass
-      // panes (clock hood, meter faces, lantern, searchlight lens)
-      // reflect the dark scene and read as black mirrors that swallow
-      // the cream dials BEHIND them. Dim every glass pane — few env
-      // reflections, half opacity — so the instruments' faces stay
-      // readable through a subtle sheen.
+      // (MODEL-4: per-body glow now lives in the GLOW drives — per-part
+      // emissive deltas over windowed scroll progress + pointer boosts —
+      // not a whole-body constant.)
+      // GLASS DISCIPLINE (VLM rounds 2–4): dim any smoked-glass pane —
+      // few env reflections, half opacity — so faces stay readable.
       if (/glass/i.test(c.name ?? '')) {
         if ('envMapIntensity' in std) std.envMapIntensity = (def.envIntensity ?? 1) * 0.25
         c.opacity = c.opacity * 0.45
@@ -334,7 +338,27 @@ function buildInstrument(def: ModelDef, raw: RawInstrument): InstrumentRT {
   for (const d of def.drives ?? []) {
     const node = findNode(clone, d.node)
     if (node) {
-      drives.push({ node, axis: d.axis, base: node.rotation[d.axis], basePos: node.position[d.axis], drive: d })
+      // GLOW drives need the node's CLONED materials (the traverse
+      // above has already replaced them) with their authored bases.
+      const mats: { mat: THREE.MeshStandardMaterial; base: number }[] = []
+      if (d.glow || d.boost) {
+        node.traverse((o) => {
+          if (o instanceof THREE.Mesh) {
+            const list = Array.isArray(o.material) ? o.material : [o.material]
+            for (const m of list) {
+              if (m && (m as THREE.MeshStandardMaterial).isMeshStandardMaterial) {
+                const sm = m as THREE.MeshStandardMaterial
+                mats.push({ mat: sm, base: sm.emissiveIntensity })
+              }
+            }
+          }
+        })
+      }
+      drives.push({
+        node, axis: d.axis, base: node.rotation[d.axis],
+        basePos: node.position[d.axis], basePosVec: node.position.clone(),
+        baseScale: node.scale.x, mats, drive: d,
+      })
     }
   }
 
@@ -375,6 +399,12 @@ interface SlotRT {
   instrument: InstrumentRT | null
   /** Liveness token — rejects async attaches after a rebuild. */
   token: { alive: boolean }
+  /** Pointer-lean spring (eases toward the raw pointer NDC; per-slot
+   *  damping variety so the field ripples organically on every move). */
+  spr: { x: number; y: number }
+  /** Damped pointer proximity over the body (0..1) — drives the hover
+   *  lift, peek expansions and glow boosts. */
+  prox: number
   shadowW: number
   shadowY: number
 }
@@ -461,6 +491,7 @@ function buildSlots(routeKey: RunePresetKey): { list: SlotRT[]; dispose: () => v
     const rt: SlotRT = {
       slot, def, holder, shadow, shadowMat,
       el: null, p: 0, env: 0, presence: 0, ready: false, instrument: null, token,
+      spr: { x: 0, y: 0 }, prox: 0,
       shadowW: 1, shadowY: -0.5,
     }
     list.push(rt)
@@ -487,7 +518,7 @@ function buildSlots(routeKey: RunePresetKey): { list: SlotRT[]; dispose: () => v
         pokeRuneField()
       })
       .catch((err: unknown) => {
-        console.warn('[RuneInstruments] load failed:', def.src ?? def.kit, err)
+        console.warn('[RuneInstruments] load failed:', def.kit, err)
       })
   }
 
@@ -615,7 +646,7 @@ interface RuneDebug {
   fade: number
   fadePhase: 'in' | 'out'
   active: string
-  models: { id: string; slug: string; p: number; env: number; presence: number; ready: boolean; found: boolean; x: number; y: number; scale: number; drives: { node: string; rot: number; pos: number }[] }[]
+  models: { id: string; slug: string; p: number; env: number; presence: number; ready: boolean; found: boolean; x: number; y: number; scale: number; prox: number; sprx: number; spry: number; drives: { node: string; rot: number; pos: number; scl: number; glow: number | null; fx: number; fy: number }[] }[]
 }
 
 declare global {
@@ -664,17 +695,26 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
   }, [gl, invalidate])
 
   // Pointer micro-parallax — the CAMERA eases ±~0.06 world units, so
-  // the depth planes (instruments at z≈0, atmosphere at z=-2.5)
-  // separate subtly. Pointer input is user input: when the pointer
-  // stops, the ease converges and the frame loop goes back to sleep.
+  // the depth planes (bodies at z≈0, atmosphere at z=-2.5) separate
+  // subtly. MODEL-4 INTERACTIVITY: the FULL pointer NDC is kept for
+  // the per-slot lean springs / proximity / follow drives, and EVERY
+  // pointer move now pokes the invalidate bus — the bodies answer
+  // each move immediately (the demand loop parks again once all
+  // springs converge and the input stops).
   const parTarget = useRef({ x: 0, y: 0 })
   const par = useRef({ x: 0, y: 0 })
+  const ndc = useRef({ x: 0, y: 0 })
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
       const w = window.innerWidth || 1
       const h = window.innerHeight || 1
-      parTarget.current.x = ((e.clientX / w) * 2 - 1) * 0.05
-      parTarget.current.y = -((e.clientY / h) * 2 - 1) * 0.035
+      const nx = (e.clientX / w) * 2 - 1
+      const ny = -((e.clientY / h) * 2 - 1)
+      parTarget.current.x = nx * 0.05
+      parTarget.current.y = ny * 0.035
+      ndc.current.x = nx
+      ndc.current.y = ny
+      pokeRuneField()
     }
     window.addEventListener('pointermove', onMove, { passive: true })
     return () => window.removeEventListener('pointermove', onMove)
@@ -836,50 +876,136 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       const fy = anchorPx / vh
       const modelH = slot.viewFrac * 2 * halfH
       const rise = (1 - presence) * -0.12 * halfH
-      const y = (1 - 2 * fy) * halfH + rise + (slot.yOff ?? 0) * modelH
+
+      // --- POINTER INTERACTIVITY (MODEL-4) ------------------------------
+      // Lean springs: each body eases toward the raw pointer NDC with
+      // its own damping (variety across slots ⇒ the field ripples
+      // organically on every move); proximity: how near the pointer
+      // world-point is to the body (hover lift, peek, glow boosts).
+      const lean = rt.def.react?.lean ?? 0.09
+      const hoverW = rt.def.react?.hover ?? 1
+      // K 9..13.4/s: snappy on real GPUs (≈0.4s settle), few frames on
+      // software renderers — the park test converges fast either way.
+      const kSpr = 1 - Math.exp(-(9 + (reg.list.indexOf(rt) % 3) * 2.2) * dt)
+      const sprXPrev = rt.spr.x
+      const sprYPrev = rt.spr.y
+      rt.spr.x += (ndc.current.x - rt.spr.x) * kSpr
+      rt.spr.y += (ndc.current.y - rt.spr.y) * kSpr
+      const sprDelta = Math.abs(rt.spr.x - sprXPrev) + Math.abs(rt.spr.y - sprYPrev)
+      if (sprDelta > settleDelta) settleDelta = sprDelta
+
+      const halfHS = halfH
+      const pwx = ndc.current.x * halfHS * aspect
+      const pwy = ndc.current.y * halfHS
+      // base slot Y (pre-hover) for the proximity distance test
+      const baseY = (1 - 2 * fy) * halfH + rise + (slot.yOff ?? 0) * modelH
+      const dxP = pwx - x
+      const dyP = pwy - baseY
+      const proxR = Math.max(modelH * 0.75, 0.5) * 1.7
+      let tp = 1 - Math.min(Math.sqrt(dxP * dxP + dyP * dyP) / proxR, 1)
+      tp = tp * tp * (3 - 2 * tp)
+      const proxPrev = rt.prox
+      rt.prox += (tp - rt.prox) * (1 - Math.exp(-10 * dt))
+      const proxDelta = Math.abs(rt.prox - proxPrev)
+      if (proxDelta > settleDelta) settleDelta = proxDelta
+
+      // Hover lift — a small interactive rise (≈4% of the model's
+      // height) when the pointer is over the body; the slot stays
+      // composed, the body just breathes up toward your hand.
+      const hoverLift = rt.prox * 0.04 * modelH * hoverW
+      const y = baseY + hoverLift
 
       const holder = rt.holder
       holder.position.set(x, y, slot.z)
 
-      // STABLE scale — a fraction of the viewport held constant.
+      // STABLE scale — a fraction of the viewport held constant (plus
+      // the proximity breath, ≤4.5%, still a pure pointer function).
       const fitDim = inst ? inst.fitDim : 1
-      const scale = Math.max((sizeK * modelH) / fitDim, 1e-4)
+      const scale = Math.max((sizeK * modelH) / fitDim, 1e-4) * (1 + rt.prox * 0.045 * hoverW)
       holder.scale.setScalar(scale)
 
-      // Whole-body scrub (reversible) + yaw + dissolve settle.
+      // Whole-body scrub (reversible) + yaw + dissolve settle + the
+      // POINTER LEAN (the body turns its face toward your hand — pure
+      // function of the damped springs, converges when input stops).
       holder.rotation.y =
-        rt.def.yaw + slot.scrub * ease01(p) + (1 - presence) * -0.4
-      holder.rotation.x = rt.def.tilt ?? 0
+        rt.def.yaw + slot.scrub * ease01(p) + (1 - presence) * -0.4 + lean * rt.spr.x
+      holder.rotation.x = (rt.def.tilt ?? 0) - lean * rt.spr.y * 0.7
 
-      // Part drives — real named nodes, pure functions of (D, p).
+      // Part drives — real named nodes, pure functions of (D, p, prox).
       if (inst) {
         const pe = ease01(p)
+        const rtl = dirRef.current === 'rtl'
+        const prox = rt.prox
         for (const d of inst.drives) {
           const drive = d.drive
+          // PROGRESS WINDOW — the designed SEQUENCE (absent = whole
+          // travel): smoothstepped local progress lp.
+          let lp = pe
+          if (drive.win) {
+            const w0 = drive.win[0] ?? 0
+            const w1 = drive.win[1] ?? 1
+            const raw = w1 > w0 ? (p - w0) / (w1 - w0) : 1
+            lp = ease01(raw < 0 ? 0 : raw > 1 ? 1 : raw)
+          }
+          // FOLLOW — the on-screen cursor mirroring the visitor's real
+          // pointer (slide = [xRange, yRange] NDC multipliers).
+          if (drive.follow) {
+            const rx = drive.slide?.[0] ?? 0
+            const ry = drive.slide?.[1] ?? 0
+            d.node.position.x = d.basePosVec.x + ndc.current.x * rx
+            d.node.position.y = d.basePosVec.y + ndc.current.y * ry
+            continue
+          }
+          // GLOW — emissive-intensity delta over the window (+ pointer
+          // boost; blink = the D-clocked caret pulse — pure f(D)).
+          if (drive.glow) {
+            const from = drive.glow[0] ?? 0
+            const to = drive.glow[1] ?? 0
+            let delta = from + (to - from) * lp
+            if (drive.boost) delta += drive.boost * prox
+            let mult = 1
+            if (drive.blink) mult = 0.55 + 0.45 * Math.sin(D * 0.05)
+            for (const gm of d.mats) {
+              gm.mat.emissiveIntensity = Math.max(0, gm.base + delta * mult)
+            }
+            continue
+          }
+          // SCALE — absolute uniform (typing lines, the rising braid,
+          // the growing chart bars).
+          if (drive.scale) {
+            const from = drive.scale[0] ?? 0.02
+            const to = drive.scale[1] ?? 1
+            let s = from + (to - from) * lp
+            if (drive.peek) s *= 1 + drive.peek * prox
+            d.node.scale.setScalar(Math.max(s, 1e-3) * d.baseScale)
+            continue
+          }
           if (drive.slide) {
-            // SLIDE (position offset over the travel, eased) — the
-            // pulled storage sled leaving the data stack's array.
+            // SLIDE (position offset over the windowed progress) —
+            // assemblies rising into place, packets hopping, the
+            // workpiece riding the rail (+ peek under the pointer;
+            // mirror flips x for LTR: kits are authored RTL-first).
             const from = drive.slide[0] ?? 0
             const to = drive.slide[1] ?? 0
-            d.node.position[d.axis] = d.basePos + from + (to - from) * pe
+            let off = from + (to - from) * lp
+            if (drive.peek) off += drive.peek * prox
+            if (drive.mirror && !rtl) off = -off
+            d.node.position[d.axis] = d.basePos + off
             continue
           }
           let rot = d.base
           if (drive.sweep) {
             const from = drive.sweep[0] ?? 0
             const to = drive.sweep[1] ?? 0
-            rot = from + (to - from) * pe
+            rot = from + (to - from) * lp
           } else if (drive.swing !== undefined) {
             // SWING sways around the rest pose — rate is the SWING
-            // FREQUENCY only (MODEL-3 fix: it used to also accumulate
-            // as an odometer, which slowly closed the laptop lid and
-            // tipped the duck over — «يتحرك بالشكل المنصوص» means the
-            // lid breathes, not folds).
+            // FREQUENCY only (never accumulates).
             rot += Math.sin(D * (drive.rate ?? 0.01)) * drive.swing
           } else {
             if (drive.rate !== undefined) rot += D * drive.rate
             if (drive.steps !== undefined) {
-              rot += Math.floor(pe * drive.steps) * ((Math.PI * 2) / drive.steps)
+              rot += Math.floor(lp * drive.steps) * ((Math.PI * 2) / drive.steps)
             }
           }
           d.node.rotation[d.axis] = rot
@@ -981,12 +1107,21 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       d0.uParY.value = par.current.y * 1.6
     }
 
-    // --- frame chaining: scroll events already poke the bus; keep the
-    // loop alive only while the fade/presence/wash/dust settle, the
-    // pointer parallax eases, or the velocity tail drains. Idle page
-    // (no scroll, no pointer motion) ⇒ zero rendered frames.
+    // --- frame chaining: scroll events already poke the bus (and,
+    // MODEL-4, every POINTER move pokes it too — the bodies answer
+    // each move); keep the loop alive only while the fade/presence/
+    // wash/dust settle, the pointer springs + proximity eases, or the
+    // velocity tail drain. Idle page (no scroll, no pointer motion)
+    // ⇒ zero rendered frames — the freeze contract holds.
     const tailActive = tickScrollTail(dt)
     if (tailActive || settleDelta > FADE_EPS || parDelta > 0.0015) invalidate()
+    if (DEV) {
+      ;(window as unknown as { __elyraRuneChain?: unknown }).__elyraRuneChain = {
+        settle: Math.round(settleDelta * 10000) / 10000,
+        par: Math.round(parDelta * 10000) / 10000,
+        tail: tailActive,
+      }
+    }
 
     // --- dev introspection ---------------------------------------------------
     if (DEV) {
@@ -1015,10 +1150,19 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
           x: rt.holder.position.x,
           y: rt.holder.position.y,
           scale: rt.holder.scale.x,
+          prox: Math.round(rt.prox * 1000) / 1000,
+          sprx: Math.round(rt.spr.x * 1000) / 1000,
+          spry: Math.round(rt.spr.y * 1000) / 1000,
           drives: (rt.instrument?.drives ?? []).map((d) => ({
             node: d.node.name,
             rot: Math.round(d.node.rotation[d.axis] * 1000) / 1000,
             pos: Math.round(d.node.position[d.axis] * 1000) / 1000,
+            scl: Math.round(d.node.scale.x * 1000) / 1000,
+            glow: d.mats.length > 0
+              ? Math.round((d.mats[0]?.mat?.emissiveIntensity ?? 0) * 100) / 100
+              : null,
+            fx: Math.round(d.node.position.x * 1000) / 1000,
+            fy: Math.round(d.node.position.y * 1000) / 1000,
           })),
         })),
       }

@@ -1,70 +1,93 @@
 /**
- * Tech kits (MODEL-3) — the authored technical bodies.
+ * Tech kits (MODEL-4) — the SEMANTIC-MATCH bodies.
  *
- * OWNER'S THIRD VERDICT (verbatim intent): the workshop/craft bodies were
- * «أثاث منزل وقطع تاريخية» — the site's bodies must be TECHNICAL objects
- * that say what Elyra BUILDS, «ليس على هويته، وإنما على ماهيته ووظيفته»
- * (not its identity, but its essence and its function): software,
- * infrastructure, automation, devices, signals.
+ * OWNER'S FOURTH VERDICT (verbatim intent): the technical theme was right,
+ * but «لا يوجد أي شيء يدل على أن هذا المجسم ينتمي أو يتحدث عن الفكرة
+ * الموضوعة له» — a body sitting in a section must BE the thing that
+ * section's own words describe (the server rack in the home hero was tech,
+ * yes, but the home hero talks about crafting DIGITAL EXPERIENCES, not
+ * machine rooms). And the bodies must «تعيش وتتفاعل مع السكرول ومع
+ * المستخدم في كل تحرك» — live and react to scroll AND to the user on
+ * every move (see the interactivity layer below).
  *
- * Research that shaped this file (full record: scripts/fetch-models-m3.mjs
- * + worklog MODEL-3): Poly Haven's 521-model catalog holds exactly ONE
- * fitting technical photoscan (a real PCB — downloaded as circuit_board,
- * the only downloaded member of this set). Every other reachable source
- * is either vintage consumer electronics (the aesthetic the owner just
- * rejected) or flat low-poly kits that would clash with the studio-PBR
- * stage. The professional route for technical hero bodies — the
- * Stripe/Linear school — is AUTHORED kits: procedural geometry with real
- * PBR materials keyed to the brand tokens, and NAMED part nodes the
- * scroll-driver articulates. That is this file.
+ * THE MODEL-4 SET — each body is the section's literal subject, built from
+ * that section's own copy (messages/ar.json):
  *
- * The set (each body MEANS its section — the mapping is the design):
- *   · serverRack   — home hero: «نبني ما يعمل» — the machine room; every
- *     site Elyra ships lives in one. Its three fans are LIVE ODOMETERS of
- *     D: the rack runs exactly as far as you scroll, and freezes when you
- *     stop (fan_a / fan_b / fan_c).
- *   · cpuChip      — home method: «بدقة العلماء» — engineering precision
- *     at micrometer scale: die, capacitors, a gold pin-grid, etched
- *     traces. Says everything by being exact — no part drives.
- *   · laptopStudio — websites hero: «اللوحة التي تولد عليها المواقع» —
- *     the open studio laptop; its screen is a live wireframe of a
- *     homepage being born (browser chrome, emerald blocks, gold
- *     underline). The lid breathes gently with the scroll (lid).
- *   · robotArm     — automation hero: «الآلة التي تعمل بتمريرك» — THE
- *     machine, successor of the drill press: shoulder/elbow/wrist/grip
- *     sweeps ride the section's travel p, so the arm cycles through a
- *     work pose — reaching, then presenting its glowing workpiece — and
- *     replays it exactly in reverse when you scroll back up.
- *   · smartphone   — work hero: «العمل يعمل في يد العميل» — the shipped
- *     product in the hand: app-grid wireframe screen, camera island,
- *     gold side keys. The product shot — no part drives.
- *   · circuitBoard — about hero: the REAL photoscanned PCB (Poly Haven,
- *     downloaded) — «صنعة اليد الجديدة: دوائر مطبوعة». Lives in the
- *     MODEL_LIBRARY like any GLTF asset — nothing in this file.
- *   · dataStack    — about story: «الأرشيف» — four storage sleds in a
- *     gold-railed frame; sled_c SLIDES OUT of the array as the story
- *     travels (a volume pulled from the shelf — successor of the pulled
- *     encyclopedia volumes).
- *   · dishAntenna  — contact hero: «أرسل الإشارة» — the parabolic dish
- *     that ACQUIRES you: azimuth + elevation sweeps track the section's
- *     travel; the feed tip glows emerald (the signal, waiting).
+ *   · experienceStack — HOME HERO. The copy: «نصنعُ تجاربَ رقميةً تُشبهُ
+ *     المستقبل… بناء مواقع فائقة الجمال وتجارب ثلاثية الأبعاد، وأنظمة
+ *     أتمتة ذكية بـ n8n». The body IS a digital experience, exploded into
+ *     its three offering layers: the browser window (the website), the
+ *     gyroscope with an emerald core (the 3D experience), the node ribbon
+ *     (the n8n automation) — arriving EXPLODED and assembling into one
+ *     stack as the section travels. The site being built, literally.
+ *   · pipelineJourney — HOME METHOD. The copy: «رحلة واضحة، من الفكرة إلى
+ *     الإطلاق» + four steps (الاكتشاف/التصميم/البناء/الإطلاق). The body
+ *     IS the journey: a rail with four gates and a glowing workpiece that
+ *     rides the rail as you scroll; each gate's LED ignites exactly as the
+ *     workpiece passes it, and the launch beacon lights at the far end.
+ *   · siteCanvas — WEBSITES HERO. The copy: «مواقع تُبنى لتبهر». The body
+ *     IS a website being BUILT: a floating browser window whose wireframe
+ *     blocks (nav, hero, cards, CTA, footer) rise into place in sequence
+ *     with the section's travel, the URL bar loading, and a gold on-screen
+ *     cursor that FOLLOWS the visitor's real pointer (drive flag
+ *     `follow`) — the site assembles under your hand.
+ *   · flowGraph — AUTOMATION HERO. The copy: «أنظمة تعمل، وأنت نائم» —
+ *     n8n flows that connect tools and do the routine. The body IS the
+ *     workflow: five node cards wired in a zigzag, and glowing packets
+ *     that hop node-to-node as you scroll (each arrival lighting its
+ *     node). Not a machine that automates — the automation itself,
+ *     running on your scroll. Nodes also feel the pointer (glow `boost`).
+ *   · resultsDeck — WORK HERO. The copy: «نتائج تتحدث بالأرقام» — real
+ *     numbers from selected projects. The body IS the results: a
+ *     carousel of three project screens around a gold hub that turns
+ *     with the section's travel; the front screen is an analytics card
+ *     whose bar chart GROWS as you scroll — the numbers, rising.
+ *   · explodedDetail — ABOUT HERO. The copy: «وكالة رقمية صغيرة الحجم،
+ *     كبيرة الهوس بالتفاصيل». The body IS that sentence: a small compact
+ *     module that opens into a vertical exploded view — PCB, vents,
+ *     silver plate, gold frame, emerald glass — the obsession revealed
+ *     by opening a small thing. Hovering pulls it apart further
+ *     (`peek`).
+ *   · braidMerge — ABOUT STORY. The copy: «لماذا يضطر الناس للاختيار بين
+ *     موقع جميل يعمل ببطء، وموقع سريع يبدو مملًا؟… قررنا ألا نختار» —
+ *     the Elyra contract. The body IS the decision: a gold wire (الجمال)
+ *     and an emerald wire (الدقة) converging into a collar from which a
+ *     two-tone BRAID rises as the story travels — beauty and engineering
+ *     woven into one cable, growing with your scroll.
+ *   · messageComposer — CONTACT HERO. The copy: «لنبدأ الحديث» — tell us
+ *     about your project. The body IS the conversation starting: a
+ *     message card whose lines TYPE themselves in (scale-x drives), a
+ *     blinking caret (scroll-clocked `blink`), and a send button that
+ *     lights and FIRES a glowing packet as the section settles — the
+ *     message, composing and sending itself. Header dots = the three
+ *     channels below (email/whatsapp/telegram).
+ *   · brokenLink — 404. The copy: «وصلت إلى رابط قديم أو غير صحيح — لا
+ *     بأس، الطريق للرئيسية قريب». The body IS the broken route: a
+ *     browser window showing the 404 page, in front of it a severed
+ *     chain link with a hot red spark in the gap — and as you scroll
+ *     toward the recovery links, the halves reach for each other, align,
+ *     and the spark settles emerald: the road home, repairing itself.
  *
- * CONTRACTS (unchanged, binding on every kit):
- * · Pure TS + three.js geometry only — no network, no external files.
- * · Deterministic: no Math.random, no wall-clock, no per-frame state —
- *   a given scroll position renders a byte-identical frame.
- * · Every moving part is a NAMED node (fan_a, shoulder, azimuth, sled_c…)
- *   so the registry's PartDrives resolve them by name (suffix-match
- *   contract of rune-scene's findNode).
- * · Cache-owned: each kit is built ONCE per module lifetime and cached;
- *   the scene clones it per mount (geometries/textures/material
- *   originals are shared and never disposed — the exact GLTF-cache
- *   contract; only per-mount material clones are disposed).
- * · Materials are MeshStandardMaterial so the scene's studio
- *   environment, presence fades and env-intensity handling apply to
- *   them identically. Brand-critical emissives are EXACT token colors
- *   (gGreen / gYellow / gBlueLight from the brand registry); structural
- *   metal shades are documented derivations of registry tokens.
+ * INTERACTIVITY LAYER (the owner's second demand, implemented jointly
+ * with rune-scene.tsx): every motion stays a PURE function of user input
+ * — (section rect, D, S, pointer) — zero wall-clock, zero randomness:
+ *   · SCROLL drives each body's signature (assemblies, packets, typing,
+ *     growth) — reversible, frame-identical up and down.
+ *   · POINTER moves drive: the camera micro-parallax (existing), plus
+ *     NEW per-slot springs — each body leans toward the pointer and
+ *     lifts/hovers when the pointer is near it (proximity), exploded
+ *     bodies open further (`peek` drives), graph nodes glow brighter
+ *     (`boost`), and the siteCanvas cursor mirrors the visitor's hand
+ *     (`follow`). Every pointer move pokes the invalidate bus, so the
+ *     bodies answer EVERY move — and when all input stops, the demand
+ *     frame loop parks at zero frames (the standing owner contract).
+ *
+ * Build contract (unchanged from MODEL-3): kits are authored procedural
+ * geometry with named part nodes, module-cached (buildTechKit), rendered
+ * with the studio PBR environment; materials are MeshStandardMaterial so
+ * presence fades / env composition apply identically. Brand-critical
+ * emissives are EXACT registry tokens (gGreen / gYellow / gBlue /
+ * gBlueLight); structural shades are documented derivations.
  */
 
 import * as THREE from 'three'
@@ -73,25 +96,23 @@ import { BRAND_COLORS } from '@/lib/brand-colors'
 import type { RawInstrument } from './model-loader'
 
 /* ------------------------------------------------------------------ *
- * Palette — structural shades derived from the brand registry (the
- * registry tokens stay the source of truth for brand-critical values).
+ * Palette — structural shades derived from the brand registry.
  * ------------------------------------------------------------------ */
 
 /** gunmetal slate — BRAND_COLORS.dark #0F172A lifted one step. */
 const ENCLOSURE = '#242e40'
-/** faceplate — dark lifted two steps (front panels, sleds). */
+/** faceplate — dark lifted two steps (front panels, cards). */
 const PANEL = '#37415a'
 /** near-black insets — between dark #0F172A and deep #08080A. */
 const INK = '#10151f'
 /** brushed aluminum. */
 const SILVER = '#c3cbd6'
-/** metal gold — gYellow #FBBC05 muted toward metal for pins/rails. */
+/** message text lines — slate lifted (reads as UI text on dark cards). */
+const LINE = '#8fa1c0'
+/** metal gold — gYellow #FBBC05 muted toward metal for rails/frames. */
 const GOLD = '#c9a227'
-/** substrate green — gGreen #34A853 darkened (PCB of the chip). */
+/** substrate green — gGreen #34A853 darkened (PCB plates). */
 const PCB = '#123524'
-/** dish cream — the paper/silk family (real satellite dishes are white);
- * double-sided: the lathe's concave face is what the visitor sees. */
-const CREAM = '#e9e5da'
 
 /* ------------------------------------------------------------------ *
  * Shared materials (cache-owned originals; the scene clones per mount)
@@ -108,7 +129,9 @@ const M = {
   silver: std(SILVER, 0.95, 0.22, { envMapIntensity: 1.25 }),
   gold: std(GOLD, 1.0, 0.24, { envMapIntensity: 1.3 }),
   pcb: std(PCB, 0.15, 0.55),
-  cream: std(CREAM, 0.06, 0.42, { envMapIntensity: 1.1, side: THREE.DoubleSide, emissive: CREAM, emissiveIntensity: 0.35 }),
+  /** message/UI text lines — light slate, slightly self-lit so they read
+   *  on the dark card at any wash. */
+  line: std(LINE, 0.25, 0.5, { emissive: LINE, emissiveIntensity: 0.35 }),
   /** activity LED — exact gGreen token. */
   ledGreen: std('#062e19', 0.1, 0.4, {
     emissive: BRAND_COLORS.gGreen, emissiveIntensity: 2.4,
@@ -117,18 +140,32 @@ const M = {
   ledGold: std('#2d2405', 0.1, 0.4, {
     emissive: BRAND_COLORS.gYellow, emissiveIntensity: 1.9,
   }),
-  /** the signal / workpiece glow — exact gGreen, hotter. */
+  /** channel LED — exact gBlue token (telegram dot, graph glyphs). */
+  ledBlue: std('#0a1a33', 0.1, 0.4, {
+    emissive: BRAND_COLORS.gBlue, emissiveIntensity: 1.8,
+  }),
+  /** traffic-red — browser window controls (universal UI signifier). */
+  ledRed: std('#330d0d', 0.1, 0.4, {
+    emissive: '#ea4335', emissiveIntensity: 1.6,
+  }),
+  /** the signal / workpiece / packet glow — exact gGreen, hotter. */
   signal: std('#062e19', 0.1, 0.4, {
     emissive: BRAND_COLORS.gGreen, emissiveIntensity: 4.6,
   }),
-  /** phone body — glossy dark glass-metal (the "held product"). */
-  phoneBody: std(ENCLOSURE, 0.78, 0.26, { envMapIntensity: 1.35 }),
+  /** emerald core glass — the 3D-experience heart (translucent). */
+  coreGlass: std('#0f3d2c', 0.2, 0.25, {
+    emissive: BRAND_COLORS.gGreen, emissiveIntensity: 1.1,
+    transparent: true, opacity: 0.85,
+  }),
+  /** braid strand — gold (الجمال), self-lit to read on light bands. */
+  strandGold: std(GOLD, 0.9, 0.3, { emissive: '#8a6d15', emissiveIntensity: 0.55 }),
+  /** braid strand — emerald (الدقة), self-lit likewise. */
+  strandGreen: std('#2f8f57', 0.65, 0.35, { emissive: '#1d5c39', emissiveIntensity: 0.55 }),
 }
 
 /* ------------------------------------------------------------------ *
- * Screen wireframes — deterministic CanvasTexture drawings (no
- * randomness; identical pixels every build). A website being born
- * (laptop) and the shipped app (phone).
+ * Screen wireframes — deterministic CanvasTexture drawings (identical
+ * pixels every build; zero randomness).
  * ------------------------------------------------------------------ */
 
 function makeCanvas(w: number, h: number): { c: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
@@ -158,16 +195,14 @@ function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: n
   ctx.closePath()
 }
 
-/** The WEBSITES screen: a homepage wireframe being born — browser
- * chrome, emerald hero, gold underline, content cards. */
+/** The BROWSER screen (experienceStack's top layer — the website layer
+ *  of the digital experience): a homepage wireframe. */
 function drawBrowserWireframe(): THREE.CanvasTexture {
   const W = 1024
   const H = 640
   const { c, ctx } = makeCanvas(W, H)
-  // deep canvas
   ctx.fillStyle = '#0a1120'
   ctx.fillRect(0, 0, W, H)
-  // chrome bar
   ctx.fillStyle = '#182238'
   ctx.fillRect(0, 0, W, 64)
   for (let i = 0; i < 3; i++) {
@@ -176,7 +211,6 @@ function drawBrowserWireframe(): THREE.CanvasTexture {
     ctx.arc(34 + i * 26, 32, 7, 0, Math.PI * 2)
     ctx.fill()
   }
-  // URL pill
   ctx.fillStyle = '#0e1830'
   rr(ctx, 150, 14, 460, 36, 18)
   ctx.fill()
@@ -187,12 +221,10 @@ function drawBrowserWireframe(): THREE.CanvasTexture {
   ctx.fillStyle = '#31405f'
   ctx.fillRect(196, 28, 180, 8)
   ctx.fillRect(392, 28, 90, 8)
-  // faint grid dots behind content
   ctx.fillStyle = 'rgba(96,165,250,0.10)'
   for (let y = 96; y < H; y += 44) {
     for (let x = 40; x < W - 30; x += 44) ctx.fillRect(x, y, 2, 2)
   }
-  // hero block (emerald outline + translucent fill)
   ctx.fillStyle = 'rgba(52,168,83,0.14)'
   rr(ctx, 48, 104, 600, 180, 14)
   ctx.fill()
@@ -200,18 +232,15 @@ function drawBrowserWireframe(): THREE.CanvasTexture {
   ctx.lineWidth = 3
   rr(ctx, 48, 104, 600, 180, 14)
   ctx.stroke()
-  // hero heading bars + gold underline
   ctx.fillStyle = '#34a853'
   ctx.fillRect(84, 150, 320, 18)
   ctx.fillRect(84, 182, 210, 12)
   ctx.fillStyle = '#fbbc05'
   ctx.fillRect(84, 222, 130, 7)
-  // hero CTA pill
   ctx.strokeStyle = '#60a5fa'
   ctx.lineWidth = 2.5
   rr(ctx, 84, 246, 132, 26, 13)
   ctx.stroke()
-  // side column
   ctx.strokeStyle = 'rgba(96,165,250,0.55)'
   rr(ctx, 676, 104, 300, 180, 10)
   ctx.stroke()
@@ -219,7 +248,6 @@ function drawBrowserWireframe(): THREE.CanvasTexture {
     ctx.fillStyle = 'rgba(96,165,250,0.5)'
     ctx.fillRect(700, 130 + i * 36, 250 - i * 34, 10)
   }
-  // three content cards
   for (let i = 0; i < 3; i++) {
     const x = 48 + i * 208
     ctx.fillStyle = 'rgba(52,168,83,0.08)'
@@ -237,118 +265,164 @@ function drawBrowserWireframe(): THREE.CanvasTexture {
     ctx.fillRect(x + 22, 406, 120, 6)
     ctx.fillRect(x + 22, 422, 150, 6)
   }
-  // footer bar
   ctx.fillStyle = 'rgba(96,165,250,0.25)'
   ctx.fillRect(48, 508, 928, 8)
   ctx.fillRect(48, 530, 560, 6)
-  // the gold CURSOR — the hand placing the next block
   ctx.fillStyle = '#fbbc05'
   ctx.fillRect(636, 346, 3, 18)
   ctx.fillRect(636, 364, 12, 3)
   return toTexture(c)
 }
 
-/** The WORK screen: the shipped app — status bar, search pill, card
- * grid (one live/emerald), bottom tab bar. */
-function drawAppWireframe(): THREE.CanvasTexture {
-  const W = 480
-  const H = 1000
+/** The 404 screen (brokenLink): the not-found page — big gold 404, the
+ *  dashed ROUTE with the gap where the link broke, and the home dot the
+ *  route continues toward. */
+function drawNotFoundScreen(): THREE.CanvasTexture {
+  const W = 512
+  const H = 360
   const { c, ctx } = makeCanvas(W, H)
   ctx.fillStyle = '#0a1120'
   ctx.fillRect(0, 0, W, H)
-  // status bar
-  ctx.fillStyle = '#31405f'
-  ctx.fillRect(44, 30, 90, 12)
-  ctx.fillRect(388, 30, 56, 12)
-  ctx.fillStyle = '#fbbc05'
-  ctx.beginPath()
-  ctx.arc(226, 34, 6, 0, Math.PI * 2)
-  ctx.fill()
-  // search pill
-  ctx.fillStyle = '#131d33'
-  rr(ctx, 36, 84, 408, 44, 22)
-  ctx.fill()
-  ctx.strokeStyle = 'rgba(96,165,250,0.5)'
-  rr(ctx, 36, 84, 408, 44, 22)
-  ctx.stroke()
-  ctx.fillStyle = '#31405f'
-  ctx.beginPath()
-  ctx.arc(64, 106, 7, 0, Math.PI * 2)
-  ctx.stroke()
-  ctx.fillRect(84, 101, 150, 10)
-  // section heading
-  ctx.fillStyle = '#34a853'
-  ctx.fillRect(40, 164, 190, 16)
-  ctx.fillStyle = '#fbbc05'
-  ctx.fillRect(40, 192, 90, 7)
-  // card grid 2×3 — the middle card is the LIVE one
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 2; col++) {
-      const x = 36 + col * 204
-      const y = 232 + row * 200
-      const live = row === 1 && col === 0
-      ctx.fillStyle = live ? 'rgba(52,168,83,0.24)' : 'rgba(25,38,66,0.95)'
-      rr(ctx, x, y, 184, 172, 16)
-      ctx.fill()
-      ctx.strokeStyle = live ? '#3ddc70' : 'rgba(96,165,250,0.6)'
-      ctx.lineWidth = live ? 4 : 2.5
-      rr(ctx, x, y, 184, 172, 16)
-      ctx.stroke()
-      if (live) {
-        ctx.fillStyle = 'rgba(52,168,83,0.4)'
-        rr(ctx, x + 20, y + 18, 84, 84, 12)
-        ctx.fill()
-        ctx.strokeStyle = '#3ddc70'
-        rr(ctx, x + 20, y + 18, 84, 84, 12)
-        ctx.stroke()
-      } else {
-        ctx.fillStyle = 'rgba(96,165,250,0.45)'
-        rr(ctx, x + 20, y + 18, 84, 84, 12)
-        ctx.fill()
-      }
-      ctx.fillStyle = live ? '#3ddc70' : '#6684ad'
-      ctx.fillRect(x + 20, y + 118, 110, 12)
-      ctx.fillStyle = 'rgba(234,179,8,0.95)'
-      ctx.fillRect(x + 20, y + 140, 60, 6)
-    }
+  // chrome strip
+  ctx.fillStyle = '#182238'
+  ctx.fillRect(0, 0, W, 34)
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = ['#ea4335', '#fbbc05', '#34a853'][i] as string
+    ctx.beginPath()
+    ctx.arc(20 + i * 18, 17, 5, 0, Math.PI * 2)
+    ctx.fill()
   }
-  // bottom tab bar
-  ctx.fillStyle = '#0d1628'
-  rr(ctx, 20, 872, 440, 100, 26)
+  // the 404 itself
+  ctx.fillStyle = '#fbbc05'
+  ctx.font = '900 128px ui-sans-serif, system-ui, sans-serif'
+  ctx.textAlign = 'center'
+  ctx.fillText('404', W / 2, 158)
+  // subline bars
+  ctx.fillStyle = '#31405f'
+  ctx.fillRect(116, 186, 280, 9)
+  ctx.fillRect(156, 206, 200, 7)
+  // the ROUTE: dashed line, breaking apart mid-way
+  ctx.strokeStyle = '#60a5fa'
+  ctx.lineWidth = 4
+  ctx.setLineDash([16, 12])
+  ctx.beginPath()
+  ctx.moveTo(40, 280)
+  ctx.lineTo(196, 280)
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.moveTo(316, 280)
+  ctx.lineTo(452, 280)
+  ctx.stroke()
+  ctx.setLineDash([])
+  // the break spark marks
+  ctx.strokeStyle = '#ea4335'
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.moveTo(208, 268)
+  ctx.lineTo(224, 292)
+  ctx.moveTo(288, 268)
+  ctx.lineTo(304, 292)
+  ctx.stroke()
+  // the HOME dot the route leads to
+  ctx.fillStyle = '#34a853'
+  ctx.beginPath()
+  ctx.arc(452, 280, 9, 0, Math.PI * 2)
   ctx.fill()
-  for (let i = 0; i < 4; i++) {
-    const cx = 76 + i * 110
-    const active = i === 0
-    ctx.strokeStyle = active ? '#34a853' : '#31405f'
-    ctx.lineWidth = active ? 4 : 2.5
-    if (i % 2 === 0) {
-      rr(ctx, cx - 13, 902, 26, 26, 7)
-      ctx.stroke()
-    } else {
-      ctx.beginPath()
-      ctx.arc(cx, 915, 13, 0, Math.PI * 2)
+  ctx.strokeStyle = 'rgba(52,168,83,0.5)'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.arc(452, 280, 15, 0, Math.PI * 2)
+  ctx.stroke()
+  return toTexture(c)
+}
+
+/** Mini card screens for resultsDeck's side screens (the portfolio
+ *  pieces): a store wireframe and an app wireframe. */
+function drawStoreMini(): THREE.CanvasTexture {
+  const W = 256
+  const H = 176
+  const { c, ctx } = makeCanvas(W, H)
+  ctx.fillStyle = '#0a1120'
+  ctx.fillRect(0, 0, W, H)
+  // store hero
+  ctx.fillStyle = 'rgba(52,168,83,0.2)'
+  rr(ctx, 12, 12, 232, 56, 8)
+  ctx.fill()
+  ctx.strokeStyle = '#34a853'
+  ctx.lineWidth = 2
+  rr(ctx, 12, 12, 232, 56, 8)
+  ctx.stroke()
+  ctx.fillStyle = '#34a853'
+  ctx.fillRect(28, 30, 96, 10)
+  ctx.fillStyle = '#fbbc05'
+  ctx.fillRect(28, 48, 56, 5)
+  // product grid 3×2
+  for (let row = 0; row < 2; row++) {
+    for (let col = 0; col < 3; col++) {
+      const x = 12 + col * 80
+      const y = 80 + row * 46
+      ctx.fillStyle = 'rgba(96,165,250,0.25)'
+      rr(ctx, x, y, 68, 38, 6)
+      ctx.fill()
+      ctx.strokeStyle = 'rgba(96,165,250,0.6)'
+      rr(ctx, x, y, 68, 38, 6)
       ctx.stroke()
     }
   }
   return toTexture(c)
 }
 
-/* Screen materials (cache-owned; emissive-map driven so they read as
- * LIT displays — the "born on" light of the canvas). */
-const browserTex = /* lazy */ { value: null as THREE.CanvasTexture | null }
-const appTex = /* lazy */ { value: null as THREE.CanvasTexture | null }
+function drawAppMini(): THREE.CanvasTexture {
+  const W = 256
+  const H = 176
+  const { c, ctx } = makeCanvas(W, H)
+  ctx.fillStyle = '#0a1120'
+  ctx.fillRect(0, 0, W, H)
+  // stats header
+  ctx.fillStyle = '#34a853'
+  ctx.fillRect(12, 12, 84, 10)
+  ctx.fillStyle = 'rgba(234,179,8,0.9)'
+  ctx.fillRect(12, 30, 48, 5)
+  // chart area: rising bars
+  const bars = [18, 30, 24, 44, 38, 56, 62]
+  for (let i = 0; i < bars.length; i++) {
+    const h = bars[i] as number
+    ctx.fillStyle = i === bars.length - 1 ? '#34a853' : 'rgba(96,165,250,0.55)'
+    ctx.fillRect(14 + i * 33, 148 - h, 22, h)
+  }
+  // baseline
+  ctx.fillStyle = '#31405f'
+  ctx.fillRect(12, 150, 232, 3)
+  // tab bar
+  ctx.fillStyle = '#0d1628'
+  rr(ctx, 12, 158, 232, 14, 7)
+  ctx.fill()
+  return toTexture(c)
+}
 
-function screenMaterial(kind: 'browser' | 'app'): THREE.MeshStandardMaterial {
+/* Screen materials (cache-owned; emissive-map driven so they read as
+ * LIT displays). */
+const screenTex = {
+  browser: null as THREE.CanvasTexture | null,
+  notfound: null as THREE.CanvasTexture | null,
+  storeMini: null as THREE.CanvasTexture | null,
+  appMini: null as THREE.CanvasTexture | null,
+}
+
+type ScreenKind = keyof typeof screenTex
+
+function screenMaterial(kind: ScreenKind): THREE.MeshStandardMaterial {
   // Textures are created lazily: canvas needs a DOM. First kit build
   // happens in the browser (client-only scene), never at SSR.
-  if (kind === 'browser') {
-    if (!browserTex.value) browserTex.value = drawBrowserWireframe()
-    const t = browserTex.value
-    return std('#0a1120', 0.05, 0.32, { map: t, emissive: '#ffffff', emissiveMap: t, emissiveIntensity: 1.35 })
+  if (!screenTex[kind]) {
+    screenTex[kind] =
+      kind === 'browser' ? drawBrowserWireframe()
+        : kind === 'notfound' ? drawNotFoundScreen()
+          : kind === 'storeMini' ? drawStoreMini()
+            : drawAppMini()
   }
-  if (!appTex.value) appTex.value = drawAppWireframe()
-  const t = appTex.value
-  return std('#0a1120', 0.05, 0.3, { map: t, emissive: '#ffffff', emissiveMap: t, emissiveIntensity: 1.9 })
+  const t = screenTex[kind] as THREE.CanvasTexture
+  return std('#0a1120', 0.05, 0.32, { map: t, emissive: '#ffffff', emissiveMap: t, emissiveIntensity: 1.35 })
 }
 
 /* ------------------------------------------------------------------ *
@@ -369,409 +443,528 @@ function mesh(geo: THREE.BufferGeometry, mat: THREE.Material, x = 0, y = 0, z = 
   return m
 }
 
-/** An LED dot — small emissive cylinder facing +z. */
-const ledGeo = /* shared */ new THREE.CylinderGeometry(0.009, 0.009, 0.014, 10)
-function led(mat: THREE.Material, x: number, y: number, z: number): THREE.Mesh {
-  const m = mesh(ledGeo, mat, x, y, z)
+/** An LED dot — small emissive cylinder facing +z (r = radius). */
+function led(mat: THREE.Material, r: number, x: number, y: number, z: number): THREE.Mesh {
+  const m = mesh(new THREE.CylinderGeometry(r, r, 0.012, 10), mat, x, y, z)
   m.rotation.x = Math.PI / 2
   return m
 }
 
-/* ------------------------------------------------------------------ *
- * KIT 1 · serverRack — home hero
- * ------------------------------------------------------------------ */
-
-function buildServerRack(): THREE.Group {
-  const g = node('serverRack')
-  const W = 0.62
-  const H = 1.6
-  const D = 0.72
-
-  // shell + feet
-  g.add(mesh(new RoundedBoxGeometry(W, H, D, 3, 0.028), M.enclosure, 0, 0, 0))
-  for (const sx of [-1, 1]) {
-    for (const sz of [-1, 1]) {
-      g.add(mesh(new RoundedBoxGeometry(0.09, 0.05, 0.09, 2, 0.012), M.ink, sx * 0.24, -H / 2 - 0.02, sz * 0.28))
-    }
-  }
-  // front bezel + gold rails (the brand's metal, at the door)
-  g.add(mesh(new RoundedBoxGeometry(W - 0.06, H - 0.06, 0.022, 2, 0.012), M.panel, 0, 0, D / 2 + 0.002))
-  for (const sx of [-1, 1]) {
-    g.add(mesh(new RoundedBoxGeometry(0.03, H - 0.06, 0.018, 2, 0.008), M.gold, sx * (W / 2 - 0.015), 0, D / 2 + 0.016))
-  }
-
-  // FAN BANK — the odometers (named nodes; blades + hub + ring)
-  const fanY = 0.52
-  const fanXs = [-0.18, 0, 0.18]
-  const fanNames = ['fan_a', 'fan_b', 'fan_c']
-  const fanRates = [0.02, 0.026, 0.02] // registry mirrors these as D-odometers
-  void fanRates
-  for (let i = 0; i < 3; i++) {
-    const fx = fanXs[i] as number
-    // recessed ring
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.082, 0.014, 10, 28), M.ink)
-    ring.position.set(fx, fanY, D / 2 + 0.03)
-    g.add(ring)
-    // the DRIVE node — rotates around z (faces the viewer)
-    const fan = node(fanNames[i] as string, fx, fanY, D / 2 + 0.03)
-    fan.add(mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.028, 12), M.silver).rotateX(Math.PI / 2))
-    for (let b = 0; b < 7; b++) {
-      const blade = mesh(new RoundedBoxGeometry(0.016, 0.062, 0.008, 1, 0.003), M.panel, 0, 0.042, 0.006)
-      blade.rotation.z = (b / 7) * Math.PI * 2
-      fan.add(blade)
-    }
-    // corner LED beside each fan
-    g.add(led(i === 1 ? M.ledGold : M.ledGreen, fx + 0.098, fanY + 0.078, D / 2 + 0.036))
-    g.add(fan)
-  }
-  // top cap dot
-  g.add(led(M.ledGreen, 0, 0.72, D / 2 + 0.02))
-
-  // SERVER SLEDS — eight units, handles + LED pairs + vent slats
-  const sledGeo = new RoundedBoxGeometry(0.5, 0.112, 0.02, 2, 0.008)
-  const handleGeo = new RoundedBoxGeometry(0.14, 0.026, 0.03, 2, 0.01)
-  const ventGeo = new THREE.BoxGeometry(0.2, 0.008, 0.004)
-  for (let i = 0; i < 8; i++) {
-    const y = -0.72 + i * 0.152
-    g.add(mesh(sledGeo, i % 3 === 2 ? M.silver : M.panel, 0, y, D / 2 + 0.014))
-    g.add(mesh(handleGeo, M.ink, 0.06, y, D / 2 + 0.03))
-    for (let v = 0; v < 3; v++) {
-      g.add(mesh(ventGeo, M.ink, -0.14 - v * 0.045, y, D / 2 + 0.026))
-    }
-    g.add(led(M.ledGreen, -0.225, y + 0.026, D / 2 + 0.026))
-    g.add(led(i % 2 === 0 ? M.ledGold : M.ledGreen, -0.225, y - 0.026, D / 2 + 0.026))
-  }
-  return g
-}
-
-/* ------------------------------------------------------------------ *
- * KIT 2 · cpuChip — home method
- * ------------------------------------------------------------------ */
-
-function buildCpuChip(): THREE.Group {
-  const g = node('cpuChip')
-  // substrate
-  g.add(mesh(new RoundedBoxGeometry(1.0, 0.055, 1.0, 2, 0.01), M.pcb, 0, 0, 0))
-  // silicon die + inner plane (VLM r2: crisper die)
-  const dieMat = std('#cdd6e2', 0.9, 0.18, { envMapIntensity: 1.3 })
-  g.add(mesh(new RoundedBoxGeometry(0.42, 0.05, 0.42, 2, 0.006), dieMat, 0, 0.05, 0))
-  g.add(mesh(new RoundedBoxGeometry(0.34, 0.052, 0.34, 2, 0.004), M.ink, 0, 0.051, 0))
-  // pin-1 marker: gold corner chamfer
-  g.add(mesh(new THREE.BoxGeometry(0.16, 0.006, 0.09), M.gold, -0.4, 0.03, -0.42))
-  // etched traces — thin gold lines running from die to edge
-  const traceGeo = new THREE.BoxGeometry(0.012, 0.005, 1)
-  const traceZGeo = new THREE.BoxGeometry(1, 0.005, 0.012)
-  for (let i = 0; i < 3; i++) {
-    const t = i - 1
-    g.add(mesh(traceGeo, M.gold, 0.235 + i * 0.05, 0.029, 0.2 + t * 0.18))
-    g.add(mesh(traceZGeo, M.gold, -0.2 - t * 0.18, 0.029, -0.235 - i * 0.05))
-  }
-  // pin grid (bottom, 13×13) — instanced gold pins (VLM r2: denser)
-  const pinGeo = new THREE.CylinderGeometry(0.011, 0.011, 0.1, 6)
-  const pins = new THREE.InstancedMesh(pinGeo, M.gold, 169)
-  const mat4 = new THREE.Matrix4()
-  let idx = 0
-  for (let i = 0; i < 13; i++) {
-    for (let j = 0; j < 13; j++) {
-      mat4.makeTranslation(-0.42 + i * 0.07, -0.077, -0.42 + j * 0.07)
-      pins.setMatrixAt(idx, mat4)
-      idx++
-    }
-  }
-  pins.name = 'pinGrid'
-  g.add(pins)
-  // capacitors around the die (two tones)
-  const capGeo = new THREE.CylinderGeometry(0.021, 0.021, 0.052, 12)
-  const capTan = std('#a8814f', 0.3, 0.5)
-  for (let i = 0; i < 10; i++) {
-    const a = (i / 10) * Math.PI * 2
-    const r = 0.33 + (i % 2) * 0.05
-    g.add(mesh(capGeo, i % 2 === 0 ? M.silver : capTan, Math.cos(a) * r, 0.054, Math.sin(a) * r))
-  }
-  return g
-}
-
-/* ------------------------------------------------------------------ *
- * KIT 3 · laptopStudio — websites hero
- * ------------------------------------------------------------------ */
-
-function buildLaptopStudio(): THREE.Group {
-  const g = node('laptopStudio')
-  const baseW = 1.04
-  const baseD = 0.68
-
-  // base deck
-  g.add(mesh(new RoundedBoxGeometry(baseW, 0.036, baseD, 2, 0.014), M.silver, 0, 0.018, 0))
-  // keyboard well + keys (instanced) + space bar + trackpad
-  g.add(mesh(new RoundedBoxGeometry(0.64, 0.01, 0.3, 1, 0.005), M.ink, 0, 0.038, -0.05))
-  const keyGeo = new THREE.BoxGeometry(0.046, 0.008, 0.044)
-  const keys = new THREE.InstancedMesh(keyGeo, M.panel, 48)
-  const mat4 = new THREE.Matrix4()
-  let k = 0
-  for (let row = 0; row < 4; row++) {
-    for (let col = 0; col < 12; col++) {
-      mat4.makeTranslation(-0.27 + col * 0.0492, 0.042, -0.17 + row * 0.051)
-      keys.setMatrixAt(k, mat4)
-      k++
-    }
-  }
-  keys.name = 'keyGrid'
-  g.add(keys)
-  g.add(mesh(new THREE.BoxGeometry(0.18, 0.008, 0.044), M.panel, -0.06, 0.042, 0.085))
-  g.add(mesh(new RoundedBoxGeometry(0.26, 0.008, 0.17, 1, 0.004), M.ink, 0.08, 0.039, 0.21))
-
-  // hinge — a full-width gold bar at the pivot (bridges deck ↔ lid as
-  // one cohesive rigid assembly; the VLM r2 note about hinge cohesion)
-  const hingeBar = mesh(new THREE.CylinderGeometry(0.02, 0.02, baseW - 0.06, 12), M.gold, 0, 0.034, -baseD / 2 + 0.01)
-  hingeBar.rotation.z = Math.PI / 2
-  g.add(hingeBar)
-
-  // LID — the drive node. Pivot at the back edge; built CLOSED (flat
-  // on the deck, screen facing down like a real laptop) so the open
-  // rest pose is a single negative rotation around x. ALL lid panels
-  // are FLAT in the lid's own frame: x = width, y = thickness, z =
-  // length (pivot → front edge) — the lid rotates as one rigid slab.
-  // Local anatomy: +z runs from the hinge toward the deck's front
-  // edge, so the drawing's "up" lies toward the FRONT — exactly like
-  // a real laptop, the screen's top edge lands at the far edge when
-  // closed and stands up when open.
-  const lid = node('lid', 0, 0.034, -baseD / 2 + 0.01)
-  lid.rotation.x = -1.75
-  // shell (spans y 0.014..0.038 — outer back is +y, the closed top)
-  lid.add(mesh(new RoundedBoxGeometry(baseW, 0.024, 0.7, 2, 0.012), M.silver, 0, 0.026, 0.352))
-  // bezel plate on the inner face (visible from −y)
-  lid.add(mesh(new RoundedBoxGeometry(0.98, 0.005, 0.66, 2, 0.006), M.ink, 0, 0.0125, 0.352))
-  // screen (normal = local −y: faces the deck closed, the visitor open;
-  // drawing-up = +z = the front edge — upright for the open viewer)
-  const screen = mesh(new THREE.PlaneGeometry(0.94, 0.6), screenMaterial('browser'), 0, 0.0098, 0.352)
-  screen.rotation.x = Math.PI / 2
-  lid.add(screen)
-  // webcam — top bezel (far edge: stands highest when open)
-  const cam = mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.008, 10), M.ink, 0, 0.009, 0.646)
-  cam.rotation.x = Math.PI / 2
-  lid.add(cam)
-  // rear logo — the gold maker's mark on the outer back (+y face)
-  lid.add(mesh(new RoundedBoxGeometry(0.1, 0.004, 0.1, 1, 0.02), M.gold, 0, 0.039, 0.352))
-  g.add(lid)
-  return g
-}
-
-/* ------------------------------------------------------------------ *
- * KIT 4 · robotArm — automation hero
- * ------------------------------------------------------------------ */
-
-function buildRobotArm(): THREE.Group {
-  const g = node('robotArm')
-  // plinth + gold bolt ring + status LED
-  g.add(mesh(new THREE.CylinderGeometry(0.26, 0.3, 0.09, 28), M.enclosure, 0, 0.045, 0))
-  const boltGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.03, 6)
-  for (let i = 0; i < 8; i++) {
-    const a = (i / 8) * Math.PI * 2
-    g.add(mesh(boltGeo, M.gold, Math.cos(a) * 0.21, 0.09, Math.sin(a) * 0.21))
-  }
-  g.add(led(M.ledGreen, 0, 0.16, 0.12))
-
-  // SHOULDER — drive node (rotation.z; the arm plane faces the viewer)
-  const shoulder = node('shoulder', 0, 0.09, 0)
-  shoulder.rotation.z = 0.42
-  shoulder.add(mesh(new RoundedBoxGeometry(0.2, 0.32, 0.26, 2, 0.02), M.enclosure, 0, 0.16, 0))
-  const shoulderJoint = mesh(new THREE.CylinderGeometry(0.115, 0.115, 0.3, 20), M.silver, 0, 0.33, 0)
-  shoulderJoint.rotation.x = Math.PI / 2
-  shoulder.add(shoulderJoint)
-  // upper arm
-  shoulder.add(mesh(new RoundedBoxGeometry(0.14, 0.56, 0.18, 2, 0.03), M.panel, 0, 0.62, 0))
-  shoulder.add(mesh(new THREE.BoxGeometry(0.146, 0.06, 0.186), M.gold, 0, 0.86, 0))
-  g.add(shoulder)
-
-  // ELBOW — drive node nested at the upper arm's top
-  const elbow = node('elbow', 0, 0.9, 0)
-  elbow.rotation.z = -1.02
-  const elbowJoint = mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.24, 18), M.silver, 0, 0, 0)
-  elbowJoint.rotation.x = Math.PI / 2
-  elbow.add(elbowJoint)
-  // forearm + gold band
-  elbow.add(mesh(new RoundedBoxGeometry(0.11, 0.46, 0.15, 2, 0.024), M.enclosure, 0, 0.24, 0))
-  elbow.add(mesh(new THREE.BoxGeometry(0.116, 0.05, 0.156), M.gold, 0, 0.38, 0))
-  shoulder.add(elbow)
-
-  // WRIST — drive node at the forearm's end
-  const wrist = node('wrist', 0, 0.5, 0)
-  wrist.rotation.z = 0.55
-  const wristJoint = mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.17, 14), M.silver, 0, 0, 0)
-  wristJoint.rotation.x = Math.PI / 2
-  wrist.add(wristJoint)
-  wrist.add(mesh(new RoundedBoxGeometry(0.09, 0.17, 0.11, 2, 0.016), M.panel, 0, 0.085, 0))
-  elbow.add(wrist)
-
-  // GRIPPER — two fingers (drive nodes) pinching the glowing workpiece
-  const grip_l = node('grip_l', -0.05, 0.19, 0)
-  grip_l.rotation.z = 0.3
-  grip_l.add(mesh(new RoundedBoxGeometry(0.028, 0.15, 0.055, 1, 0.008), M.gold, 0, 0.065, 0))
-  const grip_r = node('grip_r', 0.05, 0.19, 0)
-  grip_r.rotation.z = -0.3
-  grip_r.add(mesh(new RoundedBoxGeometry(0.028, 0.15, 0.055, 1, 0.008), M.gold, 0, 0.065, 0))
-  wrist.add(grip_l, grip_r)
-  // the WORKPIECE — a small emerald-lit cube between the fingers: the
-  // thing being automated
-  const workpiece = mesh(new RoundedBoxGeometry(0.075, 0.075, 0.075, 2, 0.012), M.signal, 0, 0.245, 0)
-  workpiece.name = 'workpiece'
-  wrist.add(workpiece)
-  return g
-}
-
-/* ------------------------------------------------------------------ *
- * KIT 5 · smartphone — work hero
- * ------------------------------------------------------------------ */
-
-function buildSmartphone(): THREE.Group {
-  const g = node('smartphone')
-  // body (pill edges, glossy glass-metal) + bezel + screen
-  g.add(mesh(new RoundedBoxGeometry(0.36, 0.74, 0.048, 4, 0.06), M.phoneBody, 0, 0, 0))
-  g.add(mesh(new RoundedBoxGeometry(0.335, 0.705, 0.004, 2, 0.052), M.ink, 0, 0, 0.0242))
-  // screen — IN FRONT of the bezel slab's front face (0.0262): a
-  // coplanar plane inside the slab is occluded by it (VLM r2 read the
-  // phone as a "blank slab" — the screen was buried in the bezel).
-  const screen = mesh(new THREE.PlaneGeometry(0.312, 0.672), screenMaterial('app'), 0, 0, 0.0268)
-  g.add(screen)
-  // side keys — gold
-  g.add(mesh(new THREE.BoxGeometry(0.012, 0.11, 0.014), M.gold, 0.183, 0.16, 0))
-  g.add(mesh(new THREE.BoxGeometry(0.012, 0.06, 0.014), M.gold, 0.183, 0.3, 0))
-  // camera island (back) — two lenses + flash dot
-  g.add(mesh(new RoundedBoxGeometry(0.15, 0.15, 0.014, 2, 0.03), M.panel, -0.085, 0.26, -0.028))
-  for (const dy of [-0.032, 0.032]) {
-    g.add(mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.012, 16), M.silver, -0.108, 0.26 + dy, -0.037).rotateX(Math.PI / 2))
-    g.add(mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.014, 12), M.ink, -0.108, 0.26 + dy, -0.038).rotateX(Math.PI / 2))
-  }
-  g.add(led(M.ledGold, -0.032, 0.32, -0.036))
-  return g
-}
-
-/* ------------------------------------------------------------------ *
- * KIT 6 · dataStack — about story
- * ------------------------------------------------------------------ */
-
-function buildDataStack(): THREE.Group {
-  const g = node('dataStack')
-  // gold-railed frame + base plate
-  for (const sx of [-1, 1]) {
-    g.add(mesh(new RoundedBoxGeometry(0.03, 0.72, 0.52, 2, 0.01), M.gold, sx * 0.385, 0.02, 0))
-  }
-  g.add(mesh(new RoundedBoxGeometry(0.8, 0.05, 0.54, 2, 0.014), M.enclosure, 0, -0.33, 0))
-  // four sleds; sled_c is the drive node that slides out
-  const names = ['sled_a', 'sled_b', 'sled_c', 'sled_d']
-  const sledGeo = new RoundedBoxGeometry(0.72, 0.13, 0.48, 2, 0.018)
-  const handleGeo = new RoundedBoxGeometry(0.17, 0.03, 0.032, 2, 0.012)
-  const ventGeo = new THREE.BoxGeometry(0.22, 0.01, 0.004)
-  for (let i = 0; i < 4; i++) {
-    const y = -0.16 + i * 0.165
-    const sled = node(names[i] as string, 0, y, 0)
-    sled.add(mesh(sledGeo, i % 2 === 1 ? M.silver : M.panel, 0, 0, 0))
-    sled.add(mesh(handleGeo, M.ink, 0.12, 0, 0.252))
-    for (let v = 0; v < 3; v++) {
-      sled.add(mesh(ventGeo, M.ink, -0.15 - v * 0.05, 0.02, 0.252))
-      sled.add(mesh(ventGeo, M.ink, -0.15 - v * 0.05, -0.02, 0.252))
-    }
-    sled.add(led(M.ledGreen, -0.28, 0.032, 0.252))
-    sled.add(led(i === 3 ? M.ledGold : M.ledGreen, -0.28, -0.032, 0.252))
-    g.add(sled)
-  }
-  return g
-}
-
-/** A strut (thin cylinder) from point a to point b — used by the
- * dish's tripod feed legs (VLM r3: the feed must visibly INTERSECT the
- * rim, not float). */
-function strut(a: THREE.Vector3, b: THREE.Vector3, radius: number, mat: THREE.Material): THREE.Mesh {
-  const dir = b.clone().sub(a)
-  const len = Math.max(dir.length(), 1e-4)
-  const geo = new THREE.CylinderGeometry(radius, radius, len, 8)
-  const m = new THREE.Mesh(geo, mat)
+/** A thin wire between two points (silver cylinder, Y-axis oriented). */
+function wire(a: THREE.Vector3, b: THREE.Vector3, r = 0.004): THREE.Mesh {
+  const dir = new THREE.Vector3().subVectors(b, a)
+  const len = dir.length()
+  const geo = new THREE.CylinderGeometry(r, r, len, 6)
+  const m = new THREE.Mesh(geo, M.silver)
   m.position.copy(a).addScaledVector(dir, 0.5)
   m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize())
   return m
 }
 
 /* ------------------------------------------------------------------ *
- * KIT 7 · dishAntenna — contact hero
+ * KIT 1 · experienceStack — HOME HERO
+ * «نصنعُ تجاربَ رقميةً» — the digital experience, exploded into its
+ * three offering layers (website / 3D / automation), assembling.
  * ------------------------------------------------------------------ */
 
-function buildDishAntenna(): THREE.Group {
-  const g = node('dishAntenna')
-  // tripod legs + collar + mast
-  const legGeo = new THREE.CylinderGeometry(0.022, 0.026, 0.6, 10)
-  for (let i = 0; i < 3; i++) {
-    const a = (i / 3) * Math.PI * 2 + Math.PI / 2
-    const leg = mesh(legGeo, M.ink, Math.cos(a) * 0.16, 0.24, Math.sin(a) * 0.16)
-    leg.rotation.z = -Math.cos(a) * 0.34
-    leg.rotation.x = Math.sin(a) * 0.34
-    g.add(leg)
-  }
-  g.add(mesh(new THREE.CylinderGeometry(0.055, 0.07, 0.14, 16), M.enclosure, 0, 0.52, 0))
-  g.add(mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3, 12), M.silver, 0, 0.66, 0))
+function buildExperienceStack(): THREE.Group {
+  const g = node('experienceStack')
 
-  // AZIMUTH — drive node (rotation.y): the whole head swivels
-  const azimuth = node('azimuth', 0, 0.8, 0)
-  azimuth.rotation.y = 0.55
-  // yoke arms + trunnions
-  for (const sx of [-1, 1]) {
-    azimuth.add(mesh(new RoundedBoxGeometry(0.05, 0.22, 0.06, 2, 0.012), M.enclosure, sx * 0.15, 0.1, 0))
+  // LAYER 1 — the WEBSITE: a floating browser window (slab + screen).
+  const layerTop = node('layer_site', 0, 0.36, 0)
+  layerTop.add(mesh(new RoundedBoxGeometry(0.92, 0.58, 0.035, 3, 0.016), M.ink))
+  const screen1 = mesh(new THREE.PlaneGeometry(0.86, 0.52), screenMaterial('browser'), 0, 0, 0.019)
+  layerTop.add(screen1)
+  g.add(layerTop)
+
+  // LAYER 2 — the 3D EXPERIENCE: a gyroscope — two orbiting rings and a
+  // glowing emerald core (the rings are D-odometers: the 3D engine runs
+  // exactly as far as you scroll).
+  const layerMid = node('layer_3d', 0, 0, 0)
+  const ringA = node('gyro_ring_a')
+  const torusA = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.009, 10, 40), M.gold)
+  torusA.rotation.x = Math.PI / 2
+  ringA.add(torusA)
+  layerMid.add(ringA)
+  const ringB = node('gyro_ring_b')
+  const torusB = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.008, 10, 36), M.silver)
+  torusB.rotation.y = Math.PI / 2
+  ringB.add(torusB)
+  layerMid.add(ringB)
+  const core = node('gyro_core')
+  core.add(mesh(new THREE.IcosahedronGeometry(0.085, 0), M.coreGlass))
+  layerMid.add(core)
+  g.add(layerMid)
+
+  // LAYER 3 — the AUTOMATION: a node ribbon — three pills wired in a
+  // chain, one packet glowing on the wire (n8n in miniature).
+  const layerBot = node('layer_flow', 0, -0.34, 0)
+  const pillGeo = new RoundedBoxGeometry(0.1, 0.05, 0.03, 2, 0.012)
+  for (const px of [-0.15, 0, 0.15]) {
+    layerBot.add(mesh(pillGeo, px === 0 ? M.panel : M.silver, px, 0, 0))
   }
-  // ELEVATION — drive node (rotation.x): the dish tilts to acquire.
-  // Negative base = the +z dish axis swings UP toward the visitor
-  // (elevation-local +z maps to (0, −sinθ, cosθ); θ = −0.55 → up 32°).
-  const elevation = node('elevation', 0, 0.16, 0)
-  elevation.rotation.x = -0.55
-  // the dish — lathed parabola, cream (real dishes are white: it reads
-  // against every band and ties to the silk/paper family)
-  const profile: THREE.Vector2[] = []
-  for (let i = 0; i <= 10; i++) {
-    const r = (i / 10) * 0.52
-    profile.push(new THREE.Vector2(r, r * r * 0.8))
+  layerBot.add(wire(new THREE.Vector3(-0.1, 0, 0), new THREE.Vector3(-0.05, 0, 0), 0.005))
+  layerBot.add(wire(new THREE.Vector3(0.05, 0, 0), new THREE.Vector3(0.1, 0, 0), 0.005))
+  const packet = mesh(new THREE.SphereGeometry(0.016, 10, 8), M.signal, 0.075, 0, 0.006)
+  packet.name = 'flow_packet'
+  layerBot.add(packet)
+  layerBot.add(led(M.ledGreen, 0.008, -0.15, 0.028, 0.016))
+  g.add(layerBot)
+
+  // The vertical guide pins that visually thread the three layers
+  // together (read as the stack's axis — the assembled experience).
+  for (const px of [-0.34, 0.34]) {
+    g.add(mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.86, 6), M.silver, px, 0, 0))
   }
-  const dishGeo = new THREE.LatheGeometry(profile, 44)
-  const dish = new THREE.Mesh(dishGeo, M.cream)
-  dish.rotation.x = Math.PI / 2 // lathe opens +y → concave faces +z local; rim lands toward the visitor
-  elevation.add(dish)
-  // gold rim clamp (VLM r2: contrast so the cream reads as designed)
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.018, 10, 44), M.gold)
-  rim.position.set(0, 0, 0.165)
-  elevation.add(rim)
-  // back hub (behind the vertex) + trunnion clamp
-  const hub = mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.09, 14), M.enclosure, 0, 0, -0.055)
-  hub.rotation.x = Math.PI / 2
-  elevation.add(hub)
-  // FEED ASSEMBLY — three struts from the RIM to the prime focus
-  // (R 0.52, depth 0.17 → focus ≈ 0.42 out on the boresight). Real
-  // prime-focus geometry: the feed visibly intersects the dish rim
-  // (VLM r3 "floating horn" — the single cantilever read detached).
-  const focus = new THREE.Vector3(0, -0.115, 0.42)
+
+  return g
+}
+
+/* ------------------------------------------------------------------ *
+ * KIT 2 · pipelineJourney — HOME METHOD
+ * «رحلة واضحة، من الفكرة إلى الإطلاق» — the four-gate rail the glowing
+ * workpiece rides; gates ignite as it passes; launch beacon at the end.
+ * ------------------------------------------------------------------ */
+
+function buildPipelineJourney(): THREE.Group {
+  const g = node('pipelineJourney')
+  const X0 = -0.72
+  const X1 = 0.72
+  const RAIL_Y = -0.06
+
+  // the rail — a precision track with end caps
+  g.add(mesh(new RoundedBoxGeometry(1.62, 0.028, 0.09, 2, 0.01), M.silver, 0, RAIL_Y, 0))
+  g.add(mesh(new RoundedBoxGeometry(0.06, 0.1, 0.11, 2, 0.012), M.ink, X0 - 0.03, RAIL_Y, 0))
+  g.add(mesh(new RoundedBoxGeometry(0.06, 0.1, 0.11, 2, 0.012), M.ink, X1 + 0.03, RAIL_Y, 0))
+
+  // FOUR GATES (الاكتشاف / التصميم / البناء / الإطلاق) — posts + beam + LED
+  const gateXs = [-0.55, -0.18, 0.19, 0.56]
+  const postGeo = new THREE.CylinderGeometry(0.011, 0.011, 0.24, 8)
+  for (let i = 0; i < 4; i++) {
+    const gx = gateXs[i] as number
+    const gate = node(`gate_${i}`, gx, RAIL_Y + 0.02, 0)
+    gate.add(mesh(postGeo, M.panel, -0.085, 0.12, 0))
+    gate.add(mesh(postGeo, M.panel, 0.085, 0.12, 0))
+    gate.add(mesh(new RoundedBoxGeometry(0.23, 0.035, 0.05, 2, 0.01), M.panel, 0, 0.24, 0))
+    const lamp = led(M.ledGreen, 0.011, 0, 0.28, 0.02)
+    lamp.name = `gate_led_${i}`
+    gate.add(lamp)
+    g.add(gate)
+  }
+
+  // the WORKPIECE — the project itself, riding the rail
+  const work = node('workpiece', X0, RAIL_Y + 0.055, 0.02)
+  work.add(mesh(new THREE.SphereGeometry(0.045, 14, 12), M.signal))
+  work.add(mesh(new THREE.TorusGeometry(0.062, 0.006, 8, 24), M.gold))
+  g.add(work)
+
+  // the LAUNCH beacon at the far end — the goal
+  const beacon = node('beacon', X1 + 0.03, RAIL_Y + 0.14, 0)
+  beacon.add(mesh(new THREE.CylinderGeometry(0.012, 0.02, 0.16, 8), M.gold))
+  const tip = led(M.ledGold, 0.016, 0, 0.1, 0)
+  tip.name = 'beacon_tip'
+  beacon.add(tip)
+  g.add(beacon)
+
+  return g
+}
+
+/* ------------------------------------------------------------------ *
+ * KIT 3 · siteCanvas — WEBSITES HERO
+ * «مواقع تُبنى لتبهر» — the browser window whose wireframe blocks rise
+ * into place as the section travels; the on-screen cursor FOLLOWS the
+ * visitor's real pointer (follow drive); the URL bar loads.
+ * ------------------------------------------------------------------ */
+
+function buildSiteCanvas(): THREE.Group {
+  const g = node('siteCanvas')
+  const W = 1.02
+  const H = 0.66
+
+  // window slab + plain dark canvas backdrop (the CONTENT is 3D
+  // geometry — blocks rising into place — so the backdrop stays a lit
+  // dark pane, not a second wireframe texture)
+  g.add(mesh(new RoundedBoxGeometry(W, H, 0.035, 3, 0.016), M.ink))
+  const backdrop = std('#0c1426', 0.2, 0.4, { emissive: '#0e1830', emissiveIntensity: 0.5 })
+  g.add(mesh(new THREE.PlaneGeometry(W - 0.06, H - 0.1), backdrop, 0, -0.02, 0.019))
+
+  // chrome: traffic lights + URL pill with a loading bar
+  const dots: Array<THREE.Material> = [M.ledRed, M.ledGold, M.ledGreen]
   for (let i = 0; i < 3; i++) {
-    const a = (i / 3) * Math.PI * 2 + Math.PI / 6
-    const rimPt = new THREE.Vector3(Math.cos(a) * 0.5, Math.sin(a) * 0.5, 0.155)
-    elevation.add(strut(rimPt, focus, 0.011, M.silver))
+    g.add(led(dots[i] as THREE.Material, 0.011, -W / 2 + 0.09 + i * 0.034, H / 2 - 0.05, 0.021))
   }
-  // feed horn + THE SIGNAL (emerald tip) at the focus
-  const horn = mesh(new THREE.CylinderGeometry(0.044, 0.03, 0.11, 12), M.gold, 0, -0.115, 0.4)
-  horn.rotation.x = Math.PI / 2
-  elevation.add(horn)
-  const tip = mesh(new THREE.SphereGeometry(0.044, 14, 12), M.signal, 0, -0.115, 0.475)
-  tip.name = 'signalTip'
-  elevation.add(tip)
-  // the glow halo — additive sphere so the tip READS as a live signal
-  // at hero scale (no postprocessing in the scene; a static material
-  // stays freeze-contract-pure).
-  const halo = mesh(
-    new THREE.SphereGeometry(0.085, 14, 12),
+  g.add(mesh(new RoundedBoxGeometry(0.34, 0.045, 0.012, 2, 0.02), M.panel, 0.13, H / 2 - 0.05, 0.024))
+  const load = node('url_load', -0.02, H / 2 - 0.05, 0.026)
+  load.add(mesh(new RoundedBoxGeometry(0.1, 0.016, 0.006, 1, 0.003), M.gold, 0.05, 0, 0))
+  g.add(load)
+
+  // the content blocks — each its own node, rising into place
+  const mkBlock = (name: string, w: number, h: number, mat: THREE.Material, x: number, y: number) => {
+    const b = node(name, x, y, 0.032)
+    b.add(mesh(new RoundedBoxGeometry(w, h, 0.014, 2, 0.008), mat))
+    g.add(b)
+    return b
+  }
+  mkBlock('blk_nav', 0.86, 0.05, M.panel, 0, H / 2 - 0.13)
+  mkBlock('blk_hero', 0.55, 0.2, M.coreGlass, -0.12, 0.06)
+  mkBlock('blk_aside', 0.22, 0.2, M.panel, 0.32, 0.06)
+  for (let i = 0; i < 3; i++) {
+    mkBlock(`blk_card_${i}`, 0.24, 0.13, M.panel, -0.26 + i * 0.27, -0.19)
+  }
+  mkBlock('blk_cta', 0.14, 0.05, M.gold, 0.0, 0.0)
+  g.add(mesh(new RoundedBoxGeometry(0.86, 0.035, 0.01, 2, 0.005), M.panel, 0, -H / 2 + 0.09, 0.024))
+
+  // the CURSOR — follows the visitor's real pointer (follow drive in
+  // the registry: slide [xRange, yRange]).
+  const cursor = node('ui_cursor', 0.1, -0.05, 0.045)
+  const curBar = mesh(new THREE.BoxGeometry(0.012, 0.05, 0.006), M.ledGold, 0, 0.025, 0)
+  curBar.name = 'ui_cursor_stem'
+  cursor.add(curBar)
+  const curTip = mesh(new THREE.BoxGeometry(0.026, 0.008, 0.006), M.ledGold, 0.008, 0.004, 0)
+  curTip.name = 'ui_cursor_tip'
+  cursor.add(curTip)
+  g.add(cursor)
+
+  return g
+}
+
+/* ------------------------------------------------------------------ *
+ * KIT 4 · flowGraph — AUTOMATION HERO
+ * «أنظمة تعمل، وأنت نائم» — the n8n workflow itself: five wired node
+ * cards; packets hop node-to-node with the scroll, lighting each node
+ * as they arrive; nodes also glow brighter when the pointer nears.
+ * ------------------------------------------------------------------ */
+
+function buildFlowGraph(): THREE.Group {
+  const g = node('flowGraph')
+
+  // node positions (zigzag) + card + glyph + LED each
+  const N: Array<[number, number]> = [
+    [-0.44, -0.1],
+    [-0.21, 0.11],
+    [0.01, -0.13],
+    [0.23, 0.09],
+    [0.46, -0.08],
+  ]
+  const cardGeo = new RoundedBoxGeometry(0.17, 0.115, 0.028, 2, 0.01)
+  const glyphGeos: THREE.BufferGeometry[] = [
+    new THREE.TorusGeometry(0.02, 0.007, 8, 18),
+    new RoundedBoxGeometry(0.032, 0.032, 0.012, 1, 0.005),
+    new THREE.ConeGeometry(0.02, 0.036, 4),
+    new THREE.SphereGeometry(0.02, 10, 8),
+    new THREE.TorusGeometry(0.02, 0.007, 8, 18),
+  ]
+  const glyphMats: Array<THREE.Material> = [M.ledGreen, M.ledBlue, M.ledGold, M.ledGreen, M.ledGreen]
+  for (let i = 0; i < N.length; i++) {
+    const [nx, ny] = N[i] as [number, number]
+    const card = node(`node_${i}`, nx, ny, 0)
+    card.add(mesh(cardGeo, i === 0 ? M.silver : M.panel))
+    card.add(mesh(glyphGeos[i] as THREE.BufferGeometry, glyphMats[i] as THREE.Material, 0, 0.018, 0.018))
+    card.add(led(i === N.length - 1 ? M.ledGold : M.ledGreen, 0.008, 0.06, -0.032, 0.017))
+    g.add(card)
+  }
+
+  // wires between consecutive nodes
+  for (let i = 0; i < N.length - 1; i++) {
+    const a = N[i] as [number, number]
+    const b = N[i + 1] as [number, number]
+    g.add(wire(new THREE.Vector3(a[0], a[1], 0), new THREE.Vector3(b[0], b[1], 0), 0.0045))
+  }
+
+  // PACKETS — glowing spheres that hop along the wires (slide drives
+  // in the registry, staggered windows; hop vectors live there —
+  // here only each packet's BASE node: node_0, node_2, node_3)
+  const hopBases = [0, 2, 3]
+  for (let i = 0; i < hopBases.length; i++) {
+    const base = hopBases[i] as number
+    const p = node(`packet_${i}`, N[base]?.[0] ?? 0, N[base]?.[1] ?? 0, 0.024)
+    p.add(mesh(new THREE.SphereGeometry(0.02, 10, 8), M.signal))
+    const halo = mesh(
+      new THREE.SphereGeometry(0.038, 10, 8),
+      new THREE.MeshBasicMaterial({
+        color: BRAND_COLORS.gGreen, transparent: true, opacity: 0.3,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      }),
+    )
+    p.add(halo)
+    g.add(p)
+  }
+
+  return g
+}
+
+/* ------------------------------------------------------------------ *
+ * KIT 5 · resultsDeck — WORK HERO
+ * «نتائج تتحدث بالأرقام» — the carousel of results: three project
+ * screens around a gold hub, turning with the section's travel; the
+ * front screen's bar chart GROWS as you scroll.
+ * ------------------------------------------------------------------ */
+
+function buildResultsDeck(): THREE.Group {
+  const g = node('resultsDeck')
+
+  // the hub — a gold-capped spindle
+  g.add(mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.56, 10), M.silver, 0, 0, 0))
+  g.add(mesh(new THREE.CylinderGeometry(0.05, 0.038, 0.035, 12), M.gold, 0, 0.3, 0))
+  g.add(mesh(new THREE.CylinderGeometry(0.05, 0.038, 0.035, 12), M.gold, 0, -0.3, 0))
+  const hubLed = led(M.ledGreen, 0.012, 0, 0.335, 0)
+  hubLed.name = 'hub_led'
+  g.add(hubLed)
+
+  // three screens at 120° — the front one (θ=0) is the analytics card
+  const R = 0.29
+  for (let i = 0; i < 3; i++) {
+    const theta = (i / 3) * Math.PI * 2
+    const arm = node(`screen_${i}`, Math.sin(theta) * R, 0, Math.cos(theta) * R)
+    arm.rotation.y = theta
+    const card = node(`card_${i}`, 0, 0, 0.05)
+    if (i === 0) {
+      // THE ANALYTICS SCREEN — «بالأرقام»: backdrop + growing bars
+      card.add(mesh(new RoundedBoxGeometry(0.44, 0.3, 0.02, 2, 0.012), M.ink))
+      card.add(led(M.ledGreen, 0.007, -0.17, 0.115, 0.014))
+      const barHs = [0.07, 0.11, 0.09, 0.16]
+      for (let b = 0; b < 4; b++) {
+        const h = barHs[b] as number
+        const geo = new RoundedBoxGeometry(0.055, h, 0.016, 1, 0.005)
+        geo.translate(0, h / 2, 0) // origin at the bar's base — grows UP
+        const bar = mesh(geo, b === 3 ? M.signal : M.panel, -0.135 + b * 0.09, -0.06, 0.018)
+        bar.name = `chart_bar_${b}`
+        card.add(bar)
+      }
+      // a thin baseline under the bars
+      card.add(mesh(new RoundedBoxGeometry(0.38, 0.008, 0.008, 1, 0.003), M.silver, 0, -0.062, 0.018))
+    } else {
+      // the portfolio pieces: store + app mini screens
+      card.add(mesh(new RoundedBoxGeometry(0.44, 0.3, 0.02, 2, 0.012), M.ink))
+      card.add(mesh(
+        new THREE.PlaneGeometry(0.4, 0.26),
+        screenMaterial(i === 1 ? 'storeMini' : 'appMini'),
+        0, 0, 0.012,
+      ))
+    }
+    arm.add(card)
+    g.add(arm)
+  }
+
+  return g
+}
+
+/* ------------------------------------------------------------------ *
+ * KIT 6 · explodedDetail — ABOUT HERO
+ * «صغيرة الحجم، كبيرة الهوس بالتفاصيل» — the compact module that opens
+ * into its exploded stack (PCB, vents, silver, gold frame, glass);
+ * hovering pulls it apart further (peek drives).
+ * ------------------------------------------------------------------ */
+
+function buildExplodedDetail(): THREE.Group {
+  const g = node('explodedDetail')
+  const S = 0.34
+
+  // plate materials/layouts, authored at EXPLODED positions (drives
+  // compact them at section entry — see the registry)
+  const ys = [-0.34, -0.17, 0, 0.17, 0.34]
+  for (let i = 0; i < 5; i++) {
+    const plate = node(`plate_${i}`, 0, ys[i] ?? 0, 0)
+    if (i === 0) {
+      // PCB — the etched foundation
+      plate.add(mesh(new RoundedBoxGeometry(S, 0.045, S, 2, 0.01), M.pcb))
+      for (let t = 0; t < 3; t++) {
+        plate.add(mesh(new THREE.BoxGeometry(0.16, 0.006, 0.012), M.gold, 0, 0.024, -0.1 + t * 0.1))
+      }
+    } else if (i === 1) {
+      // vented panel with the activity LED
+      plate.add(mesh(new RoundedBoxGeometry(S, 0.04, S, 2, 0.01), M.panel))
+      for (let v = 0; v < 4; v++) {
+        plate.add(mesh(new THREE.BoxGeometry(0.2, 0.008, 0.02), M.ink, 0, 0, -0.09 + v * 0.06))
+      }
+      const lamp = led(M.ledGreen, 0.01, 0.1, 0.022, 0.024)
+      lamp.name = 'detail_led'
+      plate.add(lamp)
+    } else if (i === 2) {
+      // brushed silver deck
+      plate.add(mesh(new RoundedBoxGeometry(S, 0.035, S, 2, 0.01), M.silver))
+    } else if (i === 3) {
+      // gold frame — four bars forming the square outline
+      const barL = new THREE.BoxGeometry(S, 0.024, 0.03)
+      plate.add(mesh(barL, M.gold, 0, 0, S / 2 - 0.015))
+      plate.add(mesh(barL, M.gold, 0, 0, -S / 2 + 0.015))
+      const barS = new THREE.BoxGeometry(0.03, 0.024, S)
+      plate.add(mesh(barS, M.gold, S / 2 - 0.015, 0, 0))
+      plate.add(mesh(barS, M.gold, -S / 2 + 0.015, 0, 0))
+    } else {
+      // emerald glass top
+      plate.add(mesh(new RoundedBoxGeometry(S, 0.028, S, 2, 0.01), M.coreGlass))
+    }
+    // corner standoffs riding each plate (the assembly's screws)
+    for (const sx of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        plate.add(mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.03, 6), M.gold, sx * (S / 2 - 0.03), 0, sz * (S / 2 - 0.03)))
+      }
+    }
+    g.add(plate)
+  }
+
+  return g
+}
+
+/* ------------------------------------------------------------------ *
+ * KIT 7 · braidMerge — ABOUT STORY
+ * «قررنا ألا نختار» — the gold wire (الجمال) and the emerald wire
+ * (الدقة) converging into the collar; the two-tone braid RISES from it
+ * as the story travels — beauty and engineering woven into one.
+ * ------------------------------------------------------------------ */
+
+function buildBraidMerge(): THREE.Group {
+  const g = node('braidMerge')
+
+  // the two strands, converging into the collar from below
+  const strand = (sign: number, mat: THREE.Material): THREE.Mesh => {
+    const pts = [
+      new THREE.Vector3(sign * 0.17, -0.52, 0),
+      new THREE.Vector3(sign * 0.13, -0.28, 0),
+      new THREE.Vector3(sign * 0.06, -0.06, 0),
+      new THREE.Vector3(sign * 0.02, 0.06, 0),
+    ]
+    const curve = new THREE.CatmullRomCurve3(pts)
+    return new THREE.Mesh(new THREE.TubeGeometry(curve, 32, 0.018, 8), mat)
+  }
+  g.add(strand(-1, M.strandGold))
+  g.add(strand(1, M.strandGreen))
+
+  // the COLLAR — the decision point («قررنا ألا نختار»)
+  g.add(mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.11, 14), M.gold, 0, 0.15, 0))
+  g.add(mesh(new THREE.TorusGeometry(0.056, 0.008, 8, 22), M.gold, 0, 0.205, 0).rotateX(Math.PI / 2))
+  g.add(mesh(new THREE.TorusGeometry(0.056, 0.008, 8, 22), M.gold, 0, 0.095, 0).rotateX(Math.PI / 2))
+
+  // the BRAID — two helices woven around one axis, rising from the
+  // collar (scale drive: grows from the collar with the story's travel)
+  const braid = node('braid', 0, 0.2, 0)
+  const helix = (phase: number, mat: THREE.Material): THREE.Mesh => {
+    const pts: THREE.Vector3[] = []
+    const LEN = 0.4
+    const TURNS = 2.6
+    for (let i = 0; i <= 40; i++) {
+      const t = i / 40
+      const a = t * TURNS * Math.PI * 2 + phase
+      pts.push(new THREE.Vector3(Math.cos(a) * 0.034, t * LEN, Math.sin(a) * 0.034))
+    }
+    const curve = new THREE.CatmullRomCurve3(pts)
+    return new THREE.Mesh(new THREE.TubeGeometry(curve, 72, 0.014, 8), mat)
+  }
+  braid.add(helix(0, M.strandGold))
+  braid.add(helix(Math.PI, M.strandGreen))
+  g.add(braid)
+
+  // the merged RESULT — the tip that lights once the braid is woven
+  const tip = mesh(new THREE.SphereGeometry(0.03, 12, 10), M.signal, 0, 0.62, 0)
+  tip.name = 'braid_tip'
+  g.add(tip)
+
+  return g
+}
+
+/* ------------------------------------------------------------------ *
+ * KIT 8 · messageComposer — CONTACT HERO
+ * «لنبدأ الحديث» — the message composing itself: lines typing in
+ * (scale-x), the blinking caret, the send button lighting and firing
+ * its packet as the section settles. Header dots = the channels.
+ * ------------------------------------------------------------------ */
+
+function buildMessageComposer(): THREE.Group {
+  const g = node('messageComposer')
+  const W = 0.66
+  const H = 0.5
+
+  // card + header + channel dots (email/whatsapp/telegram)
+  g.add(mesh(new RoundedBoxGeometry(W, H, 0.03, 3, 0.016), M.ink))
+  g.add(mesh(new RoundedBoxGeometry(W - 0.06, 0.06, 0.014, 2, 0.024), M.panel, 0, H / 2 - 0.07, 0.018))
+  const chans: Array<THREE.Material> = [M.ledGold, M.ledGreen, M.ledBlue]
+  for (let i = 0; i < 3; i++) {
+    g.add(led(chans[i] as THREE.Material, 0.01, -W / 2 + 0.11 + i * 0.035, H / 2 - 0.07, 0.026))
+  }
+
+  // the LINES — typing in from the RIGHT edge (RTL-first geometry:
+  // origin at the line's right end, growth leftward)
+  const lineSpecs: Array<[number, number]> = [
+    [0.44, 0.05],
+    [0.36, -0.03],
+    [0.3, -0.11],
+  ]
+  for (let i = 0; i < lineSpecs.length; i++) {
+    const [len, y] = lineSpecs[i] as [number, number]
+    const geo = new RoundedBoxGeometry(len, 0.03, 0.012, 1, 0.005)
+    geo.translate(-len / 2, 0, 0) // origin at the RIGHT end
+    const line = mesh(geo, M.line, 0.26, y, 0.02)
+    line.name = `line_${i}`
+    g.add(line)
+  }
+
+  // the CARET — blinking at the end of the last line (scroll-clocked)
+  const caret = mesh(new THREE.BoxGeometry(0.014, 0.036, 0.01), M.ledGold, 0.26 - 0.31 - 0.02, -0.11, 0.02)
+  caret.name = 'caret'
+  g.add(caret)
+
+  // the SEND button — lights and pops as the message completes
+  const send = node('send_btn', -0.22, -H / 2 + 0.08, 0.02)
+  send.add(mesh(new RoundedBoxGeometry(0.16, 0.06, 0.018, 2, 0.024), M.gold))
+  const arrow = mesh(new THREE.ConeGeometry(0.014, 0.026, 4), M.ink, 0, 0, 0.012)
+  arrow.rotation.z = -Math.PI / 2
+  send.add(arrow)
+  g.add(send)
+
+  // the PACKET — the message, fired toward the reading column as the
+  // section settles (mirror drive: flips with the writing direction)
+  const packet = node('fly_packet', -0.13, -H / 2 + 0.08, 0.02)
+  packet.add(mesh(new THREE.SphereGeometry(0.018, 10, 8), M.signal))
+  packet.add(mesh(
+    new THREE.SphereGeometry(0.034, 10, 8),
     new THREE.MeshBasicMaterial({
-      color: BRAND_COLORS.gGreen, transparent: true, opacity: 0.32,
+      color: BRAND_COLORS.gGreen, transparent: true, opacity: 0.3,
       blending: THREE.AdditiveBlending, depthWrite: false,
     }),
-    0, -0.115, 0.475,
-  )
-  halo.name = 'signalHalo'
-  elevation.add(halo)
-  azimuth.add(elevation)
-  g.add(azimuth)
+  ))
+  g.add(packet)
+
+  return g
+}
+
+/* ------------------------------------------------------------------ *
+ * KIT 9 · brokenLink — 404
+ * «الصفحة غير موجودة… الطريق للرئيسية قريب» — the browser window with
+ * the 404 page + the severed chain link; the halves reach for each
+ * other as you scroll toward recovery, the red spark settling emerald.
+ * ------------------------------------------------------------------ */
+
+function buildBrokenLink(): THREE.Group {
+  const g = node('brokenLink')
+  const W = 0.72
+  const H = 0.5
+
+  // the window + 404 screen
+  g.add(mesh(new RoundedBoxGeometry(W, H, 0.035, 3, 0.016), M.ink))
+  g.add(mesh(new THREE.PlaneGeometry(W - 0.06, H - 0.06), screenMaterial('notfound'), 0, 0, 0.019))
+
+  // the SEVERED LINK — two torus halves in front of the window (the
+  // half MESHES hold the static orientation: upper / lower semicircle;
+  // the ±0.35 "severed" tilt lives in the SWEEP drives' from-poses)
+  const halfGeo = new THREE.TorusGeometry(0.075, 0.016, 10, 22, Math.PI)
+  const linkL = node('link_left', -0.085, 0.02, 0.055)
+  linkL.add(new THREE.Mesh(halfGeo, M.gold))
+  g.add(linkL)
+  const linkR = node('link_right', 0.085, 0.02, 0.055)
+  const halfR = new THREE.Mesh(halfGeo, M.gold)
+  halfR.rotation.z = Math.PI
+  linkR.add(halfR)
+  g.add(linkR)
+
+  // the SPARKS — hot red in the gap while broken; emerald once healed
+  const sparkRed = mesh(new THREE.SphereGeometry(0.013, 10, 8), M.ledRed, 0, 0.02, 0.055)
+  sparkRed.name = 'spark_red'
+  g.add(sparkRed)
+  const sparkGreen = mesh(new THREE.SphereGeometry(0.013, 10, 8), M.signal, 0, 0.02, 0.055)
+  sparkGreen.name = 'spark_green'
+  g.add(sparkGreen)
+
   return g
 }
 
@@ -780,20 +973,22 @@ function buildDishAntenna(): THREE.Group {
  * ------------------------------------------------------------------ */
 
 const KIT_BUILDERS: Record<string, () => THREE.Group> = {
-  serverRack: buildServerRack,
-  cpuChip: buildCpuChip,
-  laptopStudio: buildLaptopStudio,
-  robotArm: buildRobotArm,
-  smartphone: buildSmartphone,
-  dataStack: buildDataStack,
-  dishAntenna: buildDishAntenna,
+  experienceStack: buildExperienceStack,
+  pipelineJourney: buildPipelineJourney,
+  siteCanvas: buildSiteCanvas,
+  flowGraph: buildFlowGraph,
+  resultsDeck: buildResultsDeck,
+  explodedDetail: buildExplodedDetail,
+  braidMerge: buildBraidMerge,
+  messageComposer: buildMessageComposer,
+  brokenLink: buildBrokenLink,
 }
 
 const kitCache = new Map<string, RawInstrument>()
 
 /** Build (or fetch from cache) an authored tech kit as a RawInstrument —
- * the same contract loadInstrument gives GLTF assets: bbox-centered
- * clone source with size/center in the kit's own units. */
+ *  the same contract loadInstrument gives GLTF assets: bbox-centered
+ *  clone source with size/center in the kit's own units. */
 export function buildTechKit(kit: string): RawInstrument {
   const cached = kitCache.get(kit)
   if (cached) return cached

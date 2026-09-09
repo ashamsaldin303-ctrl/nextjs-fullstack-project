@@ -1,118 +1,89 @@
 {
-  "generatedAt": "2026-09-09T13:13:38.140Z",
-  "models": [
-    {
-      "slug": "circuit_board",
-      "variant": "1k",
-      "mainFile": "public/models/circuit_board/circuit_board_1k.gltf",
-      "totalMB": 3.14,
-      "polycount": 18273,
-      "dimensionsMeters": [
-        0.4035,
-        0.0783,
-        0.3974
-      ],
-      "animations": [],
-      "nodeNames": [
-        "circuit_board"
-      ],
-      "meshCount": 1,
-      "materialNames": [
-        "circuit_board",
-        "circuit_board_alpha"
-      ],
-      "extensionsUsed": [],
-      "files": [
-        "circuit_board_1k.gltf",
-        "textures/circuit_board_nor_gl_1k.jpg",
-        "textures/circuit_board_diff_1k.jpg",
-        "textures/circuit_board_arm_1k.jpg",
-        "circuit_board.bin"
-      ]
-    },
-    {
-      "slug": "rubber_duck_toy",
-      "variant": "1k",
-      "mainFile": "public/models/rubber_duck_toy/rubber_duck_toy_1k.gltf",
-      "totalMB": 0.7,
-      "polycount": 2489,
-      "dimensionsMeters": [
-        0.2135,
-        0.2855,
-        0.3
-      ],
-      "animations": [],
-      "nodeNames": [
-        "rubber_duck_toy"
-      ],
-      "meshCount": 1,
-      "materialNames": [
-        "rubber_duck_toy"
-      ],
-      "extensionsUsed": [
-        "KHR_materials_specular",
-        "KHR_materials_ior"
-      ],
-      "files": [
-        "rubber_duck_toy_1k.gltf",
-        "textures/rubber_duck_toy_diff_1k.jpg",
-        "rubber_duck_toy.bin",
-        "textures/rubber_duck_toy_arm_1k.jpg",
-        "textures/rubber_duck_toy_nor_gl_1k.jpg"
-      ]
-    }
-  ],
+  "generatedAt": "2026-09-09T20:39:38.811371Z",
+  "models": [],
   "proceduralKits": [
     {
-      "kit": "serverRack",
+      "kit": "experienceStack",
       "section": "home hero",
       "nodes": [
-        "fan_a",
-        "fan_b",
-        "fan_c"
+        "layer_site",
+        "gyro_ring_a",
+        "gyro_ring_b",
+        "gyro_core",
+        "flow_packet"
       ]
     },
     {
-      "kit": "cpuChip",
+      "kit": "pipelineJourney",
       "section": "home method",
-      "nodes": []
+      "nodes": [
+        "workpiece",
+        "gate_led_0..3",
+        "beacon_tip"
+      ]
     },
     {
-      "kit": "laptopStudio",
+      "kit": "siteCanvas",
       "section": "websites hero",
       "nodes": [
-        "lid"
+        "blk_nav",
+        "blk_hero",
+        "blk_card_0..2",
+        "blk_cta",
+        "url_load",
+        "ui_cursor"
       ]
     },
     {
-      "kit": "robotArm",
+      "kit": "flowGraph",
       "section": "automation hero",
       "nodes": [
-        "shoulder",
-        "elbow",
-        "wrist",
-        "grip_l",
-        "grip_r"
+        "node_0..4",
+        "packet_0..2"
       ]
     },
     {
-      "kit": "smartphone",
+      "kit": "resultsDeck",
       "section": "work hero",
-      "nodes": []
+      "nodes": [
+        "chart_bar_0..3",
+        "hub_led"
+      ]
     },
     {
-      "kit": "dataStack",
+      "kit": "explodedDetail",
+      "section": "about hero",
+      "nodes": [
+        "plate_0..4",
+        "detail_led"
+      ]
+    },
+    {
+      "kit": "braidMerge",
       "section": "about story",
       "nodes": [
-        "sled_c"
+        "braid",
+        "braid_tip"
       ]
     },
     {
-      "kit": "dishAntenna",
+      "kit": "messageComposer",
       "section": "contact hero",
       "nodes": [
-        "azimuth",
-        "elevation"
+        "line_0..2",
+        "caret",
+        "send_btn",
+        "fly_packet"
+      ]
+    },
+    {
+      "kit": "brokenLink",
+      "section": "404",
+      "nodes": [
+        "link_left",
+        "link_right",
+        "spark_red",
+        "spark_green"
       ]
     }
   ]
