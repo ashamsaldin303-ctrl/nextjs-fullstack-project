@@ -1,11 +1,8 @@
 {
   "asset": {
-    "generator": "Khronos glTF Blender I/O v1.6.16",
+    "generator": "Khronos glTF Blender I/O v5.1.20",
     "version": "2.0"
   },
-  "extensionsUsed": [
-    "KHR_materials_transmission"
-  ],
   "scene": 0,
   "scenes": [
     {
@@ -18,13 +15,13 @@
   "nodes": [
     {
       "mesh": 0,
-      "name": "magnifying_glass_01"
+      "name": "circuit_board"
     }
   ],
   "materials": [
     {
       "doubleSided": true,
-      "name": "magnifying_glass_01",
+      "name": "circuit_board",
       "normalTexture": {
         "index": 0
       },
@@ -32,7 +29,6 @@
         "baseColorTexture": {
           "index": 1
         },
-        "metallicFactor": 0,
         "metallicRoughnessTexture": {
           "index": 2
         }
@@ -40,32 +36,24 @@
     },
     {
       "alphaMode": "BLEND",
-      "extensions": {
-        "KHR_materials_transmission": {
-          "transmissionFactor": 1
-        }
-      },
-      "name": "magnifying_glass_01_lense",
+      "doubleSided": true,
+      "name": "circuit_board_alpha",
       "normalTexture": {
         "index": 3
       },
       "pbrMetallicRoughness": {
-        "baseColorFactor": [
-          0.7164804339408875,
-          0.8000000715255737,
-          0.7935186624526978,
-          1
-        ],
-        "metallicFactor": 0,
-        "metallicRoughnessTexture": {
+        "baseColorTexture": {
           "index": 4
+        },
+        "metallicRoughnessTexture": {
+          "index": 5
         }
       }
     }
   ],
   "meshes": [
     {
-      "name": "Sphere.002",
+      "name": "Circuit Trim Color.003",
       "primitives": [
         {
           "attributes": {
@@ -103,150 +91,157 @@
     },
     {
       "sampler": 0,
+      "source": 0
+    },
+    {
+      "sampler": 0,
       "source": 3
     },
     {
       "sampler": 0,
-      "source": 4
+      "source": 2
     }
   ],
   "images": [
     {
       "mimeType": "image/jpeg",
-      "name": "magnifying_glass_01_nor_gl",
-      "uri": "textures/magnifying_glass_01_nor_gl_1k.jpg"
+      "name": "circuit_board_nor_gl",
+      "uri": "textures/circuit_board_nor_gl_1k.jpg"
     },
     {
       "mimeType": "image/jpeg",
-      "name": "magnifying_glass_01_diff",
-      "uri": "textures/magnifying_glass_01_diff_1k.jpg"
+      "name": "circuit_board_diff",
+      "uri": "textures/circuit_board_diff_1k.jpg"
     },
     {
       "mimeType": "image/jpeg",
-      "name": "magnifying_glass_01_rough",
-      "uri": "textures/magnifying_glass_01_rough_1k.jpg"
+      "name": "circuit_board_metal-circuit_board_rough",
+      "uri": "textures/circuit_board_arm_1k.jpg"
     },
     {
       "mimeType": "image/jpeg",
-      "name": "magnifying_glass_01_nor_gl.png",
-      "uri": "textures/magnifying_glass_01_nor_gl_1k.jpg"
-    },
-    {
-      "mimeType": "image/jpeg",
-      "name": "magnifying_glass_01_rough.png",
-      "uri": "textures/magnifying_glass_01_arm_1k.jpg"
+      "name": "circuit_board_diff-circuit_board_alpha",
+      "uri": "textures/circuit_board_diff_1k.jpg"
     }
   ],
   "accessors": [
     {
       "bufferView": 0,
       "componentType": 5126,
-      "count": 2917,
+      "count": 15593,
       "max": [
-        0.06607866287231445,
-        0.2715718150138855,
-        0.013359002768993378
+        0.1968916952610016,
+        0.07225437462329865,
+        0.198769211769104
       ],
       "min": [
-        -0.06605884432792664,
-        -2.2023700918527567e-10,
-        -0.013358986005187035
+        -0.2066141664981842,
+        -0.006041519343852997,
+        -0.1985270082950592
       ],
       "type": "VEC3"
     },
     {
       "bufferView": 1,
       "componentType": 5126,
-      "count": 2917,
+      "count": 15593,
       "type": "VEC3"
     },
     {
       "bufferView": 2,
       "componentType": 5126,
-      "count": 2917,
+      "count": 15593,
       "type": "VEC2"
     },
     {
       "bufferView": 3,
       "componentType": 5123,
-      "count": 14040,
+      "count": 39270,
       "type": "SCALAR"
     },
     {
       "bufferView": 4,
       "componentType": 5126,
-      "count": 1414,
+      "count": 2680,
       "max": [
-        0.06516657769680023,
-        0.27067962288856506,
-        0.01181679405272007
+        0.19397158920764923,
+        0.06273667514324188,
+        0.19861535727977753
       ],
       "min": [
-        -0.06516657769680023,
-        0.14034637808799744,
-        -0.011816756799817085
+        -0.19397155940532684,
+        0,
+        -0.19861522316932678
       ],
       "type": "VEC3"
     },
     {
       "bufferView": 5,
       "componentType": 5126,
-      "count": 1414,
+      "count": 2680,
       "type": "VEC3"
     },
     {
       "bufferView": 6,
       "componentType": 5126,
-      "count": 1414,
+      "count": 2680,
       "type": "VEC2"
     },
     {
       "bufferView": 7,
       "componentType": 5123,
-      "count": 7680,
+      "count": 4020,
       "type": "SCALAR"
     }
   ],
   "bufferViews": [
     {
       "buffer": 0,
-      "byteLength": 35004,
-      "byteOffset": 0
+      "byteLength": 187116,
+      "byteOffset": 0,
+      "target": 34962
     },
     {
       "buffer": 0,
-      "byteLength": 35004,
-      "byteOffset": 35004
+      "byteLength": 187116,
+      "byteOffset": 187116,
+      "target": 34962
     },
     {
       "buffer": 0,
-      "byteLength": 23336,
-      "byteOffset": 70008
+      "byteLength": 124744,
+      "byteOffset": 374232,
+      "target": 34962
     },
     {
       "buffer": 0,
-      "byteLength": 28080,
-      "byteOffset": 93344
+      "byteLength": 78540,
+      "byteOffset": 498976,
+      "target": 34963
     },
     {
       "buffer": 0,
-      "byteLength": 16968,
-      "byteOffset": 121424
+      "byteLength": 32160,
+      "byteOffset": 577516,
+      "target": 34962
     },
     {
       "buffer": 0,
-      "byteLength": 16968,
-      "byteOffset": 138392
+      "byteLength": 32160,
+      "byteOffset": 609676,
+      "target": 34962
     },
     {
       "buffer": 0,
-      "byteLength": 11312,
-      "byteOffset": 155360
+      "byteLength": 21440,
+      "byteOffset": 641836,
+      "target": 34962
     },
     {
       "buffer": 0,
-      "byteLength": 15360,
-      "byteOffset": 166672
+      "byteLength": 8040,
+      "byteOffset": 663276,
+      "target": 34963
     }
   ],
   "samplers": [
@@ -257,8 +252,8 @@
   ],
   "buffers": [
     {
-      "byteLength": 182032,
-      "uri": "magnifying_glass_01.bin"
+      "byteLength": 671316,
+      "uri": "circuit_board.bin"
     }
   ]
 }

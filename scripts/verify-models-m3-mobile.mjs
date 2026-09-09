@@ -1,5 +1,5 @@
 /**
- * MODEL-2 mobile sanity — 375px: the rune layer must NOT mount on the
+ * MODEL-3 mobile sanity — 375px: the rune layer must NOT mount on the
  * mobile tier (useMobileTier gate) and the page must not overflow
  * horizontally. Quick single-route probe (home) + the 404 route.
  */
