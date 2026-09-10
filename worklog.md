@@ -3723,3 +3723,19 @@ Stage Summary:
 - The «المكان المناسب / الحركة المناسحة / الوقت المناسب» contract re-proven per route: stable composed slots (VLM 8–10/10 after six rounds), all motion pure f(rect, D, p) (odometer fans, sweep joints, slide sled, breathing lid), presence envelope unchanged, freeze contract intact (56/56 machine checks, frames park on idle).
 - One latent MODEL-2 bug fixed as a side effect: swing drives no longer accumulate drift.
 - Push: via the owner's fine-grained PAT under the zero-persistence protocol (token lives at /tmp/.gh_tok for this sandbox's lifetime per «احفظها عندك»; never committed, never in .git/config).
+
+---
+Task ID: VERIFY-PREVIEW-STALE
+Agent: Coordinator (direct — diagnostics only, no code changes)
+Task: Owner reported the preview panel shows the second-to-last 3D set (MODEL-2's real bodies) instead of the latest (MODEL-3). Verify what the dev server actually serves.
+
+Work Log:
+- git: HEAD=427d3e8 (MODEL-3, today 03:28 UTC), working tree clean — disk holds the latest set.
+- Process: dev server restarted today 09:28 (6h AFTER the MODEL-3 commit) with a fresh .next/dev cache — no stale compile possible.
+- Headers: HTML=Cache-Control no-store; public assets max-age=0; no service worker anywhere in src; Caddyfile is a pure reverse_proxy (no cache layer); old MODEL-2 model URLs (e.g. /models/server_rack/…) return 404 — the server physically cannot serve the old set.
+- Live proof (agent-browser fresh session): __elyraRuneDebug on / shows hero-title→serverRack (fan_a/b/c drives) + method-title→cpuChip — MODEL-3 kits. On /services/automation: page-hero-title→robotArm found=true. VLM read both screenshots: "stylized, geometric procedural 3D model" server tower / segmented robot arm — exactly the authored MODEL-3 aesthetic, not MODEL-2 photoscans. Bonus: /automation (wrong path) correctly renders the 404 duck.
+- Conclusion: server is 100% on MODEL-3. The stale view is the owner's preview-panel browser session (loaded during MODEL-2 era, never reloaded — old JS bundle still alive in the iframe's memory). No code defect.
+
+Stage Summary:
+- No changes needed server-side. Resolution communicated: hard-refresh the preview panel / use "Open in New Tab"; a plain reload suffices since HTML is no-store and dev chunks are no-store.
+- Evidence pack: /tmp/m3-home-hero.png, /tmp/m3-automation-hero.png + debug-token dumps above.
