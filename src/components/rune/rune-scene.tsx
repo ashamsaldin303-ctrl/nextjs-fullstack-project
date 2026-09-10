@@ -74,13 +74,23 @@ import { resolveModel, type RawInstrument } from './model-loader'
  *        is armed (`data-intro`) presence holds at zero — the birth
  *        plays strictly AFTER the reveal (the R9 contract, extended to
  *        the rune field; the overlay pokes the bus when it lifts).
- *      · EDGE LIFE — while the section travels: a vertical edge-glide
- *        (the body drifts gently against its section — pure f(p),
- *        reversible, «سلس ومتناسق»; the x anchor stays composed
- *        «ثابت») plus a scale swell that grows the body through the
- *        middle of its stay and eases it back at the edges («تكبر
- *        وتصغر بشكل سلس»), per-slot tunable in the registry
- *        (grow/glide).
+ *      · EDGE JOURNEY (MODEL-7 «رحلة الحواف» — the owner's clarified
+ *        intent: «تذهب المجسمات إلى أماكن أخرى على حواف الشاشة
+ *        بأنميشن سلس وثابت ولا يغطي أي شيء خلفه») — every body is a
+ *        SCREEN-pinned traveler, not page-glued content: it rides in
+ *        at its section's leading rows (a low hold deep in the edge
+ *        zone), GLIDES UP THE SCREEN EDGE to its composed place,
+ *        RESTS there while the section is read («ثابت» — the position
+ *        is a pure function of the section travel p: zero drift when
+ *        the scroll stops, perfectly reversible), then ascends to the
+ *        top edge and slips beneath the navbar's glass as the section
+ *        departs. Two soft BAND NETS clamp the traveler inside its
+ *        OWN section's visible band (a neighbour's ink can never be
+ *        covered, at any opacity), and the envelope-weighted
+ *        visibility clamps hold the whole body on screen — below the
+ *        navbar band — through the reading window. The scale swell
+ *        still grows the body through the middle of its stay («تكبر
+ *        وتصغر»), per-slot tunable in the registry (grow/journey).
  *      · FULL VISIBILITY — rotation-conservative projected half-extents
  *        (the bbox diagonal bound) clamp every holder inside the
  *        viewport at ANY yaw/tilt and through the grow peak: the whole
@@ -124,8 +134,22 @@ const BUILD_PART_W = 0.5
 const EDGE_PAD = 0.09
 /** MODEL-6 — the fixed navbar strip (px, = scroll-padding-top 6rem):
  * the top clamp reserves it so a body never reads as "cut off by the
- * header" while it glides high through its stay. */
+ * header" while it travels high through its stay. */
 const NAV_PX = 96
+
+/* ------------------------------------------------------------------ *
+ * MODEL-7 «رحلة الحواف» — the EDGE JOURNEY tuning.
+ * ------------------------------------------------------------------ */
+/** Head window (section-travel p): ride-in → composed REST glide. */
+const J_HEAD0 = 0.06
+const J_HEAD1 = 0.44
+/** Tail window: the REST → under-header TUCK ascent. */
+const J_TAIL0 = 0.58
+const J_TAIL1 = 0.92
+/** Band-net pad (viewport fractions) — the soft clamps hold the
+ * traveler inside its own section's visible band with this margin, so
+ * a neighbour's ink is never covered at any opacity. */
+const J_PAD = 0.02
 
 /* ------------------------------------------------------------------ *
  * GLSL — atmosphere layers (proven RUNE-2 physics, frustum units)
@@ -564,6 +588,9 @@ interface SlotRT {
   /** Damped pointer proximity over the body (0..1) — drives the hover
    *  lift, peek expansions and glow boosts. */
   prox: number
+  /** MODEL-7 journey station — the body's live viewport-fraction place
+   *  on its edge rail (wash telemetry + dev introspection). */
+  fy: number
   shadowW: number
   shadowY: number
 }
@@ -661,6 +688,7 @@ function buildSlots(routeKey: RunePresetKey): { list: SlotRT[]; dispose: () => v
       p: 0, env: 0, presence: 0, build: 0, ready: false, instrument: null, token,
       spr: { x: 0, y: 0 }, prox: 0,
       shadowW: 1, shadowY: -0.5,
+      fy: 0.5,
     }
     list.push(rt)
     disposables.push(() => {
@@ -819,7 +847,7 @@ interface RuneDebug {
   fade: number
   fadePhase: 'in' | 'out'
   active: string
-  models: { id: string; slug: string; p: number; env: number; presence: number; build: number; ready: boolean; found: boolean; x: number; y: number; scale: number; prox: number; sprx: number; spry: number; drives: { node: string; rot: number; pos: number; scl: number; glow: number | null; fx: number; fy: number }[] }[]
+  models: { id: string; slug: string; p: number; env: number; fy: number; yaw: number; tilt: number; presence: number; build: number; ready: boolean; found: boolean; x: number; y: number; scale: number; prox: number; sprx: number; spry: number; drives: { node: string; rot: number; pos: number; scl: number; glow: number | null; fx: number; fy: number }[] }[]
   /** MODEL-6: true while the homepage intro curtain is armed — the
    *  staged births are held (R9) until the reveal completes. */
   introHold: boolean
@@ -1102,7 +1130,7 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       const slot = rt.slot
       const inst = rt.instrument
 
-      // glue: the section's designed anchor point, in world units at
+      // glue: the section's designed anchor side, in world units at
       // the slot's depth plane (stable — held for the whole stay).
       const halfH = tanHalf * (CAM_Z - slot.z)
       const xFrac =
@@ -1116,9 +1144,73 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
               ? 0.24
               : 0.76) + (slot.xPad ?? 0)
       let x = (xFrac * 2 - 1) * halfH * aspect
-      const anchorPx = el === null ? 0 : liveTop + rt.rectH * slot.yFrac
-      const fy = anchorPx / vh
       const modelH = slot.viewFrac * 2 * halfH
+
+      // --- MODEL-7 «رحلة الحواف» — the EDGE JOURNEY -------------------
+      // The body LIVES ON THE SCREEN (viewport-pinned, pure f(p) —
+      // smooth, reversible, «سلس وثابت»): it rides in at its section's
+      // leading rows held deep in the lower edge zone, glides UP THE
+      // EDGE to its composed place, rests there through the reading
+      // window, then ascends to the top edge and slips beneath the
+      // navbar's glass as the section departs — «تذهب إلى أماكن أخرى
+      // على حواف الشاشة». The lateral x anchor never moves (the edge
+      // band is ink-free at every height — the pixel-truth-verified
+      // corridor), so the travel can never touch the reading column;
+      // the band nets below make foreign-ink coverage structurally
+      // impossible for the vertical leg.
+      const jr = slot.journey ?? {}
+      const jEnter = jr.enter ?? 0.84
+      const jRest = jr.rest ?? slot.yFrac
+      const jTuck = jr.tuck ?? -0.18
+      let fy: number
+      if (p <= J_HEAD0) fy = jEnter
+      else if (p <= J_HEAD1)
+        fy = jEnter + (jRest - jEnter) * ease01((p - J_HEAD0) / (J_HEAD1 - J_HEAD0))
+      else if (p < J_TAIL0) fy = jRest
+      else if (p <= J_TAIL1)
+        fy = jRest + (jTuck - jRest) * ease01((p - J_TAIL0) / (J_TAIL1 - J_TAIL0))
+      else fy = jTuck
+      // Soft BAND NETS — the section's own visible band in viewport
+      // fractions (top = liveTop/vh, bottom = (liveTop+rectH)/vh).
+      // Above the band's top lies the PREVIOUS section's tail ink;
+      // below its bottom lies the NEXT section's arriving ink. The
+      // nets hold the traveler inside its own band whenever the
+      // authored path would stray — the head degrades gracefully into
+      // riding just under the section's leading edge, the tail into
+      // riding just above its departing edge: never over a
+      // neighbour's ink, at any opacity. A band too short for the
+      // body (entering/exiting slivers, envelope ≈ 0 there) centers
+      // it — an invisible ghost covers nothing.
+      if (el !== null) {
+        // TILT-AWARE vertical extent (not the worst-case diagonal): the
+        // authored tilt + a 0.25 rad margin for the pointer lean and
+        // sway. A deep body at rest tilt projects far less height than
+        // its bbox diagonal — the nets must be tight, not paranoid, or
+        // they over-lift big bodies off their composed stations.
+        const tiltAbs = Math.abs(rt.def.tilt ?? 0) + 0.25
+        const hhEst =
+          inst && inst.fitDim > 0
+            ? (0.5 *
+                (inst.size.y * Math.cos(tiltAbs) + inst.size.z * Math.sin(tiltAbs)) *
+                Math.max((sizeK * modelH) / inst.fitDim, 1e-4) *
+                // peak above the base: swell + proximity breath + idle
+                // breath — the net must hold even the grown silhouette.
+                (1 + (slot.grow ?? 0.15) + 0.06)) /
+              halfH
+            : slot.viewFrac
+        const hhFrac = Math.min(hhEst, 0.48)
+        const bandTop = Math.min(Math.max(liveTop / vh, 0), 1)
+        const bandBot = Math.min(Math.max((liveTop + rt.rectH) / vh, 0), 1)
+        const lo = bandTop + hhFrac + J_PAD
+        const hi = bandBot - hhFrac - J_PAD
+        if (bandTop > 0.004 && bandBot < 0.996 && lo > hi) {
+          fy = (bandTop + bandBot) * 0.5
+        } else {
+          if (bandTop > 0.004 && fy < lo) fy = lo
+          if (bandBot < 0.996 && fy > hi) fy = hi
+        }
+      }
+      rt.fy = fy
       // MODEL-6: the presence rise is deepened by the BIRTH rise — the
       // body climbs into place as it assembles (the back-out overshoot
       // gives it one soft settling bounce above its slot).
@@ -1180,12 +1272,7 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       // height) when the pointer is over the body; the slot stays
       // composed, the body just breathes up toward your hand.
       const hoverLift = rt.prox * 0.04 * modelH * hoverW
-      // MODEL-6 EDGE-GLIDE: the body drifts gently against its section
-      // while scrolling (pure f(p) gated by the envelope — smooth,
-      // reversible, «سلس ومتناسق»; «ثابت» comes from the untouched x
-      // anchor — the body roams its edge corridor, never the column).
-      const glide = (p - 0.5) * (slot.glide ?? 0.5) * modelH * env
-      let y = baseY + hoverLift + bob + glide
+      let y = baseY + hoverLift + bob
 
       const holder = rt.holder
 
@@ -1243,22 +1330,30 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
         x += Math.sign(x) * hwBase * (growthK - 1)
       }
 
-      // MODEL-6 FULL-VISIBILITY clamps — the exact projected silhouette
+      // MODEL-7 FULL-VISIBILITY clamps — the exact projected silhouette
       // (horizontal) and the tilt-conservative bbox diagonal (vertical)
       // keep the WHOLE body inside the viewport at any yaw/tilt, through
-      // the grow peak and the edge-glide. The top band additionally
-      // reserves the fixed navbar strip so nothing reads as "cut off by
-      // the header": «تظهر المجسمات الـ 3D بشكل كامل», never clipped.
+      // the grow peak and the edge journey. The vertical clamps are
+      // ENVELOPE-WEIGHTED: at full presence (the reading window) they
+      // hold exactly as before — the whole body on screen, below the
+      // reserved navbar strip («تظهر المجسمات بشكل كامل», never clipped)
+      // — while the fade windows relax them smoothly so the journey's
+      // head ride-in and tail tuck may cross the screen edges
+      // (fade-masked; the band nets own the never-over-ink guarantee).
+      // The horizontal clamp is NEVER relaxed — the lateral edge band
+      // is the core no-coverage contract.
       if (inst) {
         const hw = hw1 * scale
         const hh = 0.5 * Math.sqrt(inst.size.y * inst.size.y + inst.size.z * inst.size.z) * scale
         const spanMaxX = Math.max(halfSpan - EDGE_PAD - hw, 0.05)
+        const visW = ease01((env - 0.35) / 0.45)
+        const slack = (1 - visW) * 1.6 * halfH
         const navPad = (NAV_PX / vh) * 2 * halfH
-        const yMax = Math.max(halfH - navPad - hh, 0.05)
+        const yMax = Math.max(halfH - navPad - hh, 0.05) + slack
         // Lower bound: the proper negative bound, falling back to −0.05
         // ONLY when the body is taller than the viewport (degenerate) —
         // Math.min picks the more negative (permissive) of the two.
-        const yMin = Math.min(-(halfH - EDGE_PAD - hh), -0.05)
+        const yMin = Math.min(-(halfH - EDGE_PAD - hh), -0.05) - slack
         if (x > spanMaxX) x = spanMaxX
         else if (x < -spanMaxX) x = -spanMaxX
         if (y > yMax) y = yMax
@@ -1578,6 +1673,9 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
           slug: rt.def.slug,
           p: rt.p,
           env: rt.env,
+          fy: Math.round(rt.fy * 1000) / 1000,
+          yaw: Math.round(rt.holder.rotation.y * 1000) / 1000,
+          tilt: Math.round(rt.holder.rotation.x * 1000) / 1000,
           presence: rt.presence,
           build: Math.round(rt.build * 1000) / 1000,
           ready: rt.ready,

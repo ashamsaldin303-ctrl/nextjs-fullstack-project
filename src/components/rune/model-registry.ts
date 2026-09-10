@@ -484,10 +484,29 @@ export interface ModelSlot {
    *  («تكبر وتصغر بشكل سلس ومتناسق»); default 0.15. Hero authorities
    *  breathe a touch deeper, small witnesses stay calmer. */
   grow?: number
-  /** MODEL-6 edge-glide amplitude as a fraction of the body's height
-   *  — how far the body drifts against its section across the travel
-   *  (vertical only; the x anchor stays composed «ثابت»); default 0.5. */
-  glide?: number
+  /** MODEL-7 «رحلة الحواف» — the EDGE JOURNEY stations (viewport
+   *  fractions, 0 = top of the screen, 1 = bottom). The body is a
+   *  SCREEN-pinned traveler, not page-glued content: it rides in at
+   *  its section's leading rows (the low `enter` hold), glides UP THE
+   *  EDGE to its composed place, RESTS there while the section is read
+   *  («ثابت» — a pure function of the section travel p, zero drift
+   *  when the scroll stops, perfectly reversible), then ascends to
+   *  the top edge and slips beneath the navbar's glass as the section
+   *  departs («تذهب إلى أماكن أخرى على حواف الشاشة»). Engine defaults:
+   *  enter 0.84 · rest = yFrac · tuck −0.18; two soft band nets hold
+   *  the traveler inside its OWN section's visible band, so it can
+   *  never cover a neighbour's ink at any opacity. */
+  journey?: {
+    /** Low hold station at the stay's head — deep in the lower edge
+     *  zone, inside the section's arriving band. */
+    enter?: number
+    /** The composed REST station — the pixel-verified place held
+     *  through the reading window. */
+    rest?: number
+    /** The TUCK line above the screen top the body ascends to as its
+     *  section departs (over the top edge, behind the navbar). */
+    tuck?: number
+  }
 }
 
 export interface ModelRoute {
@@ -510,28 +529,27 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
     slots: [
       {
         model: 'experienceStack', id: 'hero-title', side: 'end',
-        yFrac: 0.56, viewFrac: 0.33, z: -0.5, scrub: 0.15, palette: 'dark',
-        xPad: -0.1, // MODEL-6 r2: the editorial kinetic h1 is near
-        // full-bleed (its accent line's ink reaches ~377px from the left
-        // at 1440px) — the TRUE free margin is the outer ~350px band.
-        // Sized+tucked so the base silhouette's inner edge holds ~24px
-        // clear of that ink at any growth (± the idle sway's ±9px projected
-        // wobble — 19px at the anchor; the inner-edge pin keeps the
-        // clearance; the swell extends outward into the free corridor,
-        // growCap-bounded): «على أطراف الموقع… دون أن تحجب أي شيء» —
-        // pixel-diff-verified (the r1 0.44/−0.05 still grazed the accent
-        // line's tail letters).
-        grow: 0.17, glide: 0.55, // MODEL-6: the hero authority breathes
-        // deepest — the offering swelling as the promise is read.
+        yFrac: 0.56, viewFrac: 0.3, z: -0.5, scrub: 0.15, palette: 'dark',
+        xPad: -0.1, // MODEL-7: the kinetic h1's longest line («المستقبل»)
+        // reaches x≈370 at 1440px (Range-ink measured) — sized so the
+        // grow-peak silhouette (swell + pin + the visibility clamp's
+        // inward pull) still holds ~12px of real clearance. The rail
+        // label at the edge is data-bg-layer chrome (decor-over-decor).
+        grow: 0.13, // MODEL-7: tempered — the swell's pin shift was
+        // fighting the x-clamp at +17%, eating the ink clearance.
       },
       {
         model: 'pipelineJourney', id: 'method-title', side: 'end',
         yFrac: 0.26, viewFrac: 0.36, z: -0.3, scrub: 0.25, palette: 'light',
-        xPad: -0.02, // VLM r2: still "clipped awkwardly on the left" —
-        // pulled inward (xFrac 0.22) and sized 0.36 so the whole
-        // portal journey sits composed inside the margin, nothing
-        // grazing the edge.
-        grow: 0.11, glide: 0.42, // MODEL-6: the witness breathes gently —
+        xPad: -0.09, // MODEL-7: Range-ink truth — the method h2's accent
+        // word («الإطلاق») reaches x≈449 and the step cards' text x≈460+
+        // at 1440px — tucked so the wide witness spans ≈[35,397], clear
+        // of the section's own ink through its whole tall stay.
+        // MODEL-7: the method band is tall — the witness rides its
+        // full-height edge rail (enter 0.84 → REST 0.30 beside the
+        // steps → tuck), a slow descent-companion that settles high.
+        journey: { rest: 0.3 },
+        grow: 0.11, // MODEL-6: the witness breathes gently —
         // the journey reads, the method section stays the hero.
       },
     ],
@@ -553,7 +571,7 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
         // verified; the r1 0.42/−0.06 covered the subtitle's tail). The
         // assembling canvas still owns its band — a compact browser
         // building itself at the true edge.
-        grow: 0.12, glide: 0.5, // MODEL-6: the swell breathes within
+        grow: 0.12, // MODEL-6: the swell breathes within
         // the corridor (growCap-bounded on this tight margin).
       },
     ],
@@ -568,12 +586,15 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
     slots: [
       {
         model: 'flowGraph', id: 'page-hero-title', side: 'end',
-        yFrac: 0.52, viewFrac: 0.48, z: -0.3, scrub: 0.2, palette: 'dark',
-        xPad: -0.05, // MODEL-6 r2: eased the tuck (−0.07→−0.05) so the
-        // wide flat graph holds ~40px of viewport-edge breathing room
-        // (the clamp still guarantees full visibility; pixel-diff clean,
-        // the flat body's band sits clear of the subtitle line).
-        grow: 0.16, glide: 0.5, // MODEL-6: the workflow swells mid-stay
+        yFrac: 0.52, viewFrac: 0.29, z: -0.3, scrub: 0.2, palette: 'dark',
+        xPad: -0.11, // MODEL-7: Range-ink truth — the hero's whole text
+        // stack (h1 lines + subtitle) starts at x≈366 at 1440px. The
+        // flat graph's bbox silhouette must live in the outer ~340px
+        // band WITH clearance at its widest yaw — sized 0.29 + tucked
+        // so the box spans ≈[24,350]: «دون أن يغطي أي شيء خلفه».
+        journey: { enter: 0.82 }, // MODEL-7: the wide flat graph rides
+        // a touch higher on its edge rail (its silhouette is broad).
+        grow: 0.16, // MODEL-6: the workflow swells mid-stay
         // as its packets hop — the system, working.
       },
     ],
@@ -587,11 +608,15 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
     slots: [
       {
         model: 'resultsDeck', id: 'page-hero-title', side: 'end',
-        yFrac: 0.5, viewFrac: 0.46, z: -0.45, scrub: 1.05, palette: 'dark',
-        xPad: -0.04, // VLM r2: the gallery-ring rebuild reads bigger
-        // (0.42→0.46, tuck −0.07→−0.04) and the scrub is a 60° stroll
-        // (was the full 120° turn that angled every screen away).
-        grow: 0.16, glide: 0.5, // MODEL-6: the deck swells as the chart
+        yFrac: 0.5, viewFrac: 0.3, z: -0.45, scrub: 1.05, palette: 'dark',
+        xPad: -0.1, // MODEL-7: Range-ink truth — the work hero's subtitle
+        // «مختارات من مشاريعنا» reaches x≈407 at 1440px (wider than the
+        // h1) — sized 0.30 + tucked so the ring's widest silhouette
+        // spans ≈[53,353], clear with ~50px. The hero is SHORT (~0.66vh
+        // — p≈0.6 at load), so the composed REST rides high beside the
+        // heading, inside the short band the net can actually hold.
+        journey: { rest: 0.28 },
+        grow: 0.16, // MODEL-6: the deck swells as the chart
         // climbs — the numbers, ascending.
       },
     ],
@@ -611,7 +636,11 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
         // the left at 1440px (near full-bleed editorial heading) — tucked
         // deep so the narrow module's inner edge holds ~20px clear at any
         // growth (pixel-diff-verified; the r1 −0.06 covered the tail).
-        grow: 0.14, glide: 0.48, // MODEL-6: the module opens and swells —
+        journey: { rest: 0.24 }, // MODEL-7: the about hero is short
+        // (~0.66vh, p≈0.6 at load) and the tall module's silhouette
+        // needs the upper band — the composed rest rides high beside
+        // the editorial heading, where the band nets can hold it.
+        grow: 0.14, // MODEL-6: the module opens and swells —
         // the obsession, revealed.
       },
       {
@@ -619,7 +648,12 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
         yFrac: 0.66, viewFrac: 0.26, z: -0.25, scrub: 0.2, palette: 'light',
         xPad: -0.09, // dataStack lineage: smaller + deeper + tucked —
         // fully clear of the story's reading column.
-        grow: 0.1, glide: 0.4, // MODEL-6: the calmest witness — the story
+        // MODEL-7: the story band (~0.87vh) carries the braid low on its
+        // rail — rest 0.60 is the lowest station the band nets can hold
+        // (beside the dark panel, the VLM-approved composed zone),
+        // ascending to the tuck as the story departs.
+        journey: { rest: 0.6 },
+        grow: 0.1, // MODEL-6: the calmest witness — the story
         // reads; the braid just breathes.
       },
     ],
@@ -634,10 +668,15 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
     slots: [
       {
         model: 'messageComposer', id: 'page-hero-title', side: 'end',
-        yFrac: 0.5, viewFrac: 0.36, z: -0.4, scrub: 0.2, palette: 'dark',
-        xPad: -0.1, // dishAntenna lineage: pinned deep into the margin —
-        // part of the layout grid, not floating.
-        grow: 0.15, glide: 0.5, // MODEL-6: the composer swells as the
+        yFrac: 0.5, viewFrac: 0.34, z: -0.4, scrub: 0.2, palette: 'dark',
+        xPad: -0.11, // MODEL-7: Range-ink truth — the contact hero's
+        // intro line «أخبرنا عن مشروعك…» reaches x≈387 at 1440px —
+        // sized 0.34 + tucked so the composer spans ≈[15,359], clear
+        // with ~20px at the grow peak.
+        journey: { rest: 0.4 }, // MODEL-7: the contact hero is short
+        // (~0.72vh, p≈0.58 at load) — the composed rest sits beside the
+        // heading stack, above the form's opening.
+        grow: 0.15, // MODEL-6: the composer swells as the
         // conversation warms.
       },
     ],
@@ -653,7 +692,7 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
         model: 'brokenLink', id: 'nf-recovery-heading', side: 'end',
         yFrac: 0.5, viewFrac: 0.32, z: -0.3, scrub: 0.3, palette: 'light',
         xPad: -0.04, // the 404 message stays the hero.
-        grow: 0.12, glide: 0.45, // MODEL-6: a modest swell — the link
+        grow: 0.12, // MODEL-6: a modest swell — the link
         // reaching as the visitor scrolls toward home.
       },
     ],
