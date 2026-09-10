@@ -42,6 +42,11 @@ const REGISTRY = {
   gYellow: '#FBBC05',
   /** Dark surface (globals `--elyra-dark`). */
   dark: '#0F172A',
+  /** RGB triplet of `dark` (#0F172A) for rgba() derivatives — hero's
+   *  radial vignette + the deconstructed-card glass frame. The registry
+   *  holds full hexes; this is the rgba-composable form of the same ink
+   *  (audit B4 fix 3, add-only wave rule). */
+  darkRgb: '15,23,42',
   /** Immersive deep dark (globals `--background-deep`). */
   deep: '#08080A',
   /** Light page background (globals `--background`). */

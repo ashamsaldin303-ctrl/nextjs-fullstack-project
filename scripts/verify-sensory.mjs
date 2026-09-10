@@ -1,5 +1,9 @@
 /**
- * Phase 2 verification — magnetic cursor + film grain + audio toggle.
+ * Sensory-layer QA — custom cursor + magnetic CTA + film grain + audio
+ * toggle. (Supersedes the Phase 2 script: since R7-b the cursor is a 7px
+ * dot + 34px trailing-ring lerp engine with no cursor-side magnet, and the
+ * magnet is element-side — use-magnetic lerps the CTA itself toward the
+ * pointer, clamped ±14px, no snap.)
  * Runs against the dev server with the full Chromium binary (new headless,
  * which reports `pointer: fine` correctly, unlike the headless shell).
  */
@@ -36,6 +40,11 @@ const env = await page.evaluate(() => ({
 ok('env: pointer fine reported', env.pointerFine, JSON.stringify(env))
 
 // --- Activation ----------------------------------------------------------
+// R7-b: the engine arms (and hides the native cursor) only after the FIRST
+// real pointermove — custom-cursor.tsx adds `elyra-cursor-active` in the
+// hasMoved branch, never on mount. Prime the pointer before asserting.
+await page.mouse.move(400, 300)
+await page.waitForTimeout(120)
 const active = await page.evaluate(() =>
   document.documentElement.className.includes('elyra-cursor-active')
 )
@@ -44,20 +53,27 @@ ok('cursor: native cursor hidden (elyra-cursor-active on <html>)', active)
 const layers = await page.evaluate(() => {
   const dot = document.querySelector('.elyra-cursor-dot')
   const ring = document.querySelector('.elyra-cursor-ring')
+  // R7-b: aria-hidden and z-index live on the WRAPPER (.elyra-cursor-layer
+  // renders aria-hidden="true"; globals.css sets z-index 200 +
+  // pointer-events:none there) — the positioners carry no attributes and
+  // inherit the inertness. (Phase 2 put aria-hidden on the dot itself.)
+  const layer = document.querySelector('.elyra-cursor-layer')
   return {
     dot: !!dot,
     ring: !!ring,
     dotPE: dot ? getComputedStyle(dot).pointerEvents : null,
     ringPE: ring ? getComputedStyle(ring).pointerEvents : null,
-    dotAH: dot ? dot.getAttribute('aria-hidden') : null,
-    ringZ: ring ? getComputedStyle(ring).zIndex : null,
+    layerAH: layer ? layer.getAttribute('aria-hidden') : null,
+    layerZ: layer ? getComputedStyle(layer).zIndex : null,
   }
 })
-ok('cursor: dot+ring layers exist, inert, aria-hidden', layers.dot && layers.ring &&
-  layers.dotPE === 'none' && layers.ringPE === 'none' && layers.dotAH === 'true',
-  `z=${layers.ringZ}`)
+ok('cursor: dot+ring layers exist, inert, wrapper aria-hidden',
+  layers.dot && layers.ring &&
+  layers.dotPE === 'none' && layers.ringPE === 'none' &&
+  layers.layerAH === 'true',
+  `layer z=${layers.layerZ}`)
 
-// --- Movement (dot tracks exactly, ring lerps) ----------------------------
+// --- Movement (dot lerp 0.4 · ring lerp 0.16) ------------------------------
 await page.mouse.move(400, 300)
 await page.waitForTimeout(120)
 const pos1 = await page.evaluate(() => {
@@ -74,49 +90,96 @@ ok('cursor: layers visible after pointermove', pos1.dotOp === '1' && pos1.ringOp
   `dot=${pos1.dotT} ring=${pos1.ringT}`)
 
 await page.mouse.move(800, 500)
-await page.waitForTimeout(1500) // headless rAF runs ~17fps — allow full lerp convergence
+// R7-b positioner geometry: .elyra-cursor-ring is a zero-footprint anchor
+// (no width/height) whose 34px core is centered on it via
+// translate(-50%, -50%) — the translate3d point IS the ring center, so no
+// half-size offset is added (the Phase-2 +16px was for the old 32px box).
+// Convergence is waited for frame-rate-INdependently: this sandbox's
+// headless rAF runs at only ~2-3fps on the WebGL-heavy dev homepage (the
+// old "~17fps" Phase-2 note no longer holds), so a fixed sleep cannot
+// reach convergence — poll for the lerp to finish instead.
+await page.waitForFunction(
+  ([px, py]) => {
+    const t = document.querySelector('.elyra-cursor-ring').style.transform
+    const m = t.match(/translate3d\(([\d.-]+)px, ([\d.-]+)/)
+    return !!m && Math.hypot(parseFloat(m[1]) - px, parseFloat(m[2]) - py) < 8
+  },
+  [800, 500],
+  { polling: 200, timeout: 30000 },
+).catch(() => {}) // deadline miss surfaces in the assertion below
 const pos3 = await page.evaluate(() => {
   const t = document.querySelector('.elyra-cursor-ring').style.transform
   const m = t.match(/translate3d\(([\d.-]+)px, ([\d.-]+)/)
-  return m ? { x: parseFloat(m[1]) + 16, y: parseFloat(m[2]) + 16 } : null
+  return m ? { x: parseFloat(m[1]), y: parseFloat(m[2]) } : null
 })
 const convDist = pos3 ? Math.hypot(pos3.x - 800, pos3.y - 500) : 999
 ok('cursor: ring converges to pointer', convDist < 10, `center=(${pos3?.x},${pos3?.y}) dist=${convDist.toFixed(1)}px`)
 
-// --- Magnet snap -----------------------------------------------------------
-// Hero CTA button coordinates
-const cta = page.locator('a[href="/contact"][data-cursor="magnet"]').first()
+// --- Magnet (R7-b use-magnetic: the ELEMENT eases toward the pointer) -----
+// The magnet left the cursor in R7-b: use-magnetic (hero.tsx CTAs) lerps an
+// inline translate3d on the CTA itself — pull = clamp(dx * strength 0.3,
+// ±MAX_OFFSET 14), eased at LERP 0.18/frame, active within radius 28px of
+// the element's bounds — while the ring keeps tracking the pointer (checked
+// above). Scope to <main>: the magnetized /contact link is the hero CTA
+// (the navbar's /contact link carries data-cursor="magnet" but no hook).
+const cta = page.locator('main a[href="/contact"][data-cursor="magnet"]').first()
 const ctaBox = await cta.boundingBox()
 if (ctaBox) {
   const cx = ctaBox.x + ctaBox.width / 2
   const cy = ctaBox.y + ctaBox.height / 2
-  // Move near the button (within 80px) but not onto it
+  // Park the pointer 30px left of the CTA center — inside the activation
+  // zone (gap 0 ≤ radius 28) but off-center, so the pull target is a real
+  // directioned offset (≈ dx * 0.3 ≈ -9px), never a snap to center.
   await page.mouse.move(cx - 30, cy)
-  await page.waitForTimeout(1500) // full lerp convergence at slow headless rAF
-  const snap = await page.evaluate(() => {
-    const t = document.querySelector('.elyra-cursor-ring').style.transform
-    const m = t.match(/translate3d\(([\d.-]+)px, ([\d.-]+)px/)
-    return m ? { x: parseFloat(m[1]) + 16, y: parseFloat(m[2]) + 16 } : null
+  // Deepen the lerp before measuring (same slow-rAF reality as above:
+  // ~2-3fps means seconds, not 1.5s, to settle — poll until ≥4px of the
+  // pull has materialized; the assertion below stays the authority).
+  await page.waitForFunction(
+    () => {
+      const el = document.querySelector('main a[href="/contact"][data-cursor="magnet"]')
+      if (!el) return false
+      const m = el.style.transform.match(/translate3d\(([\d.-]+)px, ([\d.-]+)px/)
+      return !!m && parseFloat(m[1]) <= -4
+    },
+    undefined,
+    { polling: 250, timeout: 15000 },
+  ).catch(() => {})
+  const pull = await page.evaluate(() => {
+    const el = document.querySelector('main a[href="/contact"][data-cursor="magnet"]')
+    if (!el) return null
+    const m = el.style.transform.match(/translate3d\(([\d.-]+)px, ([\d.-]+)px/)
+    return m ? { x: parseFloat(m[1]), y: parseFloat(m[2]) } : null
   })
-  const rx = snap?.x ?? 0
-  const ry = snap?.y ?? 0
-  const dist = Math.hypot(rx - cx, ry - cy)
-  ok('cursor: ring magnetically snaps toward CTA center', dist < 20,
-    `ring=(${rx.toFixed(0)},${ry.toFixed(0)}) cta=(${cx.toFixed(0)},${cy.toFixed(0)}) dist=${dist.toFixed(0)}px`)
+  const pullMag = pull ? Math.hypot(pull.x, pull.y) : 0
+  // Truthful invariant of the lerped approach: a non-zero pull toward the
+  // parked pointer (negative x — the pointer sits left of the CTA center),
+  // bounded by the ±14px class clamp.
+  ok('magnet: CTA lerps toward nearby pointer (≤14px clamp, no snap)',
+    pull !== null && pull.x < 0 && pullMag > 0.5 && pullMag <= 14.01,
+    `cta translate=(${pull?.x},${pull?.y}) mag=${pullMag.toFixed(1)}px`)
 
-  // Move far away — ring should return to pointer position
+  // Move far away — the hook eases the element back to rest and removes
+  // the inline transform entirely (CSS classes own the resting state).
   await page.mouse.move(60, 800)
-  await page.waitForTimeout(1500)
-  const back = await page.evaluate(() => {
-    const t = document.querySelector('.elyra-cursor-ring').style.transform
-    const m = t.match(/translate3d\(([\d.-]+)px, ([\d.-]+)px/)
-    return m ? { x: parseFloat(m[1]) + 16, y: parseFloat(m[2]) + 16 } : null
+  // Poll until the hook eases back to rest and clears the inline
+  // transform (frame-rate independent — see the convergence note above).
+  await page.waitForFunction(
+    () => {
+      const el = document.querySelector('main a[href="/contact"][data-cursor="magnet"]')
+      return !!el && el.style.transform === ''
+    },
+    undefined,
+    { polling: 250, timeout: 20000 },
+  ).catch(() => {})
+  const released = await page.evaluate(() => {
+    const el = document.querySelector('main a[href="/contact"][data-cursor="magnet"]')
+    return el ? el.style.transform : null
   })
-  const backDist = back ? Math.hypot(back.x - 60, back.y - 800) : 999
-  ok('cursor: ring releases when far from magnet', backDist < 10,
-    `center=(${back?.x},${back?.y}) dist=${backDist.toFixed(1)}px`)
+  ok('magnet: CTA released when pointer moves away (inline transform cleared)',
+    released === '',
+    `inline transform="${released}"`)
 } else {
-  ok('cursor: hero CTA found for magnet test', false)
+  ok('magnet: hero CTA found for magnet test', false)
 }
 
 // --- Native cursor hidden ---------------------------------------------------
@@ -137,8 +200,10 @@ const grain = await page.evaluate(() => {
     printHidden: !!Array.from(document.styleSheets).length,
   }
 })
-ok('grain: fixed layer, 4.5% opacity, inert, SVG data-URI',
-  grain && grain.pos === 'fixed' && grain.opacity === '0.045' &&
+// REF-2 Phase D canon: opacity 0.03 (retuned down from 0.045 — VLM read
+// the old level as low-res noise; globals.css grain-overlay rule).
+ok('grain: fixed layer, 3% opacity, inert, SVG data-URI',
+  grain && grain.pos === 'fixed' && grain.opacity === '0.03' &&
   grain.pe === 'none' && grain.ah === 'true' && grain.bg,
   JSON.stringify(grain))
 
@@ -202,14 +267,14 @@ ok('console: zero errors across all checks', consoleErrors.length === 0,
 await page.goto(BASE, { waitUntil: 'networkidle' })
 await page.mouse.move(720, 260)
 await page.waitForTimeout(600)
-await page.screenshot({ path: '/tmp/p2-cursor-hero.png' })
-const cta2 = page.locator('a[href="/contact"][data-cursor="magnet"]').first()
+await page.screenshot({ path: '/tmp/sensory-cursor-hero.png' })
+const cta2 = page.locator('main a[href="/contact"][data-cursor="magnet"]').first()
 const cb = await cta2.boundingBox()
 if (cb) {
   await page.mouse.move(cb.x + cb.width / 2 - 25, cb.y + cb.height / 2)
   await page.waitForTimeout(500)
 }
-await page.screenshot({ path: '/tmp/p2-cursor-magnet.png' })
+await page.screenshot({ path: '/tmp/sensory-cursor-magnet.png' })
 
 const failed = results.filter((r) => !r.pass)
 console.log(`\n=== ${results.length - failed.length}/${results.length} checks passed ===`)

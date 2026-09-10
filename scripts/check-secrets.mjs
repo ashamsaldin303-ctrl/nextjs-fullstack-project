@@ -11,7 +11,16 @@
  *       line by line;
  *   (b) the full `git diff origin/main..HEAD`, ADDED lines only ('+' lines,
  *       per current file from the '+++ b/<path>' headers — a secret that was
- *       already in origin/main is out of this branch's scope).
+ *       already in origin/main is out of this branch's scope);
+ *   (c) the UNCOMMITTED working-tree diff (`git diff HEAD` — staged AND
+ *       unstaged changes to tracked files, added lines only). Hardened in
+ *       AUDIT-B10: while all branch work sits uncommitted with HEAD ==
+ *       origin/main, scan (b) is legitimately empty and scan (a) still
+ *       covers tracked files, but the in-flight edits were invisible to
+ *       both — (c) closes exactly that gap;
+ *   (d) UNTRACKED files (`git ls-files --others --exclude-standard` —
+ *       new, not-yet-added files that `git ls-files` and every diff
+ *       ignore), read line by line like (a).
  *
  * Patterns (deliberately tightened to avoid false positives — the tightness
  * is the documented matching approach):
@@ -125,6 +134,55 @@ try {
   console.error('  (diff scan skipped — no origin/main ref or git error:', String(e).slice(0, 120), ')')
 }
 
+// --- (c) uncommitted working-tree diff, added lines only --------------------
+// `git diff HEAD` (NOT bare `git diff`): HEAD as the base covers BOTH the
+// staged index and the unstaged edits — everything uncommitted — so this
+// scan sees in-flight work even while it sits unpushed and uncommitted
+// (the AUDIT-B10 gap: HEAD == origin/main made scan (b) a no-op).
+let wtDiffScanned = 0
+try {
+  const wtDiff = execSync('git diff HEAD', { cwd: ROOT, maxBuffer: 64 * 1024 * 1024 }).toString()
+  let currentFile = ''
+  for (const raw of wtDiff.split('\n')) {
+    if (raw.startsWith('+++ b/')) currentFile = raw.slice(6).trim()
+    else if (raw.startsWith('+') && !raw.startsWith('+++') && currentFile && currentFile !== SELF_REL) {
+      wtDiffScanned++
+      if (currentFile === 'worklog.md' && raw.includes('tracked-file scan for')) continue
+      scanLine(raw.slice(1), `git diff HEAD (working tree) ${currentFile} (+)`)
+    }
+  }
+} catch (e) {
+  console.error('  (working-tree diff scan skipped — git error:', String(e).slice(0, 120), ')')
+}
+
+// --- (d) untracked files -----------------------------------------------------
+// New files git has never been told about: invisible to `git ls-files`, to
+// every `git diff`, and (while uncommitted) to scan (b) — the classic
+// "dropped a key into a scratch file" path. Same line-by-line read as (a).
+let untrackedScanned = 0
+const untracked = execSync('git ls-files --others --exclude-standard', {
+  cwd: ROOT,
+  maxBuffer: 64 * 1024 * 1024,
+})
+  .toString()
+  .trim()
+  .split('\n')
+  .filter((f) => f && f !== SELF_REL)
+for (const rel of untracked) {
+  let content
+  try {
+    content = fs.readFileSync(path.join(ROOT, rel), 'utf8')
+  } catch {
+    continue // binary/unreadable
+  }
+  untrackedScanned++
+  const lines = content.split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    if (rel === 'worklog.md' && lines[i].includes('tracked-file scan for')) continue
+    scanLine(lines[i], `untracked ${rel}:${i + 1}`)
+  }
+}
+
 // --- Report -------------------------------------------------------------------
 if (hits.length) {
   console.error('SECRETS FAIL — pattern hits found (DO NOT PUSH):')
@@ -133,5 +191,5 @@ if (hits.length) {
 }
 
 console.log(
-  `SECRETS OK — 0 hits: ${trackedScanned} tracked files scanned line-by-line + ${diffScanned} added diff lines vs origin/main (self + 1 documented worklog exception skipped)`,
+  `SECRETS OK — 0 hits: ${trackedScanned} tracked files scanned line-by-line + ${diffScanned} added diff lines vs origin/main + ${wtDiffScanned} added uncommitted working-tree diff lines (vs HEAD) + ${untrackedScanned} untracked files (self + 1 documented worklog exception skipped)`,
 )

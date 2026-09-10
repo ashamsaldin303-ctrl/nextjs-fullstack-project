@@ -12,6 +12,13 @@ import { asStringArray } from '@/lib/catalog-guards'
 // L6-F1: the dead per-project `metrics` arrays were removed — the render
 // reads the localized metrics via t.raw(`${p.key}.metrics`), so the static
 // ['metric1','metric2'] placeholders were never consumed.
+// B4 fix 3 decision (SKIPPED-as-catalog-data): the per-project accents
+// below are project-catalog data — the same class as work-grid.tsx's
+// ProjectDef.accent (whose p5 '#4285F4' also equals a registry value yet
+// deliberately stays a catalog literal). They pick each MOCK scene's look,
+// not a brand surface, so they are NOT re-sourced from brand-colors even
+// though project1/project2's values are byte-identical to registry
+// primary/gGreen — a rebrand must not re-tint the demo scenes.
 const PROJECTS = [
   { key: 'project1' as const, variant: 'site-new' as const, accent: '#0071E3' },
   { key: 'project2' as const, variant: 'dashboard-new' as const, accent: '#34A853' },

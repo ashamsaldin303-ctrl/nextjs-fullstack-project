@@ -144,9 +144,9 @@ const M = {
   ledBlue: std('#0a1a33', 0.1, 0.4, {
     emissive: BRAND_COLORS.gBlue, emissiveIntensity: 1.8,
   }),
-  /** traffic-red — browser window controls (universal UI signifier). */
+  /** traffic-red — exact gRed token (browser window controls). */
   ledRed: std('#330d0d', 0.1, 0.4, {
-    emissive: '#ea4335', emissiveIntensity: 1.6,
+    emissive: BRAND_COLORS.gRed, emissiveIntensity: 1.6,
   }),
   /** the signal / workpiece / packet glow — exact gGreen, hotter. */
   signal: std('#062e19', 0.1, 0.4, {

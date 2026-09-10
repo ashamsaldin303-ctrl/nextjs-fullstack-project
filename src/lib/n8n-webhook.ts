@@ -15,6 +15,10 @@
  *     is shorter than 32 chars) the webhook is disabled with a single log
  *     line — never an error, never a fake send;
  *   - fetch timeout of 5s via AbortController;
+ *   - redirects are REFUSED (redirect: 'error' — AUDIT-C1 NIT): a 3xx
+ *     from the trusted webhook URL must never re-POST the signed PII
+ *     body to a different target; the failure path (retry once, then
+ *     'failed') is the same as any network error;
  *   - exactly ONE retry, and only for network-level failures;
  *   - silent failure: the lead stays stored, the API response stays 201.
  */
@@ -107,6 +111,12 @@ async function deliver(
       headers,
       body,
       signal: controller.signal,
+      // AUDIT-C1 (NIT): fail closed on redirects — fetch's default
+      // 'follow' would transparently re-POST the signed PII body to
+      // whatever the 3xx Location points at. 'error' turns the redirect
+      // into a network-class rejection, which the retry loop below
+      // treats like any delivery failure (the lead stays stored).
+      redirect: 'error',
     })
     if (!res.ok) {
       // HTTP-level rejection: no retry (the endpoint answered — retrying
@@ -125,9 +135,20 @@ async function deliver(
  * =, +, - or @ would execute as a formula once the lead lands in
  * Sheets/Excel via n8n — prefixing a single quote defuses it. Applied to
  * the outbound webhook payload ONLY; the DB stores the raw value.
+ *
+ * AUDIT-A1 L fix: embedded line breaks (CR/LF/LS/PS) are also collapsed —
+ * each run becomes a single space. AUDIT-C1 NIT: TAB joins the collapse
+ * class (same Cc-whitespace family — a tab could never split a row or
+ * trigger a formula in the JSON/quoted-CSV contract, this is strict-OWASP
+ * parity). If the n8n consumer ever serializes this payload to CSV, an
+ * embedded newline would split the row (and could smuggle in a second
+ * header/record line). The JSON transport contract is unaffected: the
+ * body is JSON.stringify output either way, this only strips the control
+ * characters out of the string VALUES.
  */
 function neutralizeCsvInjection(value: string): string {
-  return /^[=+\-@]/.test(value.trim()) ? `'${value}` : value
+  const defused = /^[=+\-@]/.test(value.trim()) ? `'${value}` : value
+  return defused.replace(/[\r\n\t\u2028\u2029]+/g, ' ')
 }
 
 export async function sendLeadWebhook(

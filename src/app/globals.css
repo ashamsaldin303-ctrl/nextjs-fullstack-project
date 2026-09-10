@@ -1684,10 +1684,11 @@ html:lang(ar) {
    `0 0`, so the global prefers-reduced-motion override (which collapses
    durations rather than removing animations) lands on exactly the static
    base state — reduced-motion visitors see quiet, still grain.
-   GRAIN CANON (W1-03): 240px tile · opacity 4.5% · flicker = 8 steps at
-   0.4s steps(1) · numOctaves 3 (raised from 2 — finer, more film-like
-   detail; anything past 4 is invisible at 4.5%). One recipe site-wide;
-   opacity never above 8% on light surfaces. */
+   GRAIN CANON (W1-03, values retuned REF-2 Phase D): 240px tile ·
+   opacity 3% · flicker = 8 steps at 0.4s steps(1) · numOctaves 2 (both
+   lowered from 4.5% / 3 by REF-2 Phase D — see the inline note on the
+   rule below). One recipe site-wide; opacity never above 8% on light
+   surfaces. */
 .grain-overlay {
   position: fixed;
   inset: 0;

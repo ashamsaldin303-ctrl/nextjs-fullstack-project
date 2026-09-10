@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useFormatter, useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Reveal } from '@/components/shared/reveal'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { Parallax } from '@/components/scroll/parallax'
@@ -12,6 +12,15 @@ interface CounterProps {
   value: number
   suffix: string
   durationMs?: number
+}
+
+/** B4 fix 4 (audit A4 L): catalog guard for the numeric stats — a drifted
+ *  value (empty string, non-numeric text, NaN) must never reach Intl as
+ *  NaN (the counter would render «ليس رقمًا»); degrade to 0 like every
+ *  catalog-guards sibling. */
+function asFiniteNumber(raw: unknown): number {
+  const n = Number(raw)
+  return Number.isFinite(n) ? n : 0
 }
 
 /**
@@ -49,17 +58,17 @@ function Counter({ value, suffix, durationMs = 1600 }: CounterProps) {
   const inView = useInViewOnce(ref)
   const reduced = usePrefersReducedMotion()
   const [display, setDisplay] = useState(0)
-  // FIX(2-c/16): counts are formatted through next-intl's formatter — the
-  // exact machinery the simulator's `stepOf` message uses. Digit convention
-  // (L6-R4 reword — documents the ACTUAL runtime behavior): RUNTIME-formatted
-  // values (useFormatter/Intl — incl. formatMoney, the clocks, dates) render
-  // LATIN digits in ar: the plain `ar` locale resolves to the latn numbering
-  // system on current ICU/CLDR (SSR-verified: the counter paints "0", not
-  // "٠"), and the hero clock now pins -u-nu-latn explicitly to match (it
-  // alone used ar-SY → Arabic-Indic glyphs inside the latin-subset mono
-  // face). STATIC catalog strings keep Latin digits by house style — one
+  // Digit convention (L6-R4 reword; AUDIT-C4 LOW sibling): runtime-
+  // formatted values (formatMoney, the clocks, dates, and this counter)
+  // render LATIN digits site-wide. Historically this went through
+  // next-intl's useFormatter with the bare 'ar' locale — Latin on current
+  // ICU/CLDR (SSR-verified: the counter painted "0", not "٠") but
+  // engine-dependent (Safari/JSC CLDR could flip to Arabic-Indic). Now
+  // pinned explicitly via ar-u-nu-latn — the same hardening live-clock
+  // received — so every runtime-numeral site agrees on every engine.
+  // STATIC catalog strings keep Latin digits by house style — one
   // numeral presentation site-wide.
-  const format = useFormatter()
+  const locale = useLocale()
 
   useEffect(() => {
     if (!inView || reduced) return
@@ -77,7 +86,9 @@ function Counter({ value, suffix, durationMs = 1600 }: CounterProps) {
 
   // Reduced-motion users see the final value immediately (derived, no setState).
   const shown = reduced ? (inView ? value : 0) : display
-  const formatted = format.number(shown)
+  const formatted = new Intl.NumberFormat(
+    locale === 'ar' ? 'ar-u-nu-latn' : 'en-US'
+  ).format(shown)
 
   return (
     <span ref={ref} className="tabular-nums">
@@ -90,10 +101,10 @@ function Counter({ value, suffix, durationMs = 1600 }: CounterProps) {
 export function TrustBar() {
   const t = useTranslations('stats')
   const items = [
-    { key: 'projects' as const, value: Number(t.raw('projects.value')), suffix: t('projects.suffix'), label: t('projects.label') },
-    { key: 'hours' as const, value: Number(t.raw('hours.value')), suffix: t('hours.suffix'), label: t('hours.label') },
-    { key: 'satisfaction' as const, value: Number(t.raw('satisfaction.value')), suffix: t('satisfaction.suffix'), label: t('satisfaction.label') },
-    { key: 'integrations' as const, value: Number(t.raw('integrations.value')), suffix: t('integrations.suffix'), label: t('integrations.label') },
+    { key: 'projects' as const, value: asFiniteNumber(t.raw('projects.value')), suffix: t('projects.suffix'), label: t('projects.label') },
+    { key: 'hours' as const, value: asFiniteNumber(t.raw('hours.value')), suffix: t('hours.suffix'), label: t('hours.label') },
+    { key: 'satisfaction' as const, value: asFiniteNumber(t.raw('satisfaction.value')), suffix: t('satisfaction.suffix'), label: t('satisfaction.label') },
+    { key: 'integrations' as const, value: asFiniteNumber(t.raw('integrations.value')), suffix: t('integrations.suffix'), label: t('integrations.label') },
   ]
 
   return (

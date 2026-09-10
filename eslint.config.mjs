@@ -14,7 +14,6 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     // Keep these TS niceties lenient for trusted server/infra patterns
     "@typescript-eslint/ban-ts-comment": "off",
     "@typescript-eslint/prefer-as-const": "off",
-    "@typescript-eslint/no-unused-disable-directive": "off",
 
     // ---- React 19 hardening (audit P0-1) ----
     "react-hooks/exhaustive-deps": "error",
@@ -45,7 +44,7 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "no-useless-escape": "off",
   },
 }, {
-  ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills"]
+  ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills/**", "tool-results/**"]
 }];
 
 export default eslintConfig;

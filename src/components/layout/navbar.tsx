@@ -10,6 +10,7 @@ import { Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useIsRtl } from '@/lib/use-rtl'
 import { SoundToggle } from '@/components/sensory/sound-toggle'
+import { getLenis } from '@/lib/lenis-holder'
 
 function navItems(t: ReturnType<typeof useTranslations>) {
   return [
@@ -70,7 +71,11 @@ export function Navbar() {
           className="flex items-center transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg"
         >
           <span className="sr-only">{t('nav.home')}</span>
-          <Logo variant="on-dark" />
+          {/* AUDIT-A5 NIT (fix 8): aria-hidden on the Logo marks — this
+              link already carries its own sr-only accessible name
+              (nav.home); without this, AT announced the triple name
+              «الرئيسية، إيليرا، Elyra». See logo.tsx for the prop. */}
+          <Logo variant="on-dark" aria-hidden />
         </Link>
 
         {/* Desktop links */}
@@ -130,7 +135,26 @@ export function Navbar() {
           </Link>
 
           {/* Mobile menu */}
-          <Sheet open={open} onOpenChange={setOpen}>
+          {/* AUDIT-A5 HIGH (fix 2b) — single-writer scroll discipline for
+              the mobile sheet. Radix locks body overflow, but Lenis's
+              programmatic wheel writes bypass that lock (live-verified at
+              600×800: wheel over the open sheet drove the background
+              1500→2665, ESC-close yanked +1500px to Lenis's accumulated
+              stale target — the SCROLL-FIX-3 bug class). Pausing Lenis on
+              open freezes it AT the real position (stop() runs an internal
+              reset(): target = actual, tail killed), and close — ESC,
+              backdrop click, SheetClose, ALL routed through onOpenChange —
+              also restores it. Belt-and-braces with data-lenis-prevent on
+              the sheet surfaces (ui/sheet.tsx), which keeps the sheet's
+              own wheel native while open. */}
+          <Sheet
+            open={open}
+            onOpenChange={(next) => {
+              if (next) getLenis()?.stop()
+              else getLenis()?.start()
+              setOpen(next)
+            }}
+          >
             <SheetTrigger
               className="inline-flex size-11 items-center justify-center rounded-full text-white hover:bg-white/10 md:hidden"
               aria-label={t('nav.openMenu')}

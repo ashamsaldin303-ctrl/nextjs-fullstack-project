@@ -47,6 +47,18 @@ import { cn } from '@/lib/utils'
  * the "erase" is never visible. framer accepts a MotionValue OR a plain
  * number in style, which is what makes the swap legal.
  *
+ * IN-VIEW-AT-MOUNT GUARD (AUDIT-A5 HIGH): arming is only legal for
+ * below-the-fold mounts. If the band is already inside the draw window
+ * when the first post-mount rAF fires (mid-page reload, or a short
+ * viewport that puts the divider on-screen — e.g. the /ar/about crown at
+ * ~724px), the spring sits at the MOUNT progress, so arming would snap
+ * every stroke past that progress to pathLength 0 and leave it there:
+ * no scroll ⇒ no redraw (live-verified: 11/15 strokes invisible at
+ * 1440×900). In-view means "already delivered" — such mounts settle on
+ * the static fully-drawn branch (armed stays false, every pathLength
+ * stays the number 1) and simply never draw. Progress 0 (below the
+ * fold) or 1 (scrolled past) still arms: the erase is invisible there.
+ *
  * Reduced motion: the wrapper branch renders plain <path> elements —
  * fully drawn, and the split keeps useScroll/useSpring entirely
  * unmounted, so "static final state, no listeners" is literal.
@@ -163,9 +175,22 @@ function DrawnArabesque({ className }: { className?: string }) {
   useEffect(() => {
     // The SSR-armed flip (see header). rAF-deferred so we never setState
     // synchronously inside the effect body (reveal.tsx convention).
-    const id = requestAnimationFrame(() => setArmed(true))
+    //
+    // In-view guard (AUDIT-A5 HIGH — full note in the header): progress
+    // strictly inside (0,1) at arm time means the band is already on
+    // screen = "already delivered" — keep the static fully-drawn branch
+    // (armed stays false, pathLength stays the number 1). Otherwise arm
+    // exactly as before: 0 = below the fold (invisible erase), 1 =
+    // scrolled past (fully drawn at the spring's mount value).
+    // scrollYProgress is stable (framer's useScroll creates its values
+    // via useConstant), so this dep never re-fires the effect.
+    const id = requestAnimationFrame(() => {
+      const p = scrollYProgress.get()
+      if (p > 0 && p < 1) return
+      setArmed(true)
+    })
     return () => cancelAnimationFrame(id)
-  }, [])
+  }, [scrollYProgress])
 
   return (
     <div ref={wrapRef} aria-hidden="true" className={cn('relative', className)}>

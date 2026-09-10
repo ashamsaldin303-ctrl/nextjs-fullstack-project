@@ -8,13 +8,15 @@
 #   docker build --build-arg NEXT_PUBLIC_SITE_URL=https://elyra.agency -t elyra .
 #
 # Run (HOSTNAME=0.0.0.0 — see README "Deployment" for the 127.0.0.1 trap;
-# TRUST_PROXY=true is baked into the ENV block below — the deployment sits
-# behind the overwriting reverse proxy by definition):
+# TRUST_PROXY defaults to false below (fail-closed, like .env.example) —
+# pass `-e TRUST_PROXY=true` only for the documented topology behind the
+# overwriting reverse proxy, deploy/Caddyfile.example):
 #   ⚠ Bind to loopback only: a directly-reachable :3000 lets attackers spoof
 #   X-Forwarded-For and rotate rate-limit buckets (README hardening rule).
 #   docker run -p 127.0.0.1:3000:3000 \
 #     -e DATABASE_URL=file:/app/db/custom.db \
 #     -e N8N_WEBHOOK_URL=... -e N8N_WEBHOOK_SECRET=... \
+#     -e TRUST_PROXY=true \
 #     -v elyra-db:/app/db elyra
 #
 # NOTE (untested in this sandbox): Docker is unavailable here — the file
@@ -63,12 +65,16 @@ ENV NODE_ENV=production \
     # but every lead insert 500s (closing verification V-A-1). An operator
     # -e DATABASE_URL=... overrides this default.
     DATABASE_URL=file:/app/db/custom.db \
-    # L1-A P2 fix: rate limiting must bucket per real client IP. The
-    # deployment is behind the overwriting reverse proxy by definition
-    # (deploy/Caddyfile.example) — trusting X-Forwarded-For is safe ONLY
-    # there. Left unset, ALL visitors share one global 30/5-per-minute
-    # bucket, so a single curl loop could 429 the whole site.
-    TRUST_PROXY=true
+    # AUDIT-B1 (fail-closed default, mirrors .env.example): the image must
+    # NOT bake TRUST_PROXY=true — if the container is ever published beyond
+    # loopback WITHOUT the overwriting reverse proxy, spoofed
+    # X-Forwarded-For values would mint fresh rate-limit buckets. Pass
+    # `-e TRUST_PROXY=true` ONLY for the documented topology behind
+    # deploy/Caddyfile.example, which overwrites X-Forwarded-For with the
+    # real client address (README "Deployment"). Trade-off while false:
+    # ALL visitors share one global 30/5-per-minute bucket (L1-A P2), so a
+    # single curl loop could 429 the site — set it for real traffic.
+    TRUST_PROXY=false
 
 # Standalone server + already-copied static assets & public dir
 COPY --from=build /app/.next/standalone ./

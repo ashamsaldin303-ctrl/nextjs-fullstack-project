@@ -6,7 +6,9 @@
 # NEVER copy that file to production. This example is the production-safe
 # shape: automatic TLS, no query-based routing, and X-Forwarded-For /
 # X-Real-IP OVERWRITTEN with the real client address — which is exactly why
-# the app runs with TRUST_PROXY=true (baked into the Dockerfile ENV block).
+# the app must run with TRUST_PROXY=true for this topology (the Dockerfile
+# bakes the fail-closed default TRUST_PROXY=false; pass `-e TRUST_PROXY=true`
+# only when deploying behind this overwriting proxy).
 #
 # Usage: copy to your Caddy config dir, edit the site address, `caddy reload`.
 #   cp deploy/Caddyfile.example /etc/caddy/Caddyfile

@@ -47,6 +47,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useIsRtl } from '@/lib/use-rtl'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
+import { BRAND_COLORS } from '@/lib/brand-colors'
 import {
   asRows,
   asString,
@@ -2710,7 +2711,10 @@ interface BeforeAfterProps {
 
 export function BeforeAfter({
   variant,
-  accent = '#0071E3',
+  // B4 fix 3: the neutral default accent IS the brand primary — re-sourced
+  // from the registry (byte-identical; per-project accents stay catalog
+  // data at their call sites).
+  accent = BRAND_COLORS.primary,
   palette,
   className,
   label,

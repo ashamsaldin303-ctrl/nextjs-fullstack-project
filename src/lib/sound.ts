@@ -84,7 +84,12 @@ function ensureContext(): AudioContext | null {
       master.gain.value = MASTER_GAIN
       master.connect(ctx.destination)
     }
-    if (ctx.state === 'suspended') void ctx.resume()
+    if (ctx.state === 'suspended') {
+      // AUDIT-A3 (FIX 3): resume() can reject on Firefox when the context
+      // was created outside a user gesture — swallow it to uphold the
+      // file's "never a console error" contract.
+      void ctx.resume().catch(() => {})
+    }
     return ctx
   } catch {
     return null

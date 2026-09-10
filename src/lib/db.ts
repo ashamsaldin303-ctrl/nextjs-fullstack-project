@@ -22,8 +22,9 @@ function createPrismaClient(): PrismaClient {
   // so once any process sets it, every connection sees WAL — and a
   // failure here (read-only filesystem, locked file, …) must NEVER
   // break the client export: swallow it and keep the default journal.
-  // ($queryRaw, not $executeRaw: `PRAGMA journal_mode=…` RETURNS the new
-  // mode, and execute-rejecting calls that return rows is version-fragile.)
+  // ($queryRawUnsafe, not $executeRaw: `PRAGMA journal_mode=…` RETURNS the
+  // new mode, and execute-rejecting calls that return rows is
+  // version-fragile.)
   void client
     .$queryRawUnsafe('PRAGMA journal_mode=wal')
     .catch(() => {

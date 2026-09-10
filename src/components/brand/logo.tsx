@@ -5,6 +5,17 @@ interface LogoProps {
   className?: string
   variant?: 'on-dark' | 'on-light'
   withWordmark?: boolean
+  /**
+   * AUDIT-A5 NIT (fix 8): hide the marks from assistive technology —
+   * the outer span and the svg's img/label both go quiet, so the Logo
+   * contributes nothing to its host's accessible name. Used inside the
+   * navbar home link, which already carries its own sr-only name
+   * (nav.home) — without this the link announced a TRIPLE name:
+   * «الرئيسية، إيليرا، Elyra» (sr-only + svg aria-label + wordmark).
+   * Naming consumers (the mobile sheet's SheetTitle, the footer brand
+   * block) keep the default and still announce the logo.
+   */
+  'aria-hidden'?: boolean
 }
 
 /**
@@ -17,18 +28,24 @@ export function Logo({
   className,
   variant = 'on-dark',
   withWordmark = true,
+  'aria-hidden': ariaHidden,
 }: LogoProps) {
   const t = useTranslations('meta')
   const onLight = variant === 'on-light'
   const text = onLight ? '#1D1D1F' : '#F1F5F9'
 
   return (
-    <span className={cn('inline-flex items-center gap-2', className)}>
+    <span
+      className={cn('inline-flex items-center gap-2', className)}
+      aria-hidden={ariaHidden || undefined}
+    >
       <svg
         viewBox="0 0 36 36"
         className="h-7 w-7 shrink-0"
-        role="img"
-        aria-label={t('siteName')}
+        // Hidden subtree has no role to play — the img/label pair is
+        // dropped so the decorative mark carries no redundant name.
+        role={ariaHidden ? undefined : 'img'}
+        aria-label={ariaHidden ? undefined : t('siteName')}
       >
         {/* Mark — distinctive E with the four-color quad dot */}
         <rect width="36" height="36" rx="9" fill={onLight ? '#0F172A' : '#F1F5F9'} />

@@ -69,6 +69,20 @@ function sweep(now: number): void {
   evictOverCap()
 }
 
+/**
+ * Namespaced bucket key, hard-capped at 64 chars (AUDIT-A1 L1 fix): the
+ * raw key is the XFF-derived IP string, whose elements are
+ * attacker-supplied and can be arbitrarily long under the documented
+ * TRUST_PROXY misconfiguration — MAX_KEYS/evictOverCap bound the key
+ * COUNT, not the bytes per key. 64 chars comfortably covers every real
+ * IPv4/IPv6 string (the persisted IP is capped at 64 chars in the leads
+ * route too). rateLimit() and refundRateLimit() MUST build the key
+ * through this same helper or a refund would miss its bucket.
+ */
+function bucketMapKey(key: string, bucket: RateLimitBucket): string {
+  return (bucket === 'strict' ? `s:${key}` : `l:${key}`).slice(0, 64)
+}
+
 export interface RateLimitResult {
   allowed: boolean
   /** Seconds until the oldest hit leaves the window (for Retry-After). */
@@ -92,7 +106,7 @@ export function rateLimit(
   now = Date.now()
 ): RateLimitResult {
   sweep(now)
-  const mapKey = bucket === 'strict' ? `s:${key}` : `l:${key}`
+  const mapKey = bucketMapKey(key, bucket)
   const maxHits = bucket === 'strict' ? MAX_HITS_STRICT : MAX_HITS_LENIENT
   const existing = hits.get(mapKey)
   const windowHits = (existing ?? []).filter((t) => now - t < WINDOW_MS)
@@ -140,7 +154,7 @@ export function refundRateLimit(
   bucket: RateLimitBucket = 'strict',
   now = Date.now()
 ): void {
-  const mapKey = bucket === 'strict' ? `s:${key}` : `l:${key}`
+  const mapKey = bucketMapKey(key, bucket)
   const fresh = (hits.get(mapKey) ?? []).filter((t) => now - t < WINDOW_MS)
   fresh.pop()
   if (fresh.length === 0) hits.delete(mapKey)

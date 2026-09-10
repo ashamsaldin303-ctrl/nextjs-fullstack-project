@@ -34,6 +34,16 @@ function SheetOverlay({
   return (
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
+      // AUDIT-A5 HIGH (fix 2a): Lenis's virtual wheel handling bypasses
+      // the Radix body-overflow lock — wheel over the open sheet drove
+      // the background page, and ESC-close yanked to Lenis's accumulated
+      // stale target (live-verified: scrollY 1500→2665 behind the open
+      // dialog). data-lenis-prevent makes Lenis ignore events whose
+      // composed path crosses here (its prevent check runs BEFORE the
+      // stopped/locked arm and never preventDefaults), so the sheet's
+      // own scrollable column keeps its NATIVE wheel scroll while open.
+      // Pairs with lenis.stop()/start() in navbar's onOpenChange.
+      data-lenis-prevent=""
       className={cn(
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50",
         className
@@ -62,8 +72,13 @@ function SheetContent({
         // opt the dialog out explicitly. Declared BEFORE {...props} so a
         // future consumer can still override it with a real description id.
         aria-describedby={undefined}
+        // AUDIT-A5 HIGH (fix 2a): same Lenis bypass as the overlay — see
+        // the SheetOverlay note. Wheel over the panel stays native: the
+        // content column itself is overflow-y-auto (fix 2c), so the sheet
+        // can scroll itself while Lenis is stopped for the locked page.
+        data-lenis-prevent=""
         className={cn(
-          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 overflow-y-auto shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
           side === "right" &&
             "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm",
           side === "left" &&

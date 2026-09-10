@@ -7,6 +7,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { getScrollClocks, scrollEnergy, tickScrollTail } from '@/lib/scroll-store'
 import { pokeRuneField, setRuneInvalidate } from './rune-bus'
 import { BRAND_COLORS } from '@/lib/brand-colors'
+import { noteGlLost, noteGlRestored } from '@/lib/gl-health'
 import { MODEL_LIBRARY, MODEL_ROUTES, SLOT_PALETTES, type ModelDef, type PartDrive, type RunePresetKey } from './model-registry'
 import { resolveModel, type RawInstrument } from './model-loader'
 
@@ -317,32 +318,61 @@ function buildInstrument(def: ModelDef, raw: RawInstrument): InstrumentRT {
 
   const mats: MatEntry[] = []
   const disposables: THREE.Material[] = []
+  // AUDIT-B2 FIX 8 (drive-aware dedupe): resolve the glow/boost drive
+  // NODES first — meshes under them keep their own PER-MESH clone
+  // (each drive writes emissiveIntensity on its node's materials, and
+  // the driven lamps share source materials by design — e.g. the four
+  // pipeline gate LEDs all use M.ledGreen with independent ignition
+  // windows — so one shared clone would fuse their sequences). Every
+  // other mesh dedupes BY SOURCE: kits share one M.panel/M.ink across
+  // many meshes, and cloning per mesh produced k redundant clones per
+  // mount. Disposal still owns each unique clone exactly once (the map
+  // registers one clone per source; per-mesh clones are unique pushes).
+  const driven = new Set<THREE.Mesh>()
+  for (const d of def.drives ?? []) {
+    if (!(d.glow || d.boost)) continue
+    const node = findNode(clone, d.node)
+    if (node) {
+      node.traverse((o) => {
+        if (o instanceof THREE.Mesh) driven.add(o)
+      })
+    }
+  }
+  const cloneOf = new Map<THREE.Material, THREE.Material>()
+  const prep = (m: THREE.Material, perMesh: boolean): THREE.Material => {
+    if (!perMesh) {
+      const existing = cloneOf.get(m)
+      if (existing) return existing
+    }
+    const c = m.clone()
+    const std = c as THREE.MeshStandardMaterial
+    if ('envMapIntensity' in std) {
+      if (studioEnv) std.envMap = studioEnv
+      // MODEL-3: kit materials may pre-tune their own env intensity
+      // (silver brighter, cream dimmer) — compose, don't clobber.
+      std.envMapIntensity = (std.envMapIntensity ?? 1) * (def.envIntensity ?? 1)
+    }
+    // (MODEL-4: per-body glow now lives in the GLOW drives — per-part
+    // emissive deltas over windowed scroll progress + pointer boosts —
+    // not a whole-body constant.)
+    // GLASS DISCIPLINE (VLM rounds 2–4): dim any smoked-glass pane —
+    // few env reflections, half opacity — so faces stay readable.
+    if (/glass/i.test(c.name ?? '')) {
+      if ('envMapIntensity' in std) std.envMapIntensity = (def.envIntensity ?? 1) * 0.25
+      c.opacity = c.opacity * 0.45
+    }
+    if (!perMesh) cloneOf.set(m, c)
+    disposables.push(c)
+    mats.push({ mat: c, baseOpacity: c.opacity, baseTransparent: c.transparent })
+    return c
+  }
   clone.traverse((o) => {
     if (!(o instanceof THREE.Mesh)) return
     o.renderOrder = 10
-    const prep = (m: THREE.Material): THREE.Material => {
-      const c = m.clone()
-      const std = c as THREE.MeshStandardMaterial
-      if ('envMapIntensity' in std) {
-        if (studioEnv) std.envMap = studioEnv
-        // MODEL-3: kit materials may pre-tune their own env intensity
-        // (silver brighter, cream dimmer) — compose, don't clobber.
-        std.envMapIntensity = (std.envMapIntensity ?? 1) * (def.envIntensity ?? 1)
-      }
-      // (MODEL-4: per-body glow now lives in the GLOW drives — per-part
-      // emissive deltas over windowed scroll progress + pointer boosts —
-      // not a whole-body constant.)
-      // GLASS DISCIPLINE (VLM rounds 2–4): dim any smoked-glass pane —
-      // few env reflections, half opacity — so faces stay readable.
-      if (/glass/i.test(c.name ?? '')) {
-        if ('envMapIntensity' in std) std.envMapIntensity = (def.envIntensity ?? 1) * 0.25
-        c.opacity = c.opacity * 0.45
-      }
-      disposables.push(c)
-      mats.push({ mat: c, baseOpacity: c.opacity, baseTransparent: c.transparent })
-      return c
-    }
-    o.material = Array.isArray(o.material) ? o.material.map(prep) : prep(o.material)
+    const perMesh = driven.has(o)
+    o.material = Array.isArray(o.material)
+      ? o.material.map((mm) => prep(mm, perMesh))
+      : prep(o.material, perMesh)
   })
 
   const drives: DriveRT[] = []
@@ -735,6 +765,12 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
     return () => {
       studioEnv = null
       tex.dispose()
+      // AUDIT-B2 FIX 1: RoomEnvironment owns a box geometry + Lambert/
+      // standard materials (three 0.185 .dispose() frees them); without
+      // this the leak re-accumulated on every EdgeRune remount at the
+      // mobile-tier 768px crossings (capability-scene RoomEnv mirrors
+      // the same disposal).
+      room.dispose()
       pmrem.dispose()
     }
   }, [gl, invalidate])
@@ -800,8 +836,11 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
     const dt = delta > 0 ? Math.min(delta, 0.1) : 1 / 60
     const { D, S, vy } = getScrollClocks()
     const energy = scrollEnergy()
-    const aspect = state.size.width / state.size.height
-    const vh = state.size.height
+    // AUDIT-C2R (LOW): a zero-height frame (tier-flip/remount edge) must
+    // not yield NaN/Infinity optics — the || 1 mirrors the innerHeight
+    // guard on the sibling path above.
+    const aspect = state.size.width / (state.size.height || 1)
+    const vh = state.size.height || 1
     const tanHalf = Math.tan((FOV * Math.PI) / 360)
     const halfH0 = tanHalf * CAM_Z
     // MODEL-5: the life clock ticks with rendered time — the idle
@@ -970,7 +1009,10 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       const hoverW = rt.def.react?.hover ?? 1
       // K 9..13.4/s: snappy on real GPUs (≈0.4s settle), few frames on
       // software renderers — the park test converges fast either way.
-      const kSpr = 1 - Math.exp(-(9 + (reg.list.indexOf(rt) % 3) * 2.2) * dt)
+      // AUDIT-B2 FIX 7: slotIdx (the running loop index) replaces
+      // reg.list.indexOf(rt) — identical value, O(1) instead of O(n²)
+      // across the per-slot frame loop.
+      const kSpr = 1 - Math.exp(-(9 + (slotIdx % 3) * 2.2) * dt)
       const sprXPrev = rt.spr.x
       const sprYPrev = rt.spr.y
       rt.spr.x += (ndc.current.x - rt.spr.x) * kSpr
@@ -1183,6 +1225,20 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
         w1.goalAlpha = 0.03 + 0.035 * activeEnv
         w1.goalColor.set(pal.edge2)
       }
+    } else {
+      // AUDIT-B2 FIX 2: no body on stage (cw ≤ 0.001 or no dominant
+      // slot) — DISSOLVE the atmosphere instead of freezing the last
+      // goals (the stale α≈0.045/0.03 held a faint static tint over
+      // the parked canvas in no-model zones). Only goalAlpha is
+      // zeroed: scale/position/color stay so the next body's wash
+      // fades in AT SIZE (no swell-from-zero pop); at α=0 they are
+      // invisible anyway.
+      const w0 = washArr[0]
+      const w1 = washArr[1]
+      if (w0 && w1) {
+        w0.goalAlpha = 0
+        w1.goalAlpha = 0
+      }
     }
     const ws = 1 - Math.exp(-2.5 * dt)
     for (const w of washArr) {
@@ -1289,7 +1345,10 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
   return <primitive object={field.root} />
 }
 
-/** Context-loss guard — same contract as hero-canvas / capability-scene. */
+/** Context-loss guard — same contract as hero-canvas / capability-scene
+ * (AUDIT-B2 FIX 9: restored-listener + gl-health telemetry parity —
+ * `webglcontextrestored` is observed and both events bump the
+ * window.__elyraGlHealth diagnostic via src/lib/gl-health.ts). */
 function ContextLossGuard() {
   const gl = useThree((s) => s.gl)
   useEffect(() => {
@@ -1297,9 +1356,18 @@ function ContextLossGuard() {
     const onLost = (e: Event) => {
       e.preventDefault()
       console.warn('[RuneInstruments] WebGL context lost')
+      noteGlLost('rune')
+    }
+    const onRestored = () => {
+      console.info('[RuneInstruments] WebGL context restored')
+      noteGlRestored('rune')
     }
     canvas.addEventListener('webglcontextlost', onLost)
-    return () => canvas.removeEventListener('webglcontextlost', onLost)
+    canvas.addEventListener('webglcontextrestored', onRestored)
+    return () => {
+      canvas.removeEventListener('webglcontextlost', onLost)
+      canvas.removeEventListener('webglcontextrestored', onRestored)
+    }
   }, [gl])
   return null
 }

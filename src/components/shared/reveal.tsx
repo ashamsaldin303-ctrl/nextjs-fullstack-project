@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 
@@ -27,6 +27,14 @@ import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
  *   left  — fade + slide from the physical left (decorative, LTR+RTL safe)
  *   right — fade + slide from the physical right
  *   clip  — clip-path wipe from the bottom (headlines, images)
+ *
+ *   AUDIT-C4 NIT 6: .reveal-left/.reveal-right animate PHYSICAL
+ *   translateX(±48px) and are deliberately NOT mirrored in RTL — the
+ *   two variants alternate down a page (the editorial zigzag), so the
+ *   alternating rhythm reads identically in either direction, and the
+ *   entry side carries no semantic direction (unlike e.g. the
+ *   calculator's pages slider, whose min/max ends are meaningful and
+ *   are mirrored via its dir prop).
  *
  *   (L6-F1: the `blur` variant was removed — its only consumer was the
  *   testimonials section deleted in R9; zero live variant="blur" usages.)
@@ -115,14 +123,21 @@ export function KineticWords({
       <span className="sr-only">{text}</span>
       <span aria-hidden="true">
         {words.map((w, i) => (
-          <span
-            key={`${w}-${i}`}
-            className={cn('kinetic-word', wordClassName)}
-            style={{ animationDelay: `${i * 80}ms` }}
-          >
-            {w}
-            {i < words.length - 1 ? '\u00A0' : ''}
-          </span>
+          <Fragment key={`${w}-${i}`}>
+            <span
+              className={cn('kinetic-word', wordClassName)}
+              style={{ animationDelay: `${i * 80}ms` }}
+            >
+              {w}
+            </span>
+            {/* AUDIT-A5 LOW (fix 7): a REAL space between the inline-block
+                words (was NBSP — no soft-wrap opportunity between
+                inline-blocks, so a long heading was one unbreakable run
+                with overflow risk at ≤320px). The space must live OUTSIDE
+                the animated span: a trailing space inside an inline-block
+                collapses to nothing. Per-word animation is unaffected. */}
+            {i < words.length - 1 ? ' ' : null}
+          </Fragment>
         ))}
       </span>
     </span>

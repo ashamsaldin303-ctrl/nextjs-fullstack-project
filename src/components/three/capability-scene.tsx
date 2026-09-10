@@ -352,11 +352,6 @@ function Centerpiece({
   const parallax = useRef<THREE.Group>(null)
   const haloRef = useRef<THREE.Points>(null)
   const satRefs = useRef<(THREE.Mesh | null)[]>([])
-  const last = useRef({ x: 0, y: 0 })
-  // FIX(2-c/4): R3F pointer events can't be rAF-coalesced (they fire inside
-  // the render loop's event pass), so throttle to ~60Hz with a timestamp
-  // guard — early return when the last processed event was <16ms ago.
-  const lastPointerTs = useRef(0)
   const { viewport } = useThree()
 
   // --- liquid-glass blob ------------------------------------------------
@@ -525,38 +520,20 @@ function Centerpiece({
   })
 
   return (
-    <group
-      ref={parallax}
-      onPointerDown={(e) => {
-        last.current.x = e.clientX
-        last.current.y = e.clientY
-        ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
-      }}
-      onPointerMove={(e) => {
-        // FIX(2-c/4): ~60Hz throttle — skips the drag delta math for
-        // sub-frame events. Early return BEFORE updating `last` keeps
-        // drag deltas accumulation-correct.
-        const now = performance.now()
-        if (now - lastPointerTs.current < 16) return
-        lastPointerTs.current = now
-        // mutate spinner.current.rotation directly — Three.js Object3D, allowed
-        if (spinner.current && dragging) {
-          const dx = e.clientX - last.current.x
-          const dy = e.clientY - last.current.y
-          spinner.current.rotation.y += dx * 0.01
-          spinner.current.rotation.x += dy * 0.01
-        }
-        last.current.x = e.clientX
-        last.current.y = e.clientY
-      }}
-    >
+    <group ref={parallax}>
+      {/* AUDIT-B2 FIX 5+6: the drag now computes its delta on the
+          section's own wrapper div (see CapabilityScene) — the R3F
+          object handlers here are gone, so the whole-scene raycast
+          (20k-tri blob + 600 halo points at threshold 1) on every
+          pointermove is gone with them; raycast={() => null} below
+          additionally pins every object out of R3F's event pass. */}
       <group ref={spinner}>
         {/* liquid-glass iridescent centerpiece */}
-        <mesh geometry={blobGeo} material={blobMat} />
+        <mesh geometry={blobGeo} material={blobMat} raycast={() => null} />
         {/* glass satellites + orbit-path rings */}
         {ORBITS.map((o, i) => (
           <group key={`orbit-${i}`} rotation={o.tilt}>
-            <mesh ref={(m) => { satRefs.current[i] = m }}>
+            <mesh ref={(m) => { satRefs.current[i] = m }} raycast={() => null}>
               <sphereGeometry args={[o.size, 24, 24]} />
               {/* clearcoat + RoomEnvironment IBL reads as glass without the
                   cost of a transmission pass */}
@@ -573,7 +550,7 @@ function Centerpiece({
             </mesh>
             {/* faint additive ring marking the orbit path — stretched on X
                 to match the satellite's ellipse */}
-            <mesh scale={[o.sx, 1, 1]}>
+            <mesh scale={[o.sx, 1, 1]} raycast={() => null}>
               <torusGeometry args={[o.radius, 0.006, 6, 96]} />
               <meshBasicMaterial
                 color={o.color}
@@ -586,7 +563,13 @@ function Centerpiece({
           </group>
         ))}
       </group>
-      <points ref={haloRef} geometry={haloGeo} material={haloMat} frustumCulled={false} />
+      <points
+        ref={haloRef}
+        geometry={haloGeo}
+        material={haloMat}
+        frustumCulled={false}
+        raycast={() => null}
+      />
     </group>
   )
 }
@@ -671,6 +654,15 @@ export function CapabilityScene({
 }) {
   const [glAvailable, setGlAvailable] = useState(true)
   const [dragging, setDragging] = useState(false)
+  // AUDIT-B2 FIX 5: drag anchor + ~60Hz move throttle, relocated from
+  // Centerpiece's R3F group handlers to THIS wrapper (the whole
+  // section) — pointerdown in the outer corner bands (where the R3F
+  // ray never hit a body) used to silently fail to rotate. Same
+  // delta→rotation mapping (×0.01 rad/px), same throttle guard (early
+  // return before updating the anchor keeps deltas
+  // accumulation-correct).
+  const dragLast = useRef({ x: 0, y: 0 })
+  const lastPointerTs = useRef(0)
   // LOOP-3 FIX 5: mobile tier — coarse-pointer/<768px viewports cap the dpr
   // at 1.5 (was a flat [1,2] for every device), matching hero-canvas's
   // tier via the shared useMobileTier hook. The halo's uPixelRatio uniform
@@ -740,7 +732,41 @@ export function CapabilityScene({
   return (
     <div
       className="absolute inset-0"
-      onPointerDown={() => setDragging(true)}
+      onPointerDown={(e) => {
+        setDragging(true)
+        // Seed the drag anchor + claim the gesture on the native event
+        // target (the canvas) — the same native capture the R3F shim
+        // used to apply, now working across the WHOLE section: captured
+        // moves still bubble through R3F's container (state.pointer →
+        // parallax keeps tracking) and reach this wrapper (drag delta).
+        dragLast.current.x = e.clientX
+        dragLast.current.y = e.clientY
+        ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
+      }}
+      onPointerMove={(e) => {
+        // FIX(2-c/4): ~60Hz throttle — skips the drag delta math for
+        // sub-frame events. Early return BEFORE updating the anchor
+        // keeps drag deltas accumulation-correct.
+        const now = performance.now()
+        if (now - lastPointerTs.current < 16) return
+        lastPointerTs.current = now
+        // AUDIT-B2 FIX 5: `e.buttons === 1` re-check — a pointerup the
+        // wrapper missed (e.g. released outside the window before
+        // capture engaged) must not leave a stuck drag rotating on the
+        // next bare move. Mutates spinner.current.rotation directly —
+        // Three.js Object3D, allowed.
+        if (dragging && e.buttons === 1) {
+          const spinner = spinnerGroup.current
+          if (spinner) {
+            const dx = e.clientX - dragLast.current.x
+            const dy = e.clientY - dragLast.current.y
+            spinner.rotation.y += dx * 0.01
+            spinner.rotation.x += dy * 0.01
+          }
+        }
+        dragLast.current.x = e.clientX
+        dragLast.current.y = e.clientY
+      }}
       onPointerUp={() => setDragging(false)}
       onPointerCancel={() => setDragging(false)}
       style={{

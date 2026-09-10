@@ -6,11 +6,15 @@
  * at render time instead of degrading. Every guard here degrades to an
  * empty result and NEVER throws; no `any` (eslint forbids it).
  *
- * Consumers: before-after.tsx (scene mocks + dashboards), bento.tsx
- * (MiniSite/MiniFlow/MiniAgent/features), work-grid.tsx,
- * featured-work.tsx, deconstructed-card.tsx and the /services/websites
- * page — plus the shared discountPct that bento and before-after used
- * to duplicate with divergent contracts (0 vs null).
+ * Consumers (rg-verified): direct importers — before-after.tsx (scene
+ * mocks + dashboards), bento.tsx (MiniSite/MiniFlow/MiniAgent/features),
+ * work-grid.tsx, featured-work.tsx, deconstructed-card.tsx and the
+ * /services/websites page — plus the shared discountPct that bento and
+ * before-after used to duplicate with divergent contracts (0 vs null).
+ * The same degrade-to-empty discipline also has two LOCAL-guard
+ * siblings that don't import this module: trust-bar.tsx
+ * (asFiniteNumber) and automation-simulator.tsx (t.has()-guarded
+ * step reads).
  */
 
 export type UnknownRecord = Record<string, unknown>

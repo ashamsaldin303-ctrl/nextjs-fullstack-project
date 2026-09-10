@@ -6,7 +6,8 @@ import { cn } from '@/lib/utils'
 /* ------------------------------------------------------------------ */
 /* Live Damascus clock — editorial "we are here" detail.               */
 /* Server renders a neutral placeholder; the real time arrives after  */
-/* mount (setState-in-effect), so hydration never mismatches.         */
+/* mount (first tick post-mount via rAF — house idiom, no setState    */
+/* in the effect body), so hydration never mismatches.                */
 /* ------------------------------------------------------------------ */
 /* W4-05 (plan §2 / decision D5): extracted VERBATIM from
    home/hero.tsx:26-55 — same formatter, same 1s tick, same
@@ -38,9 +39,16 @@ export function DamascusClock({ locale, className }: { locale: string; className
       hour12: false,
     })
     const tick = () => setTime(fmt.format(new Date()))
-    tick()
+    // AUDIT-A5 NIT (fix 9): the first tick is rAF-wrapped — the house
+    // idiom (live-clock / navbar convention) never calls setState
+    // synchronously inside the effect body. The 1s cadence, the interval
+    // cleanup and the SSR placeholder are unchanged.
+    const rafId = window.requestAnimationFrame(tick)
     const id = window.setInterval(tick, 1000)
-    return () => window.clearInterval(id)
+    return () => {
+      window.cancelAnimationFrame(rafId)
+      window.clearInterval(id)
+    }
   }, [locale])
 
   return (

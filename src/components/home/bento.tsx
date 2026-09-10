@@ -16,6 +16,7 @@ import { Reveal } from '@/components/shared/reveal'
 import { CursorRadar } from '@/components/sensory/cursor-radar'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 import { asProducts, asStringArray, discountPct } from '@/lib/catalog-guards'
+import { BRAND_COLORS } from '@/lib/brand-colors'
 
 /** Bento card with cursor-following radial glow (works in RTL & LTR). */
 function GlowCard({
@@ -69,7 +70,11 @@ function GlowCard({
    Mini interactive 1 — websites theme playground (mini e-commerce site)
    ========================================================================= */
 
-const SITE_PALETTE = ['#0071E3', '#34A853', '#EA4335', '#4285F4'] as const
+/* B4 fix 3: the four theme swatches are exactly the registry's brand
+   primary + Google triad — re-sourced from the single owner (byte-identical
+   values, so the contrast-safe derivations below compute identical
+   results; zero-change wave rule). */
+const SITE_PALETTE = [BRAND_COLORS.primary, BRAND_COLORS.gGreen, BRAND_COLORS.gRed, BRAND_COLORS.gBlue] as const
 
 /* Contrast-safe accent derivations (module scope, pure & deterministic —
    identical on server & client, so no hydration risk).
@@ -557,8 +562,12 @@ const CUBE_FACES: ReadonlyArray<{
   glyph?: string
   dark?: boolean
 }> = [
-  { tr: 'translateZ(28px)', grad: 'linear-gradient(135deg, #4285F4, #0071E3)', icon: null, glyph: 'E' },
-  { tr: 'rotateY(180deg) translateZ(28px)', grad: 'linear-gradient(135deg, #60A5FA, #4285F4)', icon: Globe },
+  /* B4 fix 3: gradient stops re-sourced from the registry WHERE A TOKEN
+     EXISTS (byte-identical: gBlue/primary/gBlueLight); the remaining stops
+     (#4CBF6E/#1E8F41, #F0655A/#C22F23, #FFD44D/#E9A61D, #FDF8ED/#D9CDAC)
+     are scene-specific shades with no registry home — left as literals. */
+  { tr: 'translateZ(28px)', grad: `linear-gradient(135deg, ${BRAND_COLORS.gBlue}, ${BRAND_COLORS.primary})`, icon: null, glyph: 'E' },
+  { tr: 'rotateY(180deg) translateZ(28px)', grad: `linear-gradient(135deg, ${BRAND_COLORS.gBlueLight}, ${BRAND_COLORS.gBlue})`, icon: Globe },
   { tr: 'rotateY(90deg) translateZ(28px)', grad: 'linear-gradient(135deg, #4CBF6E, #1E8F41)', icon: Boxes },
   { tr: 'rotateY(-90deg) translateZ(28px)', grad: 'linear-gradient(135deg, #F0655A, #C22F23)', icon: Sparkles },
   { tr: 'rotateX(90deg) translateZ(28px)', grad: 'linear-gradient(135deg, #FFD44D, #E9A61D)', icon: Bot, dark: true },
@@ -1013,6 +1022,10 @@ function MiniAgent() {
           <label htmlFor="mini-agent-idea" className="sr-only">
             {t('inputPlaceholder')}
           </label>
+          {/* AUDIT-C4 LOW (fix 5): placeholder white/40 → white/55
+              (3.74:1 → ~5.6:1 on the dark card) — the placeholder is
+              the field's ONLY visible hint (label is sr-only), so it
+              needs the house small-text floor. */}
           <input
             id="mini-agent-idea"
             type="text"
@@ -1020,7 +1033,7 @@ function MiniAgent() {
             onChange={(e) => setIdea(e.target.value)}
             placeholder={t('inputPlaceholder')}
             autoComplete="off"
-            className="min-h-11 min-w-0 flex-1 rounded-lg border border-white/10 bg-white/5 px-2.5 text-xs text-white transition-colors placeholder:text-white/40 focus:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="min-h-11 min-w-0 flex-1 rounded-lg border border-white/10 bg-white/5 px-2.5 text-xs text-white transition-colors placeholder:text-white/55 focus:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           <button
             type="submit"

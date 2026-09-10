@@ -10,8 +10,10 @@ export const config = {
   // extension guard can't catch it), and any file with an extension.
   // `icon(?:$|/)` anchors the exclusion to the exact /icon route — a bare
   // `icon` prefix would also swallow real pages like /icons or /iconic.
+  // `api(?:$|/)` anchors the same way (AUDIT-A1 NIT): a bare `api` prefix
+  // would also exclude any FUTURE route starting with "api" (/apiview).
   // NOTE: the boundary group MUST stay non-capturing — Next validates
   // matcher sources through path-to-regexp, which rejects nested capturing
   // groups ("Capturing groups are not allowed").
-  matcher: '/((?!api|_next|_vercel|icon(?:$|/)|.*\\..*).*)',
+  matcher: '/((?!api(?:$|/)|_next|_vercel|icon(?:$|/)|.*\\..*).*)',
 }

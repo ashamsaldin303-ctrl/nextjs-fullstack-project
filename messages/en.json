@@ -1203,6 +1203,7 @@
         "websites": "Websites",
         "automation": "Automation"
       },
+      "resultsCount": "{count, plural, one {# result} other {# results}}",
       "projects": {
         "p1": {
           "title": "Lamsa Fashion Store",

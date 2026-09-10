@@ -161,6 +161,18 @@ export function WorkGrid() {
           })}
         </div>
 
+        {/* AUDIT-C4 NIT (fix 6): filter changes were silent to SR users —
+            the grid re-renders with a different card set and nothing
+            announced it. This persistent polite status region (sr-only,
+            OUTSIDE the keyed grid so it never remounts — remounted live
+            regions don't reliably announce) reports the result count on
+            every filter change. resultsCount is a full CLDR plural like
+            calculator.pagesValue; its `#` arms render Latin digits on
+            current engines ('ar' → latn) — same documented limitation. */}
+        <p role="status" aria-live="polite" className="sr-only">
+          {t('resultsCount', { count: visible.length })}
+        </p>
+
         {/* Phase 3 §4.3: framer layout-animation replaced by a CSS fade
             keyed on the filter — filtering stays instant and framer-free,
             dropping /work's initial JS below the 200KB target.
@@ -179,16 +191,17 @@ export function WorkGrid() {
             // UI-4: per-project mock content for the realistic "after" scene
             const mock = toMockContent(t.raw(`projects.${p.key}.mock`))
             return (
-              <article
-                key={p.key}
-                className="group"
-                data-cursor="zoom"
-              >
+              <article key={p.key}>
                 <Reveal variant="zoom" delay={i * 0.07}>
-                  {/* subtle hover lift on the comparison mockup (UI-4).
-                      W1-05: group-hover:shadow-xl → group-hover:card-lift-hover
-                      (layered light-surface shadow, @utility in globals.css). */}
-                  <div className="rounded-2xl transition-all duration-300 ease-out group-hover:-translate-y-1.5 group-hover:card-lift-hover">
+                  {/* AUDIT-A5 LOW (fix 5): these cards are deliberately
+                      NON-interactive (no link/expand/handler — making them
+                      interactive is a product decision out of scope here),
+                      so the data-cursor="zoom" marker and the hover lift
+                      (group-hover:-translate-y-1.5 + card-lift-hover) were
+                      removed: pointer users were invited to click and
+                      nothing happened. The comparison mockup keeps its
+                      static frame. */}
+                  <div className="rounded-2xl">
                     <BeforeAfter
                       variant={p.variant}
                       accent={p.accent}

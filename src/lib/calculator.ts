@@ -59,12 +59,22 @@ const THREE_D = { min: 1500, max: 2600 }
 const PER_INTEGRATION = { min: 250, max: 450 }
 const AUTOMATION_ADVANCED = { min: 900, max: 1500 }
 
+/** Slider/page ceiling shared by the UI, the API schema and the envelope
+ *  below (single constant — was a bare 20 inline in clampPages). */
+const MAX_PAGES = 20
+
+/** Every integration the wizard offers, in chip order (calculator.tsx's
+ *  INTEGRATIONS list mirrors this) — the envelope below maxes it out. */
+const ALL_INTEGRATIONS: readonly IntegrationKey[] = [
+  'crm', 'invoicing', 'email', 'telegram', 'sheets', 'ai',
+]
+
 function clampPages(n: number): number {
-  // Mirrors the UI slider (min 1, max 20) and the API Zod schema — 0 is
+  // Mirrors the UI slider (min 1, max MAX_PAGES) and the API Zod schema — 0 is
   // not a valid project size anywhere.
   if (!Number.isFinite(n)) return 1
   const i = Math.round(n)
-  return Math.max(1, Math.min(i, 20))
+  return Math.max(1, Math.min(i, MAX_PAGES))
 }
 
 export function computeEstimate(input: CalculatorInput): CalcResult {
@@ -168,6 +178,31 @@ export function computeEstimate(input: CalculatorInput): CalcResult {
     breakdown: roundedBreakdown,
   }
 }
+
+// ---------------------------------------------------------------------------
+// Result envelope (audit loop 1, A4 → B4 fix 1) — the honest 100% marks for
+// the result-step ring gauges. Derived by running the SAME estimator on the
+// all-options-maxed wizard input, so a cap can never drift below the
+// reachable maxima (a hardcoded cap pegs the rings at 100% while the printed
+// number keeps rising — the gauge reads as maxed-out data it isn't).
+// Computed, not hardcoded: full service + 20 pages + bilingual + 3D + every
+// integration + advanced ⇒ $23,400 / 20 weeks today (round100 semantics
+// included, i.e. exactly the number the wizard would display).
+// ---------------------------------------------------------------------------
+
+const WORST_CASE_INPUT: CalculatorInput = {
+  service: 'full',
+  pages: MAX_PAGES,
+  languages: 'bilingual',
+  threeD: 'yes',
+  integrations: [...ALL_INTEGRATIONS],
+  automationLevel: 'advanced',
+}
+
+/** Highest reachable budget figure (CalcResult.max) — 100% on the budget ring. */
+export const MAX_BUDGET = computeEstimate(WORST_CASE_INPUT).max
+/** Highest reachable duration figure (CalcResult.weeksMax) — 100% on the weeks ring. */
+export const MAX_WEEKS = computeEstimate(WORST_CASE_INPUT).weeksMax
 
 export function formatMoney(amount: number, locale: Locale): string {
   // L6-R4 P3: the site money convention is a bare "$" (catalogs render

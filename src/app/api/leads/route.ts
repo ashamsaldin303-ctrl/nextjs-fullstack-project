@@ -33,9 +33,10 @@ import { getApiT } from '@/lib/api-i18n'
  *   415  Content-Type is not application/json (pre-parse).
  *   429  Rate limited — `Retry-After` + IETF draft `RateLimit-Limit/-
  *        Remaining/-Reset` headers. Two tiers (Batch 2 item 10): the
- *        lenient bucket (30 req/min/IP) meters every request, while the
- *        strict bucket (5 req/min/IP) is burned only by requests that
- *        reach a persisted write.
+ *        lenient bucket (30 req/min/IP) meters every request that
+ *        passes the cheap header gates (403/413/415 — see below), while
+ *        the strict bucket (5 req/min/IP) is burned only by requests
+ *        that reach a persisted write.
  *   500  Generic error, zero internal detail; details go to the server log.
  *   201  Stored. Body: { reference } — 'c' + 9 random base-36 chars:
  *        cuid-shaped but collision-proof (final-board R1 — the previous
@@ -47,6 +48,9 @@ import { getApiT } from '@/lib/api-i18n'
  *        but are silently discarded — see the POST handler.)
  *   GET  405 with `Allow: POST, OPTIONS` (RFC 9110 §15.4.6 — the
  *        framework's default 405 carries no Allow header).
+ *   Every response emitted by POST/OPTIONS/GET (all statuses above)
+ *   carries `Cache-Control: no-store` — request-specific data must
+ *   never sit in a shared/intermediary cache (AUDIT-A1 L3).
  *   All validation-adjacent error bodies (400/403/413/415/429) share one
  *   envelope: { error, message, fields } — `fields` is {} when no
  *   per-field detail applies (L6-R5 P3; 500 stays with the generic
@@ -195,6 +199,25 @@ function requestLocale(req: NextRequest): 'ar' | 'en' {
 }
 
 /**
+ * Shared API response constructor (AUDIT-A1 L3 fix): EVERY response this
+ * route emits — 201/400/403/405/413/415/429/500 — carries
+ * `Cache-Control: no-store`. Lead submissions are strictly
+ * request-specific (references, validation errors, quota state), so no
+ * shared or intermediary cache may ever retain them; NextResponse.json
+ * sets no cache directives by default. Headers passed by the caller
+ * (Retry-After, RateLimit-*, Allow) override/extend the baseline.
+ */
+function apiJson(
+  body: unknown,
+  init?: { status?: number; headers?: Record<string, string> }
+): NextResponse {
+  return NextResponse.json(body, {
+    ...init,
+    headers: { 'Cache-Control': 'no-store', ...init?.headers },
+  })
+}
+
+/**
  * Random customer reference: 'c' + 9 base-36 chars — the same LOOK as a
  * cuid prefix, but collision-proof (final-board R1: the previous
  * `id.slice(0, 8)` was 'c' + 7 base-36 TIMESTAMP digits, so two leads
@@ -217,6 +240,14 @@ function isUniqueViolation(err: unknown): boolean {
   )
 }
 
+/**
+ * Cap on unknown-key entries echoed back in a 400 `fields` response
+ * (AUDIT-A1 L fix): Zod reports ALL unrecognized keys in a single issue,
+ * so a hostile payload carrying hundreds of junk keys would otherwise
+ * mirror every one of them into the response body.
+ */
+const MAX_UNKNOWN_KEYS = 10
+
 const KNOWN_FIELDS = new Set([
   'name', 'email', 'whatsapp', 'message', 'source', 'service', 'pages',
   'languages', 'threeD', 'integrations', 'automationLevel',
@@ -236,8 +267,11 @@ function fieldErrors(
     if (typeof root === 'string' && KNOWN_FIELDS.has(root)) {
       out[root] = t(`fields.${root}`)
     } else if (issue.code === 'unrecognized_keys') {
+      // Capped at MAX_UNKNOWN_KEYS above — only the first entries
+      // surface; the issue's key list itself stays untouched (slice,
+      // not splice).
       const keys = (issue as { keys?: string[] }).keys ?? []
-      for (const k of keys) out[k] = t('unknownField')
+      for (const k of keys.slice(0, MAX_UNKNOWN_KEYS)) out[k] = t('unknownField')
     }
   }
   return out
@@ -305,34 +339,12 @@ export async function POST(req: NextRequest) {
   const locale = requestLocale(req)
   const t = getApiT(locale)
 
-  // 1) Rate limit FIRST — but only the LENIENT bucket (30/min/IP):
-  //    every request counts here (valid or not) because its only job
-  //    is blunting flood/abuse spam. Rejected payloads must NOT burn
-  //    the 5/min strict quota — a visitor making a few validation
-  //    mistakes used to lock themselves out of ever submitting
-  //    (verified in audit 1-b: 429 after a handful of 400s).
-  const ip = clientIp(req)
-  const rl = rateLimit(ip, 'lenient')
-  if (!rl.allowed) {
-    return NextResponse.json(
-      { error: 'rate_limited', message: t('rateLimited'), fields: {} },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rl.retryAfterSec),
-          // IETF draft RateLimit-* fields
-          // (draft-ietf-httpapi-ratelimit-headers, L6-R5 P3) —
-          // machine-readable quota info alongside Retry-After.
-          'RateLimit-Limit': String(rl.limit),
-          'RateLimit-Remaining': String(rl.remaining),
-          'RateLimit-Reset': String(rl.retryAfterSec),
-        },
-      }
-    )
-  }
-
-  // 2) Cheap header gates BEFORE any body parsing (audit P1-2) — never
-  // allocate a parser for oversized or non-JSON requests.
+  // 1) Cheap header gates BEFORE any body parsing (audit P1-2) — never
+  // allocate a parser for oversized or non-JSON requests. These gates
+  // also run BEFORE the lenient meter (step 3): cross-site browser junk
+  // (hidden auto-submitting forms — determinable from headers alone, and
+  // always abuse) must never burn the victim's per-IP quota; direct
+  // requests that pass them stay fully metered (AUDIT-C1 LOW).
   // Framing assumption (L1-A P3): both size gates below key off
   // Content-Length / Transfer-Encoding — the shipped HTTP/1.1 standalone
   // server (and its h1 fronting proxy) always emits one of the two, so
@@ -342,7 +354,7 @@ export async function POST(req: NextRequest) {
   const contentLength =
     contentLengthHeader === null ? 0 : Number(contentLengthHeader)
   if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
-    return NextResponse.json(
+    return apiJson(
       { error: 'too_large', message: t('tooLarge'), fields: {} },
       { status: 413 }
     )
@@ -352,7 +364,7 @@ export async function POST(req: NextRequest) {
   // (verification L2-A). The site's own fetch() clients always send
   // content-length, so legitimate traffic is unaffected.
   if (req.headers.get('transfer-encoding') !== null) {
-    return NextResponse.json(
+    return apiJson(
       { error: 'too_large', message: t('tooLarge'), fields: {} },
       { status: 413 }
     )
@@ -369,18 +381,18 @@ export async function POST(req: NextRequest) {
       ?.trim()
       .toLowerCase() ?? ''
   if (mediaType !== 'application/json') {
-    return NextResponse.json(
+    return apiJson(
       { error: 'invalid', message: t('invalid'), fields: {} },
       { status: 415 }
     )
   }
 
-  // 3) Cross-site request rejection (audit P2-2): browsers always attach
+  // 2) Cross-site request rejection (audit P2-2): browsers always attach
   // Sec-Fetch-Site / Origin to cross-site POSTs — this blocks cross-site
   // form-post spam while header-less clients (curl, API tools) pass.
   const secFetchSite = req.headers.get('sec-fetch-site')
   if (secFetchSite === 'cross-site' || secFetchSite === 'same-site') {
-    return NextResponse.json(
+    return apiJson(
       { error: 'cross_origin', message: t('crossOrigin'), fields: {} },
       { status: 403 }
     )
@@ -394,11 +406,43 @@ export async function POST(req: NextRequest) {
       // Malformed Origin — fail closed (treated as cross-site).
     }
     if (!sameHost) {
-      return NextResponse.json(
+      return apiJson(
         { error: 'cross_origin', message: t('crossOrigin'), fields: {} },
         { status: 403 }
       )
     }
+  }
+
+  // 3) Rate limit — but only the LENIENT bucket (30/min/IP), and only
+  //    AFTER the cheap header gates above (AUDIT-C1 LOW): a malicious
+  //    page kept open in a victim's browser used to record a lenient
+  //    hit for every 403'd cross-site POST, 429-ing the victim's own
+  //    legitimate submissions for as long as the loop ran — header-
+  //    determinable junk is now rejected for free. Every request that
+  //    gets this far counts here (valid or not — 400s, honeypot 201s,
+  //    real leads), because the lenient bucket's only job is blunting
+  //    flood/abuse spam. Rejected payloads must NOT burn the 5/min
+  //    strict quota — a visitor making a few validation mistakes used to
+  //    lock themselves out of ever submitting (verified in audit 1-b:
+  //    429 after a handful of 400s).
+  const ip = clientIp(req)
+  const rl = rateLimit(ip, 'lenient')
+  if (!rl.allowed) {
+    return apiJson(
+      { error: 'rate_limited', message: t('rateLimited'), fields: {} },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rl.retryAfterSec),
+          // IETF draft RateLimit-* fields
+          // (draft-ietf-httpapi-ratelimit-headers, L6-R5 P3) —
+          // machine-readable quota info alongside Retry-After.
+          'RateLimit-Limit': String(rl.limit),
+          'RateLimit-Remaining': String(rl.remaining),
+          'RateLimit-Reset': String(rl.retryAfterSec),
+        },
+      }
+    )
   }
 
   // 4) Parse — strip known client-echo estimate fields, reject unknowns.
@@ -406,7 +450,7 @@ export async function POST(req: NextRequest) {
   try {
     raw = await req.json()
   } catch {
-    return NextResponse.json(
+    return apiJson(
       { error: 'invalid', message: t('invalid'), fields: {} },
       { status: 400 }
     )
@@ -421,7 +465,7 @@ export async function POST(req: NextRequest) {
 
   const parsed = leadSchema.safeParse(raw)
   if (!parsed.success) {
-    return NextResponse.json(
+    return apiJson(
       {
         error: 'invalid',
         message: t('invalid'),
@@ -445,7 +489,7 @@ export async function POST(req: NextRequest) {
   // an empty/whitespace string (what the real forms send) proceeds.
   const hp = input.companyWebsite
   if (hp !== undefined && (typeof hp !== 'string' || hp.trim() !== '')) {
-    return NextResponse.json({ reference: randomReference() }, { status: 201 })
+    return apiJson({ reference: randomReference() }, { status: 201 })
   }
 
   // 6) Strict quota (5/min/IP) — checked (and burned) immediately
@@ -456,7 +500,7 @@ export async function POST(req: NextRequest) {
   //    (L1-B fix) — a storage error must not cost the visitor a slot.
   const strict = rateLimit(ip, 'strict')
   if (!strict.allowed) {
-    return NextResponse.json(
+    return apiJson(
       { error: 'rate_limited', message: t('rateLimited'), fields: {} },
       {
         status: 429,
@@ -559,7 +603,7 @@ export async function POST(req: NextRequest) {
       /* silent by contract */
     })
 
-    return NextResponse.json({ reference }, { status: 201 })
+    return apiJson({ reference }, { status: 201 })
   } catch (err) {
     // Refund the strict slot burned in step 6 (L1-B P3 fix): the write
     // failed, so this request never became a persisted lead — the visitor
@@ -568,7 +612,7 @@ export async function POST(req: NextRequest) {
     refundRateLimit(ip, 'strict')
     // Details to the server log only — never to the client (§3.1).
     console.error('[elyra:api/leads] storage failed:', err instanceof Error ? err.message : err)
-    return NextResponse.json(
+    return apiJson(
       { error: 'server_error', message: t('serverError') },
       { status: 500 }
     )
@@ -581,6 +625,8 @@ export async function OPTIONS() {
     status: 204,
     headers: {
       Allow: 'POST, OPTIONS',
+      // Same no-store policy as every other response (AUDIT-A1 L3).
+      'Cache-Control': 'no-store',
     },
   })
 }
@@ -591,11 +637,12 @@ export async function OPTIONS() {
  * returns a bare 405 with none (probed live by R5). The message strings
  * intentionally live here instead of the apiErrors catalog: this is a
  * protocol-level (method) error, not a form-validation error, and the
- * i18n parity gate stays untouched this round (712 keys).
+ * i18n parity gate stays untouched this round (parity count as printed
+ * by the script — no keys are added here).
  */
 export async function GET(req: NextRequest) {
   const locale = requestLocale(req)
-  return NextResponse.json(
+  return apiJson(
     {
       error: 'method_not_allowed',
       message:

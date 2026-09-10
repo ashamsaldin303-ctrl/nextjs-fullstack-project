@@ -36,19 +36,31 @@ The full wipe requires --all — a bare run no longer deletes anything.`)
 }
 
 /**
- * Parses `--purge-days=<N>` (N ≥ 0) from argv — null when absent.
+ * Parses `--purge-days=<N>` (N ≥ 1) from argv — null when absent.
  * A MALFORMED value is a hard error, never a silent fallthrough to the
  * full wipe (a typo like `--purge-days=9O` must not delete everything).
+ * N = 0 is likewise rejected (AUDIT-A1 NIT): the cutoff would be "now",
+ * silently deleting EVERY row — a full wipe requires the explicit
+ * `--all` path.
  */
 function purgeDays(): number | null {
   for (const arg of process.argv) {
     if (!arg.startsWith('--purge-days=')) continue
     const days = /^\d+$/.exec(arg.slice('--purge-days='.length))?.[0]
     if (days === undefined) {
-      console.error(`invalid ${arg} — expected a non-negative integer, e.g. --purge-days=90`)
+      console.error(`invalid ${arg} — expected a positive integer, e.g. --purge-days=90`)
       process.exit(1)
     }
-    return Number(days)
+    const n = Number(days)
+    if (n < 1) {
+      // /^\d+$/ guarantees n ≥ 0 — the only value that lands here is 0
+      // (including "00"/"000" spellings).
+      console.error(
+        `invalid ${arg} — N must be ≥ 1 (0 would delete every row; the full wipe is --all)`
+      )
+      process.exit(1)
+    }
+    return n
   }
   return null
 }

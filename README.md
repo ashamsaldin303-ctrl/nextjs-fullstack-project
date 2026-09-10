@@ -41,7 +41,7 @@
 
 5. **مشاهد CSS بدل صور AI**: «قبل/بعد» بطاقات مكوّنة من مشاهد CSS تجريدية (متجر/منصة/لوحة بيانات) — أدق وأنظف وأخف من صور AI المولّدة، وتعمل في RTL و LTR.
 
-6. **الحاسبة (المرحلة 1 = واجهة كاملة، المرحلة 3 = الخلفية)**: المعالج بثلاث خطوات يعمل بالكامل client-side (اختيار الخدمة، الميزات، عرض التقدير مع `computeEstimate` في `lib/calculator.ts`). إرسال الطلب يعرض حالة نجاح محلية. الـ API route + Prisma + ويبهوك n8n موقّع — في المرحلة 3 (لن يُخترع قبل أوانه).
+6. **الحاسبة (المرحلة 1 = واجهة كاملة، المرحلة 3 = الخلفية — وقد اكتملتا)**: المعالج بثلاث خطوات يعمل بالكامل client-side (اختيار الخدمة، الميزات، عرض التقدير مع `computeEstimate` في `lib/calculator.ts`). منذ اكتمال المرحلة 3، إرسال الطلب أصبح POST حقيقياً إلى `/api/leads` (إعادة حساب خادمية + Prisma + ويبهوك n8n موقّع) ويعرض في حالة النجاح مرجعاً مخزّناً فعلياً من الخادم — ونموذج التواصل يسلك المسار نفسه.
 
 7. **الأمان من أخطاء Hydration**: كل منطق زمني (ساعة حية، عدّادات، كشف WebGL) بعد `mount` عبر `useEffect` + flag. القيم العددية في messages تُقرأ عبر `t.raw()` (لا `t()` الذي يتوقع نصاً).
 
@@ -53,13 +53,13 @@
 
 10. **ESLint الصارم بكناري**: إعادة تفعيل قواعد React 19 (`exhaustive-deps`/`purity`/`immutability`/`no-explicit-any`/`no-non-null-assertion`/`react-compiler`) — أي اختراق مستقبلي للقواعد يُرفض عند المراجعة (خط أحمر).
 
-11. **نمط `useSyncExternalStore` للقيم الزمنية/اللغة**: سنة الفوتر ولغة global-error وصوت المرحلة 2 تُقرأ كلها عبر `useSyncExternalStore` مع server snapshot حتمي — أفضل من `useEffect + setState` الذي يخالف `react-hooks/set-state-in-effect`. `getServerYear` يقرأ `new Date().getFullYear()` ديناميكياً.
+11. **نمط `useSyncExternalStore` للقيم الزمنية/اللغة**: سنة الفوتر ولغة global-error وصوت المرحلة 2 تُقرأ كلها عبر `useSyncExternalStore` مع server snapshot حتمي — أفضل من `useEffect + setState` الذي يخالف `react-hooks/set-state-in-effect`. `getYear` يقرأ `new Date().getFullYear()` ديناميكياً.
 
 12. **إصلاحات icon/robots**: `/icon` كان 404 لأن هاش المحتوى في query لا في المسار فلم يستثنه matcher الـ next-intl؛ `/robots.txt` كان 500 بسبب تعارض ملف قالب في `public/` مع النسخة الديناميكية — حُذف الثابت.
 
-13. **المؤشر المغناطيسي — rAF واحد بلا إعادة رسم React**: الطبقتان (نقطة 6px + حلقة 32px بـ lerp 0.2) تُحرّكان بتعديل DOM مباشر عبر refs داخل حلقة `requestAnimationFrame` واحدة على مستوى التطبيق. الجذب نحو مراكز عناصر `data-cursor="magnet"` (مسافة، لا جهة — RTL/LTR محايد). يُخفى المؤشر الأصلي فقط عند (`pointer: fine` + بلا reduced-motion) بحارس CSS مزدوج، والطبقات فوق Sheet/Dialog (z-200) لأن الأصلي مخفي، و`mix-blend-difference` يضمن الرؤية على الفاتح والداكن.
+13. **المؤشر المغناطيسي — rAF واحد بلا إعادة رسم React**: الطبقتان (نقطة 7px + حلقة 34px بـ lerp 0.4/0.16) تُحرّكان بتعديل DOM مباشر عبر refs داخل حلقة `requestAnimationFrame` واحدة على مستوى التطبيق. الجذب نحو مراكز عناصر `data-cursor="magnet"` (مسافة، لا جهة — RTL/LTR محايد). يُخفى المؤشر الأصلي فقط عند (`pointer: fine` + بلا reduced-motion) بحارس CSS مزدوج، والطبقات فوق Sheet/Dialog (z-200) لأن الأصلي مخفي، و`mix-blend-difference` يضمن الرؤية على الفاتح والداكن.
 
-14. **الحبيبات السينمائية — CSS خالص ثابت**: طبقة `feTurbulence` SVG واحدة كـ data-URI (0 JS) على مستوى الـ layout، شفافية 4.5% مع وميض خفيف (grain-flicker بـ 8 خطوات 0.4s — يُلغى تلقائياً عند تفضيل تقليل الحركة)، تُخفى عند الطباعة، وتحمل z-90 فوق كل المحتوى لأن الغرين السينمائي موحد فوق كل شيء.
+14. **الحبيبات السينمائية — CSS خالص ثابت**: طبقة `feTurbulence` SVG واحدة كـ data-URI (0 JS) على مستوى الـ layout، شفافية 3% مع وميض خفيف (grain-flicker بـ 8 خطوات 0.4s — يُلغى تلقائياً عند تفضيل تقليل الحركة)، تُخفى عند الطباعة، وتحمل z-90 فوق كل المحتوى لأن الغرين السينمائي موحد فوق كل شيء.
 
 15. **Audio UX — Web Audio API فقط بلا ملفات**: أصوات مركّبة (oscillators + envelopes) بمكوّن `lib/sound.ts` — مطفأة افتراضاً مع `localStorage` (`elyra:sound`) عبر external store، وAudioContext كسول عند أول إيماءة، وفشل هادئ دائماً. الأصوات لأحداث المؤشر فقط (`pointerover`/`pointerdown` مندّمان على مستوى المستند) — لا صوت للوحة المفاتيح أبداً.
 
@@ -75,7 +75,7 @@
 
 20. **نمط الويبهوك وأمانه**: توقيع HMAC-SHA256 على `timestamp.nonce.body` بمفتاح 32+ محرفاً من متغيرات بيئة فقط. عند غيابهما: تعطيل هادئ بسطر سجل واحد. التسليم best-effort بعد نجاح التخزين (fire-and-forget — الطلب يبقى 201)، مهلة 5 ثوانٍ بـ AbortController، وإعادة محاولة واحدة عند فشل الشبكة فقط. الوصفة الكاملة للاستقبال في n8n أدناه.
 
-21. **قرارات الأداء (§4)**: (أ) محتوى فوق الطية في الرئيسية وPageHero يُرسم من الخادم بمدخل CSS-only (`hero-enter` keyframes تبدأ عند أول رسم — بلا انتظار hydration) — بصمة framer القديمة (`opacity:0` inline) اختفت من HTML الخادم؛ (ب) `HeroCanvas` يؤجّل تحميل Three.js حتى `requestIdleCallback` (مهلة 2.5s) أو أول تفاعل، و`CapabilityScene` حتى اقتراب قسمها من الشاشة؛ (ج) `Reveal` أعيد كتابته بـ IntersectionObserver + CSS (بلا framer) لكل الاستخدامات البسيطة مع بقاء framer للمتخصصات فقط (الحاسبة/المحاكي/methodology) — صفحات مثل /about و/work و/services/websites لم تعد تحمّل framer في حزمة JS المبدئية؛ (د) فلترة /work أصبحت CSS keyframes بدل AnimatePresence (قرار أداء موثّق — الوظيفة ذاتها).
+21. **قرارات الأداء (§4)**: (أ) محتوى فوق الطية في الرئيسية وPageHero يُرسم من الخادم بمدخل CSS-only (`hero-enter` keyframes تبدأ عند أول رسم — بلا انتظار hydration) — بصمة framer القديمة (`opacity:0` inline) اختفت من HTML الخادم؛ (ب) `HeroCanvas` يؤجّل تحميل Three.js حتى `requestIdleCallback` (مهلة 2.5s) أو أول تفاعل، و`CapabilityScene` حتى اقتراب قسمها من الشاشة؛ (ج) `Reveal` أعيد كتابته بـ IntersectionObserver + CSS (بلا framer) لكل الاستخدامات البسيطة — لكن استبعاد framer من الحزمة المبدئية لم يعد حقيقةً منذ W2/REF-4: `MotionConfigProvider` في `[locale]/layout.tsx` يستورد framer سكونياً فتحمله كل صفحة في حزمة JS المبدئية، ومعه المستوردون الثابتون (scroll/* وgolden-arabesque وcontact-form)؛ ما بقي كسولاً فعلاً عبر `next/dynamic` هو المتخصصات الثقيلة (الحاسبة/المحاكي/methodology ومشاهد 3D)؛ (د) فلترة /work أصبحت CSS keyframes بدل AnimatePresence (قرار أداء موثّق — الوظيفة ذاتها).
 
 22. **فخ HOSTNAME في standalone**: موثّق كاملاً في قسم Deployment أدناه (حلقة 307 مع `HOSTNAME=127.0.0.1` — التوصية `0.0.0.0`).
 
@@ -227,7 +227,7 @@ docker build --build-arg NEXT_PUBLIC_SITE_URL=https://elyra.agency -t elyra .
   -v elyra-db:/app/db elyra
 ```
 
-`TRUST_PROXY=true` (افتراضي مضمّن في ENV الخاص بـ Dockerfile): النشر خلف بروكسي عاكس **يطمس** `X-Forwarded-For` بحكم التعريف — وبدونه تشارك كل الطلبات حصة إرسال واحدة عالمية (5 طلبات/دقيقة للجميع)، فيستطيع سكربت واحد تعطيل النموذجين عن الجميع (إصلاح L1-A).
+`TRUST_PROXY=true` (الافتراضي fail-closed: `false` في ENV الخاص بـ Dockerfile، ويُمرَّر بالعلم `-e` أعلاه لهذا الطوبولوجيا فقط): النشر خلف بروكسي عاكس **يطمس** `X-Forwarded-For` بحكم التعريف — وبدونه تشارك كل الطلبات حصة إرسال واحدة عالمية (5 طلبات/دقيقة للجميع)، فيستطيع سكربت واحد تعطيل النموذجين عن الجميع (إصلاح L1-A).
 
 راجع `.env.example` لكل المتغيرات وتوثيقها. **قبل أول إطلاق**: شغّل `bun scripts/clean-leads.ts --all` أو `--all --dry-run` لضمان خلو قاعدة البيانات من بيانات الاختبار (المحو الكامل يتطلب `--all` صراحةً — التشغيل المجرد يطبع الاستخدام فقط).
 
@@ -294,23 +294,34 @@ src/
 │   ├── page.tsx           # الرئيسية (8 أقسام)
 │   ├── services/{websites,automation}/
 │   ├── work/ about/ contact/
-├── app/global-error.tsx   # المعالج الجذري
-├── app/{sitemap,robots,icon}.ts
+├── app/global-error.tsx + not-found.tsx   # المعالجات الجذرية (خارج [locale])
+├── app/{sitemap,robots}.ts + icon.tsx
 ├── components/
-│   ├── home/              # hero, bento, simulator, before-after, calculator...
-│   ├── layout/            # navbar, footer, language-switcher, live-clock
-│   ├── shared/            # reveal, section-heading, page-hero, cta, service-prose
-│   ├── sensory/           # custom-cursor, grain-overlay, sound-toggle (المرحلة 2)
+│   ├── home/              # hero, hero-canvas, intro-overlay, bento, trust-bar,
+│   │                      # before-after, manifesto — وcalculator/simulator/
+│   │                      # methodology كسولة عبر next/dynamic، featured-work...
+│   ├── layout/            # navbar, footer, language-switcher, live-clock,
+│   │                      # damascus-clock, motion-config, scroll-progress
+│   ├── shared/            # reveal, section-heading, page-hero, cta, service-prose,
+│   │                      # golden-arabesque, fresnel-edge
+│   ├── sensory/           # custom-cursor, grain-overlay, sound-toggle,
+│   │                      # smooth-scroll, cursor-radar, dot-grid
+│   ├── rune/              # EdgeRune + منظومة rune 3D الدلالية (rune-scene,
+│   │                      # model-registry, tech-kits, rune-bus, model-loader)
+│   ├── scroll/            # parallax, velocity-skew, clip-curve, depth-exit
+│   ├── services/          # cross-nav, hero-motifs
+│   ├── ui/                # أساسيات shadcn (button, sheet, slider, sonner, ...)
 │   ├── three/             # capability-scene (R3F)
 │   ├── brand/             # logo
 │   ├── pages/             # work-grid, contact-form
 │   └── seo/               # home-json-ld
 ├── i18n/                  # routing, request, navigation
 ├── lib/                   # calculator, sound, rate-limit, n8n-webhook, api-i18n,
-│                          # lead-fields, seo, site-config, hero-scroll, use-rtl,
-│                          # use-reduced-motion, use-webgl, use-mobile-tier,
-│                          # use-near-viewport, use-magnetic, use-cursor-velocity,
-│                          # db, utils
+│                          # brand-colors, catalog-guards, gl-health, db, tilt,
+│                          # lenis-holder, scroll-store, lead-fields, seo,
+│                          # site-config, hero-scroll, use-rtl, use-reduced-motion,
+│                          # use-webgl, use-mobile-tier, use-near-viewport,
+│                          # use-magnetic, use-cursor-velocity, utils
 ├── app/api/leads/route.ts # نقطة الكتابة الوحيدة (Zod + إعادة حساب + Prisma + 429)
 └── proxy.ts               # next-intl middleware (Next.js 16)
 messages/{ar,en}.json      # ترجمات متطابقة بالكامل بين اللغتين — التحقق: node scripts/check-i18n-parity.js
@@ -318,4 +329,4 @@ messages/{ar,en}.json      # ترجمات متطابقة بالكامل بين �
 
 ---
 
-صُنع بشغفٍ وقهوةٍ كثيرة. © 2025 إيليرا.
+صُنع بشغفٍ وقهوةٍ كثيرة. © 2026 إيليرا.

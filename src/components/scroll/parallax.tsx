@@ -22,7 +22,6 @@ import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
 
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
-import { cn } from '@/lib/utils'
 
 interface ParallaxProps {
   children: React.ReactNode
@@ -51,7 +50,7 @@ export function Parallax({ children, className, speed = 40 }: ParallaxProps) {
     <motion.div
       ref={ref}
       style={{ y, willChange: 'transform' }}
-      className={cn(className)}
+      className={className}
     >
       {children}
     </motion.div>

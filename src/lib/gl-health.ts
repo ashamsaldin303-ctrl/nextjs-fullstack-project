@@ -12,11 +12,11 @@
 
 /** Shape of the `window.__elyraGlHealth` diagnostic (typed global). */
 export interface GlHealth {
-  /** `webglcontextlost` events observed (hero + capability scenes). */
+  /** `webglcontextlost` events observed (hero + capability + rune scenes). */
   lost: number
   /** `webglcontextrestored` events observed. */
   restored: number
-  /** Label of the canvas that reported the last event ('hero' | 'capability'). */
+  /** Label of the canvas that reported the last event ('hero' | 'capability' | 'rune'). */
   lastFrom: string
   /** `performance.now()` ms of the last event. */
   lastAt: number

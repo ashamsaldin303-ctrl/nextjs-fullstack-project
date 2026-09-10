@@ -198,8 +198,14 @@ export function DotGridField({ className }: { className?: string }) {
       my = e.clientY
       if (!moveRaf) moveRaf = requestAnimationFrame(applyMove)
     }
-    const onEnter = () => {
+    const onEnter = (e: PointerEvent) => {
       pointerInside = true
+      // AUDIT-A3 (FIX 5): apply the ENTRY position immediately through the
+      // same rAF-coalesced path as a move — the field used to ignore the
+      // pointer until the first pointermove (px/py stayed stale).
+      mx = e.clientX
+      my = e.clientY
+      if (!moveRaf) moveRaf = requestAnimationFrame(applyMove)
     }
     const onLeave = () => {
       pointerInside = false

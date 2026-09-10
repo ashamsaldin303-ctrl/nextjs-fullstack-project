@@ -53,8 +53,11 @@
  *   on arrival, dissolve on exit, contact shadow grounding.
  *
  * This file is PURE TS (no three.js import — it must stay inside the
- * FIRST bundle chunk, the rune-landmarks contract).
+ * FIRST bundle chunk, the rune-landmarks contract). brand-colors is
+ * likewise pure TS — importing it here cannot break that contract.
  */
+
+import { BRAND_COLORS } from '@/lib/brand-colors'
 
 export type RunePresetKey =
   | 'home'
@@ -624,8 +627,8 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
  * ------------------------------------------------------------------ */
 
 export const SLOT_PALETTES: Record<'light' | 'dark', { edge: string; edge2: string }> = {
-  light: { edge: '#60A5FA', edge2: '#34A853' }, // gBlueLight + gGreen
-  dark: { edge: '#4285F4', edge2: '#34A853' }, // gBlue + gGreen
+  light: { edge: BRAND_COLORS.gBlueLight, edge2: BRAND_COLORS.gGreen }, // gBlueLight + gGreen
+  dark: { edge: BRAND_COLORS.gBlue, edge2: BRAND_COLORS.gGreen }, // gBlue + gGreen
 }
 
 /* ------------------------------------------------------------------ *

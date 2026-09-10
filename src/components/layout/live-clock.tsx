@@ -22,7 +22,14 @@ export function LiveClock({ variant = 'on-dark' }: { variant?: 'on-dark' | 'on-l
       // short zone ("15:16 GMT+3" / the cryptic ar "غ") duplicated the
       // manual GMT±N label below ("15:16 GMT+3 (GMT+3)"). The explicit
       // label is locale-stable and stays the single zone indicator.
-      const intl = new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en-US', {
+      //
+      // AUDIT-A5 LOW (fix 3): 'ar' → 'ar-u-nu-latn'. Plain 'ar' numeral
+      // resolution is ICU/CLDR-version dependent — older engines resolve
+      // it to Arabic-Indic digits, reintroducing the mixed-numeral
+      // presentation L6-R4 eliminated while DamascusClock (ar-SY-u-nu-latn)
+      // and the trust-bar counters render Latin. Pinned to the Latin
+      // numbering system like its sister clocks.
+      const intl = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-u-nu-latn' : 'en-US', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: false,
@@ -43,10 +50,23 @@ export function LiveClock({ variant = 'on-dark' }: { variant?: 'on-dark' | 'on-l
     // intro-overlay.tsx). One intentional post-mount render; the SSR
     // placeholder ('--:--') is unchanged.
     const rafId = window.requestAnimationFrame(update)
-    const id = window.setInterval(update, 60 * 1000)
+    // AUDIT-A5 LOW (fix 4): align the cadence to the wall-clock minute
+    // boundary. A 60s interval anchored to mount time could leave the
+    // displayed minute up to 59s stale; now one boundary timeout fires
+    // the first aligned tick, then the 60s interval takes over. Both
+    // timers are cleaned on unmount (intervalId is assigned only after
+    // the boundary fires).
+    const now = new Date()
+    const toBoundary = 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds())
+    let intervalId = 0
+    const boundaryId = window.setTimeout(() => {
+      update()
+      intervalId = window.setInterval(update, 60 * 1000)
+    }, toBoundary)
     return () => {
       window.cancelAnimationFrame(rafId)
-      window.clearInterval(id)
+      window.clearTimeout(boundaryId)
+      if (intervalId) window.clearInterval(intervalId)
     }
   }, [locale])
 

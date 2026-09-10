@@ -15,6 +15,7 @@ import { Parallax } from '@/components/scroll/parallax'
 import { KineticHeading } from './kinetic-heading'
 import { DamascusClock } from '@/components/layout/damascus-clock'
 import { CursorRadar } from '@/components/sensory/cursor-radar'
+import { BRAND_COLORS } from '@/lib/brand-colors'
 
 const HeroCanvas = dynamic(
   () => import('./hero-canvas').then((m) => m.HeroCanvas),
@@ -156,6 +157,11 @@ function Spark({ className }: { className?: string }) {
  */
 export function Hero() {
   const t = useTranslations('hero')
+  // B4 fix 11: the orbit badge (icon-only seal → /work) gets nav.work as
+  // its accessible name so it no longer shares the IDENTICAL accessible
+  // name (hero.ctaSecondary) with the secondary CTA link beside it — SR
+  // users tabbing the CTA row now hear two distinct links.
+  const tNav = useTranslations('nav')
   const locale = useLocale()
   const reduced = usePrefersReducedMotion()
 
@@ -335,15 +341,22 @@ export function Hero() {
       <CursorRadar tone="dark" />
 
       {/* Background — data-bg-layer opts out of .elyra-spotlight's
-          content-lifting rule (see globals.css). */}
-      <div className="absolute inset-0" data-bg-layer="">
+          content-lifting rule (see globals.css).
+          AUDIT-C4 LOW (fix 3): aria-hidden on the WRAPPER — the CSS
+          fallback + vignette siblings already carried it, but the WebGL
+          Canvas subtree (and its no-WebGL DotGridField branch) did not;
+          same decorative-chrome contract as the rune layer's wrapper
+          (rune/edge-rune.tsx). */}
+      <div className="absolute inset-0" data-bg-layer="" aria-hidden="true">
         {show3D ? <HeroCanvas active={active} /> : null}
         <div className="hero-fallback absolute inset-0 -z-10" aria-hidden="true" />
         <div
           className="absolute inset-0"
           style={{
+            // B4 fix 3: the elyra-dark vignette re-sourced from the brand
+            // registry (darkRgb token) — byte-identical render.
             background:
-              'radial-gradient(60% 50% at 50% 30%, transparent, rgba(15,23,42,0.55) 80%)',
+              `radial-gradient(60% 50% at 50% 30%, transparent, rgba(${BRAND_COLORS.darkRgb},0.55) 80%)`,
           }}
           aria-hidden="true"
         />
@@ -404,15 +417,24 @@ export function Hero() {
       {/* Vertical scroll rail on the empty edge (desktop only).
           data-bg-layer: same spotlight content-lift exemption. R9: inline
           build-sequence delay (synced to the tightened scan line reaching
-          this edge). */}
+          this edge). B4 fix 10: end-7 (logical inset-inline-end) replaces
+          the ltr:right-7 rtl:left-7 physical pair — identical computed
+          inset in both directions. */}
       <div
-        className="hero-enter pointer-events-none absolute bottom-36 top-1/2 z-10 hidden -translate-y-1/2 flex-col items-center gap-4 ltr:right-7 rtl:left-7 lg:flex"
+        className="hero-enter pointer-events-none absolute bottom-36 top-1/2 z-10 hidden -translate-y-1/2 flex-col items-center gap-4 end-7 lg:flex"
         style={{ animationDelay: '1.45s' }}
         data-bg-layer=""
         aria-hidden="true"
       >
         {/* L6-R4 (fix 8b): white/50 (~5.2:1) replaces white/45 (4.47:1 —
             marginal under WCAG AA for the small rail text). */}
+        {/* B4 fix 10: ltr:tracking-[0.35em] deliberately stays an ltr:-only
+            variant — letter-spacing has no logical/direction-safe form,
+            and the universal :lang(ar) letter-spacing reset (Arabic script
+            never gets tracking — shaping/legibility canon) must keep
+            winning in RTL; a bare tracking utility would change the Arabic
+            render. Left as-is per the fix's only-if-trivially-identical
+            rule. */}
         <span className="hero-rail-text text-[11px] font-medium uppercase text-white/50 ltr:tracking-[0.35em]">
           {t('scroll')}
         </span>
@@ -508,7 +530,9 @@ export function Hero() {
             </Link>
           </div>
           <span className="mx-2 hidden h-10 w-px bg-white/10 sm:block" aria-hidden="true" />
-          <OrbitBadge label={t('ctaSecondary')} />
+          {/* B4 fix 11: nav.work (not ctaSecondary) — a distinct accessible
+              name for the icon-only seal vs the text CTA beside it. */}
+          <OrbitBadge label={tNav('work')} />
         </div>
       </div>
       </DepthExit>

@@ -21,8 +21,9 @@ import { playImpact, playSuccess } from '@/lib/sound'
 import { tiltFromName } from '@/lib/tilt'
 import { toast } from 'sonner'
 import { RingGauge } from './ring-gauge'
+import { BRAND_COLORS } from '@/lib/brand-colors'
 import {
-  computeEstimate, formatMoney,
+  computeEstimate, formatMoney, MAX_BUDGET, MAX_WEEKS,
   type CalculatorInput, type ServiceType, type IntegrationKey,
   type AutomationLevel, type LanguageOption, type ThreeDOption, type Locale,
 } from '@/lib/calculator'
@@ -56,6 +57,18 @@ const INITIAL_INPUT: CalculatorInput = {
   integrations: [],
   automationLevel: 'essential',
 }
+
+/* AUDIT-C4 LOW (fix 4): next-intl formats NUMBER t() params with the
+   message locale — bare 'ar' renders Latin digits on current engines
+   (Node 24 / ICU 78, Chromium) but is engine-dependent: Safari/JSC
+   could emit Arabic-Indic numerals and diverge from the site's pinned
+   Latin-numeral sites (formatMoney, live-clock, damascus-clock).
+   Pre-formatting to a STRING param (next-intl inserts string params
+   verbatim) with the same ar-u-nu-latn pin hardens the numeric call
+   sites below; rendering is byte-identical on current engines (small
+   integers, no grouping separators). */
+const formatTNumber = (value: number, locale: Locale): string =>
+  new Intl.NumberFormat(locale === 'ar' ? 'ar-u-nu-latn' : 'en-US').format(value)
 
 export function Calculator() {
   const t = useTranslations('calculator')
@@ -102,6 +115,17 @@ export function Calculator() {
     if (done) successHeadingRef.current?.focus()
   }, [done])
 
+  // AUDIT-C4 MEDIUM (fix 2a): the step 1→2 landing focus — the same
+  // contract as successHeadingRef above (tabIndex={-1} target,
+  // programmatic focus), but armed via a REF CALLBACK instead of an
+  // effect: AnimatePresence mode="wait" mounts the step-2 panel only
+  // AFTER step 1's 0.4s exit completes — long after an effect keyed on
+  // `step` would have fired (the ref would still be null there).
+  // goNext() arms the flag; the result card's budget heading focuses
+  // itself at mount and clears the flag (mirrors the success L3/R5 and
+  // simulator run→status choreography).
+  const focusResultHeading = useRef(false)
+
   // Breakdown line labels — resolved once for type-safety (guide §4.6).
   const breakdownLabels = {
     base: t('result.base'),
@@ -122,7 +146,15 @@ export function Calculator() {
   // so next = step + 1 ∈ {1, 2} exactly like the old Math.min form.
   const goNext = () => {
     const next = Math.min(2, step + 1) as Step
-    if (next === 2) playImpact(0.85)
+    if (next === 2) {
+      playImpact(0.85)
+      // AUDIT-C4 MEDIUM (fix 2a): the focused Calculate button unmounts
+      // with the `!done && step < 2` controls guard the instant step
+      // flips, dropping focus to <body> (WCAG 4.1.3) — arm the landing
+      // focus consumed by the heading's ref callback when the step-2
+      // panel mounts.
+      focusResultHeading.current = true
+    }
     setDir(1)
     setStep(next)
   }
@@ -139,6 +171,11 @@ export function Calculator() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    // B4 fix 5a: re-entrancy guard — the submit Button is disabled while
+    // `submitting`, but Enter-key submits bypass the disabled state (the
+    // form element itself stays focusable), which would double-fire the
+    // POST and toast twice.
+    if (submitting) return
     const parsed = leadSchema.safeParse(form)
     if (!parsed.success) {
       const fe: { name?: string; email?: string; whatsapp?: string } = {}
@@ -255,8 +292,12 @@ export function Calculator() {
 
         {/* Progress */}
         <div className="mt-10 flex items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
-            {t('step', { current: step + 1, total: 3 })}
+          {/* AUDIT-C4 MEDIUM (fix 2b): polite live region — the counter
+              sits OUTSIDE the AnimatePresence swap, so it updates (and
+              is announced) the instant a step button fires, covering the
+              transition while the panel swap itself stays silent. */}
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            {t('step', { current: formatTNumber(step + 1, locale), total: formatTNumber(3, locale) })}
           </p>
           <div className="flex flex-1 gap-2">
             {[0, 1, 2].map((s) => (
@@ -363,11 +404,33 @@ export function Calculator() {
                   <div>
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-semibold">{t('pages')}</h3>
+                      {/* AUDIT-C4 LOW (fix 4): intentionally left raw —
+                          pagesValue is an ICU plural whose `#` arms are
+                          formatted by next-intl with the message locale
+                          (plural matching needs the raw number). Values
+                          1–20 render Latin digits on current engines
+                          ('ar' → latn, ICU 78+); formally the # glyphs
+                          follow the message locale on other engines —
+                          documented limitation. */}
                       <span className="text-sm font-medium text-primary tabular-nums">
                         {t('pagesValue', { count: input.pages })}
                       </span>
                     </div>
                     <div className="mt-4 px-1">
+                      {/* AUDIT-C4 MEDIUM (fix 1): Radix resolves direction
+                          via useDirection (localDir || globalDir || 'ltr')
+                          and NO DirectionProvider exists app-wide, so the
+                          slider kept min at the PHYSICAL left inside the
+                          RTL page while the `flex justify-between` scale
+                          labels mirror with the RTL flow ("1" at
+                          inline-start = right) — the labels sat over the
+                          wrong ends. The Slider's local dir prop
+                          (SliderHorizontalProps, verified in
+                          @radix-ui/react-slider source) mirrors the
+                          slider itself: min at inline-start, max at
+                          inline-end — the labels row below now aligns
+                          automatically in both locales, and the arrow-key
+                          mapping flips with the visual direction. */}
                       <Slider
                         value={[input.pages]}
                         onValueChange={(v) => setInput((p) => ({ ...p, pages: v[0] ?? p.pages }))}
@@ -375,6 +438,7 @@ export function Calculator() {
                         max={20}
                         step={1}
                         aria-label={t('pages')}
+                        dir={locale === 'ar' ? 'rtl' : 'ltr'}
                       />
                       <div className="mt-2 flex justify-between text-xs text-muted-foreground">
                         <span>1</span><span>20</span>
@@ -561,7 +625,7 @@ export function Calculator() {
                       <button
                         type="button"
                         onClick={() => { setDone(false); setReference(null); setStep(0); setInput(INITIAL_INPUT); setForm({ name: '', email: '', whatsapp: '' }) }}
-                        className="mt-6 inline-flex h-11 items-center gap-2 rounded-full border border-border px-5 text-sm font-medium hover:bg-foreground/5"
+                        className="mt-6 inline-flex h-11 items-center gap-2 rounded-full border border-border px-5 text-sm font-medium hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                       >
                         <RotateCw className="size-4" aria-hidden="true" />
                         {t('form.successRestart')}
@@ -574,25 +638,44 @@ export function Calculator() {
                           {/* WS-4: animated SVG ring gauges */}
                           <div className="mb-6 flex items-center justify-center gap-12">
                             <RingGauge
-                              fraction={Math.min(1, result.max / 20000)}
+                              fraction={Math.min(1, result.max / MAX_BUDGET)}
                               value={result.max}
                               formatValue={(n) => formatMoney(Math.round(n), locale)}
                               label={t('result.budget')}
-                              color="#0071E3"
+                              color={BRAND_COLORS.primary}
                               isRtl={locale === 'ar'}
                             />
                             <RingGauge
-                              fraction={Math.min(1, result.weeksMax / 12)}
+                              fraction={Math.min(1, result.weeksMax / MAX_WEEKS)}
                               value={result.weeksMax}
                               formatValue={(n) => `${Math.round(n)}`}
                               label={t('result.duration')}
-                              color="#34A853"
+                              color={BRAND_COLORS.gGreen}
                               isRtl={locale === 'ar'}
                             />
                           </div>
-                          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                          {/* AUDIT-C4 MEDIUM (fix 2a): p→h3 — the result
+                              card had no heading of its own (steps 0/1
+                              each open with one), so the budget label
+                              becomes the result card's h3 AND the step-2
+                              focus landing (tabIndex={-1} + ref callback,
+                              mirroring the success heading above).
+                              Visual output is identical: Tailwind
+                              preflight un-styles headings, so every
+                              typographic property still comes from the
+                              classes below. */}
+                          <h3
+                            ref={(el) => {
+                              if (el && focusResultHeading.current) {
+                                focusResultHeading.current = false
+                                el.focus()
+                              }
+                            }}
+                            tabIndex={-1}
+                            className="text-xs font-medium uppercase tracking-wider text-muted-foreground"
+                          >
                             {t('result.budget')}
-                          </p>
+                          </h3>
                           {/* N2 (REF-3 T1) — squash & stretch landing
                               (Olssons §2.3), 380ms: this branch mounts via
                               AnimatePresence key={step}, so the reveal is a
@@ -626,7 +709,7 @@ export function Calculator() {
                             animate={reduced ? { opacity: 1 } : { opacity: 1, scaleY: [1.08, 0.96, 1], scaleX: [0.92, 1.03, 1] }}
                             transition={reduced ? { duration: 0 } : { duration: 0.38, ease: 'easeOut', opacity: { duration: 0.18 } }}
                           >
-                            {t('result.weeks', { min: result.weeksMin, max: result.weeksMax })}
+                            {t('result.weeks', { min: formatTNumber(result.weeksMin, locale), max: formatTNumber(result.weeksMax, locale) })}
                           </motion.p>
                         </div>
 
@@ -671,7 +754,14 @@ export function Calculator() {
                             <Input
                               id="calc-name"
                               value={form.name}
-                              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                              onChange={(e) => {
+                                setForm((f) => ({ ...f, name: e.target.value }))
+                                // B4 fix 5b: clear THIS field's rejection the
+                                // moment the user edits it — a stale error
+                                // (aria-invalid + role=alert) must not persist
+                                // while typing.
+                                if (errors.name) setErrors((er) => ({ ...er, name: undefined }))
+                              }}
                               autoComplete="name"
                               required
                               aria-required="true"
@@ -689,7 +779,10 @@ export function Calculator() {
                               id="calc-email"
                               type="email"
                               value={form.email}
-                              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                              onChange={(e) => {
+                                setForm((f) => ({ ...f, email: e.target.value }))
+                                if (errors.email) setErrors((er) => ({ ...er, email: undefined }))
+                              }}
                               autoComplete="email"
                               required
                               aria-required="true"
@@ -707,7 +800,10 @@ export function Calculator() {
                               id="calc-wa"
                               type="tel"
                               value={form.whatsapp ?? ''}
-                              onChange={(e) => setForm((f) => ({ ...f, whatsapp: e.target.value }))}
+                              onChange={(e) => {
+                                setForm((f) => ({ ...f, whatsapp: e.target.value }))
+                                if (errors.whatsapp) setErrors((er) => ({ ...er, whatsapp: undefined }))
+                              }}
                               autoComplete="tel"
                               aria-invalid={!!errors.whatsapp}
                               aria-describedby={errors.whatsapp ? 'calc-wa-err' : undefined}
@@ -752,7 +848,7 @@ export function Calculator() {
                 onClick={goBack}
                 disabled={step === 0}
                 className={cn(
-                  'inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors',
+                  'inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                   step === 0 ? 'cursor-not-allowed opacity-40' : 'hover:bg-foreground/5'
                 )}
               >
@@ -766,8 +862,9 @@ export function Calculator() {
                 onClick={goNext}
                 /* N2 (REF-3 T1) — press confirmation: active:scale-[0.97]
                    layered after hover:scale-105 — Tailwind orders active
-                   after hover, so the press wins while held. */
-                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform hover:scale-105 active:scale-[0.97]"
+                   after hover, so the press wins while held. B4 fix 6:
+                   focus-visible ring matches every sibling control. */
+                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-transform hover:scale-105 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 {step === 1 ? t('calculate') : t('next')}
                 {/* ArrowRight flips to point left ("forward") in RTL */}
@@ -780,7 +877,7 @@ export function Calculator() {
               <button
                 type="button"
                 onClick={goBack}
-                className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors hover:bg-foreground/5"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
                 {t('back')}

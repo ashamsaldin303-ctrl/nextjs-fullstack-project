@@ -59,8 +59,8 @@ export default async function WebsitesPage({
       {/* G2-3 P2-1 (fix 1): the hero CTA copy promises the calculator — the
           calculator now lives ON this page as its closing section, so the
           CTA is an in-page anchor (next-intl Link keeps the hash through
-          locale prefixing; the wrapper carries the stable id=calculator
-          + scroll-mt-20). SO-1: blueprint signature motif. */}
+          locale prefixing; the wrapper carries the stable id=calculator).
+          SO-1: blueprint signature motif. */}
       <PageHero
         namespace="pages.websites.hero"
         ctaHref="/services/websites#calculator"

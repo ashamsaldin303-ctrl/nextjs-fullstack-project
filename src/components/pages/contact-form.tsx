@@ -283,8 +283,18 @@ export function ContactForm({
 
   const field = (key: keyof FormValues) => ({
     value: values[key],
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setValues((v) => ({ ...v, [key]: e.target.value })),
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setValues((v) => ({ ...v, [key]: e.target.value }))
+      // AUDIT-A5 LOW (fix 6): editing a field clears THAT field's error
+      // (the calculator's discipline, added in parallel) — the red ring +
+      // message no longer persist until the next submit attempt.
+      setErrors((prev) => {
+        if (!prev[key]) return prev
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+    },
     'aria-invalid': !!errors[key],
     'aria-describedby': errors[key] ? `cf-${key}-err` : undefined,
   })

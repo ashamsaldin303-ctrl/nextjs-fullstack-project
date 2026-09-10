@@ -15,6 +15,7 @@ import { useRouter } from '@/i18n/navigation'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { playSuccess } from '@/lib/sound'
 import { lenisScrollTo } from '@/lib/lenis-holder'
+import { BRAND_COLORS } from '@/lib/brand-colors'
 
 type StepId =
   | 'receive' | 'validate' | 'crm' | 'email' | 'telegram'
@@ -86,6 +87,17 @@ interface LogLine {
 const NODE_Y = 140 // svg viewBox y center for nodes
 const VIEW_W = 1000
 const VIEW_H = 280
+
+/* AUDIT-C4 LOW (fix 4 sibling — B9's calculator pattern): next-intl
+   formats NUMBER t() params with the message locale — bare 'ar' renders
+   Latin digits on current engines but is engine-dependent (Safari/JSC
+   CLDR could emit Arabic-Indic numerals, diverging from the site's
+   pinned Latin-numeral sites). Pre-formatting to a STRING param (next-
+   intl inserts string params verbatim) with the ar-u-nu-latn pin hardens
+   the stepOf call site; byte-identical rendering on current engines
+   (small integers, no grouping separators). */
+const formatTNumber = (value: number, isRtl: boolean): string =>
+  new Intl.NumberFormat(isRtl ? 'ar-u-nu-latn' : 'en-US').format(value)
 
 interface SimulatorProps {
   scenario?: ScenarioId
@@ -196,9 +208,31 @@ export function AutomationSimulator({
   // one guarded helper now owns the expression (Number() coercion, so a
   // drifted catalog yields NaN which the sibling Number.isFinite guards
   // below neutralize, never a crash).
+  // B4 fix 8 (audit A4 L): t()/t.raw() also THROW on a missing templated
+  // key — every dynamic read below is now t.has()-guarded with a neutral
+  // degrade (catalog-guards discipline): titles fall back to the node's
+  // literal tech badge (NODE_TYPE — the chrome already visible on the
+  // stage), descs render nothing, ms reads as 0 (already neutralized by
+  // the Number.isFinite guards downstream).
   const stepMs = useCallback(
-    (id: StepId): number => Number(t.raw(`scenarios.${scenario}.steps.${id}.ms`)),
+    (id: StepId): number => {
+      const key = `scenarios.${scenario}.steps.${id}.ms`
+      return t.has(key) ? Number(t.raw(key)) : 0
+    },
     [scenario, t]
+  )
+  /** Drift-safe templated step field — null when the catalog key is absent. */
+  const stepText = useCallback(
+    (id: StepId, field: 'title' | 'desc'): string | null => {
+      const key = `scenarios.${scenario}.steps.${id}.${field}`
+      return t.has(key) ? t(key) : null
+    },
+    [scenario, t]
+  )
+  /** Drift-safe step title — falls back to the node's literal tech badge. */
+  const stepTitle = useCallback(
+    (id: StepId): string => stepText(id, 'title') ?? NODE_TYPE[id],
+    [stepText]
   )
 
   const totalMs = useMemo(() => {
@@ -280,7 +314,7 @@ export function AutomationSimulator({
           id: logSeq.current,
           time: logTimestamp(new Date()),
           kind: 'step',
-          text: t(`scenarios.${scenario}.steps.${step.id}.title`),
+          text: stepTitle(step.id),
           ms: Number.isFinite(ms) ? ms : 0,
         }])
       }, startAt + STEP_DISPLAY)
@@ -301,14 +335,14 @@ export function AutomationSimulator({
         ms: totalMs,
       }])
     }, steps.length * (STEP_DISPLAY + TRANSITION))
-  }, [clearAll, reduced, steps, scenario, t, schedule, totalMs, stepMs])
+  }, [clearAll, reduced, steps, scenario, t, schedule, totalMs, stepMs, stepTitle])
 
   const secondsLabel = (totalMs / 1000).toFixed(2)
 
   // current step def
   const activeStep = currentStep >= 0 ? steps[currentStep] : null
-  const activeStepTitle = activeStep ? t(`scenarios.${scenario}.steps.${activeStep.id}.title`) : null
-  const activeStepDesc = activeStep ? t(`scenarios.${scenario}.steps.${activeStep.id}.desc`) : null
+  const activeStepTitle = activeStep ? stepTitle(activeStep.id) : null
+  const activeStepDesc = activeStep ? stepText(activeStep.id, 'desc') : null
   const activeStepMs = activeStep ? stepMs(activeStep.id) : 0
 
   // UI-3: stats chip values — live elapsed while running (finished steps +
@@ -410,6 +444,17 @@ export function AutomationSimulator({
           tabIndex={0}
           role="region"
           aria-label={t('scrollHint')}
+          // B4 fix 7 (audit A3 M2): data-lenis-prevent-horizontal — Lenis
+          // preventDefaults any wheel with deltaY≠0, so a trackpad
+          // horizontal swipe carrying vertical noise over this rail was
+          // eaten (only pure deltaY===0 events passed natively). With this
+          // attribute Lenis skips rail-hovered events whose |deltaX| ≥
+          // |deltaY| and lets the browser route them into the horizontal
+          // overflow; mostly-vertical intents (|deltaY| > |deltaX|) keep
+          // scrolling the page. NOT plain data-lenis-prevent — that would
+          // kill vertical page scroll over the rail (the log terminal
+          // below uses the full prevent deliberately).
+          data-lenis-prevent-horizontal=""
         >
           <div
             className="elyra-dotgrid relative min-w-[680px]"
@@ -424,9 +469,10 @@ export function AutomationSimulator({
             >
               <defs>
                 <linearGradient id="elyra-edge" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#4285F4" stopOpacity="0.2" />
-                  <stop offset="50%" stopColor="#4285F4" stopOpacity="1" />
-                  <stop offset="100%" stopColor="#34A853" stopOpacity="0.2" />
+                  {/* B4 fix 3: stops re-sourced from the registry (byte-identical). */}
+                  <stop offset="0%" stopColor={BRAND_COLORS.gBlue} stopOpacity="0.2" />
+                  <stop offset="50%" stopColor={BRAND_COLORS.gBlue} stopOpacity="1" />
+                  <stop offset="100%" stopColor={BRAND_COLORS.gGreen} stopOpacity="0.2" />
                 </linearGradient>
               </defs>
               {steps.slice(0, -1).map((_, i) => {
@@ -541,7 +587,7 @@ export function AutomationSimulator({
                     'mt-2 max-w-[110px] text-center text-xs leading-tight',
                     isActive ? 'text-white' : 'text-white/55'
                   )}>
-                    {t(`scenarios.${scenario}.steps.${step.id}.title`)}
+                    {stepTitle(step.id)}
                   </p>
                 </div>
               )
@@ -604,7 +650,10 @@ export function AutomationSimulator({
               </p>
               <p className="text-xs text-white/60">
                 {status === 'running' && activeStep
-                  ? t('stepOf', { current: currentStep + 1, total: stepCount })
+                  ? t('stepOf', {
+                      current: formatTNumber(currentStep + 1, isRtl),
+                      total: formatTNumber(stepCount, isRtl),
+                    })
                   : null}
               </p>
             </div>
@@ -640,7 +689,7 @@ export function AutomationSimulator({
                     <li key={step.id} className="flex items-center justify-between gap-2 text-xs">
                       <span className="flex items-center gap-2 text-white/70">
                         <Check className="size-3 text-g-green" aria-hidden="true" />
-                        {t(`scenarios.${scenario}.steps.${step.id}.title`)}
+                        {stepTitle(step.id)}
                       </span>
                       <span className="tabular-nums text-white/60">{ms}ms</span>
                     </li>

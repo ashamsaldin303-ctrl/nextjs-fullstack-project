@@ -72,7 +72,6 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: [
     '*.space-z.ai',
     '*.chatglm.cn',
-    'preview-*.space-z.ai',
   ],
   async headers() {
     return [

@@ -22,6 +22,13 @@ import { cn } from '@/lib/utils'
  * tap would pin a misleading glow spot. Reduced-motion: positional
  * pointer-follow, not an animation — safe to keep (same class as the
  * magnet hooks); the CSS kill-switch collapses the opacity transition.
+ *
+ * AUDIT-A5 NIT (fix 10, MODEL-5 discipline): the pointer→% math reads
+ * layout, so the card rect is CACHED — captured on arm and refreshed
+ * on pointerenter / window resize — instead of re-reading
+ * getBoundingClientRect on every pointermove (a forced layout per
+ * move; previously only the style WRITE was rAF-coalesced). The move
+ * handler now derives live values purely from the cached box.
  */
 export function FresnelEdge({
   children,
@@ -41,6 +48,8 @@ export function FresnelEdge({
     let raf = 0
     let px = 0
     let py = 0
+    // The cached card box (fix 10 — see header note).
+    let rect = el.getBoundingClientRect()
 
     const apply = () => {
       raf = 0
@@ -49,26 +58,33 @@ export function FresnelEdge({
     }
 
     const onMove = (e: PointerEvent) => {
-      const rect = el.getBoundingClientRect()
       px = ((e.clientX - rect.left) / rect.width) * 100
       py = ((e.clientY - rect.top) / rect.height) * 100
       if (raf) return
       raf = requestAnimationFrame(apply)
     }
     const onEnter = () => {
+      // Refresh the cache as the pointer arrives — the exact sync point
+      // (scroll/resize may have moved the card since the last capture).
+      rect = el.getBoundingClientRect()
       el.style.setProperty('--fi', '1')
     }
     const onLeave = () => {
       el.style.setProperty('--fi', '0')
     }
+    const onResize = () => {
+      rect = el.getBoundingClientRect()
+    }
 
     el.addEventListener('pointermove', onMove, { passive: true })
     el.addEventListener('pointerenter', onEnter, { passive: true })
     el.addEventListener('pointerleave', onLeave, { passive: true })
+    window.addEventListener('resize', onResize)
     return () => {
       el.removeEventListener('pointermove', onMove)
       el.removeEventListener('pointerenter', onEnter)
       el.removeEventListener('pointerleave', onLeave)
+      window.removeEventListener('resize', onResize)
       if (raf) cancelAnimationFrame(raf)
     }
   }, [])

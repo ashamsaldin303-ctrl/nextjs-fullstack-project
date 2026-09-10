@@ -127,7 +127,7 @@ export function Manifesto() {
       aria-labelledby="manifesto-title"
     >
       <div className="elyra-container max-w-container">
-        <RevealKicker>{t('kicker')}</RevealKicker>
+        <Kicker>{t('kicker')}</Kicker>
 
         <VelocitySkew max={2.2}>
         <h2
@@ -172,8 +172,10 @@ export function Manifesto() {
   )
 }
 
-/** Kicker with a gentle one-shot entrance — reuses the global .kicker
- *  style (small tracked label with the leading rule). */
-function RevealKicker({ children }: { children: React.ReactNode }) {
+/** Kicker label — reuses the global .kicker style (small tracked label
+ *  with the leading rule). B4 fix 12 (audit NIT): renamed from the stale
+ *  `RevealKicker` — the span never carried a reveal animation; it renders
+ *  the label statically, and the old name promised motion it never had. */
+function Kicker({ children }: { children: React.ReactNode }) {
   return <span className="kicker">{children}</span>
 }

@@ -37,13 +37,15 @@ function useLocaleSwitch() {
     } catch {
       /* private mode / storage disabled — restore is best-effort */
     }
-    // Preserve the active query string (e.g. calculator presets)
-    // WITHOUT useSearchParams — that hook forces client-render
-    // bailouts on otherwise-static pages. Reading
-    // window.location.search at click time is bailout-free and
-    // always current (audit P2).
+    // Preserve the active query string (e.g. calculator presets) AND the
+    // URL hash (deep-link position, e.g. #calculator) WITHOUT
+    // useSearchParams — that hook forces client-render bailouts on
+    // otherwise-static pages. Reading window.location.search/hash at
+    // click time is bailout-free and always current (audit P2; AUDIT-C3
+    // NIT: the hash used to be dropped on locale switches).
     const search = window.location.search
-    router.replace(search ? `${pathname}${search}` : pathname, {
+    const hash = window.location.hash
+    router.replace(search || hash ? `${pathname}${search}${hash}` : pathname, {
       locale: target,
     })
   }

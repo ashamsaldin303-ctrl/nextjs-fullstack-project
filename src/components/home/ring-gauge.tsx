@@ -83,7 +83,12 @@ export function RingGauge({ fraction, value, formatValue, label, color, isRtl }:
   }, [value, reduced])
 
   // Ring fill — pure CSS transition on stroke-dashoffset (no rAF).
-  const dashOffset = CIRCUMFERENCE * (1 - Math.max(0, Math.min(1, fraction)))
+  // AUDIT-C2R (LOW): a clamp alone can't sanitize NaN (NaN comparisons
+  // are false, so NaN passes straight through) — a degenerate frame
+  // would paint a NaN dashOffset. Number.isFinite first (the same trap
+  // custom-cursor documents explicitly).
+  const safeFraction = Number.isFinite(fraction) ? fraction : 0
+  const dashOffset = CIRCUMFERENCE * (1 - Math.max(0, Math.min(1, safeFraction)))
   const rotation = isRtl ? -90 : 90
 
   return (

@@ -931,7 +931,7 @@
       }
     },
     "pages": "عدد الصفحات",
-    "pagesValue": "{count, plural, zero {لا صفحات} one {صفحة واحدة} two {صفحتان} few {# صفحات} many {# صفحة} other {# صفحات}}",
+    "pagesValue": "{count, plural, zero {لا صفحات} one {صفحة واحدة} two {صفحتان} few {# صفحات} many {# صفحة} other {# صفحة}}",
     "languages": "اللغات",
     "languagesOptions": {
       "single": "عربية فقط",
@@ -1203,6 +1203,7 @@
         "websites": "مواقع",
         "automation": "أتمتة"
       },
+      "resultsCount": "{count, plural, zero {لا نتائج} one {نتيجة واحدة} two {نتيجتان} few {# نتائج} many {# نتيجة} other {# نتيجة}}",
       "projects": {
         "p1": {
           "title": "متجر «لمسة» للأزياء",

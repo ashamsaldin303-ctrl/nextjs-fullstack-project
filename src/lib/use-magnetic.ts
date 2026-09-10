@@ -13,10 +13,17 @@ import { usePrefersReducedMotion } from './use-reduced-motion'
  *
  * Follows the codebase's rAF-coalesced pattern (see use-cursor-velocity):
  * a window pointermove listener only stores the latest position; a single
- * rAF loop — scheduled on demand, never free-running — reads
- * getBoundingClientRect at most once per frame and writes
+ * rAF loop — scheduled on demand, never free-running — writes
  * `el.style.transform = translate3d(…)` directly. No React state, no
- * re-renders, no layout reads outside the frame callback.
+ * re-renders. Layout reads follow the rune-scene rect-cache contract
+ * (AUDIT-A3 FIX 7): the DOM rect is read ONCE per arm (mount / resize /
+ * pointer-proximate scroll event — all BEFORE Lenis's same-frame
+ * scrollTop write; the scroll arm is proximity-gated, see
+ * PROXIMITY_MARGIN below), and the tick derives the live box
+ * arithmetically from the scroll delta — a gBCR inside a rAF tick runs
+ * AFTER Lenis's write (its loop registers first) and forces a
+ * synchronous layout (3 hero magnets ⇒ 1 forced layout/frame while
+ * scrolling — the exact class MODEL-5 eliminated).
  *
  * Transform ownership (the standard approach for composability):
  *   · While magnetized (or easing back), the hook OWNS el.style.transform
@@ -51,6 +58,13 @@ const MAX_OFFSET = 14
 const SETTLE_EPSILON = 0.2
 /** Per-frame easing factor toward the target offset. */
 const LERP = 0.18
+/** Proximity margin for the scroll-arm refresh guard (AUDIT-C5) — slack
+ * added to `radius` when deciding, from the CACHED box alone, whether a
+ * scroll event could possibly put the pointer in play for this magnet.
+ * Covers the documented stale-box drift between refreshes (reflow
+ * travel above the element, ≤ ~24px per the rect-cache note above) plus
+ * this magnet's own ±MAX_OFFSET translate. */
+const PROXIMITY_MARGIN = 64
 
 export interface MagneticOptions {
   /** Pull factor toward the pointer (default 0.3). */
@@ -82,6 +96,52 @@ export function useMagnetic<T extends HTMLElement>(
     const pointer = { x: 0, y: 0 }
     const current = { x: 0, y: 0 }
 
+    // --- rect cache (rune-scene / MODEL-5 pattern) ---------------------
+    // Read once per ARM (mount / resize / proximity-gated scroll event,
+    // see pointerNearCachedBox below); the tick derives the live
+    // viewport box from the scroll delta instead of re-reading gBCR. The
+    // capture includes any magnetic translate present at arm time,
+    // exactly like a live read would.
+    let rectTop = 0
+    let rectLeft = 0
+    let rectW = 0
+    let rectH = 0
+    let rectAtY = 0
+    let rectAtX = 0
+    const refreshRect = () => {
+      const r = el.getBoundingClientRect()
+      rectTop = r.top
+      rectLeft = r.left
+      rectW = r.width
+      rectH = r.height
+      rectAtY = window.scrollY
+      rectAtX = window.scrollX
+    }
+    refreshRect()
+
+    /** Scroll-arm refresh guard (AUDIT-C5 LOW): is the last-known pointer
+     * plausibly in this magnet's play zone, judging ONLY from the cached
+     * box + the arithmetic live derivation (zero layout reads — the
+     * scroll listener must not re-create the 3-gBCR-per-scroll-event
+     * always-on cost the rect cache exists to eliminate)? `armed` gates
+     * the {0,0} default pointer; offscreen magnets fail naturally
+     * because the pointer is viewport-fixed while the derived box
+     * scrolls away. Stale-box tolerance: pure scrolling is compensated
+     * EXACTLY by the arithmetic below, so the cache only drifts on
+     * reflow — bounded, absorbed by PROXIMITY_MARGIN, and self-healing
+     * (the cache refreshes on the first proximate scroll / resize /
+     * actual magnetization). */
+    const pointerNearCachedBox = () => {
+      if (!armed) return false
+      const left = rectLeft - (window.scrollX - rectAtX)
+      const top = rectTop - (window.scrollY - rectAtY)
+      const dx = pointer.x - (left + rectW / 2)
+      const dy = pointer.y - (top + rectH / 2)
+      const gapX = Math.max(0, Math.abs(dx) - rectW / 2)
+      const gapY = Math.max(0, Math.abs(dy) - rectH / 2)
+      return Math.hypot(gapX, gapY) <= radius + PROXIMITY_MARGIN
+    }
+
     // --- transform ownership bookkeeping --------------------------------
     const inlineTransition = el.style.transition
     let transitionSuppressed = false
@@ -108,14 +168,17 @@ export function useMagnetic<T extends HTMLElement>(
     const tick = () => {
       raf = 0
       if (disposed || !armed) return
-      const rect = el.getBoundingClientRect()
-      const dx = pointer.x - (rect.left + rect.width / 2)
-      const dy = pointer.y - (rect.top + rect.height / 2)
+      // Live box derived from the cache — never a gBCR in here (Lenis
+      // writes scrollTop in its own rAF earlier in this same frame).
+      const left = rectLeft - (window.scrollX - rectAtX)
+      const top = rectTop - (window.scrollY - rectAtY)
+      const dx = pointer.x - (left + rectW / 2)
+      const dy = pointer.y - (top + rectH / 2)
       // Distance from the pointer to the element's bounds — 0 while
       // inside, growing as it moves beyond the box (direction-agnostic,
       // so RTL/LTR is irrelevant here).
-      const gapX = Math.max(0, Math.abs(dx) - rect.width / 2)
-      const gapY = Math.max(0, Math.abs(dy) - rect.height / 2)
+      const gapX = Math.max(0, Math.abs(dx) - rectW / 2)
+      const gapY = Math.max(0, Math.abs(dy) - rectH / 2)
       const dist = Math.hypot(gapX, gapY)
 
       let targetX = 0
@@ -166,17 +229,36 @@ export function useMagnetic<T extends HTMLElement>(
     }
 
     // Keep the offset honest when the page shifts under a resting pointer
-    // (scrolling can slide the element away from / under the cursor).
+    // (scrolling can slide the element away from / under the cursor). The
+    // scroll arm ALSO refreshes the rect cache — but only when the
+    // proximity guard above passes (AUDIT-C5 LOW: a scroll with the
+    // pointer far from every magnet costs ZERO layout reads, restoring
+    // the pre-rect-cache cost floor while the cache stays exact whenever
+    // a magnet is actually in play). Reading in the event phase, before
+    // this frame's Lenis write, keeps the tick layout-free. schedule()
+    // stays unconditional: the tick itself is layout-free and settles
+    // immediately when far — it is what notices an element sliding under
+    // a resting pointer.
+    const onScrollArm = () => {
+      if (pointerNearCachedBox()) refreshRect()
+      schedule()
+    }
+    // Reflow invalidates the rect cache — re-read, then re-check whether
+    // the resting pointer now magnetizes.
+    const onResize = () => {
+      refreshRect()
+      schedule()
+    }
     window.addEventListener('pointermove', onPointerMove, { passive: true })
-    window.addEventListener('scroll', schedule, { passive: true, capture: true })
-    window.addEventListener('resize', schedule, { passive: true })
+    window.addEventListener('scroll', onScrollArm, { passive: true, capture: true })
+    window.addEventListener('resize', onResize, { passive: true })
 
     return () => {
       disposed = true
       if (raf) cancelAnimationFrame(raf)
       window.removeEventListener('pointermove', onPointerMove)
-      window.removeEventListener('scroll', schedule, { capture: true })
-      window.removeEventListener('resize', schedule)
+      window.removeEventListener('scroll', onScrollArm, { capture: true })
+      window.removeEventListener('resize', onResize)
       // Never leave a stale inline transform/transition behind.
       el.style.transform = ''
       restoreTransition()

@@ -8,7 +8,7 @@
 - Next.js 16 App Router: **كل** الصفحات والتخطيط الجذري تحت `src/app/[locale]/layout.tsx` — لا يوجد `src/app/layout.tsx` غير مترجم؛ و`global-error.tsx` في جذر `src/app/`.
 - الوسيط هو `src/proxy.ts` (ملف next-intl في Next.js 16) — **ليس `middleware.ts`**؛ لا تنشئ واحداً.
 - نقطة الكتابة الوحيدة في الموقع: `POST /api/leads` (`src/app/api/leads/route.ts`) — Zod + إعادة الحساب الخادمية + Prisma + rate-limit ثنائي الطبقة. لا مسار كتابة آخر إطلاقاً.
-- الحركة: **framer-motion** (+`MotionConfig reducedMotion="user"` في `src/components/layout/motion-config.tsx`) و**three/R3F** بتحميل مؤجل (idle/near-viewport). **لا GSAP ولا Lenis** (D1): `scroll-behavior: smooth` موجود، والتنعيم عبر `useSpring`/lerp.
+- الحركة: **framer-motion** (+`MotionConfig reducedMotion="user"` في `src/components/layout/motion-config.tsx`) و**three/R3F** بتحميل مؤجل (idle/near-viewport). **لا GSAP** (D1)؛ **Lenis هو المُنعِّم العام الوحيد** (`<SmoothScroll/>` يُركَّب في `src/app/[locale]/layout.tsx` — مقفول منذ REF-2 Phase A، ووضع duration-mode ‏0.8s cubic-out منذ MODEL-5). `scroll-behavior: smooth` **ممنوع** — `globals.css` يثبّت `auto` صراحةً كي يبقى التنعيم بيد Lenis وحده (double-easing صنف الخطأ الممنوع)؛ التنعيم ليس عبر `useSpring`/lerp، والتمرير البرمجي عبر `lenisScrollTo` فقط (نظام الكاتب الواحد).
 - i18n: next-intl — العربية RTL افتراضية بلا بادئة، الإنجليزية `/en`؛ الكتالوجان `messages/{ar,en}.json` بتكافؤ مفاتيح كامل.
 - الخطوط **Inter** (لاتيني) + **Cairo** (عربي) + **JetBrains Mono** — واللواء الأزرق `#0071E3` وعائلته (`src/lib/brand-colors.ts`) — قرارات مالك ملزمة **لا تُبدَّل ولا تُمس**.
 - المصدر الوحيد لبيانات التواصل: `src/lib/site-config.ts` (لا تزال placeholders — انظر §6).
@@ -18,13 +18,13 @@
 ```bash
 bunx tsc --noEmit                      # 0 أخطاء (يكافئ bun run typecheck)
 bun run lint                           # 0 أخطاء / 0 تحذيرات (قواعد React 19 الصارمة)
-node scripts/check-i18n-parity.js      # GREEN — 736/736 مفتاحاً (لا مفاتيح جديدة بلا موافقة)
+node scripts/check-i18n-parity.js      # GREEN — تكافؤ كامل، العدد كما يطبعه السكربت (لا مفاتيح جديدة بلا موافقة)
 node scripts/check-slop.mjs            # exit 0 — بوابة Anti-Slop المؤتمتة (D12)
 node scripts/check-secrets.mjs         # exit 0 — **قبل أي push** حصراً (D11)
 curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/   # 200 (خادم dev — لا تقتله أبداً)
 ```
 
-- الحدود: **0 / 0 / 736** (tsc / lint / parity). أي انحراف = التسليم غير منجز.
+- الحدود: **0 / 0 / GREEN** (tsc / lint / parity) — عدد مفاتيح parity كما يطبعه السكربت (حالياً 739/739). أي انحراف = التسليم غير منجز.
 - فحوص إضافية عند مساس الحركة/الأداء/الإحساس: `node scripts/verify-performance.mjs` (يشمل الآن baseline FPS تحت 4x CPU throttle — D13) و`node scripts/verify-sensory.mjs` و`bun scripts/verify-api.mjs`.
 - **لا `bun run build` في هذه البيئة أبداً** (سياسة الصندوق الرمل) — القياس الإنتاجي مُغلَّف في `scripts/lighthouse-prod.sh` لبيئة تسمح بالبناء.
 
@@ -36,25 +36,27 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/   # 200 (خادم 
 - **تقسيم النص العربي بالكلمات أو الأسطر فقط** — تقسيم الحروف ممنوع منعاً باتاً (يكسر اتصال الحروف).
 - **الحركة compositor-only**: `transform`/`opacity` (و`clip-path` عند الحاجة). الاستثناءات الموثقة **المغلقة** (D23): محور `wght`، ظل `card-hover-lift`/box-shadow المعلنة، ونبضة `:focus-visible` (W1-06). لا يُفتح استثناء جديد إلا بقرار موثق.
 - **لا أسرار في argv أو echo** — لا توكن ولا مفاتيح في أوامر shell أو مخرجاتها؛ المسح الإجباري قبل أي push: `node scripts/check-secrets.mjs`.
-- **لا تعديل أرقام الحاسبة أو أرقام KPI** بصياغة تسويقية جديدة (المحتوى التجاري قرار مالك عبر i18n values فقط — parity يبقى 736).
+- **لا تعديل أرقام الحاسبة أو أرقام KPI** بصياغة تسويقية جديدة (المحتوى التجاري قرار مالك عبر i18n values فقط — parity يبقى GREEN بلا صافي مفاتيح جديد).
 - ملف `src/app/globals.css` مالك-واحد: داخل الموجلة الواحدة يعدّله وكيل واحد تسلسلياً.
 
 ## 4) بروتوكول worklog (مضغوط)
 
 - `worklog.md` سرد append-only لكل وكيل: قسم `Task ID / Agent / Work Log / Stage Summary` — **أعد قراءة tail قبل الإدراج** (وحدة كتابة واحدة؛ عند سباق أعد المحاولة مرة).
 - البوابات تُلصق حرفياً في Stage Summary (النص الخام للمخرجات، لا «نجح»).
-- الحدود 0/0/736 ثابتة؛ أي مفتاح i18n جديد يطلب موافقة منسّق وتحديث الرقم هنا وفي الخطة.
+- الحدود 0/0/GREEN ثابتة (عدد parity كما يطبعه السكربت — حالياً 739/739)؛ أي مفتاح i18n جديد يطلب موافقة منسّق وتحديث العدد هنا وفي الخطة.
 - المستودع عام — لا تُدرج في worklog قيماً سرية ولا توكنات تجريبية حقيقية (صِفها بالشكل لا بالمحتوى).
 
-## 5) اصطلاح PRD للمهام M/L
+## 5) اصطلاح PRD (توصية للمهام الوظيفية الجديدة)
 
-كل مهمة حجم M أو L تبدأ بثلاثة أسطر قبل Work Log:
+ثلاثة أسطر قبل Work Log للمهام الوظيفية الجديدة (موجة/فيشة كاملة) — **توصية**، لا شرط تسليم:
 
 ```
 Problem: <الجملة الواحدة>
 Success Metrics: <قياس قابل للتحقق>
 Acceptance: <معيار القبول الحاسم>
 ```
+
+(تعديل truth-sync — AUDIT-B10: كانت الصياغة «كل مهمة M/L» قاعدةً إلزامية بلا أي التزام فعلي في السجل (0/179 مدخل)، فأُعيد ضبطها توصيةً موجّهة إلى حيث تفيد: المهام الوظيفية الجديدة. القصد — تفكيك المشكلة قبل التنفيذ — باقٍ كما هو.)
 
 ## 6) القرارات المستقرة — لا تُعاد مناقشتها (التفصيل في pack-plan.md)
 
@@ -69,7 +71,7 @@ Acceptance: <معيار القبول الحاسم>
 
 - **الحركة:** منحنى واحد `cubic-bezier(0.16,1,0.3,1)` + `--dur-fast/base/slow` ‏180/280/480ms لطبقة UI؛ السلم السينمائي 500–900ms مقصود (نظام الطبقتين — D22).
 - **radius:** pill=9999 · md=12 · lg=14 (الافتراضي) · xl=18 · 2xl=24 — لا `rounded-3xl` (≡ 2xl حرفياً بالـ calc).
-- **grain:** بلاطة 240px · opacity ‏4.5% · numOctaves 3 · flicker 8 خطوات — لا يرتفع فوق 8% على الفاتح أبداً.
+- **grain:** بلاطة 240px · opacity ‏3% · numOctaves 2 · flicker 8 خطوات (قيم REF-2 Phase D المُعاد ضبطها) — لا يرتفع فوق 8% على الفاتح أبداً.
 - **تايبوغرافي عربي:** جسم 17px عبر `html:lang(ar) { font-size: 106.25% }` · kicker عربي `word-spacing: 0.3em` + وزن 600 · ثلاث قيم line-height فقط (1.3 / 1.8 / 2.05) · `text-pretty` للفقرات الطويلة.
 - **الظلال:** ~90% بلا ظل · بطاقات العمل بظلين طبقيين خفيفين (`card-lift-hover`) · لا `shadow-xl` جماعية على البطاقات.
 - **الـ hero:** المحتوى فوق الطية يُرسم من الخادم (keyframes CSS بلا انتظار hydration)؛ Three.js لا يُحمّل إلا بعد idle/اقتراب من الشاشة.

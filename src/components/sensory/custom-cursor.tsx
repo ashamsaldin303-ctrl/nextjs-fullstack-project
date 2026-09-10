@@ -10,12 +10,20 @@ import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
  * so they invert over any background (dark hero AND light sections).
  *
  * Architecture (codebase rAF conventions — see use-cursor-velocity.ts):
- *   · ONE permanent rAF loop lerps both layers. Transforms are written
- *     straight to the DOM via refs — never through React state, never a
- *     re-render per frame — and only when a value moved >0.01px, so an
- *     idle pointer costs a few arithmetic ops per frame. (Chosen over
- *     cancel/reschedule: one self-sustaining loop is simpler and cannot
- *     deschedule itself into a frozen cursor.)
+ *   · ONE rAF loop lerps both layers, parked/woken on demand (the
+ *     dot-grid idiom — AUDIT-C5 NIT): the loop exists ONLY while the
+ *     layers are chasing the pointer and parks itself (raf=0) the
+ *     frame every layer is within MOVE_EPSILON of it, so an idle
+ *     pointer costs ZERO rAF wakes. Transforms are written straight to
+ *     the DOM via refs — never through React state, never a re-render
+ *     per frame — and only when a value moved >0.01px. The wake
+ *     sources are every pointer handler below that can change what the
+ *     layers should paint (move / over / out / down / up / leave /
+ *     enter — see wake()); a parked loop therefore still wakes for
+ *     hover-state changes and pointer moves. (A permanently
+ *     free-running loop was the previous design — simpler, but it
+ *     never reaches the zero-wake state dot-grid/use-magnetic
+ *     achieve.)
  *   · Each layer is a POSITIONER (per-frame translate3d + difference
  *     blend) wrapping a visual CORE (CSS-transitioned ~220ms scale) plus,
  *     for the ring, a LABEL span. Splitting position from scale is what
@@ -212,6 +220,8 @@ export function CustomCursor() {
       if (!hit || hit === currentHit) return
       currentHit = hit
       applyHit(hit)
+      // Hover state changed — keep the loop honest (see wake()).
+      wake()
     }
 
     const onPointerOut = (e: PointerEvent) => {
@@ -222,6 +232,8 @@ export function CustomCursor() {
       if (hitFrom(e.relatedTarget) === currentHit) return
       currentHit = null
       applyHit(null)
+      // Hover state changed — keep the loop honest (see wake()).
+      wake()
     }
 
     const onPointerMove = (e: PointerEvent) => {
@@ -241,6 +253,8 @@ export function CustomCursor() {
         // finally safe to hide the native cursor.
         root.classList.add('elyra-cursor-active')
       }
+      // The lerp target moved — wake the (possibly parked) loop.
+      wake()
     }
 
     const onPointerDown = (e: PointerEvent) => {
@@ -250,25 +264,39 @@ export function CustomCursor() {
         return
       }
       ring.classList.add('is-press')
+      wake()
     }
 
     const onPointerUp = () => {
       ring.classList.remove('is-press')
+      wake()
     }
 
     const onMouseLeave = () => {
       dot.classList.add('is-hidden')
       ring.classList.add('is-hidden')
+      wake()
     }
 
     const onMouseEnter = () => {
       if (!hasMoved) return
       dot.classList.remove('is-hidden')
       ring.classList.remove('is-hidden')
+      // Re-entering the document: the layers may need to glide from
+      // their parked (exit-point) position to the live pointer.
+      wake()
     }
 
-    // --- The single permanent rAF loop ---------------------------------
+    // --- The single rAF loop (park/wake — dot-grid idiom) -------------
+    // AUDIT-C5 (NIT): the loop parks on convergence (both layers within
+    // MOVE_EPSILON of the pointer — the epsilon write-gates above have
+    // already stopped painting by then) and re-wakes from the pointer
+    // handlers. Idle cursor ⇒ ZERO rAF wakes. The NaN first-write guard
+    // and the epsilon write-gating semantics are byte-identical to the
+    // free-running design; touch teardown (kill) and unmount cleanup
+    // cancel the pending frame exactly as before.
     const tick = () => {
+      raf = 0
       if (disposed || killed) return
       dotPos.x += (pointer.x - dotPos.x) * DOT_LERP
       dotPos.y += (pointer.y - dotPos.y) * DOT_LERP
@@ -299,7 +327,30 @@ export function CustomCursor() {
         ringWY = ringPos.y
         ring.style.transform = `translate3d(${ringPos.x.toFixed(2)}px, ${ringPos.y.toFixed(2)}px, 0)`
       }
+
+      // Parked: both layers have converged on the pointer (and nothing
+      // else is pending — hover/press/hidden state lives in classList,
+      // owned by CSS transitions, and never needs this loop). Zero wakes
+      // until the next pointer event calls wake().
+      const settled =
+        Math.abs(pointer.x - dotPos.x) <= MOVE_EPSILON &&
+        Math.abs(pointer.y - dotPos.y) <= MOVE_EPSILON &&
+        Math.abs(pointer.x - ringPos.x) <= MOVE_EPSILON &&
+        Math.abs(pointer.y - ringPos.y) <= MOVE_EPSILON
+      if (settled) return
       raf = requestAnimationFrame(tick)
+    }
+
+    // Re-arm the loop after a park (rAF-coalesced: `raf` guards double
+    // schedules while a tick is already pending). Every handler that can
+    // change what the layers should paint calls this — the enumerated
+    // wake sources: pointermove (target moved), pointerover/pointerout
+    // (hover + label + magnet-zone enter/leave), pointerdown/pointerup
+    // (press), mouseenter/mouseleave (document re-entry — the glide back
+    // from the exit point). Touch teardown (kill) and unmount cancel the
+    // pending frame instead of waking.
+    const wake = () => {
+      if (!raf && !disposed && !killed) raf = requestAnimationFrame(tick)
     }
 
     const detach = () => {
@@ -336,7 +387,10 @@ export function CustomCursor() {
     root.addEventListener('mouseleave', onMouseLeave)
     root.addEventListener('mouseenter', onMouseEnter)
 
-    raf = requestAnimationFrame(tick)
+    // Initial wake: runs the first tick, whose NaN guard performs the
+    // first (identity) transform write, then parks — the loop from here
+    // on lives only between a pointer event and its convergence.
+    wake()
 
     return () => {
       disposed = true

@@ -20,7 +20,12 @@
  * · Route-change hygiene: on pathname change the window is returned to
  *   the top IMMEDIATELY (immediate: true — a glide on fresh content
  *   would feel like fighting the navigation), matching the previous
- *   native behavior the teleport guard in scroll-store expects.
+ *   native behavior the teleport guard in scroll-store expects. The
+ *   ONE exception is the initial mount of a #hash deep-link (AUDIT-C3):
+ *   the browser has already natively scrolled a cold load of e.g.
+ *   /services/websites#calculator to the SSR'd anchor before hydration,
+ *   so that first run re-applies the anchor through Lenis instead of
+ *   yanking the visitor to top.
  * · The lenis instance is registered in lib/lenis-holder so imperative
  *   consumers never import the chunk.
  *
@@ -36,11 +41,12 @@
  * a hard tail bound (no asymptotic glide-away after the finger stops).
  */
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import Lenis from 'lenis'
 import 'lenis/dist/lenis.css'
-import { getLenis, setLenis } from '@/lib/lenis-holder'
+import { getLenis, lenisScrollTo, setLenis } from '@/lib/lenis-holder'
+import { expectTeleport } from '@/lib/scroll-store'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 
 /** Glide duration (s) — the hard tail bound: every wheel impulse lands
@@ -57,6 +63,14 @@ const ANCHOR_OFFSET = -96
 export function SmoothScroll() {
   const reduced = usePrefersReducedMotion()
   const pathname = usePathname()
+  // Effect-run discriminator for the cold-load hash branch below: null
+  // before the first run; afterwards the last (pathname, reduced) key
+  // this effect has seen. A re-run with the SAME key is a re-play of the
+  // initial run (reactStrictMode dev double-mount) — it must take the
+  // same hash branch, or the simulated remount would re-introduce the
+  // top-yank this fix removes. Any key CHANGE is a real navigation (or
+  // a reduced-motion flip) and keeps the reset semantics exactly.
+  const prevRunKey = useRef<string | null>(null)
 
   useEffect(() => {
     if (reduced) return
@@ -78,12 +92,51 @@ export function SmoothScroll() {
   }, [reduced])
 
   // Route change → instant scroll reset (previous native behaviour; the
-  // scroll-store teleport guard ignores the jump, the rune morph handles
-  // the route fade separately — see rune-scene). `reduced` in deps is
-  // inert: flipping it destroys/creates the instance above first.
+  // rune morph handles the route fade separately — see rune-scene).
+  // `reduced` in deps is inert: flipping it destroys/creates the instance
+  // above first.
   useEffect(() => {
     const lenis = getLenis()
-    if (lenis) lenis.scrollTo(0, { immediate: true, force: true })
+    const runKey = `${pathname}::${reduced}`
+    const initialRun =
+      prevRunKey.current === null || prevRunKey.current === runKey
+    prevRunKey.current = runKey
+
+    // Cold-load #hash deep-links (AUDIT-C3 LOW): the browser natively
+    // scrolled the SSR'd anchor into view BEFORE hydration; Lenis's
+    // `anchors` option is click-only (lenis.mjs:541-556 — no
+    // location.hash handling), so without this branch the initial run
+    // of this effect would yank those visitors to top. Instead the
+    // anchor is re-applied through the ONE scroll writer (Lenis) with
+    // the same −96 navbar offset as the anchors click path. The write
+    // is immediate (a hash JUMP, not a glide — no motion introduced on
+    // load) and declared teleport-class BEFORE it fires so the rune
+    // clocks never read the jump as a gesture (lenisScrollTo's
+    // immediate path re-arms the same flag — see lenis-holder).
+    // Lenis absent (reduced motion / instance not ready): leave the
+    // browser's native anchor position UNTOUCHED.
+    if (initialRun && window.location.hash) {
+      if (lenis) {
+        expectTeleport()
+        lenisScrollTo(window.location.hash, {
+          offset: ANCHOR_OFFSET,
+          immediate: true,
+        })
+      }
+      return
+    }
+
+    if (lenis) {
+      // AUDIT-A3 (FIX 1): declare the jump BEFORE the write. Sub-900px
+      // navigation resets (route change / back-forward restore / locale
+      // restore) used to slip past scroll-store's TELEPORT magnitude
+      // guard and inject a fake upward gesture into the clocks (~350ms
+      // glow flash + rune phase drift per navigation). Next's restore
+      // and this write land in the same task, so the browser coalesces
+      // them into one scroll event the flag then swallows.
+      expectTeleport()
+      lenis.scrollTo(0, { immediate: true, force: true })
+    }
   }, [pathname, reduced])
 
   return null

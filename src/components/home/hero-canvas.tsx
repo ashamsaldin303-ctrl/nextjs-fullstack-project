@@ -52,9 +52,11 @@ const PARTICLE_COUNT_MOBILE = 1800
 // Brand family only — blues / green / cool-white (palette revert: blue
 // is back — Google/Apple blue family with the brand green as counterpoint).
 // Hex values live in the single owner src/lib/brand-colors.ts (W3-03/D21).
-// #60A5FA stays a literal: it is the scene-specific light-blue ridge
-// sheen (also derived in GLSL as mix(uColorA, white, 0.22)) — NOT a
-// brand token, so brand-colors.ts must not absorb it.
+// #60A5FA stays a scene-literal here by design: it is this scene's
+// light-blue ridge sheen (also derived in GLSL as mix(uColorA, white,
+// 0.22)). Its value coincides with the gBlueLight token — the sibling
+// scenes (capability-scene.tsx, rune/model-registry.ts) resolve the same
+// hex through BRAND_COLORS.gBlueLight.
 const COLORS = [
   new THREE.Color(BRAND.gBlue),
   new THREE.Color(BRAND.gBlue),

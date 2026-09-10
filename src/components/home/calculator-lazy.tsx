@@ -61,10 +61,15 @@ export function CalculatorLazy() {
       // The id lives here — not on the Calculator's own <section> — so the
       // hash resolves in the SSR HTML (pre-hydration, pre-lazy-load) AND
       // after the real component swaps in (the wrapper never unmounts, so
-      // the anchor never goes stale mid-scroll). scroll-mt-20 (80px)
-      // clears the fixed h-16 navbar when the browser jumps to the anchor.
+      // the anchor never goes stale mid-scroll). B4 fix 9 (audit A3 L):
+      // NO scroll-mt here — the native path already lands via :root's
+      // scroll-padding-top (6rem = 96px, the navbar-clearing mechanism) and
+      // Lenis anchors apply the same −96 offset, so the extra 80px class
+      // that ONLY the native path honored landed the same #calculator
+      // anchor 80px apart between smooth and native modes. One 96px
+      // mechanism governs both paths; the fixed h-16 (64px) navbar is
+      // cleared by either.
       id="calculator"
-      className="scroll-mt-20"
     >
       {near ? <LazyCalculator /> : (
         /* Same-shaped spacer pre-observation (avoids a load-in jump when

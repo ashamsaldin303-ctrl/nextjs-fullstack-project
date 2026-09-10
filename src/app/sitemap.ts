@@ -13,8 +13,9 @@ const STATIC_PATHS = [
 
 // Fixed lastmod stamp — `new Date()` would stamp BUILD time on every
 // URL on every deploy, misinforming crawlers about real content change.
-// 2026-08-28 = R9 content overhaul (testimonials removed, /work +/ scenes).
-const LAST_MODIFIED = new Date('2026-08-28')
+// 2026-08-28 = R9 content overhaul (testimonials removed, /work +/ scenes);
+// 2026-09-08 = REF-4-B /contact copy + messages additions (latest content touch).
+const LAST_MODIFIED = new Date('2026-09-08')
 
 /**
  * P2-3 + LOW-3 (R5): Google's localized-sitemap pattern — one <url>

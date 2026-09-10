@@ -29,8 +29,8 @@
  * and drains the tail.
  *
  * Module-level singleton (hero-scroll.ts pattern): read-only from the
- * scene's useFrame, mutated only by onScrollEvent/tickScrollTail, never
- * triggers a React render.
+ * scene's useFrame, mutated only by onScrollEvent/tickScrollTail/
+ * expectTeleport, never triggers a React render.
  */
 
 export interface ScrollClocks {
@@ -40,8 +40,6 @@ export interface ScrollClocks {
   S: number
   /** Velocity EMA (px/s, positive = down) — glow energy source only. */
   vy: number
-  /** Held direction: 1 (down), -1 (up); hysteresis inside the dead-zone. */
-  dir: 1 | -1 | 0
 }
 
 interface ScrollState {
@@ -49,7 +47,9 @@ interface ScrollState {
   D: number
   S: number
   vy: number
-  dir: 1 | -1 | 0
+  /** One-shot: the next scroll write is a navigation teleport (see
+   *  expectTeleport) — re-baseline and swallow it. */
+  teleport: boolean
   initialized: boolean
   lastT: number
 }
@@ -59,7 +59,7 @@ const state: ScrollState = {
   D: 0,
   S: 0,
   vy: 0,
-  dir: 0,
+  teleport: false,
   initialized: false,
   lastT: 0,
 }
@@ -68,9 +68,12 @@ const state: ScrollState = {
  *  saturates so the glow never clips into strobing. */
 const VY_MAX = 3600
 /** Single-event position jump (px) that means "navigation scroll reset /
- *  anchor jump / scroll restoration", not a real gesture — ignored. */
+ *  anchor jump / scroll restoration", not a real gesture — ignored.
+ *  Covers the >900px half; sub-900px navigation resets are declared
+ *  up-front via expectTeleport() by their writers instead. */
 const TELEPORT = 900
-/** Dead-zone (px/s) inside which the held direction is kept. */
+/** Dead-zone (px/s): below this the glow tail counts as fully drained
+ *  (the demand loop parks and frames stop). */
 const DEADZONE = 6
 /** EMA rise rate (1/s) — fast enough to track a fling within ~2 events. */
 const EMA_RISE = 26
@@ -85,7 +88,9 @@ const TAIL_DRAIN = 320
  * Feed the clocks from a scroll event. Called by the Rune Field root's
  * passive scroll listener (never from the render loop). Teleport-class
  * jumps (route changes, hash anchors, scroll restoration) advance
- * NOTHING — the field must not fling because the page jumped.
+ * NOTHING — the field must not fling because the page jumped. Jumps
+ * larger than TELEPORT are caught here by magnitude; sub-900px
+ * navigation resets are swallowed via the expectTeleport flag below.
  */
 export function onScrollEvent(): void {
   if (typeof window === 'undefined') return
@@ -95,6 +100,16 @@ export function onScrollEvent(): void {
     state.initialized = true
     state.lastY = y
     state.lastT = now
+    return
+  }
+  if (state.teleport) {
+    // The awaited navigation-class write has landed: re-baseline and
+    // swallow it entirely — no D/S advance, no velocity spike (this is
+    // the sub-900px companion the magnitude guard cannot see).
+    state.teleport = false
+    state.lastY = y
+    state.lastT = now
+    state.vy = 0
     return
   }
   const dt = (now - state.lastT) / 1000
@@ -117,8 +132,25 @@ export function onScrollEvent(): void {
   }
   const s = 1 - Math.exp(-EMA_RISE * Math.max(dt, 1 / 120))
   state.vy += (raw - state.vy) * s
-  if (state.vy > DEADZONE) state.dir = 1
-  else if (state.vy < -DEADZONE) state.dir = -1
+}
+
+/**
+ * AUDIT-A3 (FIX 1): announce an upcoming programmatic navigation-class
+ * scroll (route change, back/forward restore, locale restore, an
+ * `immediate: true` lenisScrollTo). The NEXT scroll write is re-
+ * baselined and swallowed — no D/S advance, no velocity/glow spike — and
+ * any live glow tail is drained instantly. The TELEPORT magnitude guard
+ * above stays for real gesture spikes; this covers the sub-900px resets
+ * that guard cannot tell apart from a gesture. Call BEFORE issuing the
+ * write, in the same synchronous block (a scroll event cannot
+ * interleave; same-task writes coalesce into one event at the final
+ * position). If the write is a no-op (already at the target) the flag
+ * lingers and swallows the next single event — one sub-perceptual tick,
+ * and the rune field rebuilds per route regardless.
+ */
+export function expectTeleport(): void {
+  state.teleport = true
+  state.vy = 0
 }
 
 /**
@@ -144,7 +176,7 @@ export function tickScrollTail(dt: number): boolean {
 
 /** Pure read of the clocks (useFrame / debug handle). */
 export function getScrollClocks(): ScrollClocks {
-  return { D: state.D, S: state.S, vy: state.vy, dir: state.dir }
+  return { D: state.D, S: state.S, vy: state.vy }
 }
 
 /** Normalized glow energy 0..1 (≈ saturated at a deliberate 1600 px/s). */
