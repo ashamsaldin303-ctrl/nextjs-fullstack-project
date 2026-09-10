@@ -65,6 +65,7 @@ export default async function WebsitesPage({
         namespace="pages.websites.hero"
         ctaHref="/services/websites#calculator"
         decorative={<WebsitesHeroMotif />}
+        atmosphere={{ fig: 'FIG. 02 — WEBSITES DOSSIER', spec: 'GRID 12 × 8 · SPEC v2.5', word: 'WEBSITES' }}
       />
 
       <section className="bg-background py-20 sm:py-28" aria-labelledby="types-title">

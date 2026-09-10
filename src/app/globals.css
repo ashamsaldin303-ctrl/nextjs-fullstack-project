@@ -213,12 +213,29 @@
        about it. Native fallback (reduced motion, no-JS) stays instant,
        which is exactly what those users prefer. */
     scroll-behavior: auto;
+    /* IA (mobile audit) — horizontal escape hatch CLIPPED at the root.
+       Entrance transforms that slide full-width content sideways
+       (.reveal-left/.reveal-right translate ±48px; measured live:
+       document.scrollWidth 414px on a 390px viewport — a real
+       rubber-band on touch drag) plus any decorative transform bleed
+       must never become SCROLLABLE width. `clip` (not `hidden`) is the
+       deliberate choice: it does NOT create a scroll container, so
+       Lenis's window scrolling, the fixed navbar, sticky sections and
+       anchor offsets are all untouched — the viewport simply refuses
+       horizontal overflow. Vertically nothing changes (overflow-y
+       stays visible). */
+    overflow-x: clip;
   }
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-app), system-ui, -apple-system, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* IA — second clip rung: some engines only honor the root-level clip
+       on the VIEWPORT when both html and body carry it (the overflow
+       propagation rule); belt + suspenders, same no-scroll-container
+       guarantee. */
+    overflow-x: clip;
   }
   :root {
     scroll-padding-top: 6rem;
@@ -395,7 +412,9 @@ html[data-page-wait] .hero-marquee-track,
 html[data-page-wait] .hero-rail-dot,
 html[data-page-wait] .hero-marquee,
 html[data-page-wait] .hero-build-fx,
-html[data-page-wait] .hero-build-fx * {
+html[data-page-wait] .hero-build-fx *,
+html[data-page-wait] .hero-atmosphere,
+html[data-page-wait] .hero-atmosphere * {
   animation-play-state: paused !important;
 }
 
@@ -1867,4 +1886,241 @@ html:lang(ar) {
 .manifesto-sig {
   opacity: 1;
   transition: opacity 240ms linear;
+}
+
+/* =========================================================================
+   IA — «نَسيم الواجهات» (Hero Atmosphere, components/shared/
+   hero-atmosphere.tsx)
+   The living background for every INNER page hero. The homepage hero is
+   the fully composed stage; inner heroes opened on nothing but the
+   static .hero-fallback gradient — a dead "wall of blue" on the mobile
+   tier (where the Rune field never mounts). Four strata, porting the
+   homepage's design language:
+     1. AURORA — two brand-tinted radial blobs breathing on compositor
+        drifts (34s / 42s, alternate). No filter:blur — the radial
+        falloff IS the softness (paint-once layers, transform-only).
+     2. STARFIELD — two deterministic box-shadow lattices (see the
+        component's mulberry32 generator) translating upward at 68s /
+        46s. Each star is emitted at y, y−TILE and y+TILE (TILE = 720px,
+        MUST match STAR_TILE in hero-atmosphere.tsx) so the lap loops
+        seamlessly and every intermediate offset stays covered.
+     3. BLUEPRINT — hairline guides + corner brackets + crosshairs +
+        mono spec labels, drawn once on entry with the homepage's own
+        hb-* keyframes; the ia-* classes own the positions tuned for
+        the CENTERED inner-hero composition (guides at the 7% rails,
+        brackets clear of the navbar, spec labels in the free side
+        bands). Settles to 0.6 like the homepage's hb-rest.
+     4. WATERMARK — the page's own name in stroke-only Latin glyphs
+        bleeding off the corner (hero-watermark idiom), drifting on the
+        shared hero-watermark-drift keyframe and lagging the scroll
+        via the Parallax far-layer (speed 44).
+   Contracts: compositor-only motion (transform/opacity exclusively);
+   reduced-motion collapses to static resting frames via the global
+   kill-switch; the whole layer pauses under html[data-page-wait] (see
+   the pause list above). Purely decorative — one aria-hidden +
+   data-bg-layer root at -z-10, below in-flow hero content, so the
+   Rune field's glyph-ink contracts are untouched.
+   ========================================================================= */
+
+/* --- stratum 1 — aurora ---------------------------------------------- */
+.ia-aurora {
+  position: absolute;
+  inset: 0;
+}
+.ia-blob {
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform;
+}
+.ia-blob-a {
+  width: 64vmax;
+  height: 64vmax;
+  top: -22%;
+  inset-inline-end: -16%;
+  background: radial-gradient(
+    circle at center,
+    rgba(66, 133, 244, 0.16) 0%,
+    rgba(66, 133, 244, 0.05) 42%,
+    transparent 68%
+  );
+  animation: ia-blob-a 34s ease-in-out infinite alternate;
+}
+.ia-blob-b {
+  width: 52vmax;
+  height: 52vmax;
+  bottom: -26%;
+  inset-inline-start: -14%;
+  background: radial-gradient(
+    circle at center,
+    rgba(52, 168, 83, 0.13) 0%,
+    rgba(52, 168, 83, 0.04) 40%,
+    transparent 66%
+  );
+  animation: ia-blob-b 42s ease-in-out infinite alternate;
+}
+@keyframes ia-blob-a {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(-6%, 5%, 0) scale(1.1); }
+}
+@keyframes ia-blob-b {
+  from { transform: translate3d(0, 0, 0) scale(1.05); }
+  to { transform: translate3d(5%, -4%, 0) scale(0.94); }
+}
+
+/* --- stratum 2 — starfield -------------------------------------------- */
+.ia-stars {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+/* The layer element is itself a 1px/2px "star"; every box-shadow is a
+   sibling star painted in the same pass. Transform animates the whole
+   rasterized layer — zero per-frame paint. */
+.ia-star-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 9999px;
+  will-change: transform;
+}
+.ia-stars-far {
+  width: 1px;
+  height: 1px;
+  background: rgba(190, 208, 255, 0.3);
+  animation: ia-stars-drift 68s linear infinite;
+}
+.ia-stars-near {
+  width: 2px;
+  height: 2px;
+  background: rgba(232, 242, 255, 0.55);
+  animation: ia-stars-drift 46s linear infinite;
+}
+/* One lap = exactly one TILE, so the ±TILE shadow copies make the loop
+   seamless (720px MUST match STAR_TILE in hero-atmosphere.tsx). */
+@keyframes ia-stars-drift {
+  from { transform: translateY(0); }
+  to { transform: translateY(-720px); }
+}
+/* Twinkle accents — individually-pulsing bright points (two carry the
+   brand emerald / gold). Duration + delay come from inline styles. */
+.ia-twinkle {
+  position: absolute;
+  border-radius: 9999px;
+  opacity: 0.25;
+  animation: ia-twinkle 4.2s ease-in-out infinite alternate;
+}
+@keyframes ia-twinkle {
+  from { opacity: 0.25; }
+  to { opacity: 1; }
+}
+
+/* --- stratum 3 — blueprint --------------------------------------------- */
+/* Reuses the homepage's hb-line / hb-bracket / hb-cross / hb-label base
+   rules + their draw keyframes (hb-draw-v/h, hb-bracket-in, hb-fade-in);
+   the ia-* companions below own only POSITION + delay, tuned for the
+   centered inner-hero composition. */
+.ia-blueprint {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  direction: ltr; /* Latin-only spec labels + physical guide positions */
+  animation: ia-bp-rest 1.2s ease 2.4s forwards;
+}
+@keyframes ia-bp-rest {
+  to { opacity: 0.6; }
+}
+/* Horizontal guide — under the centered title stack. The verticals
+   reuse hb-v1/hb-v2 (the 7% rails) as-is. */
+.ia-hline {
+  position: absolute;
+  height: 1px;
+  left: 0;
+  right: 0;
+  top: 66%;
+  transform-origin: left;
+  animation: hb-draw-h 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+}
+/* Corner brackets — top pair clears the fixed navbar (~72px + air),
+   bottom pair hugs the section's own corners. */
+.ia-b-tl {
+  top: 96px;
+  left: 16px;
+  border-left: 1px solid;
+  border-top: 1px solid;
+  animation-delay: 0.12s;
+}
+.ia-b-tr {
+  top: 96px;
+  right: 16px;
+  border-right: 1px solid;
+  border-top: 1px solid;
+  animation-delay: 0.2s;
+}
+.ia-b-bl {
+  bottom: 26px;
+  left: 16px;
+  border-left: 1px solid;
+  border-bottom: 1px solid;
+  animation-delay: 0.28s;
+}
+.ia-b-br {
+  bottom: 26px;
+  right: 16px;
+  border-right: 1px solid;
+  border-bottom: 1px solid;
+  animation-delay: 0.36s;
+}
+/* Crosshairs — at the side-rail/horizontal-guide intersections plus one
+   in the free band above the kicker. */
+.ia-x1 { left: 7%; top: 66%; animation-delay: 0.42s; }
+.ia-x2 { right: 7%; top: 66%; animation-delay: 0.5s; }
+.ia-x3 { left: 32%; top: 15%; animation-delay: 0.58s; }
+/* Spec labels — the free side bands (top corners) + one centered above
+   the kicker. All physical positions, like the homepage's. */
+.ia-l1 { top: 104px; left: 44px; animation-delay: 0.55s; }
+.ia-l2 { top: 104px; right: 44px; animation-delay: 0.66s; }
+.ia-l3 {
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  animation-delay: 0.76s;
+}
+
+/* --- stratum 4 — watermark --------------------------------------------- */
+/* The page's own name, stroke-only, anchored in the hero's bottom band —
+   the hero-watermark idiom at inner-hero scale. MOTION IS SCALED TO THE
+   WORD: the homepage's ELYRA watermark is a ~345px word, so its ±48px
+   Parallax + ±16px drift are single-digit-percent excursions; an inner
+   word is ~51-66px tall, where those same amplitudes would swing 30-90%
+   of the glyph height and half-cut the word at the section edge (VLM:
+   «only the letter tops visible — a harsh horizontal slice»). Here:
+   bottom 0.02em (a kiss-bled all-caps baseline band, no descenders), a
+   ±6px ia-watermark-drift breathe, and the component wraps the word in
+   Parallax speed 16 — the total worst-case excursion at any scroll state
+   stays ≤ ~4px past the edge (a deliberate 6% crop) while the word still
+   rises gently as the section departs. The component overrides font-size
+   inline with the word-length-aware cap. */
+.ia-watermark {
+  position: absolute;
+  bottom: 0.02em;
+  inset-inline-end: -0.02em;
+  z-index: 1;
+  direction: ltr;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: min(19vw, 15rem);
+  font-weight: 900;
+  line-height: 0.78;
+  letter-spacing: -0.03em;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(232, 242, 255, 0.07);
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  animation: ia-watermark-drift 14s ease-in-out infinite alternate;
+}
+/* Inner-scale breathe — ±6px on a ~51-66px word (the homepage's ±16px
+   drift would wander 30% of the glyph height here). */
+@keyframes ia-watermark-drift {
+  from { transform: translateY(0); }
+  to { transform: translateY(-6px); }
 }

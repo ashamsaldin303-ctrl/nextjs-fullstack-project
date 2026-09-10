@@ -347,8 +347,16 @@ function MiniSite() {
               aria-hidden="true"
               tabIndex={-1}
               onClick={() => setSwatch(i)}
+              /* IA (mobile audit) — the 24px dot keeps its VISUAL size, but
+                 the tappable band grows to 40px: an absolutely-positioned
+                 ::after (after:-inset-2) extends the hit area beyond the
+                 paint. -inset-2 (8px/side) is calibrated to the row's
+                 gap-2 (8px): adjacent hit areas tile EXACTLY at the gap
+                 midpoint — 40px targets with zero overlap (a larger inset
+                 would stack neighbors' hit zones and mis-target taps in
+                 the gap). `relative` anchors the pseudo-element. */
               className={cn(
-                'size-6 rounded-full transition-transform hover:scale-110',
+                'relative size-6 rounded-full transition-transform hover:scale-110 after:absolute after:-inset-2 after:rounded-full after:content-[""]',
                 swatch === i && 'ring-2 ring-ring ring-offset-2'
               )}
               style={{ background: c }}

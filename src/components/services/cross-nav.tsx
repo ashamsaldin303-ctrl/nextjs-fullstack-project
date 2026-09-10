@@ -52,7 +52,13 @@ export async function ServiceCrossNav({
             <li key={id}>
               <Link
                 href={CROSS_LINKS[id].href}
-                className="group inline-flex items-center gap-1.5 text-sm font-medium text-foreground/80 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                /* IA (mobile audit) — min touch height: the bare text link
+                   measured 21px tall on a 390px viewport (under WCAG
+                   2.5.8's 24px target minimum); inline-flex + min-h-10
+                   + py-1 grows the tappable band to 40px without changing
+                   the visual rhythm (the label row still reads as a quiet
+                   text line — the extra height is transparent padding). */
+                className="group inline-flex min-h-10 items-center gap-1.5 py-1 text-sm font-medium text-foreground/80 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 {navT(CROSS_LINKS[id].navKey)}
                 <ArrowRight

@@ -37,7 +37,10 @@ export default async function WorkPage({
   setRequestLocale(locale)
   return (
     <>
-      <PageHero namespace="pages.work.hero" />
+      <PageHero
+        namespace="pages.work.hero"
+        atmosphere={{ fig: 'FIG. 04 — WORK INDEX', spec: 'GRID 12 × 8 · INDEX v2.5', word: 'WORK' }}
+      />
       <WorkGrid />
       <CTA namespace="pages.work.cta" variant="on-dark" />
     </>

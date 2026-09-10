@@ -112,7 +112,10 @@ export default async function ContactPage({
 
   return (
     <>
-      <PageHero namespace="pages.contact.hero" />
+      <PageHero
+        namespace="pages.contact.hero"
+        atmosphere={{ fig: 'FIG. 06 — CONTACT CHANNELS', spec: 'GRID 12 × 8 · LINK v2.5', word: 'CONTACT' }}
+      />
 
       {/* L1-C P3 (fix 2-d): landmark split — the outer wrapper is now a
           plain div; each grid column is its own named <section> (channels /

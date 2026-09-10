@@ -71,7 +71,10 @@ export default async function AboutPage({
 
   return (
     <>
-      <PageHero namespace="pages.about.hero" />
+      <PageHero
+        namespace="pages.about.hero"
+        atmosphere={{ fig: 'FIG. 05 — AGENCY DOSSIER', spec: 'GRID 12 × 8 · STORY v2.5', word: 'ABOUT' }}
+      />
 
       {/* Story — SO-2 (G3-5, code-level) editorial pass: the founding
           question becomes a large pull-quote with an accent rule instead

@@ -69,6 +69,7 @@ export default async function AutomationPage({
       <PageHero
         namespace="pages.automation.hero"
         decorative={<AutomationHeroMotif />}
+        atmosphere={{ fig: 'FIG. 03 — AUTOMATION DOSSIER', spec: 'GRID 12 × 8 · FLOW v2.5', word: 'AUTOMATION' }}
       />
 
       {/* Integrations grid */}
