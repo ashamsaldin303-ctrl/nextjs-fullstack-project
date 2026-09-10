@@ -3739,3 +3739,16 @@ Work Log:
 Stage Summary:
 - No changes needed server-side. Resolution communicated: hard-refresh the preview panel / use "Open in New Tab"; a plain reload suffices since HTML is no-store and dev chunks are no-store.
 - Evidence pack: /tmp/m3-home-hero.png, /tmp/m3-automation-hero.png + debug-token dumps above.
+
+---
+Task ID: VERIFY-PREVIEW-STALE (addendum 2)
+Agent: Coordinator (direct — full route inventory, no code changes)
+Task: Owner pushed back: "the models placed now are not the agreed good ones." Extracted both sets from git history + live-dumped every route.
+
+Work Log:
+- MODEL-2 (REJECTED set, what the owner's stale panel shows): Camera_01, brass_vase_01, drill_press_01, hand_plane_no4, lightbulb_led, mantel_clock_01, moon_rock_02, projector_screen, retro_multimeter, seadogs_compass, vintage_binocular, rubber_duck_toy — the «أثاث منزل وقطع تاريخية» set, all purged by 427d3e8 (git-rm ~20MB).
+- MODEL-3 (APPROVED set — «المجسمات جيدة جداً»): live dump via __elyraRuneDebug, all found=true — / → serverRack + cpuChip · /services/websites → laptopStudio · /services/automation → robotArm · /work → smartphone · /about → circuit_board + dataStack · /contact → dishAntenna · 404 → duck.
+- Conclusion unchanged: the server holds ONLY the approved technical set; the rejected scans physically do not exist on disk (404). What the owner sees is the old JS bundle still alive in their preview iframe's memory.
+
+Stage Summary:
+- Response to owner: validate their observation (what they see IS the rejected set — correctly identified), then prove the server cannot serve it, and give precise hard-refresh steps + the visual signature of the approved set per route.
