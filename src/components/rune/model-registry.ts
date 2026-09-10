@@ -209,11 +209,13 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     drives: [
       // MODEL-5 idle: the assembled experience keeps breathing — the
       // site and flow layers float in counter-phase (the stack gently
-      // re-explodes/re-assembles), the gyroscope rings keep spinning,
-      // the edge lights and core shimmer.
+      // re-explodes/re-assembles), the GIMBAL rings keep precessing
+      // (both spin around the common vertical diameter — constant
+      // vertical footprints, the strata-silhouette contract), the edge
+      // lights and core shimmer.
       { node: 'layer_site', axis: 'y', slide: [0.3, 0], win: [0.08, 0.62], peek: 0.22, idle: { amp: 0.018, hz: 0.16 } },
       { node: 'layer_flow', axis: 'y', slide: [-0.3, 0], win: [0.08, 0.62], peek: -0.22, idle: { amp: 0.018, hz: 0.16, phase: Math.PI } },
-      { node: 'gyro_ring_a', axis: 'x', rate: 0.02, idle: { amp: 0.45, hz: 0, spin: true } },
+      { node: 'gyro_ring_a', axis: 'y', rate: 0.02, idle: { amp: 0.45, hz: 0, spin: true } },
       { node: 'gyro_ring_b', axis: 'y', rate: -0.016, idle: { amp: -0.32, hz: 0, spin: true } },
       { node: 'gyro_core', axis: 'z', glow: [0, 1.4], win: [0.2, 0.7], boost: 1.2, idle: { amp: 0.6, hz: 0.45 } },
       { node: 'site_edge', axis: 'z', glow: [0, 2.2], win: [0.18, 0.6], boost: 1.1, idle: { amp: 0.5, hz: 0.35 } },
@@ -270,13 +272,29 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
       // hero block breathes its height, the CTA warms rhythmically.
       // (The cursor stays pure-follow: it mirrors YOUR hand.)
       { node: 'blk_nav', axis: 'y', slide: [0.2, 0], win: [0.08, 0.26] },
-      { node: 'url_load', axis: 'x', slide: [0, 0.24], win: [0.06, 0.3], idle: { amp: 0.012, hz: 0.3 } },
+      { node: 'url_load', axis: 'x', slide: [0, 0.22], win: [0.06, 0.3], idle: { amp: 0.012, hz: 0.3 } },
       { node: 'blk_hero', axis: 'y', slide: [0.28, 0], win: [0.18, 0.42], idle: { amp: 0.02, hz: 0.2 } },
       { node: 'blk_aside', axis: 'y', slide: [0.28, 0], win: [0.26, 0.5] },
-      { node: 'blk_card_0', axis: 'y', slide: [0.26, 0], win: [0.36, 0.58] },
-      { node: 'blk_card_1', axis: 'y', slide: [0.26, 0], win: [0.44, 0.66] },
-      { node: 'blk_card_2', axis: 'y', slide: [0.26, 0], win: [0.52, 0.74] },
-      { node: 'blk_cta', axis: 'y', slide: [0.2, 0], win: [0.62, 0.82], glow: [0, 1.4], boost: 1.3, idle: { amp: 0.45, hz: 0.4 } },
+      // PIXEL-TRUTH FIX: the cards now RISE into place from below the
+      // window (the kit comment's authored intent) — the r1 descent
+      // from +0.26 crossed the landed hero/aside bands, and card_2
+      // (same panel shade as the aside, one z rung in front) merged
+      // into it visually mid-flight; the rise path [−0.515, −0.125]
+      // never shares y-band with the hero, aside or CTA, so no
+      // transient co-presence exists at all.
+      { node: 'blk_card_0', axis: 'y', slide: [-0.26, 0], win: [0.36, 0.58] },
+      { node: 'blk_card_1', axis: 'y', slide: [-0.26, 0], win: [0.44, 0.66] },
+      { node: 'blk_card_2', axis: 'y', slide: [-0.26, 0], win: [0.52, 0.74] },
+      // PIXEL-TRUTH FIX: the r1 cta drive carried slide+glow in ONE
+      // entry — the driver's glow branch `continue`s first, so the
+      // slide never ran and the button sat Z-FIGHTING inside the hero
+      // banner (coplanar front faces, a flickering gold patch). Now
+      // the button POPS IN in place (scale drive, separate entry —
+      // no path, so it crosses nothing on its unique z rung) while
+      // its glow warms — and the kit mounts it flush ON the banner's
+      // face (z 0.036, in front — see tech-kits).
+      { node: 'blk_cta', axis: 'y', scale: [0.02, 1], win: [0.62, 0.82] },
+      { node: 'blk_cta', axis: 'z', glow: [0, 1.4], win: [0.62, 0.82], boost: 1.3, idle: { amp: 0.45, hz: 0.4 } },
       { node: 'ui_cursor', axis: 'x', slide: [0.34, 0.2], follow: true },
     ],
   },

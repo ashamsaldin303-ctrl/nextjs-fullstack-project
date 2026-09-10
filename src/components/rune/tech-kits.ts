@@ -465,6 +465,24 @@ function wire(a: THREE.Vector3, b: THREE.Vector3, r = 0.004): THREE.Mesh {
  * KIT 1 · experienceStack — HOME HERO
  * «نصنعُ تجاربَ رقميةً» — the digital experience, exploded into its
  * three offering layers (website / 3D / automation), assembling.
+ *
+ * PIXEL-TRUTH LAYOUT (the strata-silhouette contract — the owner's
+ * «المجسمات متداخلة» verdict): the three strata NEVER intersect, at
+ * any scroll position, any pointer state, any life phase:
+ *   · layer_site slab spans y [0.12, 0.70] (center +0.41; the gold
+ *     edge light under it spans [0.09, 0.118]);
+ *   · layer_3d spans y [−0.30, 0.06] (center −0.12) — the GIMBAL rings
+ *     both spin around the Y axis (their common diameter), so each
+ *     ring's vertical extent is CONSTANT (± its radius — a rotation
+ *     around y can never move a point's y): provably inside the band
+ *     forever. The r1 mount (horizontal ring flipping end-over-end
+ *     around x) swept ±0.26 vertically and sliced through the browser
+ *     slab — the exact overlap the owner saw;
+ *   · layer_flow pills span y [−0.415, −0.355] (center −0.385).
+ * Rest clearances: edge-light→gyro 0.03, slab→gyro 0.06, gyro→pills
+ * 0.055; at the idle extremes (±0.018 layer slides) the minimum gap
+ * stays ≥ 0.012 —
+ * positive at every phase, so no two strata silhouettes ever touch.
  * ------------------------------------------------------------------ */
 
 function buildExperienceStack(): THREE.Group {
@@ -476,7 +494,7 @@ function buildExperienceStack(): THREE.Group {
   // glows carry each layer's identity; glow drives modulate them).
   // VLM r2: "barely a whisper, I asked for a light, not a yellow
   // line" — thicker, deeper, and the registry drives it to 4+.
-  const layerTop = node('layer_site', 0, 0.36, 0)
+  const layerTop = node('layer_site', 0, 0.41, 0)
   layerTop.add(mesh(new RoundedBoxGeometry(0.92, 0.58, 0.035, 3, 0.016), M.ink))
   const screen1 = mesh(new THREE.PlaneGeometry(0.86, 0.52), screenMaterial('browser'), 0, 0, 0.019)
   layerTop.add(screen1)
@@ -485,30 +503,31 @@ function buildExperienceStack(): THREE.Group {
   layerTop.add(siteEdge)
   g.add(layerTop)
 
-  // LAYER 2 — the 3D EXPERIENCE: a gyroscope — two orbiting rings and a
-  // glowing emerald core (the rings are D-odometers: the 3D engine runs
-  // exactly as far as you scroll). VLM r1: bigger rings — the middle
-  // stratum must hold its own against the browser slab.
-  const layerMid = node('layer_3d', 0, 0, 0)
+  // LAYER 2 — the 3D EXPERIENCE: a GIMBAL — two rings spinning around
+  // their common VERTICAL diameter (each ring's plane contains the y
+  // axis, so the spin is a door-like precession with a CONSTANT
+  // vertical footprint) and a glowing emerald core. The rings are
+  // interlocked like a true gyroscope and can never leave the
+  // strata's own band (see the layout contract above).
+  const layerMid = node('layer_3d', 0, -0.12, 0)
   const ringA = node('gyro_ring_a')
-  const torusA = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.011, 10, 48), M.gold)
-  torusA.rotation.x = Math.PI / 2
+  const torusA = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.01, 10, 48), M.gold)
   ringA.add(torusA)
   layerMid.add(ringA)
   const ringB = node('gyro_ring_b')
-  const torusB = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.009, 10, 40), M.silver)
+  const torusB = new THREE.Mesh(new THREE.TorusGeometry(0.155, 0.009, 10, 40), M.silver)
   torusB.rotation.y = Math.PI / 2
   ringB.add(torusB)
   layerMid.add(ringB)
   const core = node('gyro_core')
-  core.add(mesh(new THREE.IcosahedronGeometry(0.1, 0), M.coreGlass))
+  core.add(mesh(new THREE.IcosahedronGeometry(0.09, 0), M.coreGlass))
   layerMid.add(core)
   g.add(layerMid)
 
   // LAYER 3 — the AUTOMATION: a node ribbon — three pills wired in a
   // chain, one packet glowing on the wire (n8n in miniature), with an
   // emerald status strip along its spine (the flow layer's identity).
-  const layerBot = node('layer_flow', 0, -0.34, 0)
+  const layerBot = node('layer_flow', 0, -0.385, 0)
   const pillGeo = new RoundedBoxGeometry(0.13, 0.06, 0.034, 2, 0.014)
   for (const px of [-0.22, 0, 0.22]) {
     layerBot.add(mesh(pillGeo, px === 0 ? M.panel : M.silver, px, 0, 0))
@@ -561,15 +580,22 @@ function buildPipelineJourney(): THREE.Group {
   const gateXs = [-0.55, -0.18, 0.19, 0.56]
   const postGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.46, 8)
   const lintelGeo = new RoundedBoxGeometry(0.38, 0.05, 0.07, 2, 0.012)
+  const footGeo = new RoundedBoxGeometry(0.09, 0.036, 0.07, 2, 0.012)
   for (let i = 0; i < 4; i++) {
     const gx = gateXs[i] as number
     const gate = node(`gate_${i}`, gx, RAIL_Y + 0.02, 0)
     // posts — the frame's uprights
     gate.add(mesh(postGeo, M.silver, -0.155, 0.23, 0))
     gate.add(mesh(postGeo, M.silver, 0.155, 0.23, 0))
-    // lintel + sill — closing the rectangle
+    // lintel — closing the top of the frame
     gate.add(mesh(lintelGeo, M.silver, 0, 0.47, 0))
-    gate.add(mesh(new RoundedBoxGeometry(0.38, 0.036, 0.07, 2, 0.012), M.silver, 0, 0.02, 0))
+    // PIXEL-TRUTH FIX: the r1 full-width SILL sat exactly in the
+    // workpiece's riding band (world y straddling its center), so the
+    // glowing sphere clipped straight THROUGH the bar at every gate —
+    // the base is now TWO FEET flanking the doorway (inner edges at
+    // ±0.09, clear of the workpiece ring's ±0.082).
+    gate.add(mesh(footGeo, M.silver, -0.135, 0.02, 0))
+    gate.add(mesh(footGeo, M.silver, 0.135, 0.02, 0))
     // the gold BADGE on the lintel — each gate's phase mark
     gate.add(mesh(new RoundedBoxGeometry(0.1, 0.034, 0.028, 1, 0.008), M.gold, 0, 0.47, 0.042))
     // the lamp on the lintel's crown
@@ -582,7 +608,14 @@ function buildPipelineJourney(): THREE.Group {
   // the WORKPIECE — the project itself, riding the rail (VLM r2:
   // "tiny and lost" — bigger core, wider gold ring, and an additive
   // halo so it reads as the energy of the journey at any zoom)
-  const work = node('workpiece', X0, RAIL_Y + 0.055, 0.02)
+  // PIXEL-TRUTH FIX: raised from RAIL_Y+0.055 to RAIL_Y+0.069 — the
+  // sphere's pole now KISSES the rail's top face (and the gold
+  // centerline) instead of sinking 0.014 into it, and the ring's
+  // lower arc (down to the rail's own bottom plane) hides inside the
+  // rail's silhouette from the camera (its z band sits within the
+  // rail's 0.09 depth): riding ON the rail, wrapping it, nothing
+  // visibly clipping.
+  const work = node('workpiece', X0, RAIL_Y + 0.069, 0.02)
   work.add(mesh(new THREE.SphereGeometry(0.055, 16, 14), M.signal))
   work.add(mesh(new THREE.TorusGeometry(0.082, 0.008, 8, 28), M.gold))
   const workHalo = mesh(
@@ -625,35 +658,57 @@ function buildSiteCanvas(): THREE.Group {
   const backdrop = std('#0c1426', 0.2, 0.4, { emissive: '#0e1830', emissiveIntensity: 0.5 })
   g.add(mesh(new THREE.PlaneGeometry(W - 0.06, H - 0.1), backdrop, 0, -0.02, 0.019))
 
+  // PIXEL-TRUTH Z-LADDER — every element sits on its own depth rung,
+  // so no two RENDERED faces are ever coplanar and no two flying
+  // elements ever interpenetrate volumetrically: the r1 build put ALL
+  // content blocks on the single z 0.032 plane, so every pair whose
+  // descent paths crossed (cards through the landed hero banner, the
+  // nav through the URL pill) z-FOUGHT — shimmering coplanar stripes
+  // mid-assembly. The ladder's ordering is the crossing graph itself:
+  // the chrome (pill + dots + its loading bar) is front-most and
+  // static; the flying content passes BEHIND the chrome; the cards
+  // (last to land) ride in front of the landed banner; the CTA
+  // button mounts flush ON the banner's face (z 0.036, in front);
+  // the cursor floats above everything it can reach.
   // chrome: traffic lights + URL pill with a loading bar
   const dots: Array<THREE.Material> = [M.ledRed, M.ledGold, M.ledGreen]
   for (let i = 0; i < 3; i++) {
-    g.add(led(dots[i] as THREE.Material, 0.011, -W / 2 + 0.09 + i * 0.034, H / 2 - 0.05, 0.021))
+    g.add(led(dots[i] as THREE.Material, 0.011, -W / 2 + 0.09 + i * 0.034, H / 2 - 0.05, 0.058))
   }
-  g.add(mesh(new RoundedBoxGeometry(0.34, 0.045, 0.012, 2, 0.02), M.panel, 0.13, H / 2 - 0.05, 0.024))
-  const load = node('url_load', -0.02, H / 2 - 0.05, 0.026)
+  g.add(mesh(new RoundedBoxGeometry(0.34, 0.045, 0.012, 2, 0.02), M.panel, 0.13, H / 2 - 0.05, 0.05))
+  const load = node('url_load', -0.02, H / 2 - 0.05, 0.06)
   load.add(mesh(new RoundedBoxGeometry(0.1, 0.016, 0.006, 1, 0.003), M.gold, 0.05, 0, 0))
   g.add(load)
 
-  // the content blocks — each its own node, rising into place
-  const mkBlock = (name: string, w: number, h: number, mat: THREE.Material, x: number, y: number) => {
-    const b = node(name, x, y, 0.032)
+  // the content blocks — each its own node, rising into place on its
+  // own ladder rung (see the Z-LADDER note above)
+  const mkBlock = (name: string, w: number, h: number, mat: THREE.Material, x: number, y: number, z: number) => {
+    const b = node(name, x, y, z)
     b.add(mesh(new RoundedBoxGeometry(w, h, 0.014, 2, 0.008), mat))
     g.add(b)
     return b
   }
-  mkBlock('blk_nav', 0.86, 0.05, M.panel, 0, H / 2 - 0.13)
-  mkBlock('blk_hero', 0.55, 0.2, M.coreGlass, -0.12, 0.06)
-  mkBlock('blk_aside', 0.22, 0.2, M.panel, 0.32, 0.06)
+  mkBlock('blk_nav', 0.86, 0.05, M.panel, 0, H / 2 - 0.13, 0.04)
+  mkBlock('blk_hero', 0.55, 0.2, M.coreGlass, -0.12, 0.06, 0.024)
+  mkBlock('blk_aside', 0.22, 0.2, M.panel, 0.32, 0.06, 0.024)
   for (let i = 0; i < 3; i++) {
-    mkBlock(`blk_card_${i}`, 0.24, 0.13, M.panel, -0.26 + i * 0.27, -0.19)
+    mkBlock(`blk_card_${i}`, 0.24, 0.13, M.panel, -0.26 + i * 0.27, -0.19, 0.038)
   }
-  mkBlock('blk_cta', 0.14, 0.05, M.gold, 0.0, 0.0)
-  g.add(mesh(new RoundedBoxGeometry(0.86, 0.035, 0.01, 2, 0.005), M.panel, 0, -H / 2 + 0.09, 0.024))
+  // the CTA button — mounted flush ON the hero banner's face (z 0.036
+  // is in front of the banner's z 0.024 plane): PIXEL-TRUTH FIX, the
+  // r1 copy sat it at the banner's OWN depth, coplanar with it — a
+  // permanent z-fight that flickered gold/glass with every glow pulse.
+  mkBlock('blk_cta', 0.14, 0.05, M.gold, 0.0, 0.0, 0.036)
+  // the shelf under the card row — PIXEL-TRUTH FIX: r1 pinned it at
+  // y -0.24 where the cards' bottoms (rest band top -0.255) buried
+  // themselves 0.03 into it; it now sits clear below the row (a real
+  // shelf the cards stand above, never inside).
+  g.add(mesh(new RoundedBoxGeometry(0.86, 0.035, 0.01, 2, 0.005), M.panel, 0, -0.276, 0.024))
 
   // the CURSOR — follows the visitor's real pointer (follow drive in
-  // the registry: slide [xRange, yRange]).
-  const cursor = node('ui_cursor', 0.1, -0.05, 0.045)
+  // the registry: slide [xRange, yRange]); rides above every rung its
+  // range can reach (the CTA's face tops out at 0.043).
+  const cursor = node('ui_cursor', 0.1, -0.05, 0.046)
   const curBar = mesh(new THREE.BoxGeometry(0.012, 0.05, 0.006), M.ledGold, 0, 0.025, 0)
   curBar.name = 'ui_cursor_stem'
   cursor.add(curBar)
@@ -765,9 +820,13 @@ function buildResultsDeck(): THREE.Group {
     const arm = node(`screen_${i}`, Math.sin(theta) * R, 0, Math.cos(theta) * R)
     arm.rotation.y = theta
     const card = node(`card_${i}`, 0, 0.22, 0)
-    // the stand under each screen (grounding the card on the ring)
-    card.add(mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.44, 6), M.silver, 0, -0.22, 0))
-    card.add(mesh(new RoundedBoxGeometry(0.1, 0.016, 0.06, 1, 0.006), M.panel, 0, -0.43, 0))
+    // the stand under each screen (grounding the card on the ring) —
+    // PIXEL-TRUTH FIX: the r1 mast was 0.44 tall from the card's
+    // center, so it pierced the gold track and dangled 0.21 BELOW the
+    // ring with a foot floating in space; it now runs from the ring's
+    // plane up into the card, and the foot plate sits ON the track.
+    card.add(mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.22, 6), M.silver, 0, -0.11, 0))
+    card.add(mesh(new RoundedBoxGeometry(0.1, 0.016, 0.06, 1, 0.006), M.panel, 0, -0.215, 0))
     if (i === 0) {
       // THE ANALYTICS SCREEN — «بالأرقام»: backdrop + growing bars
       card.add(mesh(new RoundedBoxGeometry(0.52, 0.36, 0.022, 2, 0.012), M.ink))
@@ -964,7 +1023,10 @@ function buildMessageComposer(): THREE.Group {
 
   // the PACKET — the message, fired toward the reading column as the
   // section settles (mirror drive: flips with the writing direction)
-  const packet = node('fly_packet', -0.13, -H / 2 + 0.08, 0.02)
+  // PIXEL-TRUTH FIX: nudged from x -0.13 to -0.10 — at rest the
+  // packet sphere (r 0.018) overlapped the send button's right edge;
+  // it now holds clear of it (the halo alone may kiss the edge).
+  const packet = node('fly_packet', -0.1, -H / 2 + 0.08, 0.02)
   packet.add(mesh(new THREE.SphereGeometry(0.018, 10, 8), M.signal))
   packet.add(mesh(
     new THREE.SphereGeometry(0.034, 10, 8),
