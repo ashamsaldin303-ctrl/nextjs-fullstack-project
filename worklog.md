@@ -4537,3 +4537,21 @@ Work Log:
 Stage Summary:
 - The 3-loop protocol is complete: Group 1+2 looped to a formal CLEAN verdict, the 6-principal board found 5 MEDIUMs the first loop missed, Groups 1+2 closed them, V5 re-verified everything, and the orchestrator live-verified the user-visible fixes in a real browser. Final gates: tsc 0 · eslint 0 · i18n parity 739/739 · secrets 0 (incl. working-tree scan) · slop 0 · all routes 200 · console clean.
 - 51 files changed (+~1.7k/−~0.3k): 2 browser-verified HIGH interaction bugs, 11 MEDIUM correctness/truth defects, ~25 LOW hardening fixes, ~20 NIT polish items. DEFERRED (documented): tsconfig exactOptionalPropertyTypes (tree-wide pass), Host allowlist (needs production host list), BUILD_YEAR env inlining (annual cosmetic residual), grain paint exemption (W1-03 canon), before-after split (2936 lines, ledger refresh only).
+
+---
+Task ID: SYNC-FORK-RESOLUTION
+Agent: Coordinator (direct — fork discovery + integration decision + verification)
+Task: Pushing MODEL-4 (my section-voice set, commit 48454e4) was rejected: the remote contained a fuller parallel line (their MODEL-4 semantic bodies + MODEL-4-R2 + MODEL-5 alive-while-visible/scroll fix + the three-loop AUDIT). Resolve the fork honestly.
+
+Work Log:
+- Inspected remote-only commits (83ca310, bfa046a, 363fe76, c3f4b8d, 54a19ea): a parallel agent line had already executed the same owner intents — semantic bodies with pointer interactivity (p-windows, peek/boost/follow drive flags, lean/proximity springs), MODEL-5's alive-while-visible life clock + scroll acceleration fix, and the three-loop whole-project audit (45 fixes, 6-principal board, live-verified).
+- Decision: the remote line is the maximal fulfillment of the owner's standing demands (topical bodies + «تعيش وتتفاعل مع المستخدم» interactivity + visibility gating + the audit). main := origin/main; my section-voice set preserved on branch model4-section-voice (owner's choice; my nodeFlow scored 10/10 topic clarity for the n8n demand).
+- Dev server OOM-died during the 72-file hot reload (documented sandbox pattern); clean restart as user z (no sudo needed — whoami=z).
+- Verified the remote line IN THIS ENVIRONMENT: tsc 0, eslint 0, their verify-models-m4.mjs initially 111/112 — the sole failure was /favicon.ico 404-ing (every first-visit browser requests it; dev.log evidence), which overflowed their expected-doc-404 console filter.
+- FIX: authored src/app/favicon.ico (712-byte ICO wrapping the app's generated 32×32 icon PNG) → /favicon.ico now 200 → verify-models-m4.mjs 112/112. Restored my verify-models-m4-mobile.mjs from the alt branch: clean at 375px (no overflow, rune unmounted).
+- MODEL-5 machinery confirmed live here: bodies animate while visible (life clock, zero input), alive gate closes offscreen, frame loop parks (zero frames), cursor follows pointer on siteCanvas, lean/proximity springs respond.
+- Push: main (favicon + mobile script + this worklog) and model4-section-voice (my alternative set) via the owner's PAT, zero-persistence protocol (/tmp/.gh_tok).
+
+Stage Summary:
+- Fork resolved without destroying either line: main = semantic-interactive-gated-audited set (112/112 verified here); model4-section-voice = my literal-topics alternative (57/57 verified) available for the owner's comparison.
+- The owner's «السيرفرات لا تدل على ماذا نبني» complaint is answered on main by experienceStack + flowGraph (n8n nodes) — and additionally by my branch's siteFlow + nodeFlow if they prefer the literal reading.
