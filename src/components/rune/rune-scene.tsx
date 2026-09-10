@@ -57,6 +57,36 @@ import { resolveModel, type RawInstrument } from './model-loader'
  *    (Tab hidden ⇒ frameloop 'never'; reduced-motion / mobile ⇒ the
  *    layer never mounts — gated upstream in edge-rune.tsx.)
  *
+ *    MODEL-6 (owner's instruction, verbatim intent): «أنيميشن سلس
+ *    وجميل، مثل بناء المجسم، أو انبثاق وظهور له» + «يتحرك بشكل سلس،
+ *    ثابت، ومتناسق… تكبر وتصغر… دون أن تحجب أي شيء… تظهر المجسمات
+ *    الـ 3D بشكل كامل»:
+ *      · BIRTH — every body plays a staged BUILD-IN the moment it
+ *        first takes its slot (first load, every route change, every
+ *        section arrival): the holder bursts from 55% scale with a
+ *        back-out overshoot, rises and spins into its resting face,
+ *        while the kit's own parts converge from a staggered exploded
+ *        halo — «بناء المجسم، أو انبثاق وظهور». The build rides a
+ *        bounded clock that advances ONLY while the body is on stage
+ *        (alive frames — the assembly always COMPLETES even if the
+ *        scroll stops mid-entry) and drains fast on exit, so every
+ *        re-entry replays the birth. While the homepage intro curtain
+ *        is armed (`data-intro`) presence holds at zero — the birth
+ *        plays strictly AFTER the reveal (the R9 contract, extended to
+ *        the rune field; the overlay pokes the bus when it lifts).
+ *      · EDGE LIFE — while the section travels: a vertical edge-glide
+ *        (the body drifts gently against its section — pure f(p),
+ *        reversible, «سلس ومتناسق»; the x anchor stays composed
+ *        «ثابت») plus a scale swell that grows the body through the
+ *        middle of its stay and eases it back at the edges («تكبر
+ *        وتصغر بشكل سلس»), per-slot tunable in the registry
+ *        (grow/glide).
+ *      · FULL VISIBILITY — rotation-conservative projected half-extents
+ *        (the bbox diagonal bound) clamp every holder inside the
+ *        viewport at ANY yaw/tilt and through the grow peak: the whole
+ *        body is always on screen («بشكل كامل»), never clipped, and
+ *        pointer-events-none keeps it from ever blocking the page.
+ *
  * Atmosphere (unchanged physics, frustum-adapted math): the dust field
  * streams with the same clocks; the two washes follow the ACTIVE
  * body (position + palette), so the background literally travels with
@@ -85,6 +115,17 @@ const FADE_EPS = 0.002
 const PRESENCE_K = 7
 /** Element rescan cadence (rendered frames) — catches lazy sections. */
 const RESCAN_EVERY = 45
+/** MODEL-6 build clock (s): staged-birth advance / exit drain. */
+const BUILD_T = 1.15
+const BUILD_DRAIN = 0.5
+/** MODEL-6 per-part assembly window inside the build clock (0..1). */
+const BUILD_PART_W = 0.5
+/** MODEL-6 viewport breathing room for the full-visibility clamps. */
+const EDGE_PAD = 0.09
+/** MODEL-6 — the fixed navbar strip (px, = scroll-padding-top 6rem):
+ * the top clamp reserves it so a body never reads as "cut off by the
+ * header" while it glides high through its stay. */
+const NAV_PX = 96
 
 /* ------------------------------------------------------------------ *
  * GLSL — atmosphere layers (proven RUNE-2 physics, frustum units)
@@ -197,6 +238,16 @@ function ease01(x: number): number {
   return c * c * (3 - 2 * c)
 }
 
+/** MODEL-6 back-out easing — the «انبثاق» settle: overshoots ~10% on
+ * the way to 1, so the birth's scale/rise land with one soft pop
+ * instead of a dead stop. */
+function backOut(x: number): number {
+  const c = x < 0 ? 0 : x > 1 ? 1 : x
+  const c1 = 1.70158
+  const t = c - 1
+  return 1 + (c1 + 1) * t * t * t + c1 * t * t
+}
+
 /* ------------------------------------------------------------------ *
  * Dust geometry (deterministic — no Math.random in the render path)
  * ------------------------------------------------------------------ */
@@ -269,6 +320,17 @@ interface DriveRT {
   drive: PartDrive
 }
 
+/** MODEL-6 — one assembling part of a body: a direct kit child with
+ * its authored base position and a capped radial explode offset (away
+ * from the bbox center — peripheral parts fly in, the chassis stays). */
+interface BuildPart {
+  node: THREE.Object3D
+  basePos: THREE.Vector3
+  out: THREE.Vector3
+  /** Start point inside the build clock (staggered across siblings). */
+  stagger: number
+}
+
 export interface InstrumentRT {
   /** Centered clone holder — added to the slot's group. */
   group: THREE.Group
@@ -276,6 +338,14 @@ export interface InstrumentRT {
   mats: MatEntry[]
   /** Resolved named parts (drives). */
   drives: DriveRT[]
+  /** MODEL-6 assembling parts (direct children with explode offsets). */
+  parts: BuildPart[]
+  /** O(1) drive-node → part lookup (birth offsets compose into the
+   * position-writing drives). */
+  partByNode: Map<THREE.Object3D, BuildPart>
+  /** Nodes whose positions are written by slide/follow drives — the
+   * generic reset pass skips them (their reset IS the drive write). */
+  posDriven: Set<THREE.Object3D>
   fitDim: number
   size: THREE.Vector3
   center: THREE.Vector3
@@ -410,10 +480,45 @@ function buildInstrument(def: ModelDef, raw: RawInstrument): InstrumentRT {
         ? raw.size.x
         : Math.max(raw.size.x, raw.size.y, raw.size.z)
 
+  // MODEL-6 build parts — the kit's direct children, each remembered
+  // with its authored base position and a capped RADIAL explode offset
+  // from the body's bbox center. Staggered across siblings over the
+  // build clock; position-writing drives compose their own offset in
+  // the driver, everything else is reset by the generic pass — an
+  // absolute write every frame, so nothing ever accumulates.
+  const parts: BuildPart[] = []
+  const partByNode = new Map<THREE.Object3D, BuildPart>()
+  const kids = clone.children
+  for (let i = 0; i < kids.length; i++) {
+    const child = kids[i] as THREE.Object3D
+    const out = child.position.clone().sub(raw.center)
+    const len = out.length()
+    if (kids.length > 1 && len > 1e-4) {
+      out.multiplyScalar(Math.min(len * 0.85, 0.42) / len)
+    } else {
+      out.set(0, 0, 0)
+    }
+    const part: BuildPart = {
+      node: child,
+      basePos: child.position.clone(),
+      out,
+      stagger: kids.length > 1 ? 0.08 + (0.42 * i) / (kids.length - 1) : 0.08,
+    }
+    parts.push(part)
+    partByNode.set(child, part)
+  }
+  const posDriven = new Set<THREE.Object3D>()
+  for (const d of drives) {
+    if (d.drive.slide || d.drive.follow) posDriven.add(d.node)
+  }
+
   return {
     group,
     mats,
     drives,
+    parts,
+    partByNode,
+    posDriven,
     fitDim: Math.max(fitDim, 1e-6),
     size: raw.size,
     center: raw.center,
@@ -446,6 +551,9 @@ interface SlotRT {
   env: number
   /** Damped materialise/dissolve value (0..1). */
   presence: number
+  /** MODEL-6 staged-birth clock (0..1) — advances while on stage,
+   * drains on exit so every arrival replays the assembly. */
+  build: number
   ready: boolean
   instrument: InstrumentRT | null
   /** Liveness token — rejects async attaches after a rebuild. */
@@ -550,7 +658,7 @@ function buildSlots(routeKey: RunePresetKey): { list: SlotRT[]; dispose: () => v
     const rt: SlotRT = {
       slot, def, holder, shadow, shadowMat,
       el: null, rectTop: 0, rectH: 0, rectAt: 0,
-      p: 0, env: 0, presence: 0, ready: false, instrument: null, token,
+      p: 0, env: 0, presence: 0, build: 0, ready: false, instrument: null, token,
       spr: { x: 0, y: 0 }, prox: 0,
       shadowW: 1, shadowY: -0.5,
     }
@@ -711,7 +819,10 @@ interface RuneDebug {
   fade: number
   fadePhase: 'in' | 'out'
   active: string
-  models: { id: string; slug: string; p: number; env: number; presence: number; ready: boolean; found: boolean; x: number; y: number; scale: number; prox: number; sprx: number; spry: number; drives: { node: string; rot: number; pos: number; scl: number; glow: number | null; fx: number; fy: number }[] }[]
+  models: { id: string; slug: string; p: number; env: number; presence: number; build: number; ready: boolean; found: boolean; x: number; y: number; scale: number; prox: number; sprx: number; spry: number; drives: { node: string; rot: number; pos: number; scl: number; glow: number | null; fx: number; fy: number }[] }[]
+  /** MODEL-6: true while the homepage intro curtain is armed — the
+   *  staged births are held (R9) until the reveal completes. */
+  introHold: boolean
 }
 
 declare global {
@@ -848,6 +959,12 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
     // freezes the instant the loop parks (no frames ⇒ no ticks).
     life.current += dt
     const lifeT = life.current
+    // MODEL-6: while the homepage entry curtain is armed (`data-intro`)
+    // the bodies hold dark — their staged birth must play strictly
+    // AFTER the reveal (the R9 contract, extended to the rune field;
+    // intro-overlay pokes the bus the moment it lifts the curtain).
+    // hasAttribute is a plain attribute read — no layout, safe per frame.
+    const introHold = document.documentElement.hasAttribute('data-intro')
     // A viewport resize means reflow — the rect cache is stale, rescan.
     const vhChanged = lastVh.current !== vh
     if (vhChanged) lastVh.current = vh
@@ -945,12 +1062,33 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       rt.env = env
 
       // Presence: the designed materialise/dissolve value, damped.
-      const targetEnv = env * fadeV * (rt.ready ? 1 : 0)
+      // MODEL-6: introHold pins the target at zero — the curtain must
+      // never reveal a half-born body (the birth starts at time 0 on a
+      // fully revealed stage).
+      const targetEnv = introHold ? 0 : env * fadeV * (rt.ready ? 1 : 0)
       const pks = 1 - Math.exp(-PRESENCE_K * dt)
       const prevPresence = rt.presence
       rt.presence += (targetEnv - rt.presence) * pks
       const pd = Math.abs(rt.presence - prevPresence)
       if (pd > settleDelta) settleDelta = pd
+
+      // MODEL-6 build clock — the staged BIRTH. Advances while the body
+      // is on stage (the alive loop's frames tick it, so the assembly
+      // always COMPLETES even when the scroll stops mid-entry), drains
+      // fast once the body is gone so the next arrival replays it. A
+      // bounded clock — settles at 1 and never idles past it.
+      const prevBuild = rt.build
+      if (!introHold) {
+        if (rt.presence > 0.06 && rt.build < 1) {
+          rt.build = Math.min(1, rt.build + dt / BUILD_T)
+        } else if (rt.presence <= 0.03 && rt.build > 0) {
+          rt.build = Math.max(0, rt.build - dt / BUILD_DRAIN)
+        }
+      }
+      const bd = Math.abs(rt.build - prevBuild)
+      if (bd > settleDelta) settleDelta = bd
+      const build = rt.build
+      const bk = backOut(build)
 
       const presence = rt.presence
       if (presence <= 0.015) {
@@ -977,12 +1115,15 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
             : slot.side === 'start'
               ? 0.24
               : 0.76) + (slot.xPad ?? 0)
-      const maxX = halfH * aspect - 0.35
-      const x = Math.max(-maxX, Math.min(maxX, (xFrac * 2 - 1) * halfH * aspect))
+      let x = (xFrac * 2 - 1) * halfH * aspect
       const anchorPx = el === null ? 0 : liveTop + rt.rectH * slot.yFrac
       const fy = anchorPx / vh
       const modelH = slot.viewFrac * 2 * halfH
-      const rise = (1 - presence) * -0.12 * halfH
+      // MODEL-6: the presence rise is deepened by the BIRTH rise — the
+      // body climbs into place as it assembles (the back-out overshoot
+      // gives it one soft settling bounce above its slot).
+      const rise =
+        (1 - presence) * -0.12 * halfH + (1 - bk) * -0.22 * modelH
 
       // --- MODEL-5 IDLE (whole body) ------------------------------------
       // The life layer: a per-slot breathing (bob ±1.2% of the body's
@@ -1039,24 +1180,105 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       // height) when the pointer is over the body; the slot stays
       // composed, the body just breathes up toward your hand.
       const hoverLift = rt.prox * 0.04 * modelH * hoverW
-      const y = baseY + hoverLift + bob
+      // MODEL-6 EDGE-GLIDE: the body drifts gently against its section
+      // while scrolling (pure f(p) gated by the envelope — smooth,
+      // reversible, «سلس ومتناسق»; «ثابت» comes from the untouched x
+      // anchor — the body roams its edge corridor, never the column).
+      const glide = (p - 0.5) * (slot.glide ?? 0.5) * modelH * env
+      let y = baseY + hoverLift + bob + glide
 
       const holder = rt.holder
-      holder.position.set(x, y, slot.z)
 
-      // STABLE scale — a fraction of the viewport held constant (plus
-      // the proximity breath, ≤4.5%, still a pure pointer function) and
-      // the MODEL-5 idle breath (±1%).
+      // SCALE — MODEL-6 amendment of the stable-slot contract: the base
+      // is still the composed viewport fraction, now shaped by (a) the
+      // BIRTH burst (55% → back-out overshoot ≈ +4.5% → 1), (b) the
+      // scroll SWELL — the body grows through the middle of its stay
+      // and eases back at the edges («تكبر وتصغر بشكل سلس ومتناسق») —
+      // CAPPED to the free outward corridor (see the pin below), (c) the
+      // pointer proximity breath (≤4.5%, pure pointer function) and (d)
+      // the MODEL-5 idle breath (±1%). All continuous in (build, p,
+      // prox, life) — reversible.
       const fitDim = inst ? inst.fitDim : 1
-      const scale = Math.max((sizeK * modelH) / fitDim, 1e-4) * (1 + rt.prox * 0.045 * hoverW) * breath
+      const baseScale = Math.max((sizeK * modelH) / fitDim, 1e-4)
+      const grow = slot.grow ?? 0.15
+      // MODEL-6 yaw-aware projected silhouette — the EXACT horizontal
+      // half-extent of the rotated bbox (Euler XYZ: the x row is
+      // (cosYaw, 0, sinYaw) — tilt mixes y/z only, so this is exact for
+      // any tilt; the birth spin and the lean ride the yaw too).
+      const yawNow =
+        rt.def.yaw +
+        slot.scrub * ease01(p) +
+        (1 - bk) * -0.55 +
+        lean * rt.spr.x +
+        sway
+      const hw1 =
+        inst && inst.size.x > 0
+          ? 0.5 * (inst.size.x * Math.abs(Math.cos(yawNow)) + inst.size.z * Math.abs(Math.sin(yawNow)))
+          : 0
+      const halfSpan = halfH * aspect
+      const hwBase = hw1 * baseScale
+      // Growth corridor — the free room OUTWARD from the anchored edge
+      // of the base silhouette to the viewport pad. The swell may use up
+      // to 95% of it; the pin below then guarantees the body grows INTO
+      // the free edge space, NEVER inward toward the reading column.
+      const room = Math.max(halfSpan - EDGE_PAD - hwBase - Math.abs(x), 0)
+      const growCap = hwBase > 1e-4 ? Math.min((0.95 * room) / hwBase, 1) : 1
+      const growEff = Math.min(grow, growCap)
+      const scale =
+        baseScale *
+        (0.55 + 0.45 * bk) *
+        (1 + growEff * Math.sin(Math.PI * p)) *
+        (1 + rt.prox * 0.045 * hoverW) *
+        breath
+      // INNER-EDGE PIN — every scale term beyond the base (swell,
+      // proximity breath, idle breath) shifts the holder OUTWARD by the
+      // half-extent it gained: the body's inner silhouette edge holds
+      // its designed, VLM-tuned clearance from the text for the whole
+      // stay («دون أن تحجب أي شيء»), and the growth reads as the body
+      // swelling toward the free edge, never over the copy. During the
+      // birth (scale < base) the pin is exactly zero — the assembling
+      // body stays anchored.
+      const growthK = scale / baseScale
+      if (growthK > 1 && x !== 0) {
+        x += Math.sign(x) * hwBase * (growthK - 1)
+      }
+
+      // MODEL-6 FULL-VISIBILITY clamps — the exact projected silhouette
+      // (horizontal) and the tilt-conservative bbox diagonal (vertical)
+      // keep the WHOLE body inside the viewport at any yaw/tilt, through
+      // the grow peak and the edge-glide. The top band additionally
+      // reserves the fixed navbar strip so nothing reads as "cut off by
+      // the header": «تظهر المجسمات الـ 3D بشكل كامل», never clipped.
+      if (inst) {
+        const hw = hw1 * scale
+        const hh = 0.5 * Math.sqrt(inst.size.y * inst.size.y + inst.size.z * inst.size.z) * scale
+        const spanMaxX = Math.max(halfSpan - EDGE_PAD - hw, 0.05)
+        const navPad = (NAV_PX / vh) * 2 * halfH
+        const yMax = Math.max(halfH - navPad - hh, 0.05)
+        // Lower bound: the proper negative bound, falling back to −0.05
+        // ONLY when the body is taller than the viewport (degenerate) —
+        // Math.min picks the more negative (permissive) of the two.
+        const yMin = Math.min(-(halfH - EDGE_PAD - hh), -0.05)
+        if (x > spanMaxX) x = spanMaxX
+        else if (x < -spanMaxX) x = -spanMaxX
+        if (y > yMax) y = yMax
+        else if (y < yMin) y = yMin
+      }
+      holder.position.set(x, y, slot.z)
       holder.scale.setScalar(scale)
 
       // Whole-body scrub (reversible) + yaw + dissolve settle + the
-      // POINTER LEAN (the body turns its face toward your hand — pure
-      // function of the damped springs, converges when input stops) +
-      // the MODEL-5 idle sway.
+      // MODEL-6 BIRTH spin-in (the body turns into its resting face as
+      // it assembles) + the POINTER LEAN (the body turns its face
+      // toward your hand — pure function of the damped springs,
+      // converges when input stops) + the MODEL-5 idle sway.
       holder.rotation.y =
-        rt.def.yaw + slot.scrub * ease01(p) + (1 - presence) * -0.4 + lean * rt.spr.x + sway
+        rt.def.yaw +
+        slot.scrub * ease01(p) +
+        (1 - presence) * -0.4 +
+        (1 - bk) * -0.55 +
+        lean * rt.spr.x +
+        sway
       holder.rotation.x = (rt.def.tilt ?? 0) - lean * rt.spr.y * 0.7
 
       // Part drives — real named nodes, functions of (D, p, prox, life).
@@ -1066,6 +1288,24 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
         const prox = rt.prox
         for (const d of inst.drives) {
           const drive = d.drive
+          // MODEL-6 BIRTH offset for this node — if it is a direct kit
+          // child inside its staggered assembly window, its explode
+          // offset composes ON TOP of the drive's authored write (and
+          // is exactly zero once the build completes, leaving the
+          // authored scroll poses untouched at rest).
+          const birthPart = inst.partByNode.get(d.node)
+          let box = 0
+          let boy = 0
+          let boz = 0
+          if (birthPart && build < 1) {
+            const bl = (build - birthPart.stagger) / BUILD_PART_W
+            const k = 1 - backOut(bl < 0 ? 0 : bl > 1 ? 1 : bl)
+            if (k > 1e-3) {
+              box = birthPart.out.x * k
+              boy = birthPart.out.y * k
+              boz = birthPart.out.z * k
+            }
+          }
           // MODEL-5 IDLE term — the drive's own life harmonic:
           // harmonic: amp·sin(life·2π·hz + phase) (slides/rotations),
           // unipolar: amp·(0.5+0.5·sin(…)) (scales/glows — never below
@@ -1092,8 +1332,8 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
           if (drive.follow) {
             const rx = drive.slide?.[0] ?? 0
             const ry = drive.slide?.[1] ?? 0
-            d.node.position.x = d.basePosVec.x + ndc.current.x * rx
-            d.node.position.y = d.basePosVec.y + ndc.current.y * ry
+            d.node.position.x = d.basePosVec.x + ndc.current.x * rx + box
+            d.node.position.y = d.basePosVec.y + ndc.current.y * ry + boy
             continue
           }
           // GLOW — emissive-intensity delta over the window (+ pointer
@@ -1137,7 +1377,8 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
             if (drive.peek) off += drive.peek * prox
             if (idle) off += idleH
             if (drive.mirror && !rtl) off = -off
-            d.node.position[d.axis] = d.basePos + off
+            d.node.position[d.axis] =
+              d.basePos + off + (d.axis === 'x' ? box : d.axis === 'y' ? boy : boz)
             continue
           }
           let rot = d.base
@@ -1159,6 +1400,25 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
           // rings keep turning, the broken halves keep swaying).
           if (idle) rot += idleH
           d.node.rotation[d.axis] = rot
+        }
+
+        // MODEL-6 part assembly — every NON-position-driven part
+        // converges from its exploded halo offset (an absolute write
+        // from the authored base every frame: idempotent, never
+        // accumulates, and exactly the authored pose once build = 1 —
+        // the drives' scroll sequences stay byte-identical at rest).
+        for (const part of inst.parts) {
+          if (inst.posDriven.has(part.node)) continue
+          let k = 0
+          if (build < 1) {
+            const bl = (build - part.stagger) / BUILD_PART_W
+            k = 1 - backOut(bl < 0 ? 0 : bl > 1 ? 1 : bl)
+          }
+          part.node.position.set(
+            part.basePos.x + part.out.x * k,
+            part.basePos.y + part.out.y * k,
+            part.basePos.z + part.out.z * k,
+          )
         }
 
         // Presence fades the cloned materials (transparent only while
@@ -1305,6 +1565,7 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
         fps: fps.current,
         life: Math.round(lifeT * 1000) / 1000,
         alive: anyAlive,
+        introHold,
         D,
         S,
         vy,
@@ -1318,11 +1579,15 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
           p: rt.p,
           env: rt.env,
           presence: rt.presence,
+          build: Math.round(rt.build * 1000) / 1000,
           ready: rt.ready,
           found: rt.el !== null,
           x: rt.holder.position.x,
           y: rt.holder.position.y,
           scale: rt.holder.scale.x,
+          szx: rt.instrument ? Math.round(rt.instrument.size.x * 1000) / 1000 : 0,
+          szy: rt.instrument ? Math.round(rt.instrument.size.y * 1000) / 1000 : 0,
+          szz: rt.instrument ? Math.round(rt.instrument.size.z * 1000) / 1000 : 0,
           prox: Math.round(rt.prox * 1000) / 1000,
           sprx: Math.round(rt.spr.x * 1000) / 1000,
           spry: Math.round(rt.spr.y * 1000) / 1000,

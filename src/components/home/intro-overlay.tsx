@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
+import { pokeRuneField } from '@/components/rune/rune-bus'
 
 /**
  * IntroOverlay — cinematic first-visit entry animation (R3, user request:
@@ -87,6 +88,11 @@ export function IntroOverlay() {
     }
     if (reduced || playedThisSession || document.documentElement.hasAttribute('data-intro-off')) {
       document.documentElement.removeAttribute('data-intro')
+      // MODEL-6: if the pre-paint gate had armed the curtain, its
+      // dismissal here may be the only release — wake the rune field so
+      // the staged births begin on the revealed stage (no-op before the
+      // scene mounts).
+      pokeRuneField()
       // rAF-wrapped — never setState synchronously inside the effect body
       // (react-hooks/set-state-in-effect).
       const id = window.requestAnimationFrame(() => setPhase('done'))
@@ -161,6 +167,11 @@ export function IntroOverlay() {
     }
     const id = window.setTimeout(() => {
       document.documentElement.removeAttribute('data-intro')
+      // MODEL-6 (R9 extension): the curtain is fully up — poke the rune
+      // field's invalidate bus so the staged BIRTH animations begin on
+      // the revealed stage (the demand loop may have parked while the
+      // curtain held the bodies dark; this wake is the release beat).
+      pokeRuneField()
       setPhase('done')
     }, LIFT_MS)
     return () => window.clearTimeout(id)
@@ -172,10 +183,12 @@ export function IntroOverlay() {
   // cancelled by the effect cleanup above and `data-intro` would stay
   // armed FOREVER — pausing every .hero-enter animation site-wide (inner
   // pages included) behind opacity:0. Removing the attribute on unmount is
-  // idempotent and costs nothing.
+  // idempotent and costs nothing. (MODEL-6: the accompanying poke also
+  // releases the rune field's held births in that cut-short path.)
   useEffect(
     () => () => {
       document.documentElement.removeAttribute('data-intro')
+      pokeRuneField()
     },
     []
   )

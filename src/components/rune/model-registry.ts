@@ -479,6 +479,15 @@ export interface ModelSlot {
   xPad?: number
   /** Extra world-Y offset (fraction of the model's height). */
   yOff?: number
+  /** MODEL-6 scroll SWELL amplitude — the body grows by this fraction
+   *  through the middle of its stay and eases back at the edges
+   *  («تكبر وتصغر بشكل سلس ومتناسق»); default 0.15. Hero authorities
+   *  breathe a touch deeper, small witnesses stay calmer. */
+  grow?: number
+  /** MODEL-6 edge-glide amplitude as a fraction of the body's height
+   *  — how far the body drifts against its section across the travel
+   *  (vertical only; the x anchor stays composed «ثابت»); default 0.5. */
+  glide?: number
 }
 
 export interface ModelRoute {
@@ -501,12 +510,19 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
     slots: [
       {
         model: 'experienceStack', id: 'hero-title', side: 'end',
-        yFrac: 0.56, viewFrac: 0.5, z: -0.5, scrub: 0.15, palette: 'dark',
-        xPad: -0.03, // VLM r1: xFrac 0.12 parked the stack in a dead
-        // corner "divorced from the headline" — brought inward to
-        // xFrac 0.21 so the assembled experience stands IN the margin,
-        // and enlarged (0.46→0.5) to anchor the hero. Still clear of
-        // the h1's tail (MODEL-2 r1/r2 geometry).
+        yFrac: 0.56, viewFrac: 0.33, z: -0.5, scrub: 0.15, palette: 'dark',
+        xPad: -0.1, // MODEL-6 r2: the editorial kinetic h1 is near
+        // full-bleed (its accent line's ink reaches ~377px from the left
+        // at 1440px) — the TRUE free margin is the outer ~350px band.
+        // Sized+tucked so the base silhouette's inner edge holds ~24px
+        // clear of that ink at any growth (± the idle sway's ±9px projected
+        // wobble — 19px at the anchor; the inner-edge pin keeps the
+        // clearance; the swell extends outward into the free corridor,
+        // growCap-bounded): «على أطراف الموقع… دون أن تحجب أي شيء» —
+        // pixel-diff-verified (the r1 0.44/−0.05 still grazed the accent
+        // line's tail letters).
+        grow: 0.17, glide: 0.55, // MODEL-6: the hero authority breathes
+        // deepest — the offering swelling as the promise is read.
       },
       {
         model: 'pipelineJourney', id: 'method-title', side: 'end',
@@ -515,6 +531,8 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
         // pulled inward (xFrac 0.22) and sized 0.36 so the whole
         // portal journey sits composed inside the margin, nothing
         // grazing the edge.
+        grow: 0.11, glide: 0.42, // MODEL-6: the witness breathes gently —
+        // the journey reads, the method section stays the hero.
       },
     ],
     dust: 1,
@@ -528,10 +546,15 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
     slots: [
       {
         model: 'siteCanvas', id: 'page-hero-title', side: 'end',
-        yFrac: 0.48, viewFrac: 0.42, z: -0.35, scrub: 0.28, palette: 'dark',
-        xPad: -0.06, // VLM r1: raised viewFrac (0.4→0.42) and eased the
-        // tuck (−0.09→−0.06) — the assembling canvas should OWN its
-        // margin, not whisper from it ("sticker pasted" verdict).
+        yFrac: 0.48, viewFrac: 0.32, z: -0.35, scrub: 0.28, palette: 'dark',
+        xPad: -0.107, // MODEL-6 r2: the hero's subtitle ink reaches
+        // ~365px from the left at 1440px — sized + tucked so the base
+        // silhouette's inner edge holds ~24px clear of it (pixel-diff-
+        // verified; the r1 0.42/−0.06 covered the subtitle's tail). The
+        // assembling canvas still owns its band — a compact browser
+        // building itself at the true edge.
+        grow: 0.12, glide: 0.5, // MODEL-6: the swell breathes within
+        // the corridor (growCap-bounded on this tight margin).
       },
     ],
     dust: 0.85,
@@ -546,8 +569,12 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
       {
         model: 'flowGraph', id: 'page-hero-title', side: 'end',
         yFrac: 0.52, viewFrac: 0.48, z: -0.3, scrub: 0.2, palette: 'dark',
-        xPad: -0.07, // robotArm lineage: a clean gap between the graph
-        // and the centered max-w-4xl column (MODEL-3 VLM r2 lesson).
+        xPad: -0.05, // MODEL-6 r2: eased the tuck (−0.07→−0.05) so the
+        // wide flat graph holds ~40px of viewport-edge breathing room
+        // (the clamp still guarantees full visibility; pixel-diff clean,
+        // the flat body's band sits clear of the subtitle line).
+        grow: 0.16, glide: 0.5, // MODEL-6: the workflow swells mid-stay
+        // as its packets hop — the system, working.
       },
     ],
     dust: 1.15,
@@ -564,6 +591,8 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
         xPad: -0.04, // VLM r2: the gallery-ring rebuild reads bigger
         // (0.42→0.46, tuck −0.07→−0.04) and the scrub is a 60° stroll
         // (was the full 120° turn that angled every screen away).
+        grow: 0.16, glide: 0.5, // MODEL-6: the deck swells as the chart
+        // climbs — the numbers, ascending.
       },
     ],
     dust: 1,
@@ -578,14 +607,20 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
       {
         model: 'explodedDetail', id: 'page-hero-title', side: 'end',
         yFrac: 0.52, viewFrac: 0.34, z: -0.35, scrub: 0.3, palette: 'dark',
-        xPad: -0.06, // circuitBoard lineage: tucked clear of the centered
-        // hero column; the opened stack reads while the relief stays.
+        xPad: -0.15, // MODEL-6 r2: the about h1's ink reaches ~244px from
+        // the left at 1440px (near full-bleed editorial heading) — tucked
+        // deep so the narrow module's inner edge holds ~20px clear at any
+        // growth (pixel-diff-verified; the r1 −0.06 covered the tail).
+        grow: 0.14, glide: 0.48, // MODEL-6: the module opens and swells —
+        // the obsession, revealed.
       },
       {
         model: 'braidMerge', id: 'story-title', side: 'end',
         yFrac: 0.66, viewFrac: 0.26, z: -0.25, scrub: 0.2, palette: 'light',
         xPad: -0.09, // dataStack lineage: smaller + deeper + tucked —
         // fully clear of the story's reading column.
+        grow: 0.1, glide: 0.4, // MODEL-6: the calmest witness — the story
+        // reads; the braid just breathes.
       },
     ],
     dust: 1.05,
@@ -602,6 +637,8 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
         yFrac: 0.5, viewFrac: 0.36, z: -0.4, scrub: 0.2, palette: 'dark',
         xPad: -0.1, // dishAntenna lineage: pinned deep into the margin —
         // part of the layout grid, not floating.
+        grow: 0.15, glide: 0.5, // MODEL-6: the composer swells as the
+        // conversation warms.
       },
     ],
     dust: 1.3,
@@ -616,6 +653,8 @@ export const MODEL_ROUTES: Record<RunePresetKey, ModelRoute> = {
         model: 'brokenLink', id: 'nf-recovery-heading', side: 'end',
         yFrac: 0.5, viewFrac: 0.32, z: -0.3, scrub: 0.3, palette: 'light',
         xPad: -0.04, // the 404 message stays the hero.
+        grow: 0.12, glide: 0.45, // MODEL-6: a modest swell — the link
+        // reaching as the visitor scrolls toward home.
       },
     ],
     dust: 0.7,
