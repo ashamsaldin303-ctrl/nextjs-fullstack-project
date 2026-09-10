@@ -1,61 +1,55 @@
 /**
- * Tech kits (MODEL-3) — the authored technical bodies.
+ * Tech kits (MODEL-4) — the SECTION-VOICE bodies.
  *
- * OWNER'S THIRD VERDICT (verbatim intent): the workshop/craft bodies were
- * «أثاث منزل وقطع تاريخية» — the site's bodies must be TECHNICAL objects
- * that say what Elyra BUILDS, «ليس على هويته، وإنما على ماهيته ووظيفته»
- * (not its identity, but its essence and its function): software,
- * infrastructure, automation, devices, signals.
+ * OWNER'S FOURTH VERDICT (verbatim intent): the technical set was
+ * «تتحدث عن التكنولوجيا ولكنها لا تعبر عن الموضوع الموجودة فيه» —
+ * technical, yes, but not speaking the TOPIC of the section they live
+ * in. «السيرفرات لا تدل على ماذا نبني» — the servers don't say what
+ * we build; the robot arm «لا تدل أبداً على الأتمتة من خلال النودز» —
+ * says nothing of automation-through-nodes. Each body must now be the
+ * LITERAL subject of its section — the mapping IS the message:
  *
- * Research that shaped this file (full record: scripts/fetch-models-m3.mjs
- * + worklog MODEL-3): Poly Haven's 521-model catalog holds exactly ONE
- * fitting technical photoscan (a real PCB — downloaded as circuit_board,
- * the only downloaded member of this set). Every other reachable source
- * is either vintage consumer electronics (the aesthetic the owner just
- * rejected) or flat low-poly kits that would clash with the studio-PBR
- * stage. The professional route for technical hero bodies — the
- * Stripe/Linear school — is AUTHORED kits: procedural geometry with real
- * PBR materials keyed to the brand tokens, and NAMED part nodes the
- * scroll-driver articulates. That is this file.
- *
- * The set (each body MEANS its section — the mapping is the design):
- *   · serverRack   — home hero: «نبني ما يعمل» — the machine room; every
- *     site Elyra ships lives in one. Its three fans are LIVE ODOMETERS of
- *     D: the rack runs exactly as far as you scroll, and freezes when you
- *     stop (fan_a / fan_b / fan_c).
- *   · cpuChip      — home method: «بدقة العلماء» — engineering precision
- *     at micrometer scale: die, capacitors, a gold pin-grid, etched
- *     traces. Says everything by being exact — no part drives.
- *   · laptopStudio — websites hero: «اللوحة التي تولد عليها المواقع» —
- *     the open studio laptop; its screen is a live wireframe of a
- *     homepage being born (browser chrome, emerald blocks, gold
- *     underline). The lid breathes gently with the scroll (lid).
- *   · robotArm     — automation hero: «الآلة التي تعمل بتمريرك» — THE
- *     machine, successor of the drill press: shoulder/elbow/wrist/grip
- *     sweeps ride the section's travel p, so the arm cycles through a
- *     work pose — reaching, then presenting its glowing workpiece — and
- *     replays it exactly in reverse when you scroll back up.
- *   · smartphone   — work hero: «العمل يعمل في يد العميل» — the shipped
- *     product in the hand: app-grid wireframe screen, camera island,
- *     gold side keys. The product shot — no part drives.
- *   · circuitBoard — about hero: the REAL photoscanned PCB (Poly Haven,
- *     downloaded) — «صنعة اليد الجديدة: دوائر مطبوعة». Lives in the
- *     MODEL_LIBRARY like any GLTF asset — nothing in this file.
- *   · dataStack    — about story: «الأرشيف» — four storage sleds in a
- *     gold-railed frame; sled_c SLIDES OUT of the array as the story
- *     travels (a volume pulled from the shelf — successor of the pulled
- *     encyclopedia volumes).
- *   · dishAntenna  — contact hero: «أرسل الإشارة» — the parabolic dish
- *     that ACQUIRES you: azimuth + elevation sweeps track the section's
- *     travel; the feed tip glows emerald (the signal, waiting).
+ *   · siteFlow     — home hero: the agency's whole offer in one body —
+ *     a BROWSER (the beautiful sites Elyra builds) flowing down a gold
+ *     pipeline into three AUTOMATION NODES (envelope → invoice →
+ *     report): «مواقع فائقة الجمال… وأنظمة أتمتة ذكية بـ n8n». The
+ *     pulses ride the links as you scroll — the offer, running.
+ *   · journeyRail  — home method: «رحلة واضحة، من الفكرة إلى
+ *     الإطلاق» — a four-station ascending rail (discover → design →
+ *     build → launch); the glowing traveler rides the rail on your
+ *     scroll and the station rings spin as odometers.
+ *   · laptopStudio — websites hero: «مواقع تُبنى لتبهر» — the studio
+ *     laptop, now with UI blocks (nav, hero, CTA) that ASSEMBLE onto
+ *     the screen as the section travels: a website being born under
+ *     your scrolling.
+ *   · nodeFlow     — automation hero: THE n8n canvas made physical —
+ *     a dot-grid editor panel carrying four node cards (trigger bolt →
+ *     invoice → sheet → chat) wired by gold links; three pulses run
+ *     the workflow as you scroll and freeze when you stop.
+ *   · workDeck     — work hero: «نتائج تتحدث بالأرقام» — a cascade of
+ *     three shipped-project browser cards, each wearing its metric
+ *     (+140%, 3.2×, +92%); the deck fans open across the travel.
+ *   · obsessionLens— about hero: «صغيرة الحجم، كبيرة الهوس
+ *     بالتفاصيل» — a large gold magnifier sweeping across a tiny
+ *     fine-traced circuit tile: the studio's obsession, literal.
+ *   · dataStack    — about story (kept): the archive — four sleds,
+ *     one pulled from the shelf as the story travels.
+ *   · chatSignal   — contact hero: «لنبدأ الحديث — نرد عادة خلال
+ *     ساعتين» — a speech bubble with three typing dots bobbing on the
+ *     scroll's own oscillation: a conversation already alive.
+ *   · duck         — 404 (kept, downloaded): rubber-duck debugging —
+ *     programmer culture, the survivor the owner kept.
  *
  * CONTRACTS (unchanged, binding on every kit):
  * · Pure TS + three.js geometry only — no network, no external files.
  * · Deterministic: no Math.random, no wall-clock, no per-frame state —
  *   a given scroll position renders a byte-identical frame.
- * · Every moving part is a NAMED node (fan_a, shoulder, azimuth, sled_c…)
+ * · Every moving part is a NAMED node (pulse_a, traveler, dot_a, lens…)
  *   so the registry's PartDrives resolve them by name (suffix-match
- *   contract of rune-scene's findNode).
+ *   contract of rune-scene's findNode). Slide drives move the node
+ *   INSIDE a rotated frame group, so the pulse travels the link's own
+ *   direction (a rotated group's position would move on the PARENT's
+ *   axes — the child's does not).
  * · Cache-owned: each kit is built ONCE per module lifetime and cached;
  *   the scene clones it per mount (geometries/textures/material
  *   originals are shared and never disposed — the exact GLTF-cache
@@ -63,8 +57,8 @@
  * · Materials are MeshStandardMaterial so the scene's studio
  *   environment, presence fades and env-intensity handling apply to
  *   them identically. Brand-critical emissives are EXACT token colors
- *   (gGreen / gYellow / gBlueLight from the brand registry); structural
- *   metal shades are documented derivations of registry tokens.
+ *   (gGreen / gYellow from the brand registry); structural metal
+ *   shades are documented derivations of registry tokens.
  */
 
 import * as THREE from 'three'
@@ -89,9 +83,6 @@ const SILVER = '#c3cbd6'
 const GOLD = '#c9a227'
 /** substrate green — gGreen #34A853 darkened (PCB of the chip). */
 const PCB = '#123524'
-/** dish cream — the paper/silk family (real satellite dishes are white);
- * double-sided: the lathe's concave face is what the visitor sees. */
-const CREAM = '#e9e5da'
 
 /* ------------------------------------------------------------------ *
  * Shared materials (cache-owned originals; the scene clones per mount)
@@ -108,7 +99,12 @@ const M = {
   silver: std(SILVER, 0.95, 0.22, { envMapIntensity: 1.25 }),
   gold: std(GOLD, 1.0, 0.24, { envMapIntensity: 1.3 }),
   pcb: std(PCB, 0.15, 0.55),
-  cream: std(CREAM, 0.06, 0.42, { envMapIntensity: 1.1, side: THREE.DoubleSide, emissive: CREAM, emissiveIntensity: 0.35 }),
+  /** the lens glass — a clear disc catching the studio env (VLM r1:
+   * was reading opaque/dark — brighter tint + more env + less fill
+   * so it reads as GLASS magnifying the traces beneath). */
+  glass: std('#cfe4f0', 0.9, 0.05, {
+    transparent: true, opacity: 0.22, envMapIntensity: 2.2, side: THREE.DoubleSide,
+  }),
   /** activity LED — exact gGreen token. */
   ledGreen: std('#062e19', 0.1, 0.4, {
     emissive: BRAND_COLORS.gGreen, emissiveIntensity: 2.4,
@@ -117,18 +113,19 @@ const M = {
   ledGold: std('#2d2405', 0.1, 0.4, {
     emissive: BRAND_COLORS.gYellow, emissiveIntensity: 1.9,
   }),
-  /** the signal / workpiece glow — exact gGreen, hotter. */
+  /** chrome close-dot — the browser's traffic red. */
+  ledRed: std('#3a0d0a', 0.1, 0.4, {
+    emissive: '#ea4335', emissiveIntensity: 1.6,
+  }),
+  /** the signal / pulse glow — exact gGreen, hotter. */
   signal: std('#062e19', 0.1, 0.4, {
     emissive: BRAND_COLORS.gGreen, emissiveIntensity: 4.6,
   }),
-  /** phone body — glossy dark glass-metal (the "held product"). */
-  phoneBody: std(ENCLOSURE, 0.78, 0.26, { envMapIntensity: 1.35 }),
 }
 
 /* ------------------------------------------------------------------ *
- * Screen wireframes — deterministic CanvasTexture drawings (no
- * randomness; identical pixels every build). A website being born
- * (laptop) and the shipped app (phone).
+ * Deterministic CanvasTextures (identical pixels every build; no
+ * randomness, no wall-clock). Faces of the section-voice bodies.
  * ------------------------------------------------------------------ */
 
 function makeCanvas(w: number, h: number): { c: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
@@ -159,196 +156,525 @@ function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: n
 }
 
 /** The WEBSITES screen: a homepage wireframe being born — browser
- * chrome, emerald hero, gold underline, content cards. */
-function drawBrowserWireframe(): THREE.CanvasTexture {
+ * chrome (skipped in the compact variant: the 3D chrome bar replaces
+ * it), emerald hero, gold underline, content cards, the gold cursor. */
+function drawBrowserWireframe(compact: boolean): THREE.CanvasTexture {
   const W = 1024
   const H = 640
   const { c, ctx } = makeCanvas(W, H)
   // deep canvas
   ctx.fillStyle = '#0a1120'
   ctx.fillRect(0, 0, W, H)
-  // chrome bar
-  ctx.fillStyle = '#182238'
-  ctx.fillRect(0, 0, W, 64)
-  for (let i = 0; i < 3; i++) {
-    ctx.fillStyle = ['#ea4335', '#fbbc05', '#34a853'][i] as string
-    ctx.beginPath()
-    ctx.arc(34 + i * 26, 32, 7, 0, Math.PI * 2)
+  const top = compact ? 12 : 96
+  if (!compact) {
+    // chrome bar
+    ctx.fillStyle = '#182238'
+    ctx.fillRect(0, 0, W, 64)
+    for (let i = 0; i < 3; i++) {
+      ctx.fillStyle = ['#ea4335', '#fbbc05', '#34a853'][i] as string
+      ctx.beginPath()
+      ctx.arc(34 + i * 26, 32, 7, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    // URL pill
+    ctx.fillStyle = '#0e1830'
+    rr(ctx, 150, 14, 460, 36, 18)
     ctx.fill()
+    ctx.fillStyle = '#fbbc05'
+    ctx.beginPath()
+    ctx.arc(178, 32, 5, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = '#31405f'
+    ctx.fillRect(196, 28, 180, 8)
+    ctx.fillRect(392, 28, 90, 8)
   }
-  // URL pill
-  ctx.fillStyle = '#0e1830'
-  rr(ctx, 150, 14, 460, 36, 18)
-  ctx.fill()
-  ctx.fillStyle = '#fbbc05'
-  ctx.beginPath()
-  ctx.arc(178, 32, 5, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.fillStyle = '#31405f'
-  ctx.fillRect(196, 28, 180, 8)
-  ctx.fillRect(392, 28, 90, 8)
   // faint grid dots behind content
   ctx.fillStyle = 'rgba(96,165,250,0.10)'
-  for (let y = 96; y < H; y += 44) {
+  for (let y = top + 8; y < H; y += 44) {
     for (let x = 40; x < W - 30; x += 44) ctx.fillRect(x, y, 2, 2)
   }
   // hero block (emerald outline + translucent fill)
   ctx.fillStyle = 'rgba(52,168,83,0.14)'
-  rr(ctx, 48, 104, 600, 180, 14)
+  rr(ctx, 48, top + 8, 600, 172, 14)
   ctx.fill()
   ctx.strokeStyle = '#34a853'
   ctx.lineWidth = 3
-  rr(ctx, 48, 104, 600, 180, 14)
+  rr(ctx, 48, top + 8, 600, 172, 14)
   ctx.stroke()
   // hero heading bars + gold underline
   ctx.fillStyle = '#34a853'
-  ctx.fillRect(84, 150, 320, 18)
-  ctx.fillRect(84, 182, 210, 12)
+  ctx.fillRect(84, top + 44, 320, 18)
+  ctx.fillRect(84, top + 76, 210, 12)
   ctx.fillStyle = '#fbbc05'
-  ctx.fillRect(84, 222, 130, 7)
+  ctx.fillRect(84, top + 116, 130, 7)
   // hero CTA pill
   ctx.strokeStyle = '#60a5fa'
   ctx.lineWidth = 2.5
-  rr(ctx, 84, 246, 132, 26, 13)
+  rr(ctx, 84, top + 140, 132, 26, 13)
   ctx.stroke()
   // side column
   ctx.strokeStyle = 'rgba(96,165,250,0.55)'
-  rr(ctx, 676, 104, 300, 180, 10)
+  rr(ctx, 676, top + 8, 300, 172, 10)
   ctx.stroke()
   for (let i = 0; i < 4; i++) {
     ctx.fillStyle = 'rgba(96,165,250,0.5)'
-    ctx.fillRect(700, 130 + i * 36, 250 - i * 34, 10)
+    ctx.fillRect(700, top + 34 + i * 36, 250 - i * 34, 10)
   }
   // three content cards
   for (let i = 0; i < 3; i++) {
     const x = 48 + i * 208
+    const y = top + 212
     ctx.fillStyle = 'rgba(52,168,83,0.08)'
-    rr(ctx, x, 316, 188, 150, 10)
+    rr(ctx, x, y, 188, 150, 10)
     ctx.fill()
     ctx.strokeStyle = 'rgba(52,168,83,0.75)'
-    rr(ctx, x, 316, 188, 150, 10)
+    rr(ctx, x, y, 188, 150, 10)
     ctx.stroke()
     ctx.fillStyle = '#34a853'
-    ctx.fillRect(x + 22, 342, 92, 10)
+    ctx.fillRect(x + 22, y + 26, 92, 10)
     ctx.fillStyle = 'rgba(234,179,8,0.85)'
-    ctx.fillRect(x + 22, 366, 64, 6)
+    ctx.fillRect(x + 22, y + 50, 64, 6)
     ctx.fillStyle = 'rgba(96,165,250,0.4)'
-    ctx.fillRect(x + 22, 390, 144 - (i % 2) * 30, 6)
-    ctx.fillRect(x + 22, 406, 120, 6)
-    ctx.fillRect(x + 22, 422, 150, 6)
+    ctx.fillRect(x + 22, y + 74, 144 - (i % 2) * 30, 6)
+    ctx.fillRect(x + 22, y + 90, 120, 6)
+    ctx.fillRect(x + 22, y + 106, 150, 6)
   }
   // footer bar
   ctx.fillStyle = 'rgba(96,165,250,0.25)'
-  ctx.fillRect(48, 508, 928, 8)
-  ctx.fillRect(48, 530, 560, 6)
+  ctx.fillRect(48, top + 404, 928, 8)
+  ctx.fillRect(48, top + 426, 560, 6)
   // the gold CURSOR — the hand placing the next block
   ctx.fillStyle = '#fbbc05'
-  ctx.fillRect(636, 346, 3, 18)
-  ctx.fillRect(636, 364, 12, 3)
+  ctx.fillRect(636, top + 242, 3, 18)
+  ctx.fillRect(636, top + 260, 12, 3)
   return toTexture(c)
 }
 
-/** The WORK screen: the shipped app — status bar, search pill, card
- * grid (one live/emerald), bottom tab bar. */
-function drawAppWireframe(): THREE.CanvasTexture {
-  const W = 480
-  const H = 1000
+/** Icon faces for the node cards — the vocabulary of automation.
+ * One card face: dark panel, blue frame, an icon glyph, label bars.
+ * Pure geometry (no text) — deterministic across every machine. */
+function drawNodeIcon(kind: 'bolt' | 'invoice' | 'table' | 'chat' | 'envelope' | 'doc' | 'chart' | 'code'): THREE.CanvasTexture {
+  const W = 288
+  const H = 176
+  const { c, ctx } = makeCanvas(W, H)
+  ctx.fillStyle = '#0d1526'
+  ctx.fillRect(0, 0, W, H)
+  ctx.strokeStyle = 'rgba(96,165,250,0.4)'
+  ctx.lineWidth = 4
+  rr(ctx, 6, 6, W - 12, H - 12, 14)
+  ctx.stroke()
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  const icon = (draw: () => void) => {
+    ctx.save()
+    ctx.translate(20, 28)
+    draw()
+    ctx.restore()
+  }
+  switch (kind) {
+    case 'bolt':
+      icon(() => {
+        ctx.fillStyle = '#fbbc05'
+        ctx.beginPath()
+        ctx.moveTo(62, 0)
+        ctx.lineTo(32, 68)
+        ctx.lineTo(50, 68)
+        ctx.lineTo(40, 120)
+        ctx.lineTo(74, 50)
+        ctx.lineTo(54, 50)
+        ctx.lineTo(70, 0)
+        ctx.closePath()
+        ctx.fill()
+      })
+      break
+    case 'invoice':
+      icon(() => {
+        ctx.strokeStyle = '#c3cbd6'
+        ctx.lineWidth = 6
+        rr(ctx, 14, 6, 72, 108, 8)
+        ctx.stroke()
+        ctx.fillStyle = '#fbbc05'
+        ctx.fillRect(26, 28, 48, 8)
+        ctx.fillStyle = 'rgba(195,203,214,0.8)'
+        ctx.fillRect(26, 48, 36, 6)
+        ctx.fillRect(26, 64, 44, 6)
+        ctx.fillStyle = '#34a853'
+        ctx.fillRect(26, 92, 48, 10)
+      })
+      break
+    case 'table':
+      icon(() => {
+        ctx.fillStyle = 'rgba(52,168,83,0.35)'
+        rr(ctx, 10, 10, 80, 22, 6)
+        ctx.fill()
+        ctx.strokeStyle = '#34a853'
+        ctx.lineWidth = 4
+        rr(ctx, 10, 10, 80, 22, 6)
+        ctx.stroke()
+        ctx.strokeStyle = 'rgba(195,203,214,0.75)'
+        ctx.lineWidth = 4
+        for (const y of [60, 84, 108]) {
+          ctx.beginPath()
+          ctx.moveTo(12, y)
+          ctx.lineTo(90, y)
+          ctx.stroke()
+        }
+        for (const x of [39, 66]) {
+          ctx.beginPath()
+          ctx.moveTo(x, 36)
+          ctx.lineTo(x, 114)
+          ctx.stroke()
+        }
+      })
+      break
+    case 'chat':
+      icon(() => {
+        ctx.strokeStyle = '#34a853'
+        ctx.lineWidth = 6
+        rr(ctx, 8, 8, 86, 62, 16)
+        ctx.stroke()
+        ctx.beginPath()
+        ctx.moveTo(28, 68)
+        ctx.lineTo(28, 90)
+        ctx.lineTo(48, 68)
+        ctx.stroke()
+        ctx.fillStyle = '#fbbc05'
+        for (const dx of [0, 28, 56]) {
+          ctx.beginPath()
+          ctx.arc(32 + dx, 39, 7, 0, Math.PI * 2)
+          ctx.fill()
+        }
+      })
+      break
+    case 'envelope':
+      icon(() => {
+        ctx.strokeStyle = '#c3cbd6'
+        ctx.lineWidth = 6
+        rr(ctx, 6, 26, 90, 60, 8)
+        ctx.stroke()
+        ctx.strokeStyle = 'rgba(195,203,214,0.75)'
+        ctx.lineWidth = 5
+        ctx.beginPath()
+        ctx.moveTo(10, 32)
+        ctx.lineTo(51, 62)
+        ctx.lineTo(92, 32)
+        ctx.stroke()
+      })
+      break
+    case 'doc':
+      icon(() => {
+        ctx.strokeStyle = '#c3cbd6'
+        ctx.lineWidth = 6
+        ctx.beginPath()
+        ctx.moveTo(22, 4)
+        ctx.lineTo(78, 4)
+        ctx.lineTo(88, 16)
+        ctx.lineTo(88, 114)
+        ctx.lineTo(22, 114)
+        ctx.closePath()
+        ctx.stroke()
+        ctx.beginPath()
+        ctx.moveTo(78, 4)
+        ctx.lineTo(78, 16)
+        ctx.lineTo(88, 16)
+        ctx.stroke()
+        ctx.fillStyle = '#34a853'
+        ctx.fillRect(34, 34, 40, 8)
+        ctx.fillStyle = 'rgba(195,203,214,0.8)'
+        ctx.fillRect(34, 54, 30, 6)
+        ctx.fillRect(34, 70, 38, 6)
+        ctx.fillStyle = '#fbbc05'
+        ctx.fillRect(34, 92, 32, 8)
+      })
+      break
+    case 'chart':
+      icon(() => {
+        ctx.fillStyle = 'rgba(52,168,83,0.85)'
+        ctx.fillRect(12, 84, 18, 34)
+        ctx.fillRect(44, 58, 18, 60)
+        ctx.fillRect(76, 32, 18, 86)
+        ctx.strokeStyle = '#fbbc05'
+        ctx.lineWidth = 6
+        ctx.beginPath()
+        ctx.moveTo(10, 44)
+        ctx.lineTo(88, 12)
+        ctx.stroke()
+        ctx.fillStyle = '#fbbc05'
+        ctx.beginPath()
+        ctx.moveTo(88, 12)
+        ctx.lineTo(72, 14)
+        ctx.lineTo(86, 26)
+        ctx.closePath()
+        ctx.fill()
+      })
+      break
+    case 'code':
+      icon(() => {
+        ctx.strokeStyle = '#fbbc05'
+        ctx.lineWidth = 7
+        ctx.beginPath()
+        ctx.moveTo(44, 32)
+        ctx.lineTo(18, 59)
+        ctx.lineTo(44, 86)
+        ctx.stroke()
+        ctx.beginPath()
+        ctx.moveTo(84, 32)
+        ctx.lineTo(110, 59)
+        ctx.lineTo(84, 86)
+        ctx.stroke()
+        ctx.strokeStyle = 'rgba(195,203,214,0.85)'
+        ctx.lineWidth = 6
+        ctx.beginPath()
+        ctx.moveTo(64, 22)
+        ctx.lineTo(52, 96)
+        ctx.stroke()
+      })
+      break
+  }
+  // label bars (the node's name, as wires)
+  ctx.fillStyle = '#34a853'
+  ctx.fillRect(150, 66, 92, 12)
+  ctx.fillStyle = 'rgba(195,203,214,0.7)'
+  ctx.fillRect(150, 90, 64, 8)
+  ctx.fillStyle = '#fbbc05'
+  ctx.fillRect(150, 110, 76, 6)
+  return toTexture(c)
+}
+
+/** The n8n EDITOR CANVAS backdrop — dark panel, dot grid (the exact
+ * workspace texture every n8n user knows). */
+function drawCanvasGrid(): THREE.CanvasTexture {
+  const W = 512
+  const H = 800
+  const { c, ctx } = makeCanvas(W, H)
+  ctx.fillStyle = '#0c1424'
+  ctx.fillRect(0, 0, W, H)
+  ctx.fillStyle = 'rgba(96,165,250,0.13)'
+  for (let y = 16; y < H; y += 32) {
+    for (let x = 16; x < W; x += 32) {
+      ctx.beginPath()
+      ctx.arc(x, y, 2.2, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+  return toTexture(c)
+}
+
+/** The WORK cards — shipped projects wearing their metrics. Latin
+ * digits only (deterministic); the rest is geometry. */
+function drawWorkCard(kind: 0 | 1 | 2): THREE.CanvasTexture {
+  const W = 512
+  const H = 340
   const { c, ctx } = makeCanvas(W, H)
   ctx.fillStyle = '#0a1120'
   ctx.fillRect(0, 0, W, H)
-  // status bar
-  ctx.fillStyle = '#31405f'
-  ctx.fillRect(44, 30, 90, 12)
-  ctx.fillRect(388, 30, 56, 12)
-  ctx.fillStyle = '#fbbc05'
-  ctx.beginPath()
-  ctx.arc(226, 34, 6, 0, Math.PI * 2)
-  ctx.fill()
-  // search pill
-  ctx.fillStyle = '#131d33'
-  rr(ctx, 36, 84, 408, 44, 22)
-  ctx.fill()
-  ctx.strokeStyle = 'rgba(96,165,250,0.5)'
-  rr(ctx, 36, 84, 408, 44, 22)
-  ctx.stroke()
-  ctx.fillStyle = '#31405f'
-  ctx.beginPath()
-  ctx.arc(64, 106, 7, 0, Math.PI * 2)
-  ctx.stroke()
-  ctx.fillRect(84, 101, 150, 10)
-  // section heading
-  ctx.fillStyle = '#34a853'
-  ctx.fillRect(40, 164, 190, 16)
-  ctx.fillStyle = '#fbbc05'
-  ctx.fillRect(40, 192, 90, 7)
-  // card grid 2×3 — the middle card is the LIVE one
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 2; col++) {
-      const x = 36 + col * 204
-      const y = 232 + row * 200
-      const live = row === 1 && col === 0
-      ctx.fillStyle = live ? 'rgba(52,168,83,0.24)' : 'rgba(25,38,66,0.95)'
-      rr(ctx, x, y, 184, 172, 16)
-      ctx.fill()
-      ctx.strokeStyle = live ? '#3ddc70' : 'rgba(96,165,250,0.6)'
-      ctx.lineWidth = live ? 4 : 2.5
-      rr(ctx, x, y, 184, 172, 16)
-      ctx.stroke()
-      if (live) {
-        ctx.fillStyle = 'rgba(52,168,83,0.4)'
-        rr(ctx, x + 20, y + 18, 84, 84, 12)
-        ctx.fill()
-        ctx.strokeStyle = '#3ddc70'
-        rr(ctx, x + 20, y + 18, 84, 84, 12)
-        ctx.stroke()
-      } else {
-        ctx.fillStyle = 'rgba(96,165,250,0.45)'
-        rr(ctx, x + 20, y + 18, 84, 84, 12)
-        ctx.fill()
-      }
-      ctx.fillStyle = live ? '#3ddc70' : '#6684ad'
-      ctx.fillRect(x + 20, y + 118, 110, 12)
-      ctx.fillStyle = 'rgba(234,179,8,0.95)'
-      ctx.fillRect(x + 20, y + 140, 60, 6)
-    }
+  // chrome bar
+  ctx.fillStyle = '#182238'
+  ctx.fillRect(0, 0, W, 40)
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = ['#ea4335', '#fbbc05', '#34a853'][i] as string
+    ctx.beginPath()
+    ctx.arc(26 + i * 22, 20, 6, 0, Math.PI * 2)
+    ctx.fill()
   }
-  // bottom tab bar
-  ctx.fillStyle = '#0d1628'
-  rr(ctx, 20, 872, 440, 100, 26)
-  ctx.fill()
-  for (let i = 0; i < 4; i++) {
-    const cx = 76 + i * 110
-    const active = i === 0
-    ctx.strokeStyle = active ? '#34a853' : '#31405f'
-    ctx.lineWidth = active ? 4 : 2.5
-    if (i % 2 === 0) {
-      rr(ctx, cx - 13, 902, 26, 26, 7)
-      ctx.stroke()
-    } else {
-      ctx.beginPath()
-      ctx.arc(cx, 915, 13, 0, Math.PI * 2)
-      ctx.stroke()
+  const badge = (text: string, x: number, y: number) => {
+    ctx.fillStyle = 'rgba(52,168,83,0.9)'
+    const w = 34 + text.length * 24
+    rr(ctx, x - w, y, w, 46, 14)
+    ctx.fill()
+    ctx.strokeStyle = '#3ddc70'
+    ctx.lineWidth = 3
+    rr(ctx, x - w, y, w, 46, 14)
+    ctx.stroke()
+    ctx.fillStyle = '#eafff2'
+    ctx.font = '700 30px system-ui, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(text, x - w / 2, y + 24)
+  }
+  if (kind === 0) {
+    // storefront: product grid, one live card
+    for (let row = 0; row < 2; row++) {
+      for (let col = 0; col < 3; col++) {
+        const x = 28 + col * 156
+        const y = 72 + row * 116
+        const live = row === 0 && col === 1
+        ctx.fillStyle = live ? 'rgba(52,168,83,0.22)' : 'rgba(25,38,66,0.95)'
+        rr(ctx, x, y, 136, 96, 12)
+        ctx.fill()
+        ctx.strokeStyle = live ? '#3ddc70' : 'rgba(96,165,250,0.55)'
+        ctx.lineWidth = live ? 4 : 2.5
+        rr(ctx, x, y, 136, 96, 12)
+        ctx.stroke()
+        ctx.fillStyle = live ? '#3ddc70' : '#6684ad'
+        ctx.fillRect(x + 16, y + 62, 84, 10)
+        ctx.fillStyle = 'rgba(234,179,8,0.9)'
+        ctx.fillRect(x + 16, y + 80, 48, 6)
+      }
     }
+    badge('+140%', W - 24, 58)
+    // rising conversion bars
+    ctx.fillStyle = 'rgba(52,168,83,0.85)'
+    for (let i = 0; i < 4; i++) ctx.fillRect(28 + i * 20, 296 - i * 12, 12, 12 + i * 12)
+  } else if (kind === 1) {
+    // dashboard: sidebar + ascending bars + trend
+    ctx.fillStyle = '#0d1628'
+    rr(ctx, 20, 60, 96, 260, 14)
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(96,165,250,0.5)'
+    ctx.lineWidth = 2.5
+    rr(ctx, 20, 60, 96, 260, 14)
+    ctx.stroke()
+    for (let i = 0; i < 4; i++) {
+      ctx.fillStyle = i === 0 ? '#34a853' : '#31405f'
+      rr(ctx, 36, 84 + i * 40, 64, 20, 8)
+      ctx.fill()
+    }
+    ctx.fillStyle = 'rgba(52,168,83,0.85)'
+    for (let i = 0; i < 6; i++) ctx.fillRect(140 + i * 34, 300 - (18 + i * 22), 22, 18 + i * 22)
+    ctx.strokeStyle = '#fbbc05'
+    ctx.lineWidth = 5
+    ctx.beginPath()
+    ctx.moveTo(146, 236)
+    ctx.lineTo(338, 132)
+    ctx.stroke()
+    badge('3.2x', W - 24, 58)
+  } else {
+    // landing: hero block + CTA + arrow
+    ctx.fillStyle = 'rgba(52,168,83,0.14)'
+    rr(ctx, 28, 66, 300, 130, 14)
+    ctx.fill()
+    ctx.strokeStyle = '#34a853'
+    ctx.lineWidth = 3
+    rr(ctx, 28, 66, 300, 130, 14)
+    ctx.stroke()
+    ctx.fillStyle = '#34a853'
+    ctx.fillRect(52, 96, 200, 16)
+    ctx.fillStyle = 'rgba(234,179,8,0.9)'
+    ctx.fillRect(52, 126, 120, 7)
+    ctx.strokeStyle = '#60a5fa'
+    ctx.lineWidth = 3
+    rr(ctx, 52, 152, 110, 28, 14)
+    ctx.stroke()
+    // side stat chips
+    for (let i = 0; i < 2; i++) {
+      ctx.fillStyle = 'rgba(25,38,66,0.95)'
+      rr(ctx, 348, 78 + i * 70, 136, 56, 12)
+      ctx.fill()
+      ctx.strokeStyle = 'rgba(96,165,250,0.55)'
+      ctx.lineWidth = 2.5
+      rr(ctx, 348, 78 + i * 70, 136, 56, 12)
+      ctx.stroke()
+      ctx.fillStyle = '#6684ad'
+      ctx.fillRect(366, 96 + i * 70, 88, 9)
+      ctx.fillStyle = '#3ddc70'
+      ctx.fillRect(366, 112 + i * 70, 56, 7)
+    }
+    badge('+92%', W - 24, 240)
   }
   return toTexture(c)
 }
 
-/* Screen materials (cache-owned; emissive-map driven so they read as
- * LIT displays — the "born on" light of the canvas). */
-const browserTex = /* lazy */ { value: null as THREE.CanvasTexture | null }
-const appTex = /* lazy */ { value: null as THREE.CanvasTexture | null }
-
-function screenMaterial(kind: 'browser' | 'app'): THREE.MeshStandardMaterial {
-  // Textures are created lazily: canvas needs a DOM. First kit build
-  // happens in the browser (client-only scene), never at SSR.
-  if (kind === 'browser') {
-    if (!browserTex.value) browserTex.value = drawBrowserWireframe()
-    const t = browserTex.value
-    return std('#0a1120', 0.05, 0.32, { map: t, emissive: '#ffffff', emissiveMap: t, emissiveIntensity: 1.35 })
+/** The obsession tile — fine gold micro-traces under the lens. */
+function drawMicroTraces(): THREE.CanvasTexture {
+  const W = 512
+  const H = 448
+  const { c, ctx } = makeCanvas(W, H)
+  ctx.fillStyle = '#123524'
+  ctx.fillRect(0, 0, W, H)
+  // darker margin frame
+  ctx.strokeStyle = '#0d2417'
+  ctx.lineWidth = 18
+  ctx.strokeRect(0, 0, W, H)
+  ctx.lineCap = 'round'
+  ctx.strokeStyle = '#c9a227'
+  // deterministic meander buses
+  for (let b = 0; b < 8; b++) {
+    const x = 44 + b * 58
+    const jog = 40 + (b % 3) * 52
+    ctx.lineWidth = b % 3 === 1 ? 5 : 3.5
+    ctx.beginPath()
+    ctx.moveTo(x, 24)
+    ctx.lineTo(x, jog)
+    ctx.lineTo(x + (b % 2 === 0 ? 26 : -26), jog + 22)
+    ctx.lineTo(x + (b % 2 === 0 ? 26 : -26), jog + 96)
+    ctx.lineTo(x, jog + 118)
+    ctx.lineTo(x, H - 24)
+    ctx.stroke()
+    // via pads at both ends
+    ctx.fillStyle = '#e3c65b'
+    for (const y of [24, H - 24]) {
+      ctx.beginPath()
+      ctx.arc(x, y, 6, 0, Math.PI * 2)
+      ctx.fill()
+    }
   }
-  if (!appTex.value) appTex.value = drawAppWireframe()
-  const t = appTex.value
-  return std('#0a1120', 0.05, 0.3, { map: t, emissive: '#ffffff', emissiveMap: t, emissiveIntensity: 1.9 })
+  // central chip + pins
+  ctx.fillStyle = '#10151f'
+  rr(ctx, 186, 164, 140, 116, 10)
+  ctx.fill()
+  ctx.strokeStyle = '#c3cbd6'
+  ctx.lineWidth = 4
+  rr(ctx, 186, 164, 140, 116, 10)
+  ctx.stroke()
+  ctx.fillStyle = '#c3cbd6'
+  ctx.fillRect(212, 146, 88, 12)
+  ctx.fillRect(212, 286, 88, 12)
+  // pin-1 gold corner + two status dots
+  ctx.fillStyle = '#fbbc05'
+  ctx.fillRect(176, 154, 14, 14)
+  ctx.beginPath()
+  ctx.arc(348, 92, 8, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = '#34a853'
+  ctx.beginPath()
+  ctx.arc(166, 372, 8, 0, Math.PI * 2)
+  ctx.fill()
+  return toTexture(c)
+}
+
+/* Face materials (cache-owned; emissive-map driven so they read as
+ * LIT displays — the "born on" light of the canvas). */
+const texCache = /* lazy */ {
+  browser: null as THREE.CanvasTexture | null,
+  browserCompact: null as THREE.CanvasTexture | null,
+  grid: null as THREE.CanvasTexture | null,
+  micro: null as THREE.CanvasTexture | null,
+  icons: {} as Partial<Record<string, THREE.CanvasTexture>>,
+  work: {} as Partial<Record<string, THREE.CanvasTexture>>,
+}
+
+function faceMaterial(tex: THREE.CanvasTexture, emissive = 1.35): THREE.MeshStandardMaterial {
+  return std('#0a1120', 0.05, 0.32, { map: tex, emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: emissive })
+}
+
+function browserFace(compact: boolean): THREE.MeshStandardMaterial {
+  if (compact) {
+    if (!texCache.browserCompact) texCache.browserCompact = drawBrowserWireframe(true)
+    return faceMaterial(texCache.browserCompact)
+  }
+  if (!texCache.browser) texCache.browser = drawBrowserWireframe(false)
+  return faceMaterial(texCache.browser)
+}
+
+function iconFace(kind: 'bolt' | 'invoice' | 'table' | 'chat' | 'envelope' | 'doc' | 'chart' | 'code'): THREE.MeshStandardMaterial {
+  if (!texCache.icons[kind]) texCache.icons[kind] = drawNodeIcon(kind)
+  return faceMaterial(texCache.icons[kind] as THREE.CanvasTexture, 1.5)
+}
+
+function gridFace(): THREE.MeshStandardMaterial {
+  if (!texCache.grid) texCache.grid = drawCanvasGrid()
+  return faceMaterial(texCache.grid, 0.55)
+}
+
+function workFace(kind: 0 | 1 | 2): THREE.MeshStandardMaterial {
+  if (!texCache.work[kind]) texCache.work[kind] = drawWorkCard(kind)
+  return faceMaterial(texCache.work[kind] as THREE.CanvasTexture, 1.4)
+}
+
+function microFace(): THREE.MeshStandardMaterial {
+  if (!texCache.micro) texCache.micro = drawMicroTraces()
+  return faceMaterial(texCache.micro, 0.9)
 }
 
 /* ------------------------------------------------------------------ *
@@ -377,122 +703,233 @@ function led(mat: THREE.Material, x: number, y: number, z: number): THREE.Mesh {
   return m
 }
 
+/** A soft additive halo around a glow point (no postprocessing in the
+ * scene; a static material stays freeze-contract-pure). */
+function halo(radius: number, opacity = 0.3): THREE.Mesh {
+  return mesh(
+    new THREE.SphereGeometry(radius, 14, 12),
+    new THREE.MeshBasicMaterial({
+      color: BRAND_COLORS.gGreen, transparent: true, opacity,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    }),
+  )
+}
+
+/** A strut (thin cylinder) from point a to point b — rails, links,
+ * legs. Aligned by quaternion; deterministic. */
+function strut(a: THREE.Vector3, b: THREE.Vector3, radius: number, mat: THREE.Material): THREE.Mesh {
+  const dir = b.clone().sub(a)
+  const len = Math.max(dir.length(), 1e-4)
+  const geo = new THREE.CylinderGeometry(radius, radius, len, 8)
+  const m = new THREE.Mesh(geo, mat)
+  m.position.copy(a).addScaledVector(dir, 0.5)
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize())
+  return m
+}
+
+/** A FLOW LINK with a traveling PULSE — the automation vocabulary.
+ * The gold strut wires a→b; an (unnamed) frame group at a is rotated
+ * along the link direction and carries the NAMED pulse node as a
+ * child. The drive slides the pulse's position.x — inside the rotated
+ * frame — so the glow travels the link's own direction (a rotated
+ * group's POSITION would move on the parent's axes; the child's does
+ * not). Registry drives mirror the exact `len` values. */
+function flowLink(
+  g: THREE.Group,
+  ax: number, ay: number, bx: number, by: number,
+  pulseName: string, _len: number,
+): void {
+  g.add(strut(new THREE.Vector3(ax, ay, 0), new THREE.Vector3(bx, by, 0), 0.007, M.gold))
+  const frame = new THREE.Group()
+  frame.position.set(ax, ay, 0.012)
+  frame.rotation.z = Math.atan2(by - ay, bx - ax)
+  const pulse = node(pulseName, 0, 0, 0)
+  pulse.add(mesh(new THREE.SphereGeometry(0.02, 12, 10), M.signal))
+  pulse.add(halo(0.036, 0.26))
+  frame.add(pulse)
+  g.add(frame)
+}
+
+/** A node CARD — the n8n building block: rounded slab, icon face,
+ * title strip, top/bottom ports, a status LED. */
+function nodeCard(
+  name: string, x: number, y: number,
+  icon: 'bolt' | 'invoice' | 'table' | 'chat' | 'envelope' | 'doc' | 'chart' | 'code',
+  strip: 'gold' | 'green',
+): THREE.Group {
+  const card = node(name, x, y, 0.035)
+  const W = 0.26
+  const H = 0.18
+  card.add(mesh(new RoundedBoxGeometry(W, H, 0.05, 2, 0.016), M.panel))
+  // title strip (n8n's colored node header)
+  card.add(mesh(new RoundedBoxGeometry(W, 0.03, 0.052, 1, 0.008), strip === 'gold' ? M.ledGold : M.ledGreen, 0, H / 2 - 0.015, 0))
+  // icon face
+  card.add(mesh(new THREE.PlaneGeometry(0.22, 0.135), iconFace(icon), 0, -0.008, 0.0262))
+  // ports — top + bottom (vertical flow)
+  const portGeo = new THREE.CylinderGeometry(0.013, 0.013, 0.045, 10)
+  card.add(mesh(portGeo, M.gold, 0, H / 2 + 0.012, 0))
+  card.add(mesh(portGeo, M.gold, 0, -H / 2 - 0.012, 0))
+  // status LED at a corner
+  card.add(led(strip === 'gold' ? M.ledGold : M.ledGreen, W / 2 - 0.03, -H / 2 + 0.025, 0.026))
+  return card
+}
+
+/** A mini browser window — the "website" glyph. */
+function browserWindow(w: number, h: number): THREE.Group {
+  const b = new THREE.Group()
+  b.add(mesh(new RoundedBoxGeometry(w, h, 0.05, 2, 0.022), M.enclosure))
+  // chrome bar + traffic dots + URL pill
+  const chromeH = 0.09
+  b.add(mesh(new RoundedBoxGeometry(w, chromeH, 0.056, 2, 0.018), M.panel, 0, h / 2 - chromeH / 2, 0.001))
+  const dotGeo = new THREE.CylinderGeometry(0.011, 0.011, 0.012, 10)
+  const mats: THREE.Material[] = [M.ledRed, M.ledGold, M.ledGreen]
+  for (let i = 0; i < 3; i++) {
+    const d = mesh(dotGeo, mats[i] as THREE.Material, -w / 2 + 0.05 + i * 0.032, h / 2 - chromeH / 2, 0.029)
+    d.rotation.x = Math.PI / 2
+    b.add(d)
+  }
+  b.add(mesh(new RoundedBoxGeometry(w * 0.5, 0.036, 0.058, 1, 0.016), M.ink, w * 0.08, h / 2 - chromeH / 2, 0.001))
+  // screen — the compact wireframe (the 3D chrome replaces the strip)
+  const sw = w - 0.09
+  const sh = h - chromeH - 0.06
+  b.add(mesh(new THREE.PlaneGeometry(sw, sh), browserFace(true), 0, -chromeH / 2 - 0.015, 0.0262))
+  return b
+}
+
 /* ------------------------------------------------------------------ *
- * KIT 1 · serverRack — home hero
+ * KIT 1 · siteFlow — home hero
  * ------------------------------------------------------------------ */
 
-function buildServerRack(): THREE.Group {
-  const g = node('serverRack')
-  const W = 0.62
-  const H = 1.6
-  const D = 0.72
+function buildSiteFlow(): THREE.Group {
+  const g = node('siteFlow')
+  // THE BROWSER — the beautiful sites Elyra builds
+  const browser = browserWindow(0.78, 0.54)
+  browser.position.set(0, 0.50, 0)
+  g.add(browser)
+  // browser's output port (bottom center)
+  const outPort = mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.05, 10), M.gold, 0, 0.205, 0.005)
+  g.add(outPort)
 
-  // shell + feet
-  g.add(mesh(new RoundedBoxGeometry(W, H, D, 3, 0.028), M.enclosure, 0, 0, 0))
-  for (const sx of [-1, 1]) {
-    for (const sz of [-1, 1]) {
-      g.add(mesh(new RoundedBoxGeometry(0.09, 0.05, 0.09, 2, 0.012), M.ink, sx * 0.24, -H / 2 - 0.02, sz * 0.28))
-    }
-  }
-  // front bezel + gold rails (the brand's metal, at the door)
-  g.add(mesh(new RoundedBoxGeometry(W - 0.06, H - 0.06, 0.022, 2, 0.012), M.panel, 0, 0, D / 2 + 0.002))
-  for (const sx of [-1, 1]) {
-    g.add(mesh(new RoundedBoxGeometry(0.03, H - 0.06, 0.018, 2, 0.008), M.gold, sx * (W / 2 - 0.015), 0, D / 2 + 0.016))
-  }
+  // THE AUTOMATION PIPELINE — three nodes flowing downward
+  // (envelope → invoice → report): «أنظمة أتمتة ذكية»
+  g.add(nodeCard('node_envelope', 0.06, 0.02, 'envelope', 'green'))
+  g.add(nodeCard('node_invoice', -0.06, -0.24, 'invoice', 'gold'))
+  g.add(nodeCard('node_chart', 0.06, -0.50, 'chart', 'green'))
 
-  // FAN BANK — the odometers (named nodes; blades + hub + ring)
-  const fanY = 0.52
-  const fanXs = [-0.18, 0, 0.18]
-  const fanNames = ['fan_a', 'fan_b', 'fan_c']
-  const fanRates = [0.02, 0.026, 0.02] // registry mirrors these as D-odometers
-  void fanRates
-  for (let i = 0; i < 3; i++) {
-    const fx = fanXs[i] as number
-    // recessed ring
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.082, 0.014, 10, 28), M.ink)
-    ring.position.set(fx, fanY, D / 2 + 0.03)
+  // gold links + traveling pulses (registry mirrors these lengths)
+  flowLink(g, 0, 0.20, 0.06, 0.122, 'pulse_a', 0.098)
+  flowLink(g, 0.06, -0.082, -0.06, -0.138, 'pulse_b', 0.132)
+  flowLink(g, -0.06, -0.342, 0.06, -0.398, 'pulse_c', 0.132)
+  return g
+}
+
+/* ------------------------------------------------------------------ *
+ * KIT 2 · journeyRail — home method
+ * ------------------------------------------------------------------ */
+
+function buildJourneyRail(): THREE.Group {
+  const g = node('journeyRail')
+  // the ascending rail: right-low (the idea) → left-high (the launch)
+  const sx = 0.44
+  const sy = -0.24
+  const ex = -0.44
+  const ey = 0.30
+  const dx = ex - sx
+  const dy = ey - sy
+  const len = Math.hypot(dx, dy) // 1.031
+  const angle = Math.atan2(dy, dx) // ≈ 2.591 rad
+  const ux = dx / len
+  const uy = dy / len
+
+  const railTrack = node('railTrack', sx, sy, 0)
+  railTrack.rotation.z = angle
+  // the rail tube lies along the frame's local x
+  const rail = mesh(new THREE.CylinderGeometry(0.013, 0.013, len, 12), M.silver, len / 2, 0, 0)
+  rail.rotation.z = Math.PI / 2
+  railTrack.add(rail)
+  // gold end caps — idea and launch
+  railTrack.add(mesh(new THREE.SphereGeometry(0.024, 12, 10), M.gold, 0, 0, 0))
+  railTrack.add(mesh(new THREE.SphereGeometry(0.024, 12, 10), M.gold, len, 0, 0))
+
+  // THE TRAVELER — the project itself, riding the rail on your scroll
+  const traveler = node('traveler', 0.05, 0, 0.016)
+  traveler.add(mesh(new THREE.SphereGeometry(0.03, 14, 12), M.signal))
+  traveler.add(halo(0.052, 0.3))
+  railTrack.add(traveler)
+  g.add(railTrack)
+
+  // FOUR STATIONS — discover · design · build · launch
+  const fracs = [0.07, 0.36, 0.65, 0.94]
+  const emblemPos: Array<[number, number]> = []
+  for (let i = 0; i < 4; i++) {
+    const f = fracs[i] as number
+    const px = sx + ux * f * len
+    const py = sy + uy * f * len
+    emblemPos.push([px, py])
+    // station ring — the DRIVE node (spinning stud makes it visible)
+    const ring = node(`ring_${i + 1}`, px, py, 0.01)
+    ring.add(mesh(new THREE.TorusGeometry(0.052, 0.009, 10, 26), M.gold))
+    ring.add(mesh(new THREE.BoxGeometry(0.02, 0.011, 0.013), M.silver, 0.052, 0, 0.009))
     g.add(ring)
-    // the DRIVE node — rotates around z (faces the viewer)
-    const fan = node(fanNames[i] as string, fx, fanY, D / 2 + 0.03)
-    fan.add(mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.028, 12), M.silver).rotateX(Math.PI / 2))
-    for (let b = 0; b < 7; b++) {
-      const blade = mesh(new RoundedBoxGeometry(0.016, 0.062, 0.008, 1, 0.003), M.panel, 0, 0.042, 0.006)
-      blade.rotation.z = (b / 7) * Math.PI * 2
-      fan.add(blade)
-    }
-    // corner LED beside each fan
-    g.add(led(i === 1 ? M.ledGold : M.ledGreen, fx + 0.098, fanY + 0.078, D / 2 + 0.036))
-    g.add(fan)
   }
-  // top cap dot
-  g.add(led(M.ledGreen, 0, 0.72, D / 2 + 0.02))
 
-  // SERVER SLEDS — eight units, handles + LED pairs + vent slats
-  const sledGeo = new RoundedBoxGeometry(0.5, 0.112, 0.02, 2, 0.008)
-  const handleGeo = new RoundedBoxGeometry(0.14, 0.026, 0.03, 2, 0.01)
-  const ventGeo = new THREE.BoxGeometry(0.2, 0.008, 0.004)
-  for (let i = 0; i < 8; i++) {
-    const y = -0.72 + i * 0.152
-    g.add(mesh(sledGeo, i % 3 === 2 ? M.silver : M.panel, 0, y, D / 2 + 0.014))
-    g.add(mesh(handleGeo, M.ink, 0.06, y, D / 2 + 0.03))
-    for (let v = 0; v < 3; v++) {
-      g.add(mesh(ventGeo, M.ink, -0.14 - v * 0.045, y, D / 2 + 0.026))
+  // EMBLEMS — each step's craft, standing upright above its station
+  const emblemAt = (i: number): [number, number, number] => {
+    const p = emblemPos[i] as [number, number]
+    return [p[0], p[1] + 0.135, 0.03]
+  }
+  {
+    // 1 · الاكتشاف — the magnifier
+    const [ex, ey] = emblemAt(0)
+    const m = node('emblem_discover', ex, ey, 0.03)
+    m.add(mesh(new THREE.TorusGeometry(0.04, 0.009, 10, 24), M.silver))
+    const handle = mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.08, 8), M.gold, 0.05, -0.05, 0)
+    handle.rotation.z = Math.PI / 4
+    m.add(handle)
+    g.add(m)
+  }
+  {
+    // 2 · التصميم — the pen
+    const [ex, ey] = emblemAt(1)
+    const p = node('emblem_design', ex, ey, 0.03)
+    p.add(mesh(new THREE.BoxGeometry(0.018, 0.11, 0.018), M.silver))
+    const tip = mesh(new THREE.ConeGeometry(0.013, 0.035, 10), M.gold, 0, -0.072, 0)
+    tip.rotation.x = Math.PI
+    p.add(tip)
+    p.add(mesh(new THREE.BoxGeometry(0.022, 0.014, 0.022), M.gold, 0, 0.062, 0))
+    g.add(p)
+  }
+  {
+    // 3 · البناء — the code plate
+    const [ex, ey] = emblemAt(2)
+    const cp = node('emblem_build', ex, ey, 0.03)
+    cp.add(mesh(new RoundedBoxGeometry(0.11, 0.075, 0.014, 2, 0.008), M.panel))
+    cp.add(mesh(new THREE.PlaneGeometry(0.1, 0.066), iconFace('code'), 0, 0, 0.0085))
+    g.add(cp)
+  }
+  {
+    // 4 · الإطلاق — the rocket
+    const [ex, ey] = emblemAt(3)
+    const r = node('emblem_launch', ex, ey, 0.03)
+    r.add(mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.075, 12), M.enclosure))
+    const nose = mesh(new THREE.ConeGeometry(0.028, 0.075, 12), M.silver, 0, 0.075, 0)
+    r.add(nose)
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * Math.PI * 2
+      const fin = mesh(new THREE.BoxGeometry(0.01, 0.04, 0.022), M.gold, Math.cos(a) * 0.032, -0.02, Math.sin(a) * 0.032)
+      fin.rotation.y = -a
+      r.add(fin)
     }
-    g.add(led(M.ledGreen, -0.225, y + 0.026, D / 2 + 0.026))
-    g.add(led(i % 2 === 0 ? M.ledGold : M.ledGreen, -0.225, y - 0.026, D / 2 + 0.026))
+    const flame = mesh(new THREE.ConeGeometry(0.018, 0.05, 10), M.signal, 0, -0.062, 0)
+    flame.rotation.x = Math.PI
+    r.add(flame)
+    g.add(r)
   }
   return g
 }
 
 /* ------------------------------------------------------------------ *
- * KIT 2 · cpuChip — home method
- * ------------------------------------------------------------------ */
-
-function buildCpuChip(): THREE.Group {
-  const g = node('cpuChip')
-  // substrate
-  g.add(mesh(new RoundedBoxGeometry(1.0, 0.055, 1.0, 2, 0.01), M.pcb, 0, 0, 0))
-  // silicon die + inner plane (VLM r2: crisper die)
-  const dieMat = std('#cdd6e2', 0.9, 0.18, { envMapIntensity: 1.3 })
-  g.add(mesh(new RoundedBoxGeometry(0.42, 0.05, 0.42, 2, 0.006), dieMat, 0, 0.05, 0))
-  g.add(mesh(new RoundedBoxGeometry(0.34, 0.052, 0.34, 2, 0.004), M.ink, 0, 0.051, 0))
-  // pin-1 marker: gold corner chamfer
-  g.add(mesh(new THREE.BoxGeometry(0.16, 0.006, 0.09), M.gold, -0.4, 0.03, -0.42))
-  // etched traces — thin gold lines running from die to edge
-  const traceGeo = new THREE.BoxGeometry(0.012, 0.005, 1)
-  const traceZGeo = new THREE.BoxGeometry(1, 0.005, 0.012)
-  for (let i = 0; i < 3; i++) {
-    const t = i - 1
-    g.add(mesh(traceGeo, M.gold, 0.235 + i * 0.05, 0.029, 0.2 + t * 0.18))
-    g.add(mesh(traceZGeo, M.gold, -0.2 - t * 0.18, 0.029, -0.235 - i * 0.05))
-  }
-  // pin grid (bottom, 13×13) — instanced gold pins (VLM r2: denser)
-  const pinGeo = new THREE.CylinderGeometry(0.011, 0.011, 0.1, 6)
-  const pins = new THREE.InstancedMesh(pinGeo, M.gold, 169)
-  const mat4 = new THREE.Matrix4()
-  let idx = 0
-  for (let i = 0; i < 13; i++) {
-    for (let j = 0; j < 13; j++) {
-      mat4.makeTranslation(-0.42 + i * 0.07, -0.077, -0.42 + j * 0.07)
-      pins.setMatrixAt(idx, mat4)
-      idx++
-    }
-  }
-  pins.name = 'pinGrid'
-  g.add(pins)
-  // capacitors around the die (two tones)
-  const capGeo = new THREE.CylinderGeometry(0.021, 0.021, 0.052, 12)
-  const capTan = std('#a8814f', 0.3, 0.5)
-  for (let i = 0; i < 10; i++) {
-    const a = (i / 10) * Math.PI * 2
-    const r = 0.33 + (i % 2) * 0.05
-    g.add(mesh(capGeo, i % 2 === 0 ? M.silver : capTan, Math.cos(a) * r, 0.054, Math.sin(a) * r))
-  }
-  return g
-}
-
-/* ------------------------------------------------------------------ *
- * KIT 3 · laptopStudio — websites hero
+ * KIT 3 · laptopStudio — websites hero (v2: the assembling page)
  * ------------------------------------------------------------------ */
 
 function buildLaptopStudio(): THREE.Group {
@@ -520,8 +957,7 @@ function buildLaptopStudio(): THREE.Group {
   g.add(mesh(new THREE.BoxGeometry(0.18, 0.008, 0.044), M.panel, -0.06, 0.042, 0.085))
   g.add(mesh(new RoundedBoxGeometry(0.26, 0.008, 0.17, 1, 0.004), M.ink, 0.08, 0.039, 0.21))
 
-  // hinge — a full-width gold bar at the pivot (bridges deck ↔ lid as
-  // one cohesive rigid assembly; the VLM r2 note about hinge cohesion)
+  // hinge — a full-width gold bar at the pivot
   const hingeBar = mesh(new THREE.CylinderGeometry(0.02, 0.02, baseW - 0.06, 12), M.gold, 0, 0.034, -baseD / 2 + 0.01)
   hingeBar.rotation.z = Math.PI / 2
   g.add(hingeBar)
@@ -530,20 +966,17 @@ function buildLaptopStudio(): THREE.Group {
   // on the deck, screen facing down like a real laptop) so the open
   // rest pose is a single negative rotation around x. ALL lid panels
   // are FLAT in the lid's own frame: x = width, y = thickness, z =
-  // length (pivot → front edge) — the lid rotates as one rigid slab.
-  // Local anatomy: +z runs from the hinge toward the deck's front
-  // edge, so the drawing's "up" lies toward the FRONT — exactly like
-  // a real laptop, the screen's top edge lands at the far edge when
-  // closed and stands up when open.
+  // length (pivot → front edge). Local anatomy: +z runs from the hinge
+  // toward the deck's front edge (the drawing's "up" for the open
+  // viewer); −y is the screen's face — the side the visitor sees.
   const lid = node('lid', 0, 0.034, -baseD / 2 + 0.01)
   lid.rotation.x = -1.75
   // shell (spans y 0.014..0.038 — outer back is +y, the closed top)
   lid.add(mesh(new RoundedBoxGeometry(baseW, 0.024, 0.7, 2, 0.012), M.silver, 0, 0.026, 0.352))
   // bezel plate on the inner face (visible from −y)
   lid.add(mesh(new RoundedBoxGeometry(0.98, 0.005, 0.66, 2, 0.006), M.ink, 0, 0.0125, 0.352))
-  // screen (normal = local −y: faces the deck closed, the visitor open;
-  // drawing-up = +z = the front edge — upright for the open viewer)
-  const screen = mesh(new THREE.PlaneGeometry(0.94, 0.6), screenMaterial('browser'), 0, 0.0098, 0.352)
+  // screen (normal = local −y: faces the deck closed, the visitor open)
+  const screen = mesh(new THREE.PlaneGeometry(0.94, 0.6), browserFace(false), 0, 0.0098, 0.352)
   screen.rotation.x = Math.PI / 2
   lid.add(screen)
   // webcam — top bezel (far edge: stands highest when open)
@@ -552,102 +985,166 @@ function buildLaptopStudio(): THREE.Group {
   lid.add(cam)
   // rear logo — the gold maker's mark on the outer back (+y face)
   lid.add(mesh(new RoundedBoxGeometry(0.1, 0.004, 0.1, 1, 0.02), M.gold, 0, 0.039, 0.352))
+
+  // THE ASSEMBLING PAGE — UI blocks floating on the −y side (toward
+  // the open viewer), settling onto the wireframe as the section
+  // travels: «مواقع تُبنى». Local y is negative = in front of the
+  // screen; slide drives move them toward the surface (y → ~ −0.02).
+  const blockNav = node('block_nav', -0.16, -0.11, 0.55)
+  blockNav.add(mesh(new RoundedBoxGeometry(0.34, 0.014, 0.05, 1, 0.006), M.panel))
+  blockNav.add(mesh(new RoundedBoxGeometry(0.07, 0.018, 0.024, 1, 0.008), M.gold, 0.1, 0, 0))
+  lid.add(blockNav)
+
+  const blockHero = node('block_hero', 0.14, -0.14, 0.40)
+  blockHero.add(mesh(new RoundedBoxGeometry(0.3, 0.016, 0.16, 2, 0.008), M.panel))
+  blockHero.add(mesh(new RoundedBoxGeometry(0.24, 0.008, 0.11, 1, 0.005), M.ledGreen, 0, -0.011, 0))
+  lid.add(blockHero)
+
+  const blockCta = node('block_cta', -0.10, -0.12, 0.27)
+  blockCta.add(mesh(new RoundedBoxGeometry(0.13, 0.012, 0.045, 1, 0.005), M.gold))
+  lid.add(blockCta)
+
   g.add(lid)
   return g
 }
 
 /* ------------------------------------------------------------------ *
- * KIT 4 · robotArm — automation hero
+ * KIT 4 · nodeFlow — automation hero (THE n8n canvas)
  * ------------------------------------------------------------------ */
 
-function buildRobotArm(): THREE.Group {
-  const g = node('robotArm')
-  // plinth + gold bolt ring + status LED
-  g.add(mesh(new THREE.CylinderGeometry(0.26, 0.3, 0.09, 28), M.enclosure, 0, 0.045, 0))
-  const boltGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.03, 6)
-  for (let i = 0; i < 8; i++) {
-    const a = (i / 8) * Math.PI * 2
-    g.add(mesh(boltGeo, M.gold, Math.cos(a) * 0.21, 0.09, Math.sin(a) * 0.21))
-  }
-  g.add(led(M.ledGreen, 0, 0.16, 0.12))
+function buildNodeFlow(): THREE.Group {
+  const g = node('nodeFlow')
+  // the editor canvas — a dark dot-grid panel (the n8n workspace)
+  g.add(mesh(new RoundedBoxGeometry(0.64, 1.06, 0.02, 2, 0.014), M.ink))
+  g.add(mesh(new THREE.PlaneGeometry(0.58, 1.0), gridFace(), 0, 0, 0.0115))
 
-  // SHOULDER — drive node (rotation.z; the arm plane faces the viewer)
-  const shoulder = node('shoulder', 0, 0.09, 0)
-  shoulder.rotation.z = 0.42
-  shoulder.add(mesh(new RoundedBoxGeometry(0.2, 0.32, 0.26, 2, 0.02), M.enclosure, 0, 0.16, 0))
-  const shoulderJoint = mesh(new THREE.CylinderGeometry(0.115, 0.115, 0.3, 20), M.silver, 0, 0.33, 0)
-  shoulderJoint.rotation.x = Math.PI / 2
-  shoulder.add(shoulderJoint)
-  // upper arm
-  shoulder.add(mesh(new RoundedBoxGeometry(0.14, 0.56, 0.18, 2, 0.03), M.panel, 0, 0.62, 0))
-  shoulder.add(mesh(new THREE.BoxGeometry(0.146, 0.06, 0.186), M.gold, 0, 0.86, 0))
-  g.add(shoulder)
+  // THE WORKFLOW — trigger → invoice → sheet → chat:
+  // «فواتير تُصدر نفسها، تنبيهات تصل لحظيًا»
+  g.add(nodeCard('node_bolt', 0.09, 0.36, 'bolt', 'green'))
+  g.add(nodeCard('node_invoice', -0.09, 0.12, 'invoice', 'gold'))
+  g.add(nodeCard('node_table', 0.09, -0.12, 'table', 'green'))
+  g.add(nodeCard('node_chat', -0.09, -0.36, 'chat', 'gold'))
 
-  // ELBOW — drive node nested at the upper arm's top
-  const elbow = node('elbow', 0, 0.9, 0)
-  elbow.rotation.z = -1.02
-  const elbowJoint = mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.24, 18), M.silver, 0, 0, 0)
-  elbowJoint.rotation.x = Math.PI / 2
-  elbow.add(elbowJoint)
-  // forearm + gold band
-  elbow.add(mesh(new RoundedBoxGeometry(0.11, 0.46, 0.15, 2, 0.024), M.enclosure, 0, 0.24, 0))
-  elbow.add(mesh(new THREE.BoxGeometry(0.116, 0.05, 0.156), M.gold, 0, 0.38, 0))
-  shoulder.add(elbow)
-
-  // WRIST — drive node at the forearm's end
-  const wrist = node('wrist', 0, 0.5, 0)
-  wrist.rotation.z = 0.55
-  const wristJoint = mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.17, 14), M.silver, 0, 0, 0)
-  wristJoint.rotation.x = Math.PI / 2
-  wrist.add(wristJoint)
-  wrist.add(mesh(new RoundedBoxGeometry(0.09, 0.17, 0.11, 2, 0.016), M.panel, 0, 0.085, 0))
-  elbow.add(wrist)
-
-  // GRIPPER — two fingers (drive nodes) pinching the glowing workpiece
-  const grip_l = node('grip_l', -0.05, 0.19, 0)
-  grip_l.rotation.z = 0.3
-  grip_l.add(mesh(new RoundedBoxGeometry(0.028, 0.15, 0.055, 1, 0.008), M.gold, 0, 0.065, 0))
-  const grip_r = node('grip_r', 0.05, 0.19, 0)
-  grip_r.rotation.z = -0.3
-  grip_r.add(mesh(new RoundedBoxGeometry(0.028, 0.15, 0.055, 1, 0.008), M.gold, 0, 0.065, 0))
-  wrist.add(grip_l, grip_r)
-  // the WORKPIECE — a small emerald-lit cube between the fingers: the
-  // thing being automated
-  const workpiece = mesh(new RoundedBoxGeometry(0.075, 0.075, 0.075, 2, 0.012), M.signal, 0, 0.245, 0)
-  workpiece.name = 'workpiece'
-  wrist.add(workpiece)
+  // gold links + the three pulses that RUN the workflow on scroll
+  // (registry mirrors these lengths exactly)
+  flowLink(g, 0.09, 0.258, -0.09, 0.222, 'pulse_a', 0.184)
+  flowLink(g, -0.09, 0.018, 0.09, -0.018, 'pulse_b', 0.184)
+  flowLink(g, 0.09, -0.222, -0.09, -0.258, 'pulse_c', 0.184)
   return g
 }
 
 /* ------------------------------------------------------------------ *
- * KIT 5 · smartphone — work hero
+ * KIT 5 · workDeck — work hero
  * ------------------------------------------------------------------ */
 
-function buildSmartphone(): THREE.Group {
-  const g = node('smartphone')
-  // body (pill edges, glossy glass-metal) + bezel + screen
-  g.add(mesh(new RoundedBoxGeometry(0.36, 0.74, 0.048, 4, 0.06), M.phoneBody, 0, 0, 0))
-  g.add(mesh(new RoundedBoxGeometry(0.335, 0.705, 0.004, 2, 0.052), M.ink, 0, 0, 0.0242))
-  // screen — IN FRONT of the bezel slab's front face (0.0262): a
-  // coplanar plane inside the slab is occluded by it (VLM r2 read the
-  // phone as a "blank slab" — the screen was buried in the bezel).
-  const screen = mesh(new THREE.PlaneGeometry(0.312, 0.672), screenMaterial('app'), 0, 0, 0.0268)
-  g.add(screen)
-  // side keys — gold
-  g.add(mesh(new THREE.BoxGeometry(0.012, 0.11, 0.014), M.gold, 0.183, 0.16, 0))
-  g.add(mesh(new THREE.BoxGeometry(0.012, 0.06, 0.014), M.gold, 0.183, 0.3, 0))
-  // camera island (back) — two lenses + flash dot
-  g.add(mesh(new RoundedBoxGeometry(0.15, 0.15, 0.014, 2, 0.03), M.panel, -0.085, 0.26, -0.028))
-  for (const dy of [-0.032, 0.032]) {
-    g.add(mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.012, 16), M.silver, -0.108, 0.26 + dy, -0.037).rotateX(Math.PI / 2))
-    g.add(mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.014, 12), M.ink, -0.108, 0.26 + dy, -0.038).rotateX(Math.PI / 2))
+/** A shipped-project browser card — slab, chrome, live screen. */
+function workCard(name: string, w: number, h: number, kind: 0 | 1 | 2): THREE.Group {
+  const card = node(name)
+  card.add(mesh(new RoundedBoxGeometry(w, h, 0.045, 2, 0.018), M.panel))
+  // chrome strip + traffic dots
+  card.add(mesh(new RoundedBoxGeometry(w, 0.05, 0.05, 1, 0.012), M.ink, 0, h / 2 - 0.025, 0.001))
+  const dotGeo = new THREE.CylinderGeometry(0.008, 0.008, 0.01, 8)
+  const mats: THREE.Material[] = [M.ledRed, M.ledGold, M.ledGreen]
+  for (let i = 0; i < 3; i++) {
+    const d = mesh(dotGeo, mats[i] as THREE.Material, -w / 2 + 0.035 + i * 0.024, h / 2 - 0.025, 0.026)
+    d.rotation.x = Math.PI / 2
+    card.add(d)
   }
-  g.add(led(M.ledGold, -0.032, 0.32, -0.036))
+  // the live screen — the shipped work wearing its metric
+  const sw = w - 0.06
+  const sh = h - 0.09
+  card.add(mesh(new THREE.PlaneGeometry(sw, sh), workFace(kind), 0, -0.03, 0.0235))
+  return card
+}
+
+function buildWorkDeck(): THREE.Group {
+  const g = node('workDeck')
+  // THE CASCADE — three shipped projects at staggered depths
+  const a = workCard('card_a', 0.54, 0.36, 0)
+  a.position.set(0.08, 0.11, 0.12)
+  const b = workCard('card_b', 0.47, 0.32, 1)
+  b.position.set(-0.17, -0.03, 0.0)
+  const c = workCard('card_c', 0.41, 0.28, 2)
+  c.position.set(0.13, -0.18, -0.13)
+  // authored rest tilt — the deck's fanned pose (drives straighten it)
+  a.rotation.z = 0.09
+  c.rotation.z = -0.09
+  g.add(a, b, c)
   return g
 }
 
 /* ------------------------------------------------------------------ *
- * KIT 6 · dataStack — about story
+ * KIT 6 · obsessionLens — about hero
+ * ------------------------------------------------------------------ */
+
+function buildObsessionLens(): THREE.Group {
+  const g = node('obsessionLens')
+  // THE TILE — a small fine-traced circuit (the detail under exam)
+  g.add(mesh(new RoundedBoxGeometry(0.4, 0.035, 0.34, 2, 0.012), M.pcb, -0.05, -0.30, 0))
+  const tileFace = mesh(new THREE.PlaneGeometry(0.36, 0.3), microFace(), -0.05, -0.2825, 0)
+  tileFace.rotation.x = -Math.PI / 2
+  g.add(tileFace)
+  // tiny through-hole components standing on the tile
+  for (const [cx, cz, mat] of [
+    [-0.18, 0.09, M.silver],
+    [0.07, -0.10, M.gold],
+    [0.05, 0.11, M.silver],
+    [-0.13, -0.07, M.gold],
+  ] as Array<[number, number, THREE.Material]>) {
+    g.add(mesh(new THREE.BoxGeometry(0.045, 0.035, 0.045), mat, cx, -0.2675, cz))
+  }
+
+  // THE LENS — the studio's oversized obsession, sweeping the tile
+  const lensG = node('lensG', 0.02, 0.07, 0.05)
+  lensG.add(mesh(new THREE.TorusGeometry(0.21, 0.024, 14, 40), M.gold))
+  lensG.add(mesh(new THREE.CircleGeometry(0.19, 36), M.glass))
+  // handle — down-right at the classic magnifier angle
+  const handle = mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.38, 12), M.gold, 0.27, -0.27, 0)
+  handle.rotation.z = Math.PI / 4
+  lensG.add(handle)
+  lensG.add(mesh(new THREE.SphereGeometry(0.032, 12, 10), M.gold, 0.40, -0.40, 0))
+  // the focal glow — rides with the lens, lighting what it examines
+  lensG.add(mesh(new THREE.SphereGeometry(0.02, 12, 10), M.signal, 0, -0.355, -0.02))
+  lensG.add(halo(0.038, 0.24).translateY(-0.355).translateZ(-0.02))
+  g.add(lensG)
+  return g
+}
+
+/* ------------------------------------------------------------------ *
+ * KIT 7 · chatSignal — contact hero
+ * ------------------------------------------------------------------ */
+
+function buildChatSignal(): THREE.Group {
+  const g = node('chatSignal')
+  // THE BUBBLE — the conversation, already open
+  const bubbleG = node('bubbleG', 0, 0.03, 0)
+  bubbleG.add(mesh(new RoundedBoxGeometry(0.6, 0.42, 0.13, 4, 0.065), M.enclosure))
+  bubbleG.add(mesh(new RoundedBoxGeometry(0.52, 0.34, 0.01, 2, 0.012), M.ink, 0, 0, 0.062))
+  // the tail (bottom-right — the side the reply comes from in RTL)
+  const tail = mesh(new RoundedBoxGeometry(0.14, 0.12, 0.1, 2, 0.03), M.enclosure, 0.17, -0.245, 0)
+  tail.rotation.z = 0.35
+  bubbleG.add(tail)
+  // corner status LEDs
+  bubbleG.add(led(M.ledGreen, 0.21, 0.16, 0.068))
+  bubbleG.add(led(M.ledGold, -0.21, 0.16, 0.068))
+
+  // THE TYPING DOTS — each a named group whose emissive sphere sits
+  // OFFSET from the pivot; the swing drive rotates the group around x,
+  // so the dot bobs up and down on the scroll's own oscillation —
+  // three different frequencies = the organic rhythm of typing.
+  const dotXs = [-0.14, 0, 0.14]
+  const dotNames = ['dot_a', 'dot_b', 'dot_c']
+  for (let i = 0; i < 3; i++) {
+    const d = node(dotNames[i] as string, dotXs[i], 0.01, 0.075)
+    d.add(mesh(new THREE.SphereGeometry(0.032, 14, 12), M.signal, 0, 0.05, 0))
+    bubbleG.add(d)
+  }
+  g.add(bubbleG)
+  return g
+}
+
+/* ------------------------------------------------------------------ *
+ * KIT 8 · dataStack — about story (kept from MODEL-3)
  * ------------------------------------------------------------------ */
 
 function buildDataStack(): THREE.Group {
@@ -678,115 +1175,19 @@ function buildDataStack(): THREE.Group {
   return g
 }
 
-/** A strut (thin cylinder) from point a to point b — used by the
- * dish's tripod feed legs (VLM r3: the feed must visibly INTERSECT the
- * rim, not float). */
-function strut(a: THREE.Vector3, b: THREE.Vector3, radius: number, mat: THREE.Material): THREE.Mesh {
-  const dir = b.clone().sub(a)
-  const len = Math.max(dir.length(), 1e-4)
-  const geo = new THREE.CylinderGeometry(radius, radius, len, 8)
-  const m = new THREE.Mesh(geo, mat)
-  m.position.copy(a).addScaledVector(dir, 0.5)
-  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize())
-  return m
-}
-
-/* ------------------------------------------------------------------ *
- * KIT 7 · dishAntenna — contact hero
- * ------------------------------------------------------------------ */
-
-function buildDishAntenna(): THREE.Group {
-  const g = node('dishAntenna')
-  // tripod legs + collar + mast
-  const legGeo = new THREE.CylinderGeometry(0.022, 0.026, 0.6, 10)
-  for (let i = 0; i < 3; i++) {
-    const a = (i / 3) * Math.PI * 2 + Math.PI / 2
-    const leg = mesh(legGeo, M.ink, Math.cos(a) * 0.16, 0.24, Math.sin(a) * 0.16)
-    leg.rotation.z = -Math.cos(a) * 0.34
-    leg.rotation.x = Math.sin(a) * 0.34
-    g.add(leg)
-  }
-  g.add(mesh(new THREE.CylinderGeometry(0.055, 0.07, 0.14, 16), M.enclosure, 0, 0.52, 0))
-  g.add(mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3, 12), M.silver, 0, 0.66, 0))
-
-  // AZIMUTH — drive node (rotation.y): the whole head swivels
-  const azimuth = node('azimuth', 0, 0.8, 0)
-  azimuth.rotation.y = 0.55
-  // yoke arms + trunnions
-  for (const sx of [-1, 1]) {
-    azimuth.add(mesh(new RoundedBoxGeometry(0.05, 0.22, 0.06, 2, 0.012), M.enclosure, sx * 0.15, 0.1, 0))
-  }
-  // ELEVATION — drive node (rotation.x): the dish tilts to acquire.
-  // Negative base = the +z dish axis swings UP toward the visitor
-  // (elevation-local +z maps to (0, −sinθ, cosθ); θ = −0.55 → up 32°).
-  const elevation = node('elevation', 0, 0.16, 0)
-  elevation.rotation.x = -0.55
-  // the dish — lathed parabola, cream (real dishes are white: it reads
-  // against every band and ties to the silk/paper family)
-  const profile: THREE.Vector2[] = []
-  for (let i = 0; i <= 10; i++) {
-    const r = (i / 10) * 0.52
-    profile.push(new THREE.Vector2(r, r * r * 0.8))
-  }
-  const dishGeo = new THREE.LatheGeometry(profile, 44)
-  const dish = new THREE.Mesh(dishGeo, M.cream)
-  dish.rotation.x = Math.PI / 2 // lathe opens +y → concave faces +z local; rim lands toward the visitor
-  elevation.add(dish)
-  // gold rim clamp (VLM r2: contrast so the cream reads as designed)
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.018, 10, 44), M.gold)
-  rim.position.set(0, 0, 0.165)
-  elevation.add(rim)
-  // back hub (behind the vertex) + trunnion clamp
-  const hub = mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.09, 14), M.enclosure, 0, 0, -0.055)
-  hub.rotation.x = Math.PI / 2
-  elevation.add(hub)
-  // FEED ASSEMBLY — three struts from the RIM to the prime focus
-  // (R 0.52, depth 0.17 → focus ≈ 0.42 out on the boresight). Real
-  // prime-focus geometry: the feed visibly intersects the dish rim
-  // (VLM r3 "floating horn" — the single cantilever read detached).
-  const focus = new THREE.Vector3(0, -0.115, 0.42)
-  for (let i = 0; i < 3; i++) {
-    const a = (i / 3) * Math.PI * 2 + Math.PI / 6
-    const rimPt = new THREE.Vector3(Math.cos(a) * 0.5, Math.sin(a) * 0.5, 0.155)
-    elevation.add(strut(rimPt, focus, 0.011, M.silver))
-  }
-  // feed horn + THE SIGNAL (emerald tip) at the focus
-  const horn = mesh(new THREE.CylinderGeometry(0.044, 0.03, 0.11, 12), M.gold, 0, -0.115, 0.4)
-  horn.rotation.x = Math.PI / 2
-  elevation.add(horn)
-  const tip = mesh(new THREE.SphereGeometry(0.044, 14, 12), M.signal, 0, -0.115, 0.475)
-  tip.name = 'signalTip'
-  elevation.add(tip)
-  // the glow halo — additive sphere so the tip READS as a live signal
-  // at hero scale (no postprocessing in the scene; a static material
-  // stays freeze-contract-pure).
-  const halo = mesh(
-    new THREE.SphereGeometry(0.085, 14, 12),
-    new THREE.MeshBasicMaterial({
-      color: BRAND_COLORS.gGreen, transparent: true, opacity: 0.32,
-      blending: THREE.AdditiveBlending, depthWrite: false,
-    }),
-    0, -0.115, 0.475,
-  )
-  halo.name = 'signalHalo'
-  elevation.add(halo)
-  azimuth.add(elevation)
-  g.add(azimuth)
-  return g
-}
-
 /* ------------------------------------------------------------------ *
  * Registry + cache (module-lifetime; the scene clones per mount)
  * ------------------------------------------------------------------ */
 
 const KIT_BUILDERS: Record<string, () => THREE.Group> = {
-  serverRack: buildServerRack,
-  cpuChip: buildCpuChip,
+  siteFlow: buildSiteFlow,
+  journeyRail: buildJourneyRail,
   laptopStudio: buildLaptopStudio,
-  robotArm: buildRobotArm,
-  smartphone: buildSmartphone,
+  nodeFlow: buildNodeFlow,
+  workDeck: buildWorkDeck,
+  obsessionLens: buildObsessionLens,
+  chatSignal: buildChatSignal,
   dataStack: buildDataStack,
-  dishAntenna: buildDishAntenna,
 }
 
 const kitCache = new Map<string, RawInstrument>()

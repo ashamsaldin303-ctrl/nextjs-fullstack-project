@@ -1,58 +1,13 @@
 {
-  "generatedAt": "2026-09-09T13:13:38.140Z",
+  "generatedAt": "2026-09-10T10:20:00.000Z",
+  "note": "MODEL-4 section-voice set: one downloaded body (the 404 debugging duck) + 8 authored kits whose bodies speak their sections literally. See src/components/rune/tech-kits.ts + model-registry.ts.",
   "models": [
-    {
-      "slug": "circuit_board",
-      "variant": "1k",
-      "mainFile": "public/models/circuit_board/circuit_board_1k.gltf",
-      "totalMB": 3.14,
-      "polycount": 18273,
-      "dimensionsMeters": [
-        0.4035,
-        0.0783,
-        0.3974
-      ],
-      "animations": [],
-      "nodeNames": [
-        "circuit_board"
-      ],
-      "meshCount": 1,
-      "materialNames": [
-        "circuit_board",
-        "circuit_board_alpha"
-      ],
-      "extensionsUsed": [],
-      "files": [
-        "circuit_board_1k.gltf",
-        "textures/circuit_board_nor_gl_1k.jpg",
-        "textures/circuit_board_diff_1k.jpg",
-        "textures/circuit_board_arm_1k.jpg",
-        "circuit_board.bin"
-      ]
-    },
     {
       "slug": "rubber_duck_toy",
       "variant": "1k",
       "mainFile": "public/models/rubber_duck_toy/rubber_duck_toy_1k.gltf",
       "totalMB": 0.7,
-      "polycount": 2489,
-      "dimensionsMeters": [
-        0.2135,
-        0.2855,
-        0.3
-      ],
-      "animations": [],
-      "nodeNames": [
-        "rubber_duck_toy"
-      ],
-      "meshCount": 1,
-      "materialNames": [
-        "rubber_duck_toy"
-      ],
-      "extensionsUsed": [
-        "KHR_materials_specular",
-        "KHR_materials_ior"
-      ],
+      "section": "404 (rubber-duck debugging — programmer culture survivor)",
       "files": [
         "rubber_duck_toy_1k.gltf",
         "textures/rubber_duck_toy_diff_1k.jpg",
@@ -64,56 +19,83 @@
   ],
   "proceduralKits": [
     {
-      "kit": "serverRack",
+      "kit": "siteFlow",
       "section": "home hero",
       "nodes": [
-        "fan_a",
-        "fan_b",
-        "fan_c"
-      ]
+        "pulse_a",
+        "pulse_b",
+        "pulse_c"
+      ],
+      "meaning": "browser (the sites) flowing into automation nodes — the agency offer running"
     },
     {
-      "kit": "cpuChip",
+      "kit": "journeyRail",
       "section": "home method",
-      "nodes": []
+      "nodes": [
+        "traveler",
+        "ring_1",
+        "ring_2",
+        "ring_3",
+        "ring_4"
+      ],
+      "meaning": "four-station rail idea→launch"
     },
     {
       "kit": "laptopStudio",
       "section": "websites hero",
       "nodes": [
-        "lid"
-      ]
+        "lid",
+        "block_nav",
+        "block_hero",
+        "block_cta"
+      ],
+      "meaning": "the canvas websites are born on, assembling"
     },
     {
-      "kit": "robotArm",
+      "kit": "nodeFlow",
       "section": "automation hero",
       "nodes": [
-        "shoulder",
-        "elbow",
-        "wrist",
-        "grip_l",
-        "grip_r"
-      ]
+        "pulse_a",
+        "pulse_b",
+        "pulse_c"
+      ],
+      "meaning": "THE n8n canvas: trigger→invoice→sheet→chat workflow"
     },
     {
-      "kit": "smartphone",
+      "kit": "workDeck",
       "section": "work hero",
-      "nodes": []
+      "nodes": [
+        "card_a",
+        "card_c"
+      ],
+      "meaning": "shipped-project cards wearing their metrics"
+    },
+    {
+      "kit": "obsessionLens",
+      "section": "about hero",
+      "nodes": [
+        "lensG"
+      ],
+      "meaning": "the magnifier examining fine details"
+    },
+    {
+      "kit": "chatSignal",
+      "section": "contact hero",
+      "nodes": [
+        "bubbleG",
+        "dot_a",
+        "dot_b",
+        "dot_c"
+      ],
+      "meaning": "the open conversation, typing"
     },
     {
       "kit": "dataStack",
       "section": "about story",
       "nodes": [
         "sled_c"
-      ]
-    },
-    {
-      "kit": "dishAntenna",
-      "section": "contact hero",
-      "nodes": [
-        "azimuth",
-        "elevation"
-      ]
+      ],
+      "meaning": "the archive, one volume pulled"
     }
   ]
 }

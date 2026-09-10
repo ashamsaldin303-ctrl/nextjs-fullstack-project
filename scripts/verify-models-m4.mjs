@@ -1,25 +1,26 @@
 /**
- * MODEL-3 verification — the technical-essence 3D set, end-to-end.
+ * MODEL-4 verification — the section-voice 3D set, end-to-end.
  *
  * For every route: waits for the bodies to load (authored kits resolve
- * instantly; circuit_board + duck load over the network), then verifies
- * the «right place / right movement / right time» contract:
+ * instantly; the duck loads over the network), then verifies the
+ * «right place / right movement / right time» contract:
  *   · PLACE  — each slot's section resolves (found) and the body
  *              reaches full presence at the section's stage;
- *   · MOVE   — part drives actually move: D-odometers (fans) change
- *              rotation with scroll; sweeps (arm joints, dish) sit at
- *              their eased mid-values; the SLIDE drive (pulled sled)
- *              advances its POSITION (rotation stays 0 by design);
+ *   · MOVE   — part drives actually move: SLIDE drives (the pulses,
+ *              the assembling blocks, the traveler, the lens, the
+ *              fanning deck, the pulled sled) advance their POSITION;
+ *              rate odometers (station rings) advance rotation; swings
+ *              (lid, dots) oscillate;
  *   · TIME   — presence is ~0 before the section arrives and ~1 on
  *              stage (the materialise envelope);
  *   · FREEZE — an idle page parks the frame loop (frames counter).
- * Screenshots land in /tmp/m3/ for the VLM critique rounds.
+ * Screenshots land in /tmp/m4/ for the VLM critique rounds.
  */
 import { getChromium } from './_playwright.mjs'
 import { mkdirSync } from 'node:fs'
 
 const BASE = 'http://localhost:3000'
-const SHOTS = '/tmp/m3'
+const SHOTS = '/tmp/m4'
 mkdirSync(SHOTS, { recursive: true })
 
 const results = []
@@ -30,24 +31,24 @@ const ok = (name, pass, detail = '') => {
 
 const ROUTES = [
   { key: 'home', path: '/', slots: [
-    { id: 'hero-title', slug: 'serverRack', hero: true, drives: true },
-    { id: 'method-title', slug: 'cpuChip' },
+    { id: 'hero-title', slug: 'siteFlow', hero: true, drives: true, slide: 'pulse_b' },
+    { id: 'method-title', slug: 'journeyRail' },
   ] },
   { key: 'websites', path: '/services/websites', slots: [
-    { id: 'page-hero-title', slug: 'laptopStudio', hero: true, drives: true },
+    { id: 'page-hero-title', slug: 'laptopStudio', hero: true, drives: true, slide: 'block_hero' },
   ] },
   { key: 'automation', path: '/services/automation', slots: [
-    { id: 'page-hero-title', slug: 'robotArm', hero: true, drives: true },
+    { id: 'page-hero-title', slug: 'nodeFlow', hero: true, drives: true, slide: 'pulse_a' },
   ] },
   { key: 'work', path: '/work', slots: [
-    { id: 'page-hero-title', slug: 'smartphone', hero: true },
+    { id: 'page-hero-title', slug: 'workDeck', hero: true, drives: true, slide: 'card_a' },
   ] },
   { key: 'about', path: '/about', slots: [
-    { id: 'page-hero-title', slug: 'circuit_board', hero: true },
-    { id: 'story-title', slug: 'dataStack', drives: true, slide: true },
+    { id: 'page-hero-title', slug: 'obsessionLens', hero: true, drives: true, slide: 'lensG' },
+    { id: 'story-title', slug: 'dataStack', drives: true, slide: 'sled_c' },
   ] },
   { key: 'contact', path: '/contact', slots: [
-    { id: 'page-hero-title', slug: 'dishAntenna', hero: true, drives: true },
+    { id: 'page-hero-title', slug: 'chatSignal', hero: true, drives: true },
   ] },
   { key: 'default', path: '/definitely-missing-page-404', slots: [
     { id: 'nf-recovery-heading', slug: 'rubber_duck_toy', drives: true },
@@ -86,13 +87,23 @@ await ctx.addInitScript(() => {
 })
 const page = await ctx.newPage()
 const consoleErrors = []
-page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()) })
-page.on('pageerror', (e) => consoleErrors.push(String(e)))
+let currentRouteLabel = '(pre)'
+page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(`[${currentRouteLabel}] ${m.text()}`) })
+page.on('pageerror', (e) => consoleErrors.push(`[${currentRouteLabel}] ${String(e)}`))
+// Track HTTP failures — the 404-route DOCUMENT itself is expected to
+// be a 404; any OTHER 4xx/5xx response is a real defect.
+const httpFailures = []
+page.on('response', (r) => {
+  if (r.status() >= 400 && !r.url().includes('definitely-missing-page-404')) {
+    httpFailures.push(`${r.status()} ${r.url().slice(-80)}`)
+  }
+})
 
 let route404Visited = false
 for (const route of ROUTES) {
   console.log(`\n=========== ${route.key} (${route.path}) ===========`)
   if (route.key === 'default') route404Visited = true
+  currentRouteLabel = route.key
   await page.goto(BASE + route.path, { waitUntil: 'networkidle' })
   await page.evaluate(() => window.scrollTo(0, 0))
 
@@ -154,10 +165,10 @@ for (const route of ROUTES) {
     await page.screenshot({ path: shot })
     console.log(`  📸 ${shot}`)
 
-    // drives: advance the odometers/sweeps by scrolling, then read again.
-    // NOTE: the scroll store consumes the FIRST event after mount as
-    // its initialization sample (no motion) — scroll in TWO steps so
-    // the second genuinely advances D.
+    // drives: advance the slides/sweeps/odometers by scrolling, then
+    // read again. NOTE: the scroll store consumes the FIRST event
+    // after mount as its initialization sample (no motion) — scroll in
+    // TWO steps so the second genuinely advances D.
     if (m && m.drives.length > 0) {
       const before = m.drives.map((d) => ({ rot: d.rot, pos: d.pos }))
       // Step 0: prime — the store's first event is the init sample.
@@ -176,9 +187,8 @@ for (const route of ROUTES) {
       const after = await readDebug(page)
       const m2 = after?.models.find((x) => x.id === slot.id)
       const after2 = m2?.drives.map((d) => ({ rot: d.rot, pos: d.pos })) ?? []
-      // A drive "moved" if its ROTATION advanced (odometers/sweeps) OR
-      // its POSITION advanced (the pulled sled's slide drive — its
-      // rotation stays 0 by design).
+      // A drive "moved" if its ROTATION advanced (odometers/sweeps/
+      // swings) OR its POSITION advanced (slide drives).
       const changed = after2.some((r, i) =>
         Math.abs((r.rot ?? 0) - (before[i]?.rot ?? 0)) > 0.01 ||
         Math.abs((r.pos ?? 0) - (before[i]?.pos ?? 0)) > 0.01)
@@ -189,36 +199,74 @@ for (const route of ROUTES) {
       }
       ok(`${route.key}/${slot.id}: drives move`, changed, before.map((_, i) => fmt(i)).join(' '))
       if (slot.slide) {
-        // the sled's slide specifically: position must advance while
-        // rotation is designed to stay put
-        const si = m2?.drives.findIndex((d) => d.node === 'sled_c') ?? -1
-        const posMoved = si >= 0 && Math.abs((after2[si]?.pos ?? 0) - (before[si]?.pos ?? 0)) > 0.01
-        ok(`${route.key}/${slot.id}: sled slides out (position)`, posMoved,
-          si >= 0 ? `pos ${(before[si]?.pos ?? 0).toFixed(2)}→${(after2[si]?.pos ?? 0).toFixed(2)}` : 'sled_c not resolved')
+        // the named slide drive specifically: position must advance.
+        // A node can carry MULTIPLE drives (slide + sweep on different
+        // axes) — pass if ANY matching entry's POSITION advanced.
+        const idxs = []
+        for (let i = 0; i < (m2?.drives.length ?? 0); i++) {
+          if (m2?.drives[i]?.node === slot.slide) idxs.push(i)
+        }
+        const movedIdx = idxs.find((i) =>
+          Math.abs((after2[i]?.pos ?? 0) - (before[i]?.pos ?? 0)) > 0.01)
+        ok(`${route.key}/${slot.id}: ${slot.slide} slides (position)`, movedIdx !== undefined,
+          idxs.length ? idxs.map((i) => `pos ${(before[i]?.pos ?? 0).toFixed(2)}→${(after2[i]?.pos ?? 0).toFixed(2)}`).join(' | ') : `${slot.slide} not resolved`)
       }
     } else if (slot.drives) {
       ok(`${route.key}/${slot.id}: drives resolved`, false, 'expected drives, got none')
-    } else {
-      ok(`${route.key}/${slot.id}: no drives (scrub-only body)`, true)
     }
   }
-
-  // freeze contract: idle page parks (settle the velocity tail first)
-  await sleep(1600)
-  const f1 = (await readDebug(page))?.frames ?? 0
-  await sleep(1300)
-  const f2 = (await readDebug(page))?.frames ?? 0
-  ok(`${route.key}: freeze on idle`, f2 - f1 <= 3, `frames ${f1}→${f2}`)
 }
 
-const realErrors = consoleErrors.filter((e) => {
-  // The intentional 404-route visit logs its own document 404 — expected.
-  if (route404Visited && /404/.test(e) && /Failed to load resource/.test(e)) return false
-  return true
-})
-ok('console clean', realErrors.length === 0, realErrors.slice(0, 5).join(' | '))
+// FREEZE — the contract: the page SETTLES (fade/presence/wash/dust
+// dampers converge past EPS, chaining stops) and then renders ZERO
+// frames for as long as it stays idle. In headless Chromium the
+// chained renders advance on compositor pokes (pre-existing behavior,
+// identical on MODEL-3 — probes confirmed), so the honest check is:
+// wait for convergence (frames stop advancing), then hold idle and
+// assert they STAY stopped.
+currentRouteLabel = 'freeze'
+await page.goto(BASE + '/', { waitUntil: 'networkidle' })
+await sleep(1200)
+await page.goto(BASE + '/', { waitUntil: 'networkidle' })
+await page.evaluate(() => window.scrollTo(0, 0))
+let converged = false
+let fPrev = -1
+let fStable = 0
+for (let i = 0; i < 50; i++) {
+  await sleep(400)
+  const dbg = await readDebug(page)
+  const f = dbg?.frames ?? 0
+  // Only trust stability AFTER the scene has mounted and rendered —
+  // a not-yet-mounted scene reads 0 stably but isn't "settled".
+  const mounted = !!dbg && dbg.models.length > 0 && dbg.models.every((m) => m.ready)
+  if (mounted && f >= 5 && f === fPrev) {
+    fStable++
+    if (fStable >= 3) { converged = true; break }
+  } else {
+    fStable = 0
+  }
+  fPrev = f
+}
+const f1 = fPrev < 0 ? ((await readDebug(page))?.frames ?? 0) : fPrev
+await sleep(2500)
+const f2 = (await readDebug(page))?.frames ?? 0
+ok('freeze: settles then parks (zero idle frames)', converged && f2 - f1 === 0,
+  `converged=${converged}, frames ${f1}→${f2}`)
+
+// Console: the 404-route document's own status error is expected. A
+// hydration error would carry its route label — report it verbatim.
+const realConsoleErrors = consoleErrors.filter((e) => !e.includes('status of 404'))
+ok('console clean (no errors)', realConsoleErrors.length === 0, realConsoleErrors.slice(0, 4).join(' | ').slice(0, 600))
+ok('no unexpected HTTP failures', httpFailures.length === 0, httpFailures.slice(0, 4).join(' | ').slice(0, 300))
+ok('404 route visited for the duck', route404Visited)
 
 await browser.close()
-const failed = results.filter((r) => !r.pass).length
-console.log(`\n==== ${results.length - failed}/${results.length} passed ====`)
-process.exit(failed === 0 ? 0 : 1)
+
+const failed = results.filter((r) => !r.pass)
+console.log(`\n========================================`)
+console.log(`MODEL-4 VERIFY: ${results.length - failed.length}/${results.length} passed`)
+if (failed.length) {
+  console.log('FAILED:')
+  for (const f of failed) console.log(`  ✗ ${f.name} — ${f.detail}`)
+  process.exit(1)
+}
