@@ -147,10 +147,6 @@ export interface PartDrive {
    *  breathe for the READING visitor (MODEL-5: alive while visible;
    *  pure f(life), frozen when the loop parks). */
   blink?: boolean
-  /** MIRROR: slide-x offsets flip sign when the writing direction is
-   *  LTR (kits are authored RTL-first) — packets fly toward the
-   *  reading column in both locales. */
-  mirror?: boolean
   /** MODEL-5 IDLE: this part's life-clock choreography (see IdleSpec)
    *  — the workpiece hovers on its rail, plates breathe, lamps pulse,
    *  gyro rings keep spinning while the body is visible. */
@@ -420,10 +416,12 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
     // THE CONVERSATION STARTS (VLM r2 retune): the three lines TYPE
     // themselves in across the whole stay, the caret blinking on the
     // scroll clock; the send button wakes and pops mid-stay, then
-    // FIRES its packet toward the reading column (mirror) well inside
-    // the presence band (the r1 verdict "static Figma export" was the
-    // send ritual hiding at the exit, past the dissolve) — «لنبدأ
-    // الحديث», the message sending itself.
+    // FIRES its packet toward the reading column well inside the
+    // presence band (EN-1: the holder X-mirror carries the packet
+    // toward the EN reading column structurally — no drive flag)
+    // (the r1 verdict "static Figma export" was the send ritual
+    // hiding at the exit, past the dissolve) — «لنبدأ الحديث», the
+    // message sending itself.
     drives: [
       // MODEL-5 idle: the message KEEPS TYPING — the caret blinks on
       // the life clock (pure f(life) now: it types for the reading
@@ -435,7 +433,7 @@ export const MODEL_LIBRARY: Record<string, ModelDef> = {
       { node: 'caret', axis: 'z', glow: [0.4, 2.2], win: [0.15, 0.9], blink: true, boost: 1.2 },
       { node: 'send_btn', axis: 'y', slide: [0, 0.02], win: [0.58, 0.72] },
       { node: 'send_btn', axis: 'z', glow: [0.2, 1.5], win: [0.58, 0.72], boost: 1.2, idle: { amp: 0.4, hz: 0.5 } },
-      { node: 'fly_packet', axis: 'x', slide: [0, 0.3], win: [0.72, 0.94], mirror: true },
+      { node: 'fly_packet', axis: 'x', slide: [0, 0.3], win: [0.72, 0.94] },
       { node: 'fly_packet', axis: 'y', slide: [0, 0.17], win: [0.72, 0.94] },
     ],
   },

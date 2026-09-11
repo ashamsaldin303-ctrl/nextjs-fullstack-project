@@ -847,6 +847,8 @@ interface RuneDebug {
   fade: number
   fadePhase: 'in' | 'out'
   active: string
+  /** EN-1: the live writing direction — 'rtl' | 'ltr' (the mirror mode). */
+  dir: 'rtl' | 'ltr'
   models: { id: string; slug: string; p: number; env: number; fy: number; yaw: number; tilt: number; presence: number; build: number; ready: boolean; found: boolean; x: number; y: number; scale: number; prox: number; sprx: number; spry: number; drives: { node: string; rot: number; pos: number; scl: number; glow: number | null; fx: number; fy: number }[] }[]
   /** MODEL-6: true while the homepage intro curtain is armed — the
    *  staged births are held (R9) until the reveal completes. */
@@ -1129,10 +1131,28 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
 
       const slot = rt.slot
       const inst = rt.instrument
+      // EN-1 «مرآة اللغة» — the LTR MIRROR. The kits, the authored xPads
+      // and the yawed presentations are RTL-FIRST (the site's primary
+      // tongue); in the English locale the whole 3D layer must present
+      // the exact MIRROR of the Arabic composition, exactly as the DOM
+      // itself mirrors: the slot's logical side resolves against the
+      // writing direction, the xPad tucks toward the PHYSICAL edge in
+      // both locales (negative = toward edge, flipped in LTR), and the
+      // body itself renders through a holder X-mirror (scale.x < 0 —
+      // three.js flips face winding for negative-determinant world
+      // matrices, and the inverse-transpose normal matrix mirrors the
+      // lighting; r185 verified) with every rotation.y term negated, so
+      // T·R_y(−yaw)·R_x(tilt)·M_x·s ≡ M_x·(the Arabic pose): a provable
+      // world mirror. The kits' own internals (RTL browser chrome, the
+      // composer's send-at-the-end, lines typing right-to-left, packets
+      // flying toward the reading column) all read correctly for an
+      // LTR visitor through the same single mirror — no per-part flags.
+      const ltr = dirRef.current === 'ltr'
 
       // glue: the section's designed anchor side, in world units at
       // the slot's depth plane (stable — held for the whole stay).
       const halfH = tanHalf * (CAM_Z - slot.z)
+      const xPadEff = (slot.xPad ?? 0) * (ltr ? -1 : 1)
       const xFrac =
         (slot.side === 'center'
           ? 0.5
@@ -1142,7 +1162,7 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
               : 0.24
             : slot.side === 'start'
               ? 0.24
-              : 0.76) + (slot.xPad ?? 0)
+              : 0.76) + xPadEff
       let x = (xFrac * 2 - 1) * halfH * aspect
       const modelH = slot.viewFrac * 2 * halfH
 
@@ -1359,27 +1379,38 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
         if (y > yMax) y = yMax
         else if (y < yMin) y = yMin
       }
+
+      // EN-1: the LTR mirror write — scale.x < 0 mirrors the body's own
+      // geometry (RTL-authored kits read correctly for an LTR visitor);
+      // |scale| is identical, so every silhouette/clamp computation above
+      // is untouched (hw is yaw-sign-invariant by construction).
+      if (ltr) holder.scale.set(-scale, scale, scale)
+      else holder.scale.setScalar(scale)
       holder.position.set(x, y, slot.z)
-      holder.scale.setScalar(scale)
 
       // Whole-body scrub (reversible) + yaw + dissolve settle + the
       // MODEL-6 BIRTH spin-in (the body turns into its resting face as
       // it assembles) + the POINTER LEAN (the body turns its face
       // toward your hand — pure function of the damped springs,
       // converges when input stops) + the MODEL-5 idle sway.
-      holder.rotation.y =
-        rt.def.yaw +
+      // EN-1: in LTR every Y-rotation term NEGATES (R_y(−θ)·M_x ≡
+      // M_x·R_y(θ)) — the mirrored body presents the mirrored face; the
+      // silhouette math is |cos|/|sin|-invariant, so nothing else moves.
+      holder.rotation.y = (ltr ? -1 : 1) *
+        (rt.def.yaw +
         slot.scrub * ease01(p) +
         (1 - presence) * -0.4 +
         (1 - bk) * -0.55 +
         lean * rt.spr.x +
-        sway
+        sway)
+      // rotation.x is untouched by the X-mirror (M_x commutes with
+      // R_x — only y/z mix), so the tilt and the physical pointer
+      // pitch keep their authored signs in both locales.
       holder.rotation.x = (rt.def.tilt ?? 0) - lean * rt.spr.y * 0.7
 
       // Part drives — real named nodes, functions of (D, p, prox, life).
       if (inst) {
         const pe = ease01(p)
-        const rtl = dirRef.current === 'rtl'
         const prox = rt.prox
         for (const d of inst.drives) {
           const drive = d.drive
@@ -1423,9 +1454,13 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
             lp = ease01(raw < 0 ? 0 : raw > 1 ? 1 : raw)
           }
           // FOLLOW — the on-screen cursor mirroring the visitor's real
-          // pointer (slide = [xRange, yRange] NDC multipliers).
+          // pointer (slide = [xRange, yRange] NDC multipliers). EN-1: the
+          // holder X-mirror flips the node's local x onto world −x, so
+          // the x response NEGATES to keep tracking the real pointer
+          // (world_x = holderX − s·(base + ndc·rx_eff) — rx_eff = −rx in
+          // LTR restores the authored world direction; y is untouched).
           if (drive.follow) {
-            const rx = drive.slide?.[0] ?? 0
+            const rx = (drive.slide?.[0] ?? 0) * (ltr ? -1 : 1)
             const ry = drive.slide?.[1] ?? 0
             d.node.position.x = d.basePosVec.x + ndc.current.x * rx + box
             d.node.position.y = d.basePosVec.y + ndc.current.y * ry + boy
@@ -1463,15 +1498,18 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
           if (drive.slide) {
             // SLIDE (position offset over the windowed progress) —
             // assemblies rising into place, packets hopping, the
-            // workpiece riding the rail (+ peek under the pointer;
-            // mirror flips x for LTR: kits are authored RTL-first) +
+            // workpiece riding the rail (+ peek under the pointer) +
             // the idle harmonic (the workpiece hovers, plates breathe).
+            // EN-1: NO per-drive mirror flag anymore — the holder's own
+            // X-mirror flips every local x-slide onto the mirrored world
+            // rail automatically (packets hop node-to-node and the
+            // fired message flies toward the reading column in BOTH
+            // locales, structurally — the old flag would double-flip).
             const from = drive.slide[0] ?? 0
             const to = drive.slide[1] ?? 0
             let off = from + (to - from) * lp
             if (drive.peek) off += drive.peek * prox
             if (idle) off += idleH
-            if (drive.mirror && !rtl) off = -off
             d.node.position[d.axis] =
               d.basePos + off + (d.axis === 'x' ? box : d.axis === 'y' ? boy : boz)
             continue
@@ -1668,6 +1706,7 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
         fade: fadeV,
         fadePhase: fadePhase.current,
         active: activeId,
+        dir: dirRef.current, // EN-1: the verifier asserts the live mirror mode
         models: reg.list.map((rt) => ({
           id: rt.slot.id,
           slug: rt.def.slug,
@@ -1682,7 +1721,7 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
           found: rt.el !== null,
           x: rt.holder.position.x,
           y: rt.holder.position.y,
-          scale: rt.holder.scale.x,
+          scale: Math.abs(rt.holder.scale.x), // EN-1: |scale| — the size truth under the LTR X-mirror
           szx: rt.instrument ? Math.round(rt.instrument.size.x * 1000) / 1000 : 0,
           szy: rt.instrument ? Math.round(rt.instrument.size.y * 1000) / 1000 : 0,
           szz: rt.instrument ? Math.round(rt.instrument.size.z * 1000) / 1000 : 0,
