@@ -1,0 +1,60 @@
+# F-S6-02 (gold-standard audit): CI pipeline running every quality gate
+# the repo already owns on push/PR to main. Zero new tooling — the same
+# commands a local contributor runs (see README + scripts/ headers):
+# typecheck, lint, i18n parity (F-S4-05 allowlist gate), secret scan,
+# anti-slop scan. NOT included by design (documented decision): unit/E2E
+# test suites do not exist in this repo — adding a test job that always
+# passes would be cargo-cult CI; the gate list grows when suites land.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # check-secrets scans the branch diff vs origin/main — needs full
+          # history + the target ref.
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies (frozen lockfile)
+        run: bun install --frozen-lockfile
+
+      - name: Generate Prisma client (typecheck dependency)
+        run: bun run db:generate
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+      - name: i18n parity gate (F-S4-05 allowlist-enforced)
+        run: node scripts/check-i18n-parity.js
+
+      - name: Secret scan
+        run: node scripts/check-secrets.mjs
+
+      - name: Anti-slop scan
+        run: node scripts/check-slop.mjs
+
+      - name: Placeholder-contact gate (F-S10-01)
+        run: node scripts/check-site-contact.mjs
+
+      - name: Caddy open-proxy gate (F-S1-02)
+        run: node scripts/check-caddy-gate.mjs

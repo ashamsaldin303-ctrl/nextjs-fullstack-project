@@ -1,0 +1,31 @@
+# F-S1-05 (gold-standard audit): daily dependency vulnerability scanning.
+# Dependabot opens version-bump PRs for npm packages + GitHub Actions, and
+# GitHub's dependency graph surfaces Dependabot security alerts for known
+# CVEs in the lockfile. Bun installs from package.json + bun.lock — the
+# `npm` ecosystem reader tracks the same registry metadata.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "06:00"
+      timezone: "Asia/Damascus"
+    # Minor + patch auto-assign; majors stay review-first (Next/React/Three
+    # majors need manual verification against the 3D scenes).
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "needs-review"
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+  # Security-first: also watch the Actions workflows themselves once CI
+  # actions are pinned (none referenced yet — the block is inert scaffolding
+  # that activates the moment actions/ are used).
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

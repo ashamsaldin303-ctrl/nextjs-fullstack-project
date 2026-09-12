@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
 import { ImageResponse } from 'next/og'
 import { OG_IMAGE_ALT } from '@/lib/site-config'
 import { BRAND } from '@/lib/brand-colors'
@@ -20,14 +22,46 @@ export const contentType = 'image/png'
  * paper) and the rgba(0,113,227) glow stays an rgba literal (BRAND
  * exports hex strings only — zero-change rule).
  *
- * FONT DECISION: text is English-only on purpose. ImageResponse's default
- * font has no Arabic glyphs (renders tofu), and the repo ships no font
- * files (both Inter and Cairo load via next/font/google at build time).
- * When an Arabic-capable font file lands in the repo, load it via
- * fs/promises + `fonts: [{ name, data, style: 'normal' }]` and switch the
- * copy to the per-locale tagline. A clean English card beats tofu boxes.
+ * F-S10-03 (gold-standard audit): the card is now BILINGUAL. The full
+ * Cairo variable-weight TTF ships in public/fonts/ (SIL OFL — one file,
+ * Arabic + Latin coverage) and is loaded via fs/promises + the
+ * ImageResponse `fonts` option, so the Arabic card renders shaped Arabic
+ * glyphs (the default satori font has none — the old card was English-
+ * only on purpose to avoid tofu). One family covers both scripts.
+ *
+ * Read-once module cache: the OG route re-renders per request/params, the
+ * font buffer must not hit the disk on every render.
  */
-export default function OpengraphImage() {
+const CAIRO_FONT_PATH = path.join(process.cwd(), 'public', 'fonts', 'cairo-800.ttf')
+
+const cairoFontPromise = readFile(CAIRO_FONT_PATH)
+
+/** Per-locale copy — mirrors the meta catalog's tagline (messages/*.json). */
+const COPY = {
+  ar: {
+    wordmark: 'إيليرا',
+    tagline: 'حيث تُولَد التجارب الرقمية الاستثنائية',
+    subline: 'موقعات فائقة الجمال · أتمتة n8n · استوديو رقمي',
+    dir: 'rtl' as const,
+  },
+  en: {
+    wordmark: 'ELYRA',
+    tagline: 'Where exceptional digital experiences are born',
+    subline: 'Stunning Websites · n8n Automation · Digital Studio',
+    dir: 'ltr' as const,
+  },
+}
+
+export default async function OpengraphImage({
+  params,
+}: {
+  params: Promise<{ locale?: string }>
+}) {
+  const { locale } = await params
+  const copy = locale === 'en' ? COPY.en : COPY.ar
+
+  const cairoFont = await cairoFontPromise
+
   return new ImageResponse(
     (
       <div
@@ -40,6 +74,7 @@ export default function OpengraphImage() {
           justifyContent: 'center',
           position: 'relative',
           background: BRAND.dark,
+          direction: copy.dir,
         }}
       >
         {/* Primary glow — same radial treatment as the page heroes
@@ -73,6 +108,7 @@ export default function OpengraphImage() {
               fontWeight: 800,
               color: BRAND.dark,
               marginLeft: -8,
+              fontFamily: 'Cairo',
             }}
           >
             E
@@ -127,13 +163,14 @@ export default function OpengraphImage() {
           style={{
             display: 'flex',
             marginTop: 48,
-            fontSize: 120,
+            fontSize: copy.dir === 'rtl' ? 110 : 120,
             fontWeight: 800,
-            letterSpacing: 20,
+            letterSpacing: copy.dir === 'rtl' ? 0 : 20,
             color: '#F1F5F9',
+            fontFamily: 'Cairo',
           }}
         >
-          ELYRA
+          {copy.wordmark}
         </div>
 
         <div
@@ -142,9 +179,22 @@ export default function OpengraphImage() {
             marginTop: 20,
             fontSize: 38,
             color: '#A3AEC2',
+            fontFamily: 'Cairo',
           }}
         >
-          Stunning Websites · n8n Automation · Digital Studio
+          {copy.tagline}
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            marginTop: 12,
+            fontSize: 30,
+            color: '#A3AEC2',
+            fontFamily: 'Cairo',
+          }}
+        >
+          {copy.subline}
         </div>
 
         {/* Brand quad-dot baseline accent */}
@@ -191,6 +241,11 @@ export default function OpengraphImage() {
         </div>
       </div>
     ),
-    { ...size }
+    {
+      ...size,
+      fonts: [
+        { name: 'Cairo', data: cairoFont, style: 'normal', weight: 800 },
+      ],
+    }
   )
 }

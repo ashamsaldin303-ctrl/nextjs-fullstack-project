@@ -98,26 +98,55 @@ for (const k of enKeys) {
   if (enFlat[k] === '' && !EMPTY_STRING_ALLOWED.has(k)) emptyViolations.push(`${k} (en.json)`)
 }
 
-// --- Check 6 (L1-B P3, fix 2-d): identical ar/en string values (advisory) --
+// --- Check 6 (L1-B P3, fix 2-d / F-S4-05 gold-standard audit): identical
+// ar/en string values — ALLOWLIST-GATED ---------------------------------
 // Identical strings are usually legitimate (brand names, contact values,
 // the CRM acronym, placeholder-style numerals) but can also be an
-// untranslated string — so they are COUNTED and LISTED as a warning while
-// the exit code stays 0. Numbers are excluded: ar/en numeric equality is
-// expected (durations, stats). Today's catalogs carry ~20 identical
-// strings + 23 identical numbers (the 42 legitimate values L1-B verified).
-//
-// NOT IMPLEMENTED (deliberate decision, fix 2-d): an unused-key scan.
-// Deriving key usage from t()-call literals across src/ is too fragile —
-// dynamic keys such as t(`services.${id}.title`) defeat a literal scan and
-// would produce false positives that make the gate untrustworthy. The
-// L1-B-era dead-key list is history: 7 of its 8 keys were pruned across
-// the L4/L6 rounds, and common.close is now LIVE (consumed as sonner's
-// closeButtonAriaLabel in [locale]/layout.tsx). The worklog is the
-// tracker for any future dead-key findings.
+// untranslated string. Every identical pair below was REVIEWED against
+// the audit's F-S4-05 finding (30 keys): all are legitimately identical
+// (domains, ratings, stat suffixes, ELYRA wordmark, technical mono
+// strings, placeholders, percentages, empty cursor label). Anything NEW
+// that lands outside this allowlist FAILS the gate — an untranslated
+// string can never sneak in silently again. Numbers stay excluded:
+// ar/en numeric equality is expected (durations, stats).
+const IDENTICAL_STRINGS_ALLOWED = new Set([
+  'hero.watermark', // ELYRA brand wordmark
+  'stats.projects.suffix', // "+"
+  'stats.hours.suffix', // "" (no unit)
+  'stats.satisfaction.suffix', // "%"
+  'stats.integrations.suffix', // "+"
+  'workSection.scenes.site.domain', // lamssa.sy — real client domain
+  'workSection.scenes.site.rating', // 4.8
+  'workSection.scenes.dash.storageValue', // 7.2 GB / 10 GB
+  'workSection.scenes.oldDash.formula', // =SUM(C2:C14) — spreadsheet literal
+  'workSection.scenes.property.domain', // aqarplus.sy
+  'workSection.scenes.academy.domain', // masar.ac
+  'workSection.scenes.academy.rating', // 4.6
+  'workSection.scenes.academy.duration', // 12:40 — video duration
+  'workSection.scenes.dining.domain', // baitalsham.com
+  'workSection.scenes.dining.rating', // 4.7
+  'workSection.scenes.kanban.capacityValue', // 4/6 — workload counter
+  'calculator.integrationsOptions.crm', // CRM acronym
+  'pages.websites.threeD.city.nodes', // 18 NODES — mono HUD label
+  'pages.websites.threeD.city.titleMono', // SCALE 1:1000 · GRID C-101 · REV 10
+  'pages.websites.threeD.city.foot', // NODE {code} · SECTOR {sector} · SCALE 1:1000
+  'pages.websites.threeD.city.hudCam', // CAM — mono HUD label
+  'pages.websites.threeD.city.hudCur', // CUR — mono HUD label
+  'pages.about.numbers.years.suffix', // "" (no unit)
+  'pages.about.numbers.projects.suffix', // "+"
+  'pages.about.numbers.automations.suffix', // "+"
+  'pages.about.numbers.clients.suffix', // "+"
+  'pages.contact.form.whatsappPlaceholder', // +963 9XX XXX XXX
+  'pages.contact.socialProof.metrics.lamsa.value', // +140%
+  'pages.contact.socialProof.metrics.aqar.value', // +85%
+  'common.cursor.magnet', // "" (data-cursor label: none)
+])
 const identicalStringKeys = []
+const identicalUnapproved = []
 for (const k of arKeys) {
   if (k in enFlat && typeof arFlat[k] === 'string' && arFlat[k] === enFlat[k]) {
-    identicalStringKeys.push(k)
+    if (IDENTICAL_STRINGS_ALLOWED.has(k)) identicalStringKeys.push(k)
+    else identicalUnapproved.push(k)
   }
 }
 
@@ -198,7 +227,8 @@ const failed =
   arrayElementTagMismatches.length ||
   numericMismatches.length ||
   placeholderMismatches.length ||
-  emptyViolations.length
+  emptyViolations.length ||
+  identicalUnapproved.length
 
 if (failed) {
   console.error('PARITY FAIL')
@@ -212,6 +242,11 @@ if (failed) {
   if (numericMismatches.length) console.error('  Numeric value mismatches:', numericMismatches)
   if (placeholderMismatches.length) console.error('  Placeholder mismatches:', placeholderMismatches)
   if (emptyViolations.length) console.error('  Empty string values (not in allowlist):', emptyViolations)
+  if (identicalUnapproved.length)
+    console.error(
+      '  Identical ar/en strings OUTSIDE the allowlist (translate them or add to IDENTICAL_STRINGS_ALLOWED with a review comment):',
+      identicalUnapproved,
+    )
   process.exit(1)
 }
 
@@ -222,10 +257,6 @@ console.log(
 console.log(`  Empty-string check: ${EMPTY_STRING_ALLOWED.size} allowlisted keys, no accidental blanks`)
 if (identicalStringKeys.length) {
   console.log(
-    `  ⚠ ${identicalStringKeys.length} identical ar/en string values (usually legitimate — brand names/contact values — but review for untranslated copy):`,
+    `  Identical ar/en strings: ${identicalStringKeys.length}/${IDENTICAL_STRINGS_ALLOWED.size} allowlisted keys (all reviewed — brand names, domains, ratings, technical labels); new identical pairs outside the allowlist FAIL this gate`,
   )
-  for (const k of identicalStringKeys.slice(0, 10)) console.log(`      ${k}`)
-  if (identicalStringKeys.length > 10) {
-    console.log(`      … and ${identicalStringKeys.length - 10} more`)
-  }
 }

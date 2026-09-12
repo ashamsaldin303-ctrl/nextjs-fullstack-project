@@ -30,6 +30,14 @@ model Lead {
   // Unique — the API regenerates and retries on a P2002 collision
   // (odds ~1e-14 per draw).
   reference       String   @unique
+  // F-S2-01 (gold-standard audit): SHA-256 hex of the client's
+  // `Idempotency-Key` header — a network-level retry of the SAME logical
+  // submission hits the unique index and the route returns the ORIGINAL
+  // 201 { reference } verbatim instead of creating a duplicate row.
+  // NULL for key-less clients (curl/tools) — no dedupe, old behavior.
+  // Hashed, never stored raw: the header is attacker-supplied free text
+  // and must not land in the DB unbounded/unvalidated.
+  idempotencyKey  String?  @unique
   name            String
   email           String
   whatsapp        String?
@@ -51,9 +59,16 @@ model Lead {
   ipAddress       String?
   userAgent       String?
   status          String   @default("new") // new | contacted | won | lost
+  // F-S2-04 (gold-standard audit): delivery outcome of the n8n webhook —
+  // 'sent' | 'failed' | 'disabled' (null = older rows / pre-column era).
+  // Written AFTER the fire-and-forget attempt settles, so failed CRM sync
+  // is queryable (`WHERE webhookStatus = 'failed'`) and a replay worker
+  // can re-send deterministically. The 201 response NEVER waits on it.
+  webhookStatus   String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   @@index([status, createdAt])
   @@index([email])
+  @@index([webhookStatus])
 }

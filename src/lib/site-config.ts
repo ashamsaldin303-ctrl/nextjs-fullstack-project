@@ -2,18 +2,46 @@
  * Elyra site configuration — single source of truth for contact channels
  * and brand constants (audit P1-14 / guide §4.10).
  *
- * ⚠️ PLACEHOLDER DATA — MUST be replaced with the real accounts before
- * launch (audit P1-14, mandatory pre-launch item). Swap the values here
- * only; every consumer (footer, contact page, JSON-LD) reads from this file.
+ * F-S10-01 (gold-standard audit): values are now ENV-DRIVEN with the
+ * production defaults below — the deploy environment (.env) is the
+ * override surface, so swapping real accounts never touches code. The
+ * three env vars are documented in .env.example; NEXT_PUBLIC_ prefix =
+ * inlined at build time, readable on both server and client.
+ *
+ * ⚠️ OWNER ACTION STILL REQUIRED (pre-launch, audit D26): the WhatsApp
+ * default below is the LAST placeholder-shaped value — replace
+ * NEXT_PUBLIC_CONTACT_WHATSAPP in the production .env with the real
+ * business number BEFORE launch. Email + Telegram already resolve to the
+ * owned brand handles (elyra.agency domain / @elyra_agency) and only need
+ * the underlying mailboxes/accounts to exist.
  */
 
+function envOr(key: string, fallback: string): string {
+  const value = process.env[key]
+  // Empty string in .env means "unset" — fall through to the default.
+  return value && value.trim() !== '' ? value.trim() : fallback
+}
+
+/** Raw E.164 WhatsApp number (no "+"), e.g. 963991000000. */
+const WHATSAPP_NUMBER = envOr('NEXT_PUBLIC_CONTACT_WHATSAPP', '963991000000')
+
+/** Formats the E.164 number for display: +963 991 000 000. */
+function whatsappDisplay(): string {
+  // 963 9XX XXX XXX grouping for Syrian mobile numbers; other lengths
+  // render as a plain spaced triple-split so display never breaks.
+  if (WHATSAPP_NUMBER.length === 12 && WHATSAPP_NUMBER.startsWith('963')) {
+    return `+${WHATSAPP_NUMBER.slice(0, 3)} ${WHATSAPP_NUMBER.slice(3, 6)} ${WHATSAPP_NUMBER.slice(6, 9)} ${WHATSAPP_NUMBER.slice(9)}`
+  }
+  return `+${WHATSAPP_NUMBER.replace(/(\d{3})(?=\d)/g, '$1 ').trim()}`
+}
+
 export const SITE_CONTACT = {
-  email: 'hello@elyra.agency',
+  email: envOr('NEXT_PUBLIC_CONTACT_EMAIL', 'hello@elyra.agency'),
   /** International format without "+" — used in wa.me links. */
-  whatsappNumber: '963991000000',
+  whatsappNumber: WHATSAPP_NUMBER,
   /** Display format for the contact page. */
-  whatsappDisplay: '+963 991 000 000',
-  telegramHandle: 'elyra_agency',
+  whatsappDisplay: whatsappDisplay(),
+  telegramHandle: envOr('NEXT_PUBLIC_CONTACT_TELEGRAM', 'elyra_agency'),
 } as const
 
 export const SITE_SOCIAL = {

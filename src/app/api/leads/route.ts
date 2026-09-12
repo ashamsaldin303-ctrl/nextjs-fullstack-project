@@ -1,8 +1,11 @@
 import crypto from 'node:crypto'
+import { isIP } from 'node:net'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
+import { CSRF_COOKIE, CSRF_HEADER } from '@/lib/csrf'
+import { logger } from '@/lib/logger'
 import {
   computeEstimate,
   type IntegrationKey,
@@ -28,7 +31,11 @@ import { getApiT } from '@/lib/api-i18n'
  * Contract:
  *   400  Zod validation failure — field errors translated via the
  *        `x-elyra-locale` header (falls back to accept-language, then ar).
- *   403  Cross-site request (Sec-Fetch-Site / Origin mismatch).
+ *        Also: a malformed Idempotency-Key header (F-S2-01).
+ *   403  Cross-site request (Sec-Fetch-Site / Origin mismatch) OR CSRF
+ *        double-submit failure (F-S1-04 — the `elyra-csrf` cookie was
+ *        present on the request but the `x-csrf-token` header was
+ *        missing/mismatched).
  *   413  Body larger than 64 KB (content-length gate, pre-parse).
  *   415  Content-Type is not application/json (pre-parse).
  *   429  Rate limited — `Retry-After` + IETF draft `RateLimit-Limit/-
@@ -46,11 +53,17 @@ import { getApiT } from '@/lib/api-i18n'
  *        column, L1-B fix) so support can map it back to the lead.
  *        (Also the honeypot path: bot submissions get the same 201 shape
  *        but are silently discarded — see the POST handler.)
+ *        IDEMPOTENT REPLAY (F-S2-01): a request carrying an
+ *        `Idempotency-Key` whose SHA-256 hash is already persisted
+ *        returns THAT row's reference verbatim — no duplicate write, no
+ *        re-fired webhook, no strict-quota burn.
  *   GET  405 with `Allow: POST, OPTIONS` (RFC 9110 §15.4.6 — the
  *        framework's default 405 carries no Allow header).
  *   Every response emitted by POST/OPTIONS/GET (all statuses above)
  *   carries `Cache-Control: no-store` — request-specific data must
- *   never sit in a shared/intermediary cache (AUDIT-A1 L3).
+ *   never sit in a shared/intermediary cache (AUDIT-A1 L3) — and every
+ *   POST additionally carries `Server-Timing: app;dur=` (F-S2-06,
+ *   RFC 8001 §6 — server-side latency observable per response).
  *   All validation-adjacent error bodies (400/403/413/415/429) share one
  *   envelope: { error, message, fields } — `fields` is {} when no
  *   per-field detail applies (L6-R5 P3; 500 stays with the generic
@@ -64,7 +77,9 @@ import { getApiT } from '@/lib/api-i18n'
  *     inject numbers, while any other unknown field is a hard 400.
  *   - The webhook fires AFTER the row is committed and is best-effort:
  *     its failure never fails the request (fire-and-forget with the
- *     standalone server process in mind).
+ *     standalone server process in mind; the delivery outcome is
+ *     persisted on the row as `webhookStatus` — F-S2-04 — so failed CRM
+ *     sync is queryable and replayable).
  */
 
 export const runtime = 'nodejs'
@@ -178,13 +193,22 @@ const leadSchema = z.discriminatedUnion('source', [
  * rotation. Under an overwriting proxy the list holds a single element,
  * where first and last coincide. Appending proxies are not supported at
  * all with TRUST_PROXY=true (see .env.example).
+ *
+ * F-S1-06 (gold-standard audit): the extracted value is additionally
+ * VALIDATED with net.isIP — under operator misconfiguration (direct
+ * exposure with TRUST_PROXY=true) an attacker crafts arbitrary XFF
+ * strings to mint unlimited distinct bucket keys; non-IP garbage now
+ * collapses to the shared 'anonymous' bucket instead of a free bucket
+ * printer (the proxy layer also emits a one-time startup warning).
  */
 function clientIp(req: NextRequest): string {
   if (process.env.TRUST_PROXY !== 'true') return 'anonymous'
   const xff = req.headers.get('x-forwarded-for')
   const last = xff?.split(',').pop()?.trim()
-  if (last) return last
-  return req.headers.get('x-real-ip') ?? 'anonymous'
+  if (last && isIP(last) !== 0) return last
+  const real = req.headers.get('x-real-ip')
+  if (real && isIP(real) !== 0) return real
+  return 'anonymous'
 }
 
 function requestLocale(req: NextRequest): 'ar' | 'en' {
@@ -230,14 +254,42 @@ function randomReference(): string {
 }
 
 /**
- * Prisma P2002 (unique-constraint violation). The only realistic source
- * is the `reference` unique index (collision odds ~1e-14 per draw) — the
- * create path regenerates and retries on it (L1-B fix).
+ * Prisma P2002 (unique-constraint violation). Sources: the `reference`
+ * unique index (collision odds ~1e-14 per draw — the create path
+ * regenerates and retries, L1-B fix) and, since F-S2-01, the
+ * `idempotencyKey` unique index (a CONCURRENT duplicate submission —
+ * resolved by returning the winner row's reference, not a retry).
  */
 function isUniqueViolation(err: unknown): boolean {
   return (
     err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002'
   )
+}
+
+/** Which unique index tripped a P2002 — Prisma exposes it as meta.target. */
+function uniqueViolationTarget(err: unknown): string[] {
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    const target = (err.meta as { target?: string[] } | undefined)?.target
+    if (Array.isArray(target)) return target
+  }
+  return []
+}
+
+/* ------------------------------------------------------------------ */
+/* Idempotency (F-S2-01 — gold-standard audit)                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Client contract: `Idempotency-Key: <uuid>` — minted per submission
+ * INTENT on form mount, reused across network retries (lib/lead-http.ts).
+ * Charset is UUID-shaped hex+dash, 8–64 chars; anything else is a 400
+ * (strict, but the site's own clients only ever send RFC-4122 values).
+ */
+const IDEMPOTENCY_KEY_PATTERN = /^[0-9a-fA-F-]{8,64}$/
+
+/** SHA-256 hex of the header — the value actually persisted (64 chars). */
+function hashIdempotencyKey(raw: string): string {
+  return crypto.createHash('sha256').update(raw).digest('hex')
 }
 
 /**
@@ -335,7 +387,25 @@ function toStoredLead(input: z.infer<typeof leadSchema>): {
 /* Route                                                               */
 /* ------------------------------------------------------------------ */
 
-export async function POST(req: NextRequest) {
+/**
+ * F-S2-06 (gold-standard audit): latency observability — every POST
+ * response carries `Server-Timing: app;dur=` (RFC 8001 §6) and one
+ * structured log line records status + duration (the log drain owns any
+ * p95/p99 aggregation; client-side CWV ride the /api/vitals RUM route).
+ */
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  const startedAt = performance.now()
+  const res = await handlePost(req)
+  const durMs = performance.now() - startedAt
+  res.headers.set('Server-Timing', `app;dur=${durMs.toFixed(1)}`)
+  logger.info('api/leads', 'request completed', {
+    status: res.status,
+    ms: Math.round(durMs),
+  })
+  return res
+}
+
+async function handlePost(req: NextRequest): Promise<NextResponse> {
   const locale = requestLocale(req)
   const t = getApiT(locale)
 
@@ -406,6 +476,28 @@ export async function POST(req: NextRequest) {
       // Malformed Origin — fail closed (treated as cross-site).
     }
     if (!sameHost) {
+      return apiJson(
+        { error: 'cross_origin', message: t('crossOrigin'), fields: {} },
+        { status: 403 }
+      )
+    }
+  }
+
+  // 2.5) CSRF double-submit enforcement (F-S1-04 — gold-standard audit).
+  //      The proxy layer issues/rotates the `elyra-csrf` cookie on every
+  //      document response; the site's forms echo it as `x-csrf-token`
+  //      (lib/lead-http.ts). Enforcement arms ONLY when the cookie rides
+  //      the request — i.e. browser-class traffic: a cross-origin attacker
+  //      can force the victim's browser to SEND the cookie, but cannot READ
+  //      it (same-origin policy) and cannot attach the custom header
+  //      cross-site (custom header → CORS preflight → never approved here).
+  //      Cookie-less non-browser clients (curl, ops tooling) pass — the
+  //      header gates above already classified them. This is the third
+  //      CSRF layer, after SameSite=Lax cookies and Sec-Fetch-Site/Origin.
+  const csrfCookie = req.cookies.get(CSRF_COOKIE)?.value
+  if (csrfCookie !== undefined) {
+    const csrfHeader = req.headers.get(CSRF_HEADER)
+    if (csrfHeader !== csrfCookie) {
       return apiJson(
         { error: 'cross_origin', message: t('crossOrigin'), fields: {} },
         { status: 403 }
@@ -492,6 +584,35 @@ export async function POST(req: NextRequest) {
     return apiJson({ reference: randomReference() }, { status: 201 })
   }
 
+  // 5.5) Idempotency (F-S2-01 — gold-standard audit): a well-formed
+  //      `Idempotency-Key` header is hashed and looked up BEFORE the
+  //      strict quota — a network-level RETRY of an already-stored
+  //      submission returns the original { reference } verbatim, with no
+  //      duplicate row, no re-fired webhook and no strict-slot burn.
+  //      Concurrent same-key requests resolve via the unique index in
+  //      the create loop below. Key-less clients keep the old behavior.
+  const idemHeader = req.headers.get('idempotency-key')
+  let idemHash: string | null = null
+  if (idemHeader !== null) {
+    if (!IDEMPOTENCY_KEY_PATTERN.test(idemHeader)) {
+      return apiJson(
+        { error: 'invalid', message: t('invalid'), fields: {} },
+        { status: 400 }
+      )
+    }
+    idemHash = hashIdempotencyKey(idemHeader)
+    const replayed = await db.lead.findUnique({
+      where: { idempotencyKey: idemHash },
+      select: { reference: true },
+    })
+    if (replayed) {
+      logger.info('api/leads', 'idempotent replay', {
+        keyHash: idemHash.slice(0, 12),
+      })
+      return apiJson({ reference: replayed.reference }, { status: 201 })
+    }
+  }
+
   // 6) Strict quota (5/min/IP) — checked (and burned) immediately
   //    before the write, so ONLY requests that actually reach a
   //    persisted lead consume it. Everything above (413/415/403/400
@@ -534,15 +655,23 @@ export async function POST(req: NextRequest) {
   // the value shown in the success UI was untraceable — the team could
   // never map "c5tr8p13xb" back to a stored lead.
   let reference = randomReference()
+  // Set when a CONCURRENT same-key submission wins the unique index race:
+  // the webhook below is skipped and the winner's reference is returned.
+  let resolvedAsReplay = false
 
   try {
-    // Unique-index collision (P2002 on `reference`, odds ~1e-14 per
-    // draw) regenerates and retries — max 3 attempts, then the generic 500.
+    // Unique-index collision handling (P2002):
+    //   • `reference` (odds ~1e-14 per draw) — regenerate, max 3 attempts,
+    //     then the generic 500 (L1-B fix).
+    //   • `idempotencyKey` (F-S2-01) — a concurrent duplicate raced past
+    //     the step-5.5 lookup: fetch the winner row and return ITS
+    //     reference (idempotent replay), no webhook re-fire.
     for (let attempt = 1; ; attempt++) {
       try {
         await db.lead.create({
           data: {
             reference,
+            idempotencyKey: idemHash,
             name: input.name,
             email: input.email,
             whatsapp: input.whatsapp ?? null,
@@ -565,43 +694,73 @@ export async function POST(req: NextRequest) {
         })
         break
       } catch (err) {
-        if (attempt < 3 && isUniqueViolation(err)) {
-          reference = randomReference()
-          continue
+        if (isUniqueViolation(err)) {
+          if (idemHash !== null && uniqueViolationTarget(err).includes('idempotencyKey')) {
+            const winner = await db.lead.findUnique({
+              where: { idempotencyKey: idemHash },
+              select: { reference: true },
+            })
+            if (winner) {
+              reference = winner.reference
+              resolvedAsReplay = true
+              break
+            }
+            // Winner row vanished mid-race (manual delete) — fall through
+            // to a plain retry with the same key.
+          }
+          if (attempt < 3) {
+            reference = randomReference()
+            continue
+          }
         }
         throw err
       }
     }
 
     // 8) Webhook — fire-and-forget, never blocks or fails the 201.
-    const payload: LeadWebhookPayload = {
-      event: 'lead.created',
-      reference,
-      source: input.source,
-      locale,
-      lead: {
-        name: input.name,
-        email: input.email,
-        whatsapp: input.whatsapp ?? null,
-        message: stored.message,
-      },
-      project: {
-        service: stored.service,
-        pages: stored.pages,
-        languages: stored.languages,
-        threeD: stored.threeD,
-        integrations: input.source === 'calculator' ? input.integrations : [],
-        automationLevel: stored.automationLevel,
-      },
-      estimate: { ...stored.estimate, currency: 'USD' },
-      meta: {
-        receivedAt: new Date().toISOString(),
-        userAgent,
-      },
+    //    Skipped entirely for idempotent replays (the original attempt
+    //    already delivered it). F-S2-04: the delivery OUTCOME is persisted
+    //    on the row as `webhookStatus` once the attempt settles, so failed
+    //    CRM sync is queryable + replayable (scripts can re-send by
+    //    reference) — the 201 itself never waits on the webhook.
+    if (!resolvedAsReplay) {
+      const payload: LeadWebhookPayload = {
+        event: 'lead.created',
+        reference,
+        source: input.source,
+        locale,
+        lead: {
+          name: input.name,
+          email: input.email,
+          whatsapp: input.whatsapp ?? null,
+          message: stored.message,
+        },
+        project: {
+          service: stored.service,
+          pages: stored.pages,
+          languages: stored.languages,
+          threeD: stored.threeD,
+          integrations: input.source === 'calculator' ? input.integrations : [],
+          automationLevel: stored.automationLevel,
+        },
+        estimate: { ...stored.estimate, currency: 'USD' },
+        meta: {
+          receivedAt: new Date().toISOString(),
+          userAgent,
+        },
+      }
+      void sendLeadWebhook(payload)
+        .then((outcome) =>
+          db.lead
+            .update({ where: { reference }, data: { webhookStatus: outcome } })
+            .catch(() => {
+              /* row may have been purged — outcome stays unrecorded */
+            })
+        )
+        .catch(() => {
+          /* silent by contract */
+        })
     }
-    void sendLeadWebhook(payload).catch(() => {
-      /* silent by contract */
-    })
 
     return apiJson({ reference }, { status: 201 })
   } catch (err) {
@@ -611,7 +770,9 @@ export async function POST(req: NextRequest) {
     // (The lenient hit stays counted: the request did reach the server.)
     refundRateLimit(ip, 'strict')
     // Details to the server log only — never to the client (§3.1).
-    console.error('[elyra:api/leads] storage failed:', err instanceof Error ? err.message : err)
+    logger.error('api/leads', 'storage failed', {
+      error: err instanceof Error ? err.message : String(err),
+    })
     return apiJson(
       { error: 'server_error', message: t('serverError') },
       { status: 500 }

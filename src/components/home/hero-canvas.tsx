@@ -5,6 +5,7 @@ import { useRef, useState, useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { BRAND } from '@/lib/brand-colors'
 import { noteGlLost, noteGlRestored } from '@/lib/gl-health'
+import { logger } from '@/lib/logger'
 import { getHeroScroll } from '@/lib/hero-scroll'
 import { useMobileTier } from '@/lib/use-mobile-tier'
 import { probeWebGL } from '@/lib/use-webgl'
@@ -636,11 +637,11 @@ function ContextLossGuard() {
     const canvas = gl.domElement
     const onLost = (e: Event) => {
       e.preventDefault()
-      console.warn('[HeroCanvas] WebGL context lost')
+      logger.warn('HeroCanvas', 'WebGL context lost')
       noteGlLost('hero')
     }
     const onRestored = () => {
-      console.info('[HeroCanvas] WebGL context restored')
+      logger.info('HeroCanvas', 'WebGL context restored')
       noteGlRestored('hero')
       // Re-sync the particles' point-size uniform to R3F's clamped dpr
       // on the freshly restored context (W3-01).

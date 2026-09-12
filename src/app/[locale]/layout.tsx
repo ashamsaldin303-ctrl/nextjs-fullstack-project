@@ -11,6 +11,7 @@ import { Navbar } from '@/components/layout/navbar'
 import { Footer } from '@/components/layout/footer'
 import { MotionConfigProvider } from '@/components/layout/motion-config'
 import { ScrollProgress } from '@/components/layout/scroll-progress'
+import { WebVitalsReporter } from '@/components/layout/web-vitals'
 import { Toaster } from '@/components/ui/sonner'
 import { CustomCursor } from '@/components/sensory/custom-cursor'
 import { GrainOverlay } from '@/components/sensory/grain-overlay'
@@ -221,6 +222,10 @@ export default async function LocaleLayout({
             {t('skipToContent')}
           </a>
           <Navbar />
+          {/* F-S3-06 / F-S4-02 (gold-standard audit): web-vitals RUM beacon —
+              renders nothing, posts final LCP/INP/CLS/TTFB/FCP per page load
+              to /api/vitals (zero PII). See components/layout/web-vitals.tsx. */}
+          <WebVitalsReporter />
           {/* REF-2 Phase A — Lenis smooth scroll (renders nothing; reduced
               motion → native scroll untouched). Mounted before the navbar
               so its instance exists for anchor routing on first paint. */}

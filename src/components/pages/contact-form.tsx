@@ -19,6 +19,7 @@ import {
   leadNameSchema,
   leadWhatsappSchema,
 } from '@/lib/lead-fields'
+import { leadRequestHeaders, newIdempotencyKey } from '@/lib/lead-http'
 
 /** Project-type quick chips (Batch 2 item 7c) — the service taxonomy shared
  *  with the /contact prefill URL contract, whose live producers are the
@@ -168,6 +169,11 @@ export function ContactForm({
   // fields; humans never see it. The value rides along in the JSON body
   // and the API silently discards bot submissions with a fake success.
   const honeypotRef = useRef<HTMLInputElement>(null)
+  // F-S2-01 (gold-standard audit): idempotency key — one per submission
+  // INTENT, lazily minted; refreshed after every 201 so "send another"
+  // is a NEW intent while a network-level retry of the same submit reuses
+  // the key and the server dedupes to the original row.
+  const idemKeyRef = useRef<string | null>(null)
 
   /** Chip toggle (7c): single-select — clicking the active chip clears the
    *  selection. The message template is re-seeded ONLY while the textarea
@@ -218,8 +224,9 @@ export function ContactForm({
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'x-elyra-locale': locale,
+          ...leadRequestHeaders(locale),
+          // F-S2-01: minted lazily — retries of THIS submit reuse the key.
+          'Idempotency-Key': (idemKeyRef.current ??= newIdempotencyKey()),
         },
         signal: controller.signal,
         body: JSON.stringify({
@@ -253,6 +260,9 @@ export function ContactForm({
         // V-2 L3-2b P3: post-success, an empty message is user-owned —
         // blocks the locale-switch re-seed path (see submittedRef above).
         submittedRef.current = true
+        // F-S2-01: the succeeded intent is CLOSED — the next submission
+        // ("send another") mints a fresh key.
+        idemKeyRef.current = null
         return
       }
 

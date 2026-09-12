@@ -53,7 +53,13 @@ function Slider({
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
-          className="border-primary bg-background ring-ring/50 block size-4 shrink-0 rounded-full border shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+          // F-S5-01 (gold-standard audit): size-6 = 24px visual thumb —
+          // meets the minimum touch-target guidance on mobile. The
+          // ::after pseudo-element stretches the HIT area ~10px beyond
+          // the visual circle on every side (~44px total) without
+          // rendering any ink, so precise drags land even when the
+          // pointer starts slightly off the thumb.
+          className="border-primary bg-background ring-ring/50 relative block size-6 shrink-0 rounded-full border shadow-sm transition-[color,box-shadow] after:absolute after:-inset-2.5 after:rounded-full after:content-[''] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
         />
       ))}
     </SliderPrimitive.Root>

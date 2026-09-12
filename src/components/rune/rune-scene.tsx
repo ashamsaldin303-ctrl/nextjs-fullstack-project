@@ -8,6 +8,7 @@ import { getScrollClocks, scrollEnergy, tickScrollTail } from '@/lib/scroll-stor
 import { pokeRuneField, setRuneInvalidate } from './rune-bus'
 import { BRAND_COLORS } from '@/lib/brand-colors'
 import { noteGlLost, noteGlRestored } from '@/lib/gl-health'
+import { logger } from '@/lib/logger'
 import { MODEL_LIBRARY, MODEL_ROUTES, SLOT_PALETTES, type ModelDef, type PartDrive, type RunePresetKey } from './model-registry'
 import { resolveModel, type RawInstrument } from './model-loader'
 
@@ -761,7 +762,10 @@ function buildSlots(routeKey: RunePresetKey, tier: RuneTier = 'field'): { list: 
         pokeRuneField()
       })
       .catch((err: unknown) => {
-        console.warn('[RuneInstruments] load failed:', def.kit, err)
+        logger.warn('RuneInstruments', 'load failed', {
+          kit: def.kit,
+          error: err instanceof Error ? err.message : String(err),
+        })
       })
   }
 
@@ -1962,11 +1966,11 @@ function ContextLossGuard() {
     const canvas = gl.domElement
     const onLost = (e: Event) => {
       e.preventDefault()
-      console.warn('[RuneInstruments] WebGL context lost')
+      logger.warn('RuneInstruments', 'WebGL context lost')
       noteGlLost('rune')
     }
     const onRestored = () => {
-      console.info('[RuneInstruments] WebGL context restored')
+      logger.info('RuneInstruments', 'WebGL context restored')
       noteGlRestored('rune')
     }
     canvas.addEventListener('webglcontextlost', onLost)

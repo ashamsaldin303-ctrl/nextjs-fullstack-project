@@ -17,16 +17,29 @@
  *   - fetch timeout of 5s via AbortController;
  *   - redirects are REFUSED (redirect: 'error' — AUDIT-C1 NIT): a 3xx
  *     from the trusted webhook URL must never re-POST the signed PII
- *     body to a different target; the failure path (retry once, then
+ *     body to a different target; the failure path (retry, then
  *     'failed') is the same as any network error;
- *   - exactly ONE retry, and only for network-level failures;
+ *   - F-S2-04 (gold-standard audit): THREE attempts total on
+ *     network-level failures, backoff 500ms/1500ms; HTTP-level
+ *     rejections (endpoint answered) are not retried;
+ *   - the FINAL outcome ('sent'|'failed'|'disabled') is persisted on the
+ *     lead row as `webhookStatus` by the caller (api/leads) — failed CRM
+ *     sync is queryable + replayable instead of silently lost;
  *   - silent failure: the lead stays stored, the API response stays 201.
  */
 
 import crypto from 'node:crypto'
+import { logger } from '@/lib/logger'
 
 const WEBHOOK_TIMEOUT_MS = 5_000
 const MIN_SECRET_LENGTH = 32
+/** F-S2-04 (gold-standard audit): network-level retries — 3 attempts total
+ * with backoff [500ms, 1500ms] between them. HTTP-level rejections (the
+ * endpoint ANSWERED with 4xx/5xx) stay un retried — retrying an answered
+ * rejection is pointless noise; the outcome is persisted on the lead row
+ * as `webhookStatus` for query/replay instead. */
+const WEBHOOK_ATTEMPTS = 3
+const WEBHOOK_BACKOFF_MS = [500, 1_500]
 
 export interface LeadWebhookPayload {
   event: 'lead.created'
@@ -78,18 +91,14 @@ function isConfigured(): { url: string; secret: string } | null {
   const secret = process.env.N8N_WEBHOOK_SECRET
   if (!url || !secret) return null
   if (secret.length < MIN_SECRET_LENGTH) {
-    console.warn(
-      `[elyra:n8n] webhook disabled — N8N_WEBHOOK_SECRET must be ${MIN_SECRET_LENGTH}+ chars`
-    )
+    logger.warn('n8n', `webhook disabled — N8N_WEBHOOK_SECRET must be ${MIN_SECRET_LENGTH}+ chars`)
     return null
   }
   // Fail closed in production (final-board R1): a non-https URL would ship
   // lead PII in cleartext — an operator typo, not an attack vector. Dev
   // keeps http://localhost n8n instances working.
   if (process.env.NODE_ENV === 'production' && !url.startsWith('https://')) {
-    console.warn(
-      '[elyra:n8n] webhook URL is not https:// — lead PII would be sent in cleartext; refusing to enable'
-    )
+    logger.warn('n8n', 'webhook URL is not https:// — lead PII would be sent in cleartext; refusing to enable')
     return null
   }
   return { url, secret }
@@ -121,7 +130,7 @@ async function deliver(
     if (!res.ok) {
       // HTTP-level rejection: no retry (the endpoint answered — retrying
       // a 4xx/5xx would be pointless noise).
-      console.warn(`[elyra:n8n] webhook responded with HTTP ${res.status}`)
+      logger.warn('n8n', 'webhook responded with HTTP error', { status: res.status })
       return false
     }
     return true
@@ -157,7 +166,7 @@ export async function sendLeadWebhook(
   const config = isConfigured()
   if (!config) {
     // Single log line, no error, no fake send (prompt §3.3).
-    console.info('[elyra:n8n] webhook disabled — N8N_WEBHOOK_URL/SECRET not configured')
+    logger.info('n8n', 'webhook disabled — N8N_WEBHOOK_URL/SECRET not configured')
     return 'disabled'
   }
 
@@ -214,19 +223,28 @@ export async function sendLeadWebhook(
     return deliver(config.url, body, headers)
   }
 
-  // One retry on network failure only (prompt §3.3).
-  for (let attempt = 0; attempt < 2; attempt++) {
+  // F-S2-04: network failures retry with backoff (3 attempts total); HTTP
+  // rejections do not. Each attempt signs itself (audit P2-1): a retry must
+  // carry a fresh timestamp/nonce/signature — reusing attempt-1 headers would
+  // trip the receiver's ±5-min TTL and nonce replay protection. The FINAL
+  // outcome is returned to the caller (persisted as the lead's
+  // `webhookStatus` — never re-thrown; the lead stays stored per contract).
+  for (let attempt = 0; attempt < WEBHOOK_ATTEMPTS; attempt++) {
+    if (attempt > 0) {
+      await new Promise((resolve) => setTimeout(resolve, WEBHOOK_BACKOFF_MS[attempt - 1] ?? 1_500))
+    }
     try {
       if (await attemptDelivery()) return 'sent'
-      return 'failed'
+      return 'failed' // HTTP-level rejection — answered, no retry.
     } catch (err) {
-      if (attempt === 0) continue
-      console.warn(
-        '[elyra:n8n] webhook delivery failed:',
-        err instanceof Error ? err.message : String(err)
-      )
-      return 'failed'
+      logger.warn('n8n', `webhook network failure (attempt ${attempt + 1}/${WEBHOOK_ATTEMPTS})`, {
+        error: err instanceof Error ? err.message : String(err),
+      })
     }
   }
+  logger.warn('n8n', 'webhook delivery failed after all attempts', {
+    attempts: WEBHOOK_ATTEMPTS,
+    reference: payload.reference,
+  })
   return 'failed'
 }

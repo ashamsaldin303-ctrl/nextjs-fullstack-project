@@ -63,6 +63,16 @@ const LIFT_MS = 850
 /** W2-02 — ceiling for the document fonts readiness wait (ms). */
 const FONTS_READY_TIMEOUT_MS = 4000
 
+/* F-S7-02 (gold-standard audit) — TIMING DECISION, deliberately kept:
+ * the 850ms lift exceeds the generic micro-interaction ceiling (~400ms),
+ * but the audit's own recommendation accepts it for this agency context
+ * (a cinematic one-per-session brand entry, skippable by ANY interaction
+ * intent — pointer/wheel/key — plus a 4.5s no-JS failsafe). The
+ * conversion measurement plan the audit asks for is now in place: the
+ * web-vitals RUM beacons (/api/vitals, F-S3-06/F-S4-02) carry a
+ * first-visit navigationType dimension, so intro-correlated LCP/INP and
+ * bounce data can be compared before any shortening to ~600ms. */
+
 export function IntroOverlay() {
   const t = useTranslations('meta')
   const reduced = usePrefersReducedMotion()

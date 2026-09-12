@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { leadEmailSchema, leadNameSchema, leadWhatsappSchema } from '@/lib/lead-fields'
+import { leadRequestHeaders, newIdempotencyKey } from '@/lib/lead-http'
 import { playImpact, playSuccess } from '@/lib/sound'
 import { tiltFromName } from '@/lib/tilt'
 import { toast } from 'sonner'
@@ -95,6 +96,12 @@ export function Calculator() {
   // fields; humans never see it. The value rides along in the JSON body
   // and the API silently discards bot submissions with a fake success.
   const honeypotRef = useRef<HTMLInputElement>(null)
+  // F-S2-01 (gold-standard audit): idempotency key — one per submission
+  // INTENT, lazily minted; a network-level retry of the same submit reuses
+  // the key and the server dedupes to the original row (the calculator's
+  // success panel ends the flow, so no post-success refresh is needed —
+  // a remount mints a fresh key).
+  const idemKeyRef = useRef<string | null>(null)
 
   const result = useMemo(() => computeEstimate(input), [input])
 
@@ -205,8 +212,9 @@ export function Calculator() {
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'x-elyra-locale': locale,
+          ...leadRequestHeaders(locale),
+          // F-S2-01: minted lazily — retries of THIS submit reuse the key.
+          'Idempotency-Key': (idemKeyRef.current ??= newIdempotencyKey()),
         },
         signal: controller.signal,
         body: JSON.stringify({

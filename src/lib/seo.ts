@@ -2,15 +2,16 @@ import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import type { Locale } from '@/i18n/routing'
 import { OG_IMAGE_ALT } from '@/lib/site-config'
+import { logger } from '@/lib/logger'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
-// Fail-soft warning (audit P2): without NEXT_PUBLIC_SITE_URL every
-// canonical/hreflang/OG URL silently points at localhost in production.
+// Fail-soft runtime warning (audit P2 / F-S4-01): `next build` HARD-fAILS
+// via the next.config.ts gate; this line catches runtime-only contexts
+// (a hand-rolled `next start` against a stale build, say) where the env
+// went missing between build and boot.
 if (process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_SITE_URL) {
-  console.warn(
-    '[seo] NEXT_PUBLIC_SITE_URL is not set — canonical/hreflang/OG URLs will point to localhost',
-  )
+  logger.warn('seo', 'NEXT_PUBLIC_SITE_URL is not set — canonical/hreflang/OG URLs will point to localhost')
 }
 
 interface PageMetadataInput {

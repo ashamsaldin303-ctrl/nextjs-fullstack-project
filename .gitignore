@@ -84,3 +84,11 @@ mini-services/
 # (globals.css tokens + repo conventions), so the .stitch copy is a
 # disposable export, not a curated VCS file.
 .stitch/
+sbom.cyclonedx.json
+
+# F-S1-02 (gold-standard audit): the sandbox-only gateway config must stay
+# on disk for the preview tooling (the platform gateway reads ./Caddyfile)
+# but NEVER ships in VCS — untracked via `git rm --cached Caddyfile`.
+# Production uses deploy/Caddyfile.example; a CI gate
+# (scripts/check-caddy-gate.mjs) fails if the file ever gets re-added.
+Caddyfile

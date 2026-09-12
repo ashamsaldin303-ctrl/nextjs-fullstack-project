@@ -3,6 +3,7 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { RotateCcw } from 'lucide-react'
 import { BRAND } from '@/lib/brand-colors'
+import { logger } from '@/lib/logger'
 
 // W3-03/D21: the two brand hexes import from the single owner
 // src/lib/brand-colors.ts — same values, one source. #F1F5F9 stays
@@ -58,7 +59,7 @@ export default function GlobalError({
   const copy = useSyncExternalStore(subscribeNoop, detectCopy, getServerCopy)
 
   useEffect(() => {
-    console.error('[elyra:global-error]', error.message, error.digest)
+    logger.error('global-error', error.message, { digest: error.digest })
   }, [error])
 
   return (

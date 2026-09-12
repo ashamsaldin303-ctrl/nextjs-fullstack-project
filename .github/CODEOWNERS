@@ -1,0 +1,5 @@
+# F-S6-03 (gold-standard audit): code ownership — every PR names a required
+# reviewer instead of silently landing unreviewed.
+# Single maintainer today (solo agency repo); extend per-area as the team
+# grows (e.g. /src/components/three/ @3d-owner).
+* @ashamsaldin303-ctrl

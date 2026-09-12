@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import {
   Activity,
@@ -579,9 +580,9 @@ function SiteNewScene({
               clip-path changes). They are tiny local webps (~300KB for all
               19), so eager is the reliable + cheap choice. Verified in the
               G4 coordinator browser pass. */}
-          <img
+          <Image
             src="/work-scenes/store-hero.webp"
-            alt=""
+            alt="" loading="eager"
             width={382}
             height={512}
             className="absolute inset-0 size-full object-cover object-[50%_20%]"
@@ -641,9 +642,9 @@ function SiteNewScene({
                   {(() => {
                     const photo = SITE_PRODUCT_PHOTOS[i % SITE_PRODUCT_PHOTOS.length]
                     return photo ? (
-                      <img
+                      <Image
                         src={photo[0]}
-                        alt=""
+                        alt="" loading="eager"
                         width={photo[1]}
                         height={photo[2]}
                         className="absolute inset-0 size-full object-cover"
@@ -902,9 +903,9 @@ function PropertyNewScene({
                 <PropertyArt i={0} accent={accent} />
               </div>
             </div>
-            <img
+            <Image
               src="/work-scenes/property-villa.webp"
-              alt=""
+              alt="" loading="eager"
               width={512}
               height={382}
               className="absolute inset-0 size-full object-cover"
@@ -1093,9 +1094,9 @@ function AcademyNewScene({
               (Stitch academy hero frame) replaces the abstract lesson-slide
               bars; the player chrome (duration chip, play button, progress)
               rides on top of the photo */}
-          <img
+          <Image
             src="/work-scenes/academy-instructor.webp"
-            alt=""
+            alt="" loading="eager"
             width={512}
             height={286}
             className="absolute inset-0 size-full object-cover"
@@ -1313,9 +1314,9 @@ function DiningNewScene({
           {/* G3-4: the real hero dish — the Stitch mixed-grill platter
               (charcoal skewers on the wooden table) replaces the CSS plate
               art, which stays beneath as the tint fallback */}
-          <img
+          <Image
             src="/work-scenes/dining-grill.webp"
-            alt=""
+            alt="" loading="eager"
             width={512}
             height={286}
             className="absolute inset-0 size-full object-cover"
@@ -1401,9 +1402,9 @@ function DiningNewScene({
                 {(() => {
                   const photo = DINING_DISH_PHOTOS[i % DINING_DISH_PHOTOS.length]
                   return photo ? (
-                    <img
+                    <Image
                       src={photo[0]}
-                      alt=""
+                      alt="" loading="eager"
                       width={photo[1]}
                       height={photo[2]}
                       className="absolute inset-0 size-full object-cover"
@@ -2396,9 +2397,9 @@ function StudioKanbanScene({ accent, mock }: { accent: string; mock?: MockConten
                         style={{ borderColor: K.border, background: K.panel }}
                       >
                         <div className="flex min-w-0 items-start gap-[3px]">
-                          <img
+                          <Image
                             src={thumb[0]}
-                            alt=""
+                            alt="" loading="eager"
                             width={thumb[1]}
                             height={thumb[2]}
                             className="h-[24px] w-[32px] shrink-0 rounded-[3px] object-cover"

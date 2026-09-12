@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { useTranslations } from 'next-intl'
 import { RotateCcw } from 'lucide-react'
+import { logger } from '@/lib/logger'
 
 export default function Error({
   error,
@@ -17,7 +18,7 @@ export default function Error({
     // Client-side log (browser console only) — this is a client boundary,
     // so nothing reaches the server here. Wiring this into a server-side
     // capture (e.g. a reporting endpoint) is future work.
-    console.error('[elyra:error]', error.message, error.digest)
+    logger.error('error-boundary', error.message, { digest: error.digest })
   }, [error])
 
   return (
