@@ -4,7 +4,7 @@ import { useSyncExternalStore } from 'react'
 
 /**
  * Mobile tier (FIX(2-b), L1-D P2; extracted for LOOP-3 FIX 5 so
- * capability-scene shares it with hero-canvas) via useSyncExternalStore —
+ * the city engine shares it with hero-canvas) via useSyncExternalStore —
  * the exact pattern of use-reduced-motion.ts: one module-level MQL
  * singleton (matchMedia allocates a fresh MediaQueryList on every call) +
  * a false server snapshot (desktop tier during SSR; consumers are

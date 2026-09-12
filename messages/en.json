@@ -385,9 +385,18 @@
         "addToCart": "Add",
         "rating": "4.8",
         "products": [
-          { "rating": "4.9", "reviews": "312 reviews" },
-          { "rating": "4.7", "reviews": "96 reviews" },
-          { "rating": "4.8", "reviews": "187 reviews" }
+          {
+            "rating": "4.9",
+            "reviews": "312 reviews"
+          },
+          {
+            "rating": "4.7",
+            "reviews": "96 reviews"
+          },
+          {
+            "rating": "4.8",
+            "reviews": "187 reviews"
+          }
         ],
         "footerLinks": [
           "Support",
@@ -1057,9 +1066,25 @@
       "threeD": {
         "kicker": "3D Capabilities",
         "title": "Interaction Users Can Feel",
-        "subtitle": "Live WebGL scenes embedded in your pages — telling the story and leaving a mark. Move your mouse or drag the scene to try it.",
-        "hint": "Move mouse to interact · Drag to rotate",
-        "fallback": "The 3D preview is not available on this device"
+        "subtitle": "A living WebGL scene of an entire city with its eighteen landmarks — a cinematic tour through its streets, manual camera control, and a day–night switch.",
+        "hint": "Drag to rotate · Click any landmark to explore it",
+        "fallback": "The 3D preview is not available on this device",
+        "city": {
+          "loader": "Preparing the scene",
+          "hint": "Click any landmark to explore it · the arrows button enables manual camera control",
+          "nodes": "18 NODES",
+          "manual": "Manual camera control mode",
+          "night": "Toggle day and night",
+          "tour": "Replay the cinematic tour",
+          "close": "Close",
+          "tipHint": "Click to view details",
+          "occDefault": "Occupancy rate",
+          "title": "Interactive city model · 18 landmarks",
+          "titleMono": "SCALE 1:1000 · GRID C-101 · REV 10",
+          "foot": "NODE {code} · SECTOR {sector} · SCALE 1:1000",
+          "hudCam": "CAM",
+          "hudCur": "CUR"
+        }
       },
       "journey": {
         "kicker": "From Idea to Launch",

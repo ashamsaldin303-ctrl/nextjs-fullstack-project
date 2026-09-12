@@ -3,16 +3,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
-import { MousePointer2 } from 'lucide-react'
 import { SectionHeading } from '@/components/shared/section-heading'
 import { Reveal } from '@/components/shared/reveal'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
+import { probeWebGL } from '@/lib/use-webgl'
 // Type-only import (erased at compile time — keeps the lazy chunk boundary
-// intact) for the imperative rotation handle exposed by CapabilityScene.
-import type { CapabilitySceneHandle } from '@/components/three/capability-scene'
+// intact) for the imperative handle exposed by CityScene.
+import type { CitySceneHandle } from '@/components/three/city/city-scene'
 
-const CapabilityScene = dynamic(
-  () => import('@/components/three/capability-scene').then((m) => m.CapabilityScene),
+const CityScene = dynamic(
+  () => import('@/components/three/city/city-scene').then((m) => m.CityScene),
   {
     ssr: false,
     loading: () => <div className="hero-fallback absolute inset-0" />,
@@ -25,43 +25,61 @@ export function ThreeDSection() {
   const reduced = usePrefersReducedMotion()
   const ref = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState(true)
-  // FIX(2-b, L1-D P3): keyboard path for the 3D drag — CapabilityScene
-  // exposes an imperative nudge handle via React 19's ref-as-prop (the ref
-  // passes through next/dynamic → React.lazy because ref is a regular prop
-  // in React 19; verified against the installed react-dom 19.2.3
-  // lazy-component mount path). Arrow keys rotate the scene through the
-  // same ±0.01 rad/px mapping the pointer drag uses (16 "drag pixels"
-  // ≈ 0.16 rad ≈ 9° per press); preventDefault stops the page from
-  // scrolling while the visitor is rotating the scene.
-  const sceneRef = useRef<CapabilitySceneHandle | null>(null)
+  // Keyboard path for the city camera — CityScene exposes an imperative
+  // nudge handle via React 19's ref-as-prop (the ref passes through
+  // next/dynamic → React.lazy because ref is a regular prop in React 19).
+  // Arrow keys rotate through the same ±0.0048 rad/px mapping the pointer
+  // drag applies (16 "drag pixels" ≈ 0.077 rad ≈ 4.4° per press); Escape
+  // deselects the current landmark. preventDefault stops the page from
+  // scrolling while the visitor is rotating the model.
+  const sceneRef = useRef<CitySceneHandle | null>(null)
   const onKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    const nudge = sceneRef.current?.nudge
-    if (!nudge) return
+    const handle = sceneRef.current
+    if (!handle) return
+    if (e.key === 'Escape') {
+      handle.deselect()
+      e.preventDefault()
+      return
+    }
     const step = 16
     switch (e.key) {
       case 'ArrowLeft':
-        nudge(-step, 0)
+        handle.nudge(-step, 0)
         break
       case 'ArrowRight':
-        nudge(step, 0)
+        handle.nudge(step, 0)
         break
       case 'ArrowUp':
-        nudge(0, -step)
+        handle.nudge(0, -step)
         break
       case 'ArrowDown':
-        nudge(0, step)
+        handle.nudge(0, step)
         break
       default:
         return
     }
     e.preventDefault()
   }, [])
-  // FIX(2-c/7): the IO writes this ref so the visibilitychange handler
-  // can never re-enable rendering while the section is offscreen.
+  // The IO writes this ref so the visibilitychange handler can never
+  // re-enable rendering while the section is offscreen.
   const intersectingRef = useRef(true)
-  // Phase 3 §4.2: the Three.js chunk only loads when the section actually
-  // approaches the viewport — below-fold sections never pay the cost up front.
+  // The Three.js chunk only loads when the section actually approaches the
+  // viewport — below-fold sections never pay the cost up front.
   const [nearViewport, setNearViewport] = useState(false)
+  // WebGL gate (FIX(2-b) for L1-C/L1-D P3): probe ACTUAL context creation,
+  // rAF-deferred so no synchronous GL work happens inside the effect body;
+  // hard-locked false once the probe fails (no WebGL → static fallback).
+  const [glAvailable, setGlAvailable] = useState(true)
+  useEffect(() => {
+    let cancelled = false
+    const raf = requestAnimationFrame(() => {
+      if (!cancelled) setGlAvailable(probeWebGL())
+    })
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(raf)
+    }
+  }, [])
 
   useEffect(() => {
     const el = ref.current
@@ -97,29 +115,32 @@ export function ThreeDSection() {
         />
 
         <Reveal className="mt-12">
-          {/* FIX(2-b, L1-D P3): role="img" + aria-label (was aria-label on a
-              role-less div — ignored by most AT) and a keyboard drag path:
-              tabIndex + arrow keys (handler above). Focusable only while the
-              WebGL scene can actually rotate (!reduced — reduced-motion
-              renders the static fallback, nothing to rotate). Focus ring
-              mirrors the hero CTA pattern (ring-ring on elyra-dark offset). */}
+          {/* role="img" + aria-label on the wrapper and a keyboard camera
+              path: tabIndex + arrow keys (handler above). Focusable only
+              while the WebGL scene can actually rotate (!reduced && WebGL —
+              the reduced-motion / no-WebGL states render the static
+              fallback, nothing to rotate). Focus ring mirrors the hero CTA
+              pattern (ring-ring on elyra-dark offset). */}
           <div
             ref={ref}
             data-cursor="rotate"
             data-cursor-label={tc('cursor.rotate')}
             role="img"
             aria-label={t('hint')}
-            tabIndex={!reduced ? 0 : undefined}
+            tabIndex={!reduced && glAvailable ? 0 : undefined}
             onKeyDown={onKeyDown}
-            className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl border border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark sm:aspect-[16/8]"
+            className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl border border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-elyra-dark sm:aspect-[16/9]"
           >
-            {!reduced && nearViewport ? <CapabilityScene ref={sceneRef} active={active} /> : null}
+            {!reduced && nearViewport && glAvailable ? (
+              <CityScene ref={sceneRef} active={active} />
+            ) : null}
             <div className="hero-fallback absolute inset-0 -z-10" aria-hidden="true" />
-            <div className="pointer-events-none absolute bottom-4 start-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs text-white/80 backdrop-blur-sm">
-              <MousePointer2 className="size-3.5" aria-hidden="true" />
-              {t('hint')}
-            </div>
             {reduced ? (
+              <p className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-white/60">
+                {t('fallback')}
+              </p>
+            ) : null}
+            {!glAvailable ? (
               <p className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-white/60">
                 {t('fallback')}
               </p>

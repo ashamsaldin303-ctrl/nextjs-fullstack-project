@@ -54,8 +54,12 @@ import { resolveModel, type RawInstrument } from './model-loader'
  *    is on stage (the loop keeps rendering), ZERO frames once every
  *    body is off screen (the offscreen guarantee is now machine-
  *    checked on the same `frames` counter).
- *    (Tab hidden ⇒ frameloop 'never'; reduced-motion / mobile ⇒ the
- *    layer never mounts — gated upstream in edge-rune.tsx.)
+ *    (Tab hidden ⇒ frameloop 'never'; reduced-motion ⇒ the layer never
+ *    mounts — gated upstream in edge-rune.tsx. MOBILE-2: the mobile
+ *    tier now mounts as the guarded «hero signature» — tier='hero',
+ *    one small centered body per page in the hero's lower whitespace
+ *    band, no edge journey, inert pointer layer, capped dpr, and an
+ *    fps watchdog that permanently degrades a pathological renderer.)
  *
  *    MODEL-6 (owner's instruction, verbatim intent): «أنيميشن سلس
  *    وجميل، مثل بناء المجسم، أو انبثاق وظهور له» + «يتحرك بشكل سلس،
@@ -150,6 +154,45 @@ const J_TAIL1 = 0.92
  * traveler inside its own section's visible band with this margin, so
  * a neighbour's ink is never covered at any opacity. */
 const J_PAD = 0.02
+
+/* ------------------------------------------------------------------ *
+ * MOBILE-2 (MOBILE-1 الخطة د) — the guarded «hero signature» tier.
+ * ONE small body per page (the page's own kit — every route's first
+ * slot IS its page-hero slot), composed in the hero's LOWER whitespace
+ * band: centered x (the desktop choreography's ink-free edge corridors
+ * DO NOT EXIST on a 390px viewport — the hero text spans ~84% of the
+ * width; the free room on mobile is VERTICAL), NO edge journey (touch
+ * has no hover, so the lean/peek/boost layer is inert by design),
+ * capped dpr, and an FPS watchdog that permanently fades a
+ * pathological renderer (software-GL floor) back to the IA atmosphere.
+ * ------------------------------------------------------------------ */
+/** Scene tier — 'field' is the desktop roaming tier (byte-identical to
+ *  the pre-MOBILE-2 behavior); 'hero' is the guarded mobile tier. */
+export type RuneTier = 'field' | 'hero'
+/** Hero-tier rest station (viewport fraction) — the centered band under
+ *  the hero's text stack. Measured at 390×844 (Range ink, MOBILE-2):
+ *  the home hero's ink bottom sits at ~0.795vh, so the only ink-free
+ *  center band for a ~0.11hhFrac body is ≈[0.86, 0.94]; inner heroes
+ *  are band-net-capped to their own (padded) lower band regardless. */
+const HERO_FY_REST = 0.88
+/** Hero-tier size clamp — ONE small signature body per page
+ *  (~94px on screen at 390px once sizeK's narrow-viewport shrink
+ *  applies), semantic parity with the PC tier without the scale. */
+const HERO_VIEWFRAC_MIN = 0.16
+const HERO_VIEWFRAC_MAX = 0.2
+const HERO_VIEWFRAC_DEFAULT = 0.18
+/** Hero-tier dust density multiplier (half the field's look). */
+const HERO_DUST_K = 0.5
+/** FPS watchdog (hero tier only): a rolling ring of the last WD_N frame
+ *  deltas; once full AND spanning ≥ WD_WINDOW_S of rendered time AND
+ *  averaging under WD_FPS_FLOOR, the tier degrades for the session. */
+const WD_N = 90
+/** Warm-up frames ignored after mount (shader-compile jank). */
+const WD_WARMUP = 60
+const WD_FPS_FLOOR = 24
+const WD_WINDOW_S = 3
+/** Per-delta cap (s) — a tab-switch spike must not poison the window. */
+const WD_DELTA_CAP = 0.25
 
 /* ------------------------------------------------------------------ *
  * GLSL — atmosphere layers (proven RUNE-2 physics, frustum units)
@@ -645,15 +688,19 @@ function resolveSection(id: string): HTMLElement | null {
 
 /** Build the instrument set for a route (holders + shadows + async
  * model loads). A slot stays dark until its model resolves, then its
- * own damped presence carries it in (the load pokes the bus). */
-function buildSlots(routeKey: RunePresetKey): { list: SlotRT[]; dispose: () => void } {
+ * own damped presence carries it in (the load pokes the bus).
+ * MOBILE-2: the hero tier builds ONE body per page — every route's
+ * FIRST slot is its page-hero slot (about's braidMerge + home's
+ * pipelineJourney are desktop-only witnesses and stay unmounted). */
+function buildSlots(routeKey: RunePresetKey, tier: RuneTier = 'field'): { list: SlotRT[]; dispose: () => void } {
   const route = MODEL_ROUTES[routeKey]
+  const slots = tier === 'hero' ? route.slots.slice(0, 1) : route.slots
   const list: SlotRT[] = []
   const disposables: (() => void)[] = []
   const shadowPlane = new THREE.PlaneGeometry(1, 1)
   disposables.push(() => shadowPlane.dispose())
 
-  for (const slot of route.slots) {
+  for (const slot of slots) {
     const def = MODEL_LIBRARY[slot.model]
     if (!def) continue
 
@@ -849,6 +896,12 @@ interface RuneDebug {
   active: string
   /** EN-1: the live writing direction — 'rtl' | 'ltr' (the mirror mode). */
   dir: 'rtl' | 'ltr'
+  /** MOBILE-2: the live scene tier — 'field' (desktop roaming) or
+   *  'hero' (guarded mobile signature). */
+  tier: RuneTier
+  /** MOBILE-2: true once the hero tier's fps watchdog has condemned the
+   *  renderer (the layer is fading out / has been unmounted by the root). */
+  degraded: boolean
   models: { id: string; slug: string; p: number; env: number; fy: number; yaw: number; tilt: number; presence: number; build: number; ready: boolean; found: boolean; x: number; y: number; scale: number; prox: number; sprx: number; spry: number; drives: { node: string; rot: number; pos: number; scl: number; glow: number | null; fx: number; fy: number }[] }[]
   /** MODEL-6: true while the homepage intro curtain is armed — the
    *  staged births are held (R9) until the reveal completes. */
@@ -866,7 +919,22 @@ const DEV = process.env.NODE_ENV !== 'production'
 /* ------------------------------------------------------------------ *
  * Core
  * ------------------------------------------------------------------ */
-function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'rtl' | 'ltr' }) {
+function InstrumentsCore({
+  presetKey,
+  dir,
+  tier = 'field',
+  onDegenerate,
+}: {
+  presetKey: RunePresetKey
+  dir: 'rtl' | 'ltr'
+  /** MOBILE-2: 'field' = the desktop roaming tier (behavior byte-identical
+   *  to the pre-MOBILE-2 engine); 'hero' = the guarded mobile tier. */
+  tier?: RuneTier
+  /** MOBILE-2: fired ONCE by the hero tier's fps watchdog — the root
+   *  flags the session and unmounts the layer (parking is also applied
+   *  locally: presence targets go to 0 so the bodies dissolve). */
+  onDegenerate?: () => void
+}) {
   const field = useMemo(() => buildField(), [])
   const invalidate = useThree((s) => s.invalidate)
   const gl = useThree((s) => s.gl)
@@ -879,11 +947,39 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
   const fadePhase = useRef<'in' | 'out'>('out')
   const builtKey = useRef<RunePresetKey | null>(null)
   const pendingKey = useRef<RunePresetKey | null>(presetKey)
+  // MOBILE-2: the tier rides the same fade machine (a tier flip rebuilds
+  // the instrument set through the identical no-pop path).
+  const builtTier = useRef<RuneTier>(tier)
+  const pendingTier = useRef<RuneTier>(tier)
+  const tierRef = useRef<RuneTier>(tier)
   const frames = useRef(0)
   const fps = useRef(60)
   const dirRef = useRef(dir)
   const rescans = useRef(0)
-  const dustGoal = useRef(MODEL_ROUTES[presetKey].dust)
+  const dustGoal = useRef(MODEL_ROUTES[presetKey].dust * (tier === 'hero' ? HERO_DUST_K : 1))
+  // MOBILE-2 — the fps watchdog state (hero tier only): a fixed ring of
+  // the last WD_N frame deltas with a running sum, a warm-up counter,
+  // and the one-shot fired/degraded flags. All mutated only inside
+  // useFrame (= only on actually-rendered frames, by construction).
+  const wdBuf = useRef(new Float32Array(WD_N))
+  const wdSum = useRef(0)
+  const wdCount = useRef(0)
+  const wdIdx = useRef(0)
+  const wdWarm = useRef(0)
+  const wdFired = useRef(false)
+  const wdDegraded = useRef(false)
+  // The degrade callback rides a ref so the watchdog never captures a
+  // stale closure (the parent may re-render it away).
+  const onDegRef = useRef(onDegenerate)
+  useEffect(() => {
+    onDegRef.current = onDegenerate
+  }, [onDegenerate])
+  // MOBILE-2: the live tier rides a ref (the dirRef pattern) so the
+  // frame loop always reads the current tier.
+  useEffect(() => {
+    tierRef.current = tier
+    invalidate()
+  }, [tier, invalidate])
   /** LIFE CLOCK (MODEL-5) — wall-clock seconds accumulated ONLY inside
    *  useFrame: it advances exactly while the scene renders frames, so
    *  every idle harmonic/spin/pulse is frozen by construction the
@@ -909,7 +1005,7 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       // AUDIT-B2 FIX 1: RoomEnvironment owns a box geometry + Lambert/
       // standard materials (three 0.185 .dispose() frees them); without
       // this the leak re-accumulated on every EdgeRune remount at the
-      // mobile-tier 768px crossings (capability-scene RoomEnv mirrors
+      // mobile-tier 768px crossings (the city engine mirrors
       // the same disposal).
       room.dispose()
       pmrem.dispose()
@@ -923,10 +1019,16 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
   // pointer move now pokes the invalidate bus — the bodies answer
   // each move immediately (the demand loop parks again once all
   // springs converge and the input stops).
+  // MOBILE-2: in the HERO tier the pointer layer is INERT BY DESIGN —
+  // touch has no hover, so there is no input to answer: the listener
+  // never attaches, ndc/par stay pinned at (0,0) (lean springs ≡ 0,
+  // proximity ≡ 0, follow drives see a centered cursor, the camera rig
+  // stays fixed at the authored stage position).
   const parTarget = useRef({ x: 0, y: 0 })
   const par = useRef({ x: 0, y: 0 })
   const ndc = useRef({ x: 0, y: 0 })
   useEffect(() => {
+    if (tier === 'hero') return
     const onMove = (e: PointerEvent) => {
       const w = window.innerWidth || 1
       const h = window.innerHeight || 1
@@ -940,7 +1042,7 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
     }
     window.addEventListener('pointermove', onMove, { passive: true })
     return () => window.removeEventListener('pointermove', onMove)
-  }, [])
+  }, [tier])
 
   // Per-resource disposal + invalidate-bus registration.
   useEffect(() => {
@@ -958,14 +1060,18 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
   }, [invalidate])
 
   // Route change (and the very first run) → arm the fade machine.
+  // MOBILE-2: the tier rides the same machine (a tier flip rebuilds the
+  // instrument set — e.g. hero tier's ONE slot), and the hero tier's
+  // dust goal is half the route's authored density.
   useEffect(() => {
     pendingKey.current = presetKey
-    dustGoal.current = MODEL_ROUTES[presetKey].dust
-    if (presetKey !== builtKey.current) {
+    pendingTier.current = tier
+    dustGoal.current = MODEL_ROUTES[presetKey].dust * (tier === 'hero' ? HERO_DUST_K : 1)
+    if (presetKey !== builtKey.current || tier !== builtTier.current) {
       fadePhase.current = 'out'
     }
     invalidate()
-  }, [presetKey, invalidate])
+  }, [presetKey, tier, invalidate])
 
   // Writing-direction changes re-resolve sides live.
   useEffect(() => {
@@ -977,6 +1083,51 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
     const dt = delta > 0 ? Math.min(delta, 0.1) : 1 / 60
     const { D, S, vy } = getScrollClocks()
     const energy = scrollEnergy()
+    // MOBILE-2: the live tier, read once per frame ('field' keeps the
+    // pre-MOBILE-2 behavior byte-identical; every hero-tier difference
+    // below is gated on this flag).
+    const hero = tierRef.current === 'hero'
+    // --- MOBILE-2 fps watchdog (hero tier only) -------------------------
+    // A rolling ring of the last WD_N RENDERED-frame deltas (useFrame
+    // runs only on rendered frames under the demand loop, so a parked
+    // loop records nothing — no rendering means no cost to judge). Each
+    // delta is capped at WD_DELTA_CAP so a tab-switch/back-from-park
+    // spike cannot poison the window; the first WD_WARMUP frames are
+    // ignored outright (shader-compile jank). Once the ring is full AND
+    // spans ≥ WD_WINDOW_S of rendered time AND its average sits under
+    // WD_FPS_FLOOR, the renderer is judged pathological (the SwiftShader
+    // software-GL floor — real phones run hardware GL and keep the
+    // tier): onDegenerate() fires ONCE (the root flags the session and
+    // unmounts the layer) and the local degraded flag parks the loop —
+    // every presence target goes to 0 below, the bodies dissolve, the
+    // demand loop stops chaining frames.
+    if (hero && !wdFired.current) {
+      if (wdWarm.current < WD_WARMUP) {
+        wdWarm.current += 1
+      } else {
+        const wd = delta > 0 ? Math.min(delta, WD_DELTA_CAP) : 1 / 60
+        if (wdCount.current < WD_N) {
+          wdBuf.current[wdCount.current] = wd
+          wdCount.current += 1
+          wdSum.current += wd
+        } else {
+          const i = wdIdx.current
+          const old = wdBuf.current[i] ?? 0
+          wdSum.current += wd - old
+          wdBuf.current[i] = wd
+          wdIdx.current = (i + 1) % WD_N
+        }
+        if (
+          wdCount.current === WD_N &&
+          wdSum.current >= WD_WINDOW_S &&
+          wdCount.current / wdSum.current < WD_FPS_FLOOR
+        ) {
+          wdFired.current = true
+          wdDegraded.current = true
+          onDegRef.current?.()
+        }
+      }
+    }
     // AUDIT-C2R (LOW): a zero-height frame (tier-flip/remount edge) must
     // not yield NaN/Infinity optics — the || 1 mirrors the innerHeight
     // guard on the sibling path above.
@@ -1025,13 +1176,14 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       if (fade.current < FADE_EPS) {
         fade.current = 0
         const next = pendingKey.current
-        if (next !== null && next !== builtKey.current) {
+        const nextTier = pendingTier.current
+        if (next !== null && (next !== builtKey.current || nextTier !== builtTier.current)) {
           for (const rt of reg.list) {
             f.root.remove(rt.holder)
             f.root.remove(rt.shadow)
           }
           reg.dispose()
-          const built = buildSlots(next)
+          const built = buildSlots(next, nextTier)
           for (const rt of built.list) {
             f.root.add(rt.holder)
             f.root.add(rt.shadow)
@@ -1039,6 +1191,7 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
           reg.list = built.list
           reg.dispose = built.dispose
           builtKey.current = next
+          builtTier.current = nextTier
           rescans.current = 0
         }
         fadePhase.current = 'in'
@@ -1094,8 +1247,10 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       // Presence: the designed materialise/dissolve value, damped.
       // MODEL-6: introHold pins the target at zero — the curtain must
       // never reveal a half-born body (the birth starts at time 0 on a
-      // fully revealed stage).
-      const targetEnv = introHold ? 0 : env * fadeV * (rt.ready ? 1 : 0)
+      // fully revealed stage). MOBILE-2: the fired fps watchdog parks
+      // the tier the same way — all targets 0, the bodies dissolve and
+      // the demand loop stops chaining (the root unmounts the layer).
+      const targetEnv = introHold || wdDegraded.current ? 0 : env * fadeV * (rt.ready ? 1 : 0)
       const pks = 1 - Math.exp(-PRESENCE_K * dt)
       const prevPresence = rt.presence
       rt.presence += (targetEnv - rt.presence) * pks
@@ -1153,18 +1308,33 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       // the slot's depth plane (stable — held for the whole stay).
       const halfH = tanHalf * (CAM_Z - slot.z)
       const xPadEff = (slot.xPad ?? 0) * (ltr ? -1 : 1)
-      const xFrac =
-        (slot.side === 'center'
-          ? 0.5
-          : dirRef.current === 'rtl'
-            ? slot.side === 'start'
-              ? 0.76
-              : 0.24
-            : slot.side === 'start'
-              ? 0.24
-              : 0.76) + xPadEff
+      // MOBILE-2 (hero tier): CENTERED — the desktop choreography's
+      // ink-free edge corridors do not exist on a phone (the hero text
+      // spans ~84% of a 390px viewport); the lower whitespace band is
+      // centered under the centered hero text, so side/xPad are ignored.
+      const xFrac = hero
+        ? 0.5
+        : (slot.side === 'center'
+            ? 0.5
+            : dirRef.current === 'rtl'
+              ? slot.side === 'start'
+                ? 0.76
+                : 0.24
+              : slot.side === 'start'
+                ? 0.24
+                : 0.76) + xPadEff
       let x = (xFrac * 2 - 1) * halfH * aspect
-      const modelH = slot.viewFrac * 2 * halfH
+      // MOBILE-2 (hero tier): ONE SMALL body — the slot's authored
+      // viewFrac (0.26–0.36 on every route) is clamped into the mobile
+      // signature band [0.16, 0.20] (0.18 when outside, which is every
+      // current slot): semantic parity with the PC tier at a fraction
+      // of the scale. The field tier reads the authored value verbatim.
+      const viewFrac = hero
+        ? slot.viewFrac >= HERO_VIEWFRAC_MIN && slot.viewFrac <= HERO_VIEWFRAC_MAX
+          ? slot.viewFrac
+          : HERO_VIEWFRAC_DEFAULT
+        : slot.viewFrac
+      const modelH = viewFrac * 2 * halfH
 
       // --- MODEL-7 «رحلة الحواف» — the EDGE JOURNEY -------------------
       // The body LIVES ON THE SCREEN (viewport-pinned, pure f(p) —
@@ -1178,12 +1348,18 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       // corridor), so the travel can never touch the reading column;
       // the band nets below make foreign-ink coverage structurally
       // impossible for the vertical leg.
+      // MOBILE-2 (hero tier): NO edge journey — the touch-scrolling
+      // reading column must never be swept by a traveling body. Birth
+      // + idle life only, at a fixed rest station in the hero's lower
+      // whitespace band (the band nets below still own the
+      // never-over-a-neighbour's-ink guarantee while it fades in/out).
       const jr = slot.journey ?? {}
       const jEnter = jr.enter ?? 0.84
       const jRest = jr.rest ?? slot.yFrac
       const jTuck = jr.tuck ?? -0.18
       let fy: number
-      if (p <= J_HEAD0) fy = jEnter
+      if (hero) fy = HERO_FY_REST
+      else if (p <= J_HEAD0) fy = jEnter
       else if (p <= J_HEAD1)
         fy = jEnter + (jRest - jEnter) * ease01((p - J_HEAD0) / (J_HEAD1 - J_HEAD0))
       else if (p < J_TAIL0) fy = jRest
@@ -1215,9 +1391,11 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
                 Math.max((sizeK * modelH) / inst.fitDim, 1e-4) *
                 // peak above the base: swell + proximity breath + idle
                 // breath — the net must hold even the grown silhouette.
-                (1 + (slot.grow ?? 0.15) + 0.06)) /
+                // MOBILE-2: the hero tier has NO swell (grow = 0) and no
+                // proximity breath — only the idle breath remains.
+                (1 + (hero ? 0 : slot.grow ?? 0.15) + 0.06)) /
               halfH
-            : slot.viewFrac
+            : viewFrac
         const hhFrac = Math.min(hhEst, 0.48)
         const bandTop = Math.min(Math.max(liveTop / vh, 0), 1)
         const bandBot = Math.min(Math.max((liveTop + rt.rectH) / vh, 0), 1)
@@ -1258,6 +1436,11 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       // its own damping (variety across slots ⇒ the field ripples
       // organically on every move); proximity: how near the pointer
       // world-point is to the body (hover lift, peek, glow boosts).
+      // MOBILE-2 (hero tier): the layer is INERT — the pointer listener
+      // never attached, so ndc is pinned at (0,0): the lean springs ease
+      // to (and hold) 0, the proximity target is forced to 0 (a centered
+      // ndc must NOT read as a phantom hover over a centered body), and
+      // every hover/peek/boost term below collapses to exactly zero.
       const lean = rt.def.react?.lean ?? 0.09
       const hoverW = rt.def.react?.hover ?? 1
       // K 9..13.4/s: snappy on real GPUs (≈0.4s settle), few frames on
@@ -1274,15 +1457,18 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       if (sprDelta > settleDelta) settleDelta = sprDelta
 
       const halfHS = halfH
-      const pwx = ndc.current.x * halfHS * aspect
-      const pwy = ndc.current.y * halfHS
       // base slot Y (pre-hover) for the proximity distance test
       const baseY = (1 - 2 * fy) * halfH + rise + (slot.yOff ?? 0) * modelH
-      const dxP = pwx - x
-      const dyP = pwy - baseY
-      const proxR = Math.max(modelH * 0.75, 0.5) * 1.7
-      let tp = 1 - Math.min(Math.sqrt(dxP * dxP + dyP * dyP) / proxR, 1)
-      tp = tp * tp * (3 - 2 * tp)
+      let tp = 0
+      if (!hero) {
+        const pwx = ndc.current.x * halfHS * aspect
+        const pwy = ndc.current.y * halfHS
+        const dxP = pwx - x
+        const dyP = pwy - baseY
+        const proxR = Math.max(modelH * 0.75, 0.5) * 1.7
+        tp = 1 - Math.min(Math.sqrt(dxP * dxP + dyP * dyP) / proxR, 1)
+        tp = tp * tp * (3 - 2 * tp)
+      }
       const proxPrev = rt.prox
       rt.prox += (tp - rt.prox) * (1 - Math.exp(-10 * dt))
       const proxDelta = Math.abs(rt.prox - proxPrev)
@@ -1307,17 +1493,26 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       // prox, life) — reversible.
       const fitDim = inst ? inst.fitDim : 1
       const baseScale = Math.max((sizeK * modelH) / fitDim, 1e-4)
-      const grow = slot.grow ?? 0.15
+      // MOBILE-2 (hero tier): NO scroll swell — the signature body holds
+      // its composed size (birth burst + idle breath only); prox is 0 by
+      // construction, so the proximity breath collapses too.
+      const grow = hero ? 0 : slot.grow ?? 0.15
       // MODEL-6 yaw-aware projected silhouette — the EXACT horizontal
       // half-extent of the rotated bbox (Euler XYZ: the x row is
       // (cosYaw, 0, sinYaw) — tilt mixes y/z only, so this is exact for
       // any tilt; the birth spin and the lean ride the yaw too).
-      const yawNow =
-        rt.def.yaw +
-        slot.scrub * ease01(p) +
-        (1 - bk) * -0.55 +
-        lean * rt.spr.x +
-        sway
+      // MOBILE-2 (hero tier): NO scrub and no lean (spr ≡ 0), and the
+      // idle SWAY is EXCLUDED from the yaw (spec د): the whole-body
+      // rotation is the birth spin over the resting face, exactly —
+      // def.yaw + (1 − bk)·−0.55. The body's idle life reads through
+      // bob/breath + the per-part drives (below), not through yaw.
+      const yawNow = hero
+        ? rt.def.yaw + (1 - bk) * -0.55
+        : rt.def.yaw +
+          slot.scrub * ease01(p) +
+          (1 - bk) * -0.55 +
+          lean * rt.spr.x +
+          sway
       const hw1 =
         inst && inst.size.x > 0
           ? 0.5 * (inst.size.x * Math.abs(Math.cos(yawNow)) + inst.size.z * Math.abs(Math.sin(yawNow)))
@@ -1393,16 +1588,24 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
       // it assembles) + the POINTER LEAN (the body turns its face
       // toward your hand — pure function of the damped springs,
       // converges when input stops) + the MODEL-5 idle sway.
+      // MOBILE-2 (hero tier): scrub and lean are dropped (no journey,
+      // inert pointer) AND the idle sway is excluded from the yaw
+      // (spec د) — the birth spin + the fade-machine settle spin are
+      // the whole story; the idle life rides bob/breath/per-part.
       // EN-1: in LTR every Y-rotation term NEGATES (R_y(−θ)·M_x ≡
       // M_x·R_y(θ)) — the mirrored body presents the mirrored face; the
       // silhouette math is |cos|/|sin|-invariant, so nothing else moves.
       holder.rotation.y = (ltr ? -1 : 1) *
-        (rt.def.yaw +
-        slot.scrub * ease01(p) +
-        (1 - presence) * -0.4 +
-        (1 - bk) * -0.55 +
-        lean * rt.spr.x +
-        sway)
+        (hero
+          ? rt.def.yaw +
+            (1 - presence) * -0.4 +
+            (1 - bk) * -0.55
+          : rt.def.yaw +
+          slot.scrub * ease01(p) +
+          (1 - presence) * -0.4 +
+          (1 - bk) * -0.55 +
+          lean * rt.spr.x +
+          sway)
       // rotation.x is untouched by the X-mirror (M_x commutes with
       // R_x — only y/z mix), so the tilt and the physical pointer
       // pitch keep their authored signs in both locales.
@@ -1707,6 +1910,8 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
         fadePhase: fadePhase.current,
         active: activeId,
         dir: dirRef.current, // EN-1: the verifier asserts the live mirror mode
+        tier: tierRef.current, // MOBILE-2: the live tier (hero = mobile signature)
+        degraded: wdFired.current, // MOBILE-2: the watchdog's one-shot verdict
         models: reg.list.map((rt) => ({
           id: rt.slot.id,
           slug: rt.def.slug,
@@ -1747,7 +1952,7 @@ function InstrumentsCore({ presetKey, dir }: { presetKey: RunePresetKey; dir: 'r
   return <primitive object={field.root} />
 }
 
-/** Context-loss guard — same contract as hero-canvas / capability-scene
+/** Context-loss guard — same contract as hero-canvas / city engine
  * (AUDIT-B2 FIX 9: restored-listener + gl-health telemetry parity —
  * `webglcontextrestored` is observed and both events bump the
  * window.__elyraGlHealth diagnostic via src/lib/gl-health.ts). */
@@ -1781,13 +1986,25 @@ export interface RuneSceneProps {
   presetKey: RunePresetKey
   /** Writing direction — resolves the anchors' logical sides. */
   dir: 'rtl' | 'ltr'
+  /** MOBILE-2: the scene tier — 'field' (default: the desktop roaming
+   *  tier, behavior byte-identical to the pre-MOBILE-2 engine) or
+   *  'hero' (the guarded mobile «hero signature» tier: one small
+   *  centered body per page, no edge journey, inert pointer layer,
+   *  capped dpr, fps watchdog). */
+  tier?: RuneTier
+  /** MOBILE-2: fired ONCE when the hero tier's fps watchdog condemns
+   *  the renderer (rolling <24fps across a 3s window). The gatekeeper
+   *  uses it to flag the session and permanently unmount the layer. */
+  onDegenerate?: () => void
 }
 
-export function RuneScene({ active, presetKey, dir }: RuneSceneProps) {
+export function RuneScene({ active, presetKey, dir, tier = 'field', onDegenerate }: RuneSceneProps) {
   return (
     <Canvas
       frameloop={active ? 'demand' : 'never'}
-      dpr={[1, 1.6]}
+      // MOBILE-2: the hero tier caps the device pixel ratio at 1.5 (the
+      // field keeps its authored 1.6 ceiling — byte-identical).
+      dpr={tier === 'hero' ? [1, 1.5] : [1, 1.6]}
       camera={{ fov: FOV, position: [0, 0, CAM_Z], near: 0.5, far: 60 }}
       gl={{ antialias: true, alpha: true, toneMappingExposure: 1.2 }}
       style={{
@@ -1797,7 +2014,7 @@ export function RuneScene({ active, presetKey, dir }: RuneSceneProps) {
         pointerEvents: 'none',
       }}
     >
-      <InstrumentsCore presetKey={presetKey} dir={dir} />
+      <InstrumentsCore presetKey={presetKey} dir={dir} tier={tier} onDegenerate={onDegenerate} />
       <ContextLossGuard />
     </Canvas>
   )

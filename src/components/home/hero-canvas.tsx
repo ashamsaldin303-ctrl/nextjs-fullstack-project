@@ -55,7 +55,7 @@ const PARTICLE_COUNT_MOBILE = 1800
 // #60A5FA stays a scene-literal here by design: it is this scene's
 // light-blue ridge sheen (also derived in GLSL as mix(uColorA, white,
 // 0.22)). Its value coincides with the gBlueLight token — the sibling
-// scenes (capability-scene.tsx, rune/model-registry.ts) resolve the same
+// scenes (three/city/engine.ts, rune/model-registry.ts) resolve the same
 // hex through BRAND_COLORS.gBlueLight.
 const COLORS = [
   new THREE.Color(BRAND.gBlue),
@@ -658,7 +658,7 @@ function ContextLossGuard() {
 
 /* Mobile tier (FIX(2-b), L1-D P2): useSyncExternalStore MQL hook —
  * extracted to src/lib/use-mobile-tier.ts (LOOP-3 FIX 5) so
- * capability-scene shares the same singleton + tier semantics. */
+ * the city scene engine shares the same singleton + tier semantics. */
 
 interface HeroCanvasProps {
   active: boolean

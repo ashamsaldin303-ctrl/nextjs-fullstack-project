@@ -12,7 +12,7 @@
  * `BrandPalette` (W3) are likewise both exported.
  *
  * One literal source for everything TS-side that cannot read a CSS
- * variable: WebGL uniforms (hero-canvas, capability-scene, rune presets),
+ * variable: WebGL uniforms (hero-canvas, city engine, rune presets),
  * Satori ImageResponse surfaces (icon / apple-icon / opengraph-image) and
  * the self-contained error/404 shells (global-error, root not-found — they
  * render outside globals.css by design). It is NOT a runtime
@@ -57,7 +57,7 @@ const REGISTRY = {
   silkDeep: '#0A2A5E',
 } as const
 
-/** R1 name (Edge Rune / rune scenes / capability-scene). */
+/** R1 name (Edge Rune / rune scenes / city engine). */
 export const BRAND_COLORS = REGISTRY
 /** W3-03/D21 name (hero-canvas, Satori surfaces, error shells). */
 export const BRAND = REGISTRY

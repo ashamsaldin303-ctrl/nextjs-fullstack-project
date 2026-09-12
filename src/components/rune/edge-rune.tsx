@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { onScrollEvent } from '@/lib/scroll-store'
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
 import { useMobileTier } from '@/lib/use-mobile-tier'
@@ -20,15 +20,23 @@ import { runeDirForPath, runePresetKeyForPath, type RunePresetKey } from './mode
  * invalidate bus, which is what makes the scene's frameloop="demand"
  * render frames while — and only while — the page is being scrolled.
  *
- * Gates (unchanged product decisions from RUNE-1):
+ * Gates (unchanged product decisions from RUNE-1, MOBILE-2 amendment):
  * 1. prefers-reduced-motion → NOTHING mounts (pure decor; reduced-motion
  *    users lose zero function).
- * 2. Mobile tier (useMobileTier: <768px / coarse pointer) → nothing
- *    mounts. A full-viewport roaming layer over a phone's reading column
- *    would be visual noise at best — the desktop tier is the stage the
- *    choreography is composed for.
+ * 2. Tier (useMobileTier: <768px / coarse pointer):
+ *    · DESKTOP ('field') — the full roaming choreography, unchanged.
+ *    · MOBILE ('hero', MOBILE-1 plan د) — the guarded «hero signature»
+ *      tier: ONE small centered body per page (the page's own kit,
+ *      semantic parity with the PC tier) composed in the hero's lower
+ *      whitespace band, no edge journey, inert pointer layer, capped
+ *      dpr, and an FPS watchdog — a renderer that cannot hold
+ *      <24fps across a 3s rolling window is PERMANENTLY faded out for
+ *      the session (sessionStorage flag) back to the IA atmosphere.
+ *      Real phones run hardware GL and the kits are low-poly; only
+ *      pathological renderers (software GL) lose the tier.
  * 3. requestIdleCallback (2.5s timeout fallback) before the three.js
- *    chunk is even fetched — LCP-neutral.
+ *    chunk is even fetched — LCP-neutral (a session already flagged by
+ *    the watchdog never fetches the chunk for the mobile tier at all).
  * 4. probeWebGL() (module-memoized, rAF-deferred) → hide entirely.
  * 5. document visibilitychange → frameloop 'never' while hidden; on
  *    return-to-visible the bus is poked so the field repaints.
@@ -41,22 +49,69 @@ import { runeDirForPath, runePresetKeyForPath, type RunePresetKey } from './mode
  * landmarks' anchors are LOGICAL ('start'/'end') and resolve against
  * the active writing direction, so AR and EN mirror each other
  * correctly without rebuilding anything.
+ *
+ * MOBILE-2 side-channel: while the mobile hero tier is LIVE the root
+ * sets `document.documentElement.dataset.runeMobile = '1'` (with full
+ * effect cleanup) — the inner heroes' CSS reads it to open the ~120px
+ * mobile-only bottom breathing room the signature body composes into
+ * (see globals.css). Reduced-motion and degraded sessions never set
+ * the attribute, so they keep the original rhythm.
  */
 
 const RuneScene = dynamic(() => import('./rune-scene').then((m) => m.RuneScene), {
   ssr: false,
 })
 
+/** MOBILE-2: the sessionStorage key the hero tier's fps watchdog sets —
+ *  a session-permanent «this renderer cannot hold the mobile tier» mark
+ *  (SwiftShader-class software GL). Guarded everywhere: private-mode
+ *  browsers can throw on storage access. */
+const RUNE_MOBILE_DEGRADED_KEY = 'elyra.runeMobileDegraded'
+
+function readRuneMobileDegraded(): boolean {
+  try {
+    return sessionStorage.getItem(RUNE_MOBILE_DEGRADED_KEY) === '1'
+  } catch {
+    // Private mode / storage disabled — do not punish the visitor for
+    // the browser's storage policy: treat the session as not degraded.
+    return false
+  }
+}
+
 export function EdgeRune() {
   const reduced = usePrefersReducedMotion()
   const mobileTier = useMobileTier()
   const pathname = usePathname() ?? '/'
 
-  // Idle-load gate — the three.js chunk is fetched only after the browser
-  // is idle (hero.tsx pattern). Re-arms if a gated tier flips back off.
+  // MOBILE-2 — session-permanent degradation state (mobile tier only).
+  // Read rAF-deferred post-hydration (the probeWebGL pattern: a state
+  // flip never happens synchronously inside the effect body —
+  // hydration-safe + lint-compliant): EdgeRune is server-rendered as
+  // part of the layout, so the first paint must stay storage-free. The
+  // idle gate below ALSO re-checks the flag synchronously before arming,
+  // so a degraded session never even fetches the three.js chunk.
+  const [mobileDegraded, setMobileDegraded] = useState(false)
+  useEffect(() => {
+    if (!mobileTier) return
+    let cancelled = false
+    const id = requestAnimationFrame(() => {
+      if (!cancelled && readRuneMobileDegraded()) setMobileDegraded(true)
+    })
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(id)
+    }
+  }, [mobileTier])
+
+  // Idle-load gate — the three.js chunk is fetched only after the
+  // browser is idle (hero.tsx pattern). Re-arms if a gated tier flips
+  // back off. MOBILE-2: the gate now arms for BOTH tiers (the mobile
+  // hero tier mounts too); a session already degraded by the fps
+  // watchdog returns early — the chunk is never fetched for a dead tier.
   const [ready, setReady] = useState(false)
   useEffect(() => {
-    if (reduced || mobileTier) return
+    if (reduced) return
+    if (mobileTier && readRuneMobileDegraded()) return
     let started = false
     const start = () => {
       if (!started) {
@@ -77,22 +132,26 @@ export function EdgeRune() {
     }
   }, [reduced, mobileTier])
 
-  // Scroll heartbeat — attached for the ROOT's whole lifetime (before the
-  // scene even loads) so the scroll clocks track the user from the first
-  // gesture; the poke is a no-op until the scene registers on the bus.
+  // Scroll heartbeat — attached whenever a tier MAY mount (reduced-
+  // motion still excluded). MOBILE-2: the mobile hero tier needs the
+  // pokes too — its presence envelope still depends on the hero
+  // section's travel, and the scroll clocks still drive the per-part
+  // odometer drives. When no scene is registered on the bus the poke is
+  // a no-op, so a degraded session keeps this listener harmlessly.
   useEffect(() => {
-    if (reduced || mobileTier) return
+    if (reduced) return
     const onScroll = () => {
       onScrollEvent()
       pokeRuneField()
     }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
-  }, [reduced, mobileTier])
+  }, [reduced])
 
   // WebGL probe — module-memoized probeWebGL(), rAF-deferred so the state
   // flip never happens synchronously inside the effect body
-  // (hydration-safe + lint-compliant; capability-scene pattern).
+  // (hydration-safe + lint-compliant; the same pattern the websites 3D
+  // section uses).
   const [glOk, setGlOk] = useState(true)
   useEffect(() => {
     if (!ready) return
@@ -130,7 +189,38 @@ export function EdgeRune() {
     return () => cancelAnimationFrame(id)
   }, [ready, glOk])
 
-  if (reduced || mobileTier || !ready || !glOk) return null
+  // MOBILE-2 — while the mobile hero tier is LIVE, mark the root
+  // element: the inner page heroes' CSS (globals.css) reads
+  // html[data-rune-mobile] to open their lower signature band. Never
+  // set for the desktop field, reduced-motion, or a degraded session;
+  // the cleanup deletes the attribute on every one of those exits.
+  const heroTierLive = mobileTier && !mobileDegraded && !reduced && ready && glOk
+  useEffect(() => {
+    if (!heroTierLive) return
+    document.documentElement.dataset.runeMobile = '1'
+    return () => {
+      delete document.documentElement.dataset.runeMobile
+    }
+  }, [heroTierLive])
+
+  // MOBILE-2 — the scene's fps-watchdog callback: mark the session
+  // (storage failures degrade to the in-memory flag: the layer still
+  // unmounts for this page view) and flip the state that unmounts the
+  // mobile tier for the rest of the session. The IA atmosphere (CSS/DOM
+  // layers) remains — «permanent session fade-out to the atmosphere».
+  const onMobileDegrade = useCallback(() => {
+    try {
+      sessionStorage.setItem(RUNE_MOBILE_DEGRADED_KEY, '1')
+    } catch {
+      // Private mode — the in-memory flag below still unmounts now.
+    }
+    setMobileDegraded(true)
+  }, [])
+
+  if (reduced || !ready || !glOk) return null
+  // MOBILE-2: a session the fps watchdog condemned never re-mounts the
+  // mobile tier (the desktop field is unaffected by this flag).
+  if (mobileTier && mobileDegraded) return null
 
   const presetKey: RunePresetKey = runePresetKeyForPath(pathname)
   const dir = runeDirForPath(pathname)
@@ -145,7 +235,18 @@ export function EdgeRune() {
         transition: 'opacity 700ms ease-out',
       }}
     >
-      <RuneScene active={visible} presetKey={presetKey} dir={dir} />
+      {/* MOBILE-2: the tier keys the scene — crossing the 768px boundary
+          (or a coarse-pointer flip) remounts the Canvas with the other
+          tier's dpr/slot-set cleanly instead of morphing one into the
+          other. Desktop renders the roaming field exactly as before. */}
+      <RuneScene
+        key={mobileTier ? 'hero' : 'field'}
+        active={visible}
+        presetKey={presetKey}
+        dir={dir}
+        tier={mobileTier ? 'hero' : 'field'}
+        onDegenerate={mobileTier ? onMobileDegrade : undefined}
+      />
     </div>
   )
 }

@@ -13,8 +13,8 @@
  * · SSR-safe: returns false on the server WITHOUT touching the cache (the
  *   SSR pass must never pin a bogus result).
  * · Memoized at module level — the probe runs at most once per page load
- *   and both live consumers (hero-canvas.tsx + capability-scene.tsx,
- *   LOOP-3 FIX 8) share the result.
+ *   and every live consumer (hero-canvas.tsx + the websites 3D section,
+ *   LOOP-3 FIX 8 / CITY-1) shares the result.
  *
  * L6-F1: the useWebGLSupport() hook wrapper was deleted — it had zero
  * consumers since R9 removed the hero console (hero-console.tsx +

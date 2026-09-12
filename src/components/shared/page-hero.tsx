@@ -41,6 +41,11 @@ export function PageHero({ namespace, ctaHref = '/contact', className, decorativ
   return (
     <section
       className={cn(
+        /* MOBILE-2: `page-hero` is a stable MARKER class (zero visual
+           change by itself) — the mobile rune tier's CSS in globals.css
+           targets it to open the ~120px lower signature band while
+           html[data-rune-mobile] is live (see the MOBILE-2 block there). */
+        'page-hero',
         /* IA fix — `isolate` creates a stacking context on the section
            itself. WITHOUT it, every negative-z child (the .hero-fallback
            gradient, the atmosphere strata, the service motifs) escapes

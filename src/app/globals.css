@@ -2124,3 +2124,23 @@ html:lang(ar) {
   from { transform: translateY(0); }
   to { transform: translateY(-6px); }
 }
+
+/* =========================================================================
+   MOBILE-2 (الخطة د) — the mobile «hero signature» band
+   ========================================================================= */
+/* Hero-signature bodies live in the inner heroes' lower whitespace band:
+   while the mobile rune tier is live (edge-rune.tsx sets
+   html[data-rune-mobile] only then), inner page heroes get ~120px extra
+   mobile-only bottom breathing room — the MOBILE-1 probe measured only
+   85–95px free below their text at 390×844, too thin for the small
+   signature body the tier composes there. The home hero already owns its
+   room (~349px below its text — its own section, untouched here);
+   reduced-motion and watchdog-degraded sessions never set the attribute,
+   so they keep the original rhythm. Mobile only (≤767px): desktop heroes
+   keep their authored padding. Base = pb-20 (5rem), the mobile value of
+   PageHero's `pt-32 pb-20 sm:pt-40 sm:pb-28`. */
+@media (max-width: 767px) {
+  html[data-rune-mobile] .page-hero {
+    padding-bottom: calc(5rem + 120px); /* pb-20 base + the signature band */
+  }
+}
