@@ -86,12 +86,19 @@ export interface CityEngine {
   setMobile(on: boolean): void
   /** Toggle manual camera control (drag / wheel / pinch). */
   toggleManual(): void
+  /** DIRECT manual-mode setter (immersive fullscreen auto-enables it and
+   *  restores the previous state on exit — same flip semantics as the
+   *  authored toggle, just without read-modify-write races). */
+  setManual(on: boolean): void
   /** Toggle day ↔ night. */
   toggleNight(): void
   /** Replay the cinematic intro tour. */
   replayTour(): void
   /** Keyboard drag equivalent (arrow keys) — same deltas as drag pixels. */
   nudge(dxPx: number, dyPx: number): void
+  /** Zoom by multiplicative factor (on-screen ± buttons; the SAME radius
+   *  clamp the wheel/pinch path applies). factor < 1 zooms in. */
+  zoomBy(factor: number): void
   /** Deselect the current landmark + reset the camera targets. */
   deselect(): void
   /** Full teardown (loop, listeners, GPU resources, canvas). */
@@ -181,6 +188,18 @@ export function mountCityScene(
     if (!w || !h) return
     renderer.setSize(w, h)
     camera.aspect = w / h
+    // MOBILE-FS: portrait boxes (fullscreen phones) would crop the wide
+    // city to a sliver at the authored vertical fov 45° — the HORIZONTAL
+    // fov collapses with the aspect. Widen the vertical fov so the
+    // horizontal field stays comfortable, capped at 75° so edge
+    // distortion on the orbit camera stays imperceptible. Landscape /
+    // embedded 16:10 boxes keep the authored 45° exactly.
+    if (camera.aspect < 1) {
+      const halfVTan = Math.tan((45 * Math.PI) / 360)
+      camera.fov = Math.min((2 * Math.atan(halfVTan / camera.aspect) * 180) / Math.PI, 75)
+    } else {
+      camera.fov = 45
+    }
     camera.updateProjectionMatrix()
   }
   const ro = new ResizeObserver(onResize)
@@ -227,6 +246,9 @@ export function mountCityScene(
     toggleManual() {
       engine?.toggleManual()
     },
+    setManual(on: boolean) {
+      engine?.setManual(on)
+    },
     toggleNight() {
       engine?.toggleNight()
     },
@@ -235,6 +257,9 @@ export function mountCityScene(
     },
     nudge(dxPx: number, dyPx: number) {
       engine?.nudge(dxPx, dyPx)
+    },
+    zoomBy(factor: number) {
+      engine?.zoomBy(factor)
     },
     deselect() {
       engine?.deselect()
@@ -2681,6 +2706,14 @@ function buildEngine(
   function toggleManual(): void {
     setManual(!manual)
   }
+  function zoomBy(f: number): void {
+    // On-screen ± buttons (touch discoverability): the same radius clamp
+    // the wheel/pinch path applies, with the intro broken so a zoom on the
+    // tour path hands control over immediately.
+    breakIntro()
+    wantRadius = clamp(wantRadius * f, minR(), 300)
+    inputT = t
+  }
   function toggleNight(): void {
     targetNight = targetNight ? 0 : 1
     cb.onNight?.(nightBlend, targetNight === 1)
@@ -2744,9 +2777,11 @@ function buildEngine(
     setActive,
     setMobile,
     toggleManual,
+    setManual,
     toggleNight,
     replayTour,
     nudge,
+    zoomBy,
     deselect,
     dispose: disposeInner,
   }

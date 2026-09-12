@@ -9,7 +9,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose 
 import { Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useIsRtl } from '@/lib/use-rtl'
-import { SoundToggle } from '@/components/sensory/sound-toggle'
 import { getLenis } from '@/lib/lenis-holder'
 
 function navItems(t: ReturnType<typeof useTranslations>) {
@@ -121,11 +120,10 @@ export function Navbar() {
               Base classes include sm:hidden so it never coexists with
               the full switcher. */}
           <LanguageToggleCompact />
-          {/* WS-2: sound toggle moved to navbar — one mount, no fixed overlap.
-              Visible on all screens (mobile too — it's small and fits next
-              to the hamburger). Batch 1 item 4: size-11 (44px) override —
-              cn/twMerge replaces the component's size-9 default. */}
-          <SoundToggle className="size-11" />
+          {/* SOUND-2: the mute toggle was removed — the ambient sound engine
+              is now always-on (armed at the first user gesture) and mounts
+              app-wide from the root layout (sensory/sound-auto.tsx), not
+              here. */}
           <Link
             href="/contact"
             data-cursor="magnet"

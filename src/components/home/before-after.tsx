@@ -384,7 +384,7 @@ interface OldSheetRow {
 }
 
 const OLD_SHEET_ROWS: OldSheetRow[] = [
-  { date: '03/11', name: 'احمد', amount: '14250', pending: true },
+  { date: '03/11', name: 'أحمد', amount: '14250', pending: true },
   { date: '03/11', name: 'شركة الأمل', amount: '8900' },
   { date: '02/11', name: 'منى', amount: '23100', pending: true },
   { date: '02/11', name: 'مؤسسة النور', amount: '#REF!', error: 'ref' },

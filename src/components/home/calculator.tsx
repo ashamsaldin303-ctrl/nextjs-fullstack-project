@@ -140,7 +140,8 @@ export function Calculator() {
   // thud fires ONLY when the destination step is 2 (the estimate result —
   // the "landing"), where the N2 squash & stretch numbers below land in the
   // same instant: sound + motion arriving together is the tactile read.
-  // playImpact is self-gated by the mute state inside sound.ts, so it is
+  // playImpact is self-gated inside sound.ts (the context arms on the
+  // first user gesture and every path fails silently), so it is
   // safe to call unconditionally. The closure `step` is fresh here — the
   // Next button only renders while step < 2 (see the controls guard below),
   // so next = step + 1 ∈ {1, 2} exactly like the old Math.min form.

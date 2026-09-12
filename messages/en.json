@@ -161,7 +161,7 @@
           "Notify team"
         ],
         "saved": "Saved 12 minutes of manual work",
-        "runs": "Run successful"
+        "runs": "Run complete"
       }
     },
     "threeD": {
@@ -909,7 +909,7 @@
     "rating": "Rated 5 out of 5 stars",
     "items": {
       "first": {
-        "quote": "I asked for a website and received a complete digital brand. Within three months of launch, conversion was up 140% and cart abandonment dropped by nearly half. The team never asks \"what do you want?\" — they ask \"what should your customer feel?\" That changed everything.",
+        "quote": "I asked for a website and received a complete digital brand. Within three months of launch, conversion was up 140% and cart abandonment dropped by nearly half. The team never asks “what do you want?” — they ask “what should your customer feel?” That changed everything.",
         "name": "Reem Al-Halabi",
         "role": "Founder",
         "company": "Lamsa Store"
@@ -1071,7 +1071,7 @@
         "fallback": "The 3D preview is not available on this device",
         "city": {
           "loader": "Preparing the scene",
-          "hint": "Click any landmark to explore it · the arrows button enables manual camera control",
+          "hint": "Click any landmark to explore · the fullscreen button unlocks full camera control",
           "nodes": "18 NODES",
           "manual": "Manual camera control mode",
           "night": "Toggle day and night",
@@ -1083,7 +1083,12 @@
           "titleMono": "SCALE 1:1000 · GRID C-101 · REV 10",
           "foot": "NODE {code} · SECTOR {sector} · SCALE 1:1000",
           "hudCam": "CAM",
-          "hudCur": "CUR"
+          "hudCur": "CUR",
+          "fullscreen": "Fullscreen — full camera control",
+          "exitFullscreen": "Exit fullscreen",
+          "zoomIn": "Zoom in",
+          "zoomOut": "Zoom out",
+          "hintImmersive": "Drag to rotate · pinch or ± buttons to zoom · tap a landmark"
         }
       },
       "journey": {
@@ -1485,7 +1490,7 @@
           "m4": {
             "name": "Layla Haddad",
             "role": "UX Strategist",
-            "bio": "Asks \"why?\" five times before any \"how\" — that is how experiences that stick get built."
+            "bio": "Asks “why?” five times before any “how” — that is how experiences that stick get built."
           }
         }
       },
@@ -1556,7 +1561,7 @@
         "successTitle": "Your Message Arrived!",
         "successDesc": "We’ll get back to you within one business day at most.",
         "referenceLabel": "Your reference:",
-        "sendAnother": "Send another message",
+        "sendAnother": "Send Another Message",
         "errors": {
           "name": "Name is required (at least 2 characters)",
           "email": "Please enter a valid email address",
@@ -1564,7 +1569,7 @@
         },
         "errorTitle": "Couldn’t send your message",
         "errorNetwork": "Check your connection and try again — your message is preserved.",
-        "projectTypeLabel": "Project type",
+        "projectTypeLabel": "Project Type",
         "projectTypes": {
           "store": "Smart Store",
           "booking": "Booking Platform",
@@ -1607,10 +1612,6 @@
     "notFoundTitle": "Page Not Found",
     "notFoundDesc": "Looks like you’ve reached an old or incorrect link — no worries, the road home is short.",
     "notFoundRecoveryTitle": "Where would you like to go?",
-    "sound": {
-      "enable": "Enable sound effects",
-      "disable": "Mute sound effects"
-    },
     "cursor": {
       "rotate": "Drag to rotate 360°",
       "preview": "Live preview",
@@ -1641,7 +1642,7 @@
     "unknownField": "Unknown field.",
     "rateLimited": "Too many attempts — please wait a minute and try again.",
     "tooLarge": "Request body too large.",
-    "crossOrigin": "Untrusted request origin.",
+    "crossOrigin": "Untrusted request. Please submit the form from the official website.",
     "serverError": "An internal error occurred. Please try again shortly."
   }
 }

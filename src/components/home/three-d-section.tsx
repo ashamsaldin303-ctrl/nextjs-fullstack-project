@@ -114,7 +114,10 @@ export function ThreeDSection() {
           titleId="threeD-title"
         />
 
-        <Reveal className="mt-12">
+        {/* MOBILE-FS polish: zoom variant — the showcase box scales in from
+            0.92 (stronger than the default rise) so the city section reads
+            as a centerpiece reveal, matching the bento/featured-work cards. */}
+        <Reveal className="mt-12" variant="zoom">
           {/* role="img" + aria-label on the wrapper and a keyboard camera
               path: tabIndex + arrow keys (handler above). Focusable only
               while the WebGL scene can actually rotate (!reduced && WebGL —

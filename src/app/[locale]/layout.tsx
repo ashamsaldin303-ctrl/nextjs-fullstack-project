@@ -15,6 +15,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { CustomCursor } from '@/components/sensory/custom-cursor'
 import { GrainOverlay } from '@/components/sensory/grain-overlay'
 import { SmoothScroll } from '@/components/sensory/smooth-scroll'
+import { AmbientSound } from '@/components/sensory/sound-auto'
 import { EdgeRune } from '@/components/rune/edge-rune'
 import '../globals.css'
 
@@ -259,6 +260,11 @@ export default async function LocaleLayout({
               external / rotate / drag / preview — Phase 5 WS-7 chips). */}
           <GrainOverlay />
           <CustomCursor />
+          {/* SOUND-2 — always-on ambient sound engine (renders nothing:
+              mounts the delegated hover/click listeners and arms the
+              AudioContext on the first user gesture; the mute toggle is
+              gone by design — see lib/sound.ts). */}
+          <AmbientSound />
         </NextIntlClientProvider>
         <Toaster
           position="top-center"

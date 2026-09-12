@@ -72,6 +72,13 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: [
     '*.space-z.ai',
     '*.chatglm.cn',
+    // Local-network verification origins (agent-browser / curl probes hit
+    // the dev server via the loopback + LAN addresses; Next 16 blocks
+    // /_next/* (HMR) from unrecognized origins, which manifests as random
+    // full-page reloads that unmount client scenes mid-interaction).
+    'localhost',
+    '127.0.0.1',
+    '21.0.17.13',
   ],
   async headers() {
     return [

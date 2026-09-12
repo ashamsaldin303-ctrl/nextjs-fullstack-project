@@ -324,7 +324,7 @@ export function AutomationSimulator({
       setStatus('completed')
       setCurrentStep(-1)
       setCounter(0)
-      playSuccess() // Phase 2 sensory feedback (no-op while muted)
+      playSuccess() // Phase 2 sensory feedback (always-on ambient mix)
       // UI-3: final summary line for the terminal.
       logSeq.current += 1
       setLogLines((prev) => [...prev, {

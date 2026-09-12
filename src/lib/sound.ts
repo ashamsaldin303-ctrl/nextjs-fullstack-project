@@ -1,67 +1,23 @@
 /**
- * Elyra Audio UX engine — Phase 2 "Sensory Polish Layer".
+ * Elyra Audio UX engine — Phase 2 "Sensory Polish Layer" · SOUND-2.
  *
  * Ultra-soft synthesized sounds via the Web Audio API (oscillators + gain
  * envelopes). Zero audio files, zero page weight. Everything fails silently:
  * any error path results in silence, never a console error (prompt §5.7).
  *
- * Sound is OPT-IN (muted by default) and persisted in localStorage under
- * `elyra:sound`. The AudioContext is created lazily on the first user
- * gesture AFTER sound is enabled — satisfying browser autoplay policies.
+ * SOUND-2 (user request — «اجعل صوت الموقع يعمل دائماً بشكل تلقائي»): the
+ * opt-in toggle is GONE. Sound is now part of the site's ambient identity:
+ * the AudioContext is armed on the FIRST user gesture (pointerdown /
+ * touchend) — the exact moment browsers' autoplay policies allow it — and
+ * from then on every hover/click/success plays. There is deliberately NO
+ * mute control: the mix is tuned so soft it reads as texture, not noise
+ * (master gain 0.3, peaks ≤ 0.05, mouse-only hover blips, 110ms throttle).
  *
  * Pointer events only (pointerover/pointerdown): keyboard navigation and
- * screen readers never trigger sounds (prompt §5.5).
+ * screen readers never trigger sounds (prompt §5.5) — the hover blip is
+ * additionally gated to fine (mouse) pointers so taps on touch devices
+ * never produce the stale "hover" chirp.
  */
-
-const STORAGE_KEY = 'elyra:sound'
-
-export type SoundState = 'on' | 'off'
-
-/* ------------------------------------------------------------------ */
-/* External store (useSyncExternalStore-compatible)                    */
-/* ------------------------------------------------------------------ */
-
-type Listener = () => void
-const listeners = new Set<Listener>()
-const notify = () => listeners.forEach((l) => l())
-
-/** Subscribes to sound-state changes (same tab + other tabs). */
-export function subscribeSound(callback: Listener): () => void {
-  listeners.add(callback)
-  const onStorage = (e: StorageEvent) => {
-    if (e.key === STORAGE_KEY) callback()
-  }
-  window.addEventListener('storage', onStorage)
-  return () => {
-    listeners.delete(callback)
-    window.removeEventListener('storage', onStorage)
-  }
-}
-
-/** Client snapshot — reads localStorage (returns primitives → stable). */
-export function getSoundSnapshot(): SoundState {
-  try {
-    return localStorage.getItem(STORAGE_KEY) === 'on' ? 'on' : 'off'
-  } catch {
-    return 'off'
-  }
-}
-
-/** Server snapshot — always muted before consent (hydration-safe). */
-export function getSoundServerSnapshot(): SoundState {
-  return 'off'
-}
-
-/** Persists the preference and wakes the AudioContext on enable. */
-export function setSoundEnabled(enabled: boolean): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, enabled ? 'on' : 'off')
-  } catch {
-    /* private mode etc. — state still applies for this session */
-  }
-  notify()
-  if (enabled) ensureContext()
-}
 
 /* ------------------------------------------------------------------ */
 /* AudioContext + master gain                                          */
@@ -69,7 +25,8 @@ export function setSoundEnabled(enabled: boolean): void {
 
 let ctx: AudioContext | null = null
 let master: GainNode | null = null
-const MASTER_GAIN = 0.6
+/** SOUND-2 gentler mix — the whole engine sits well under the old 0.6. */
+const MASTER_GAIN = 0.3
 
 function ensureContext(): AudioContext | null {
   if (typeof window === 'undefined') return null
@@ -116,7 +73,6 @@ interface ToneOptions {
 }
 
 function playTone({ freq, endFreq, duration, type, peak, delay = 0 }: ToneOptions): void {
-  if (getSoundSnapshot() !== 'on') return
   const c = ensureContext()
   if (!c || !master) return
   try {
@@ -152,10 +108,10 @@ function playTone({ freq, endFreq, duration, type, peak, delay = 0 }: ToneOption
 }
 
 /* ------------------------------------------------------------------ */
-/* Public sounds                                                       */
+/* Public sounds (SOUND-2 gentle mix)                                  */
 /* ------------------------------------------------------------------ */
 
-const HOVER_THROTTLE_MS = 60
+const HOVER_THROTTLE_MS = 110
 let lastHoverMs = 0
 
 /** Very faint blip when hovering interactive elements (sine, ~30ms). */
@@ -163,19 +119,19 @@ export function playHover(): void {
   const now = Date.now()
   if (now - lastHoverMs < HOVER_THROTTLE_MS) return
   lastHoverMs = now
-  playTone({ freq: 1180, duration: 0.03, type: 'sine', peak: 0.035 })
+  playTone({ freq: 940, duration: 0.03, type: 'sine', peak: 0.016 })
 }
 
-/** Soft short pulse on pointer press (triangle, ~60ms, falling pitch). */
+/** Soft short pulse on pointer press (triangle, ~70ms, falling pitch). */
 export function playClick(): void {
-  playTone({ freq: 620, endFreq: 380, duration: 0.06, type: 'triangle', peak: 0.09 })
+  playTone({ freq: 520, endFreq: 330, duration: 0.07, type: 'triangle', peak: 0.045 })
 }
 
 /** Short ascending 3-note arpeggio for success events (90ms per note). */
 export function playSuccess(): void {
   const notes = [523.25, 659.25, 783.99] // C5 · E5 · G5
   notes.forEach((freq, i) => {
-    playTone({ freq, duration: 0.09, type: 'sine', peak: 0.08, delay: i * 0.09 })
+    playTone({ freq, duration: 0.09, type: 'sine', peak: 0.04, delay: i * 0.09 })
   })
 }
 
@@ -185,12 +141,12 @@ export function playSuccess(): void {
 
 /**
  * Heavy organic "thud" (REF-3 report · Olssons §2.5): a sine oscillator
- * dropped 190→32Hz over 120ms through a 320Hz lowpass (Q 1.2) + an
+ * dropped 190→32Hz over 120ms through a 260Hz lowpass (Q 1.2) + an
  * exponential gain envelope. Reads as a knock on heavy wood — the sonic
  * layer for "landing" moments (estimate reveal, submit success, the
  * success-box lid). Event-driven by construction (one scheduled
- * oscillator, zero loops); muted-by-default and teardown-safe exactly
- * like every other tone here.
+ * oscillator, zero loops) and teardown-safe exactly like every other
+ * tone here.
  *
  * `intensity` (0.3–1, clamped) scales the start frequency AND the peak
  * gain together so quiet impacts are also duller — the physical coupling
@@ -198,7 +154,6 @@ export function playSuccess(): void {
  */
 export function playImpact(intensity = 1): void {
   const i = Math.min(Math.max(intensity, 0.3), 1)
-  if (getSoundSnapshot() !== 'on') return
   const c = ensureContext()
   if (!c || !master) return
   try {
@@ -207,9 +162,9 @@ export function playImpact(intensity = 1): void {
     const gain = c.createGain()
     const filter = c.createBiquadFilter()
 
-    // 320Hz lowpass · Q 1.2 — the "muffle" that makes it wood, not beep.
+    // 260Hz lowpass · Q 1.2 — the "muffle" that makes it wood, not beep.
     filter.type = 'lowpass'
-    filter.frequency.value = 320
+    filter.frequency.value = 260
     filter.Q.value = 1.2
 
     osc.type = 'sine'
@@ -218,7 +173,7 @@ export function playImpact(intensity = 1): void {
 
     // Faster attack than playTone (a knock is percussive, not soft).
     gain.gain.setValueAtTime(0.0001, t0)
-    gain.gain.exponentialRampToValueAtTime(Math.max(0.42 * i, 0.0002), t0 + 0.006)
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.22 * i, 0.0002), t0 + 0.006)
     gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.12)
 
     osc.connect(filter)
@@ -239,7 +194,7 @@ export function playImpact(intensity = 1): void {
 }
 
 /* ------------------------------------------------------------------ */
-/* Global pointer-effect delegation                                    */
+/* Global pointer-effect delegation + first-gesture arming             */
 /* ------------------------------------------------------------------ */
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
@@ -248,20 +203,36 @@ function isInteractiveTarget(target: EventTarget | null): boolean {
 }
 
 /**
- * Attaches delegated pointer-only listeners for hover/click sounds.
- * Returns a cleanup function. Mounted once at the app root.
+ * Attaches delegated pointer-only listeners for hover/click sounds and —
+ * SOUND-2 — arms the AudioContext on the FIRST gesture (pointerdown; a
+ * one-shot touchend backstop covers iOS Safari, where a context created
+ * during touchstart can still need a resume inside the same touch's end
+ * event). Creating the context INSIDE the gesture handler satisfies every
+ * browser autoplay policy; before that first gesture the engine is simply
+ * silent. Returns a cleanup function. Mounted once at the app root.
  */
 export function attachSoundDelegation(): () => void {
+  const arm = () => {
+    ensureContext()
+  }
   const onOver = (e: PointerEvent) => {
-    if (isInteractiveTarget(e.target)) playHover()
+    // Fine pointers only — a tap on touch fires pointerover too, and the
+    // stale hover chirp before a click reads as a double-beep.
+    if (e.pointerType === 'mouse' && isInteractiveTarget(e.target)) playHover()
   }
   const onDown = (e: PointerEvent) => {
+    arm()
     if (isInteractiveTarget(e.target)) playClick()
+  }
+  const onTouchEnd = () => {
+    arm()
   }
   document.addEventListener('pointerover', onOver, { passive: true })
   document.addEventListener('pointerdown', onDown, { passive: true })
+  document.addEventListener('touchend', onTouchEnd, { passive: true })
   return () => {
     document.removeEventListener('pointerover', onOver)
     document.removeEventListener('pointerdown', onDown)
+    document.removeEventListener('touchend', onTouchEnd)
   }
 }
