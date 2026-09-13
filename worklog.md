@@ -4732,3 +4732,24 @@ Stage Summary:
 - New surfaces: /api/vitals, /.well-known/security.txt, src/lib/{logger,csrf,lead-http}.ts, src/components/layout/web-vitals.tsx, public/fonts/cairo-800.ttf, .github/{dependabot.yml,CODEOWNERS,workflows/ci.yml}, scripts/{check-site-contact,check-caddy-gate,gen-sbom}.mjs.
 - DB: Lead.idempotencyKey (unique, SHA-256 hex) + Lead.webhookStatus (+ @@index) — pushed via db:push:force (0 rows existed, no data loss).
 - OWNER ACTIONS still open: (1) set NEXT_PUBLIC_CONTACT_WHATSAPP to the real business number pre-launch (CI warns every run); (2) push commit 9dad5a8 via PAT; (3) submit HSTS preload ~6 months post-launch; (4) provision Sentry/uptime/analytics accounts when ready (logger/RUM plumbing already emits the right shapes).
+
+---
+Task ID: PUSH-1 + VITALS-2
+Agent: main (orchestrator — remote sync via owner PAT + RUM beacon fix)
+Task: Owner supplied the GitHub PAT in chat. Complete the documented open owner action from AUDIT-GS: push the 3 locally-committed main commits to origin. Health-check the environment afterwards.
+
+Work Log:
+- Fresh-environment audit: the previous session's /home/user is gone; the project lives at /home/z/my-project with the full history intact (MODEL-4..8, CITY-1/MOBILE-2 «الخطة د», the 5-task pass, AUDIT-GS). Working tree carried mode-only changes (0 insertions/deletions, restore artifacts) — left untouched, they don't affect pushes.
+- Zero-persistence token protocol (per precedent): PAT staged at /tmp/.gh_tok (umask 077) for the duration of the operation only, removed after the final push.
+- git ls-remote (pre-push): remote main was e7d22d6 (CITY-1 + MOBILE-2) — local main exactly 3 ahead → clean fast-forward; model4-section-voice (48454e4) already present remotely (the earlier branch push survived the environment migration).
+- Inspected 7c88588 before pushing (UUID message): it IS the MOBILE-FS + SOUND-2 + ANIM-FIX + CONTENT-1 implementation commit (city-scene.tsx +535, sound-auto.tsx new, sound-toggle.tsx deleted, engine.ts zoom/FOV APIs, i18n 756 keys) — content matches the worklog record byte-for-topic.
+- PUSHED: e7d22d6..df299a9 main -> main (no force). Remote-tracking ref synced; git status now `main...origin/main` (0 ahead).
+- POST-PUSH HEALTH CHECK surfaced one real defect: dev.log showed POST /api/vitals → 400 (×2) among the 204s. Root cause: Next's useReportWebVitals also reports custom metrics (Next.js-hydration / -render / -route-change-to-render); unfiltered, one such metric riding the visibilitychange→hidden batch failed the collector's strict METRIC_NAMES schema and poisoned the WHOLE beacon — every late-settling LCP/INP/CLS sample (the most valuable RUM data) was dropped with it.
+- FIX (web-vitals.tsx): CORE_VITALS allowlist filter at the top of onReport — the pending map can now only ever hold LCP/INP/CLS/TTFB/FCP, exactly the documented collector contract; server stays strict (anti-poisoning design untouched).
+- Verification: tsc 0 · lint 0 · agent-browser E2E on 390×844 / — page renders (VLM: hero «نحن نبتكر», no overlap, RTL clean), 0 page errors, forced visibility-flush (visibilityState override + dispatched event) → network tracker shows 3 × POST /api/vitals **204** including the batch beacon; dev.log tail confirms 204s only, no new 400s.
+- This worklog section committed and pushed as the final sync commit; /tmp/.gh_tok removed.
+
+Stage Summary:
+- Remote is now fully current: main @ final sync commit (was df299a9) carrying the 5-task work (7c88588) + gold-standard audit (9dad5a8) + worklogs; model4-section-voice @ 48454e4 preserved for the owner's comparison.
+- VITALS-2: the RUM pipeline now provably delivers late-settling core-CWV batches (live 400→204 proof); AUDIT-GS's "vitals beacons live" claim is now complete in practice.
+- Owner actions remaining: real WhatsApp number env (CI warns every run), HSTS preload submission (~6 months post-launch), Sentry/uptime/analytics provisioning.

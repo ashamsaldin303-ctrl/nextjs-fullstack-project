@@ -35,6 +35,14 @@ interface BeaconMetric {
   navigationType: string
 }
 
+/** The collector's contract is the 5 core CWV (api/vitals METRIC_NAMES).
+ * Next's useReportWebVitals ALSO reports custom metrics —
+ * Next.js-hydration / -render / -route-change-to-render — which the strict
+ * server schema rejects. Unfiltered, one custom metric riding the
+ * visibilitychange batch poisons the WHOLE beacon (live 400s in dev.log:
+ * every late-settling LCP/INP/CLS sample dropped with it). */
+const CORE_VITALS = new Set(['LCP', 'INP', 'CLS', 'TTFB', 'FCP'])
+
 export function WebVitalsReporter() {
   const pathname = usePathname() || '/'
   /** Final metric per name for THIS page load (route-scoped via key). */
@@ -75,6 +83,9 @@ export function WebVitalsReporter() {
 
   const onReport = useCallback(
     (metric: Metric) => {
+      // Core CWV only — see CORE_VITALS note above.
+      if (!CORE_VITALS.has(metric.name)) return
+
       // LCP/CLS settle progressively — keep the LATEST value; the flush
       // sends whatever the map holds at that moment.
       pending.current.set(metric.name, {
