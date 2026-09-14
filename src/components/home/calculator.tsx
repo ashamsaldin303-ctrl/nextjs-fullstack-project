@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { z } from 'zod'
@@ -89,6 +89,40 @@ export function Calculator() {
   const [input, setInput] = useState<CalculatorInput>(INITIAL_INPUT)
   const [form, setForm] = useState<LeadForm>({ name: '', email: '', whatsapp: '' })
   const [errors, setErrors] = useState<{ name?: string; email?: string; whatsapp?: string }>({})
+  // F-S5-08 (audit r2): per-field refs for focus-to-first-error + the
+  // shared blur-validation helper.
+  const calcFieldRefs = useRef<Record<'name' | 'email' | 'whatsapp', HTMLInputElement | null>>({
+    name: null,
+    email: null,
+    whatsapp: null,
+  })
+  /** F-S5-08: blur re-validation — engaged fields (with content) or
+   *  already-errored fields get instant per-field feedback; empty
+   *  untouched fields blurring stay quiet. */
+  const validateOnBlur = useCallback(
+    (key: 'name' | 'email' | 'whatsapp') => {
+      if (!form[key] && !errors[key]) return
+      const parsed = leadSchema.safeParse(form)
+      const issue = parsed.success
+        ? undefined
+        : parsed.error.issues.find((i) => i.path[0] === key)
+      const msg =
+        issue?.path[0] === 'name'
+          ? t('errors.name')
+          : issue?.path[0] === 'email'
+            ? t('errors.email')
+            : issue?.path[0] === 'whatsapp'
+              ? tApiFields('whatsapp')
+              : undefined
+      setErrors((er) => {
+        const had = er[key]
+        if (msg) return had === msg ? er : { ...er, [key]: msg }
+        if (!had) return er
+        return { ...er, [key]: undefined }
+      })
+    },
+    [form, errors, t, tApiFields],
+  )
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [reference, setReference] = useState<string | null>(null)
@@ -194,6 +228,11 @@ export function Calculator() {
         if (path === 'whatsapp') fe.whatsapp = tApiFields('whatsapp')
       }
       setErrors(fe)
+      // F-S5-08 (audit r2): focus the FIRST invalid field on a failed
+      // submit (DOM order: name → email → whatsapp) — the visitor lands
+      // where the fix is, instead of hunting for the red ring.
+      const firstInvalid = (['name', 'email', 'whatsapp'] as const).find((k) => fe[k])
+      if (firstInvalid) calcFieldRefs.current[firstInvalid]?.focus()
       return
     }
     setErrors({})
@@ -376,7 +415,7 @@ export function Calculator() {
                           }}
                           aria-pressed={active}
                           className={cn(
-                            'group relative overflow-hidden rounded-2xl border p-5 text-start transition-all',
+                            'group relative overflow-hidden rounded-2xl border p-5 text-start transition-[border-color,background-color,box-shadow] duration-300',
                             active
                               ? 'border-primary bg-primary/5 shadow-[0_0_0_1px_var(--color-primary)]'
                               : 'border-border hover:border-primary/40 hover:bg-foreground/[0.02]'
@@ -608,7 +647,7 @@ export function Calculator() {
                 <div>
                   {done ? (
                     <div className="flex flex-col items-center py-8 text-center">
-                      <div className="flex size-16 items-center justify-center rounded-full bg-g-green/15 text-g-green">
+                      <div className="flex size-16 items-center justify-center rounded-full bg-g-green-strong/15 text-g-green-strong">
                         <Check className="size-8" aria-hidden="true" />
                       </div>
                       <h3
@@ -620,7 +659,7 @@ export function Calculator() {
                       </h3>
                       <p className="mt-2 max-w-md text-muted-foreground">{t('form.successDesc')}</p>
                       {reference ? (
-                        <p className="mt-3 rounded-full border border-g-green/30 bg-g-green/5 px-4 py-1.5 text-sm font-semibold text-g-green">
+                        <p className="mt-3 rounded-full border border-g-green-strong/30 bg-g-green-strong/5 px-4 py-1.5 text-sm font-semibold text-g-green-strong">
                           {/* L6-R4 P3: the label renders in the default Cairo
                               face — the old blanket font-mono put the Arabic
                               «رقمك المرجعي:» inside the latin-only JetBrains
@@ -762,6 +801,7 @@ export function Calculator() {
                             <Label htmlFor="calc-name" className="text-sm">{t('form.name')}</Label>
                             <Input
                               id="calc-name"
+                              ref={(el) => { calcFieldRefs.current.name = el }}
                               value={form.name}
                               onChange={(e) => {
                                 setForm((f) => ({ ...f, name: e.target.value }))
@@ -771,6 +811,7 @@ export function Calculator() {
                                 // while typing.
                                 if (errors.name) setErrors((er) => ({ ...er, name: undefined }))
                               }}
+                              onBlur={() => validateOnBlur('name')}
                               autoComplete="name"
                               required
                               aria-required="true"
@@ -786,12 +827,14 @@ export function Calculator() {
                             <Label htmlFor="calc-email" className="text-sm">{t('form.email')}</Label>
                             <Input
                               id="calc-email"
+                              ref={(el) => { calcFieldRefs.current.email = el }}
                               type="email"
                               value={form.email}
                               onChange={(e) => {
                                 setForm((f) => ({ ...f, email: e.target.value }))
                                 if (errors.email) setErrors((er) => ({ ...er, email: undefined }))
                               }}
+                              onBlur={() => validateOnBlur('email')}
                               autoComplete="email"
                               required
                               aria-required="true"
@@ -807,12 +850,14 @@ export function Calculator() {
                             <Label htmlFor="calc-wa" className="text-sm">{t('form.whatsapp')}</Label>
                             <Input
                               id="calc-wa"
+                              ref={(el) => { calcFieldRefs.current.whatsapp = el }}
                               type="tel"
                               value={form.whatsapp ?? ''}
                               onChange={(e) => {
                                 setForm((f) => ({ ...f, whatsapp: e.target.value }))
                                 if (errors.whatsapp) setErrors((er) => ({ ...er, whatsapp: undefined }))
                               }}
+                              onBlur={() => validateOnBlur('whatsapp')}
                               autoComplete="tel"
                               aria-invalid={!!errors.whatsapp}
                               aria-describedby={errors.whatsapp ? 'calc-wa-err' : undefined}
@@ -886,13 +931,18 @@ export function Calculator() {
               <button
                 type="button"
                 onClick={goBack}
-                className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors hover:bg-foreground/5 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <ArrowLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
                 {t('back')}
               </button>
-              <span className="text-sm text-muted-foreground">
-                {t('result.disclaimer')}
+              {/* F-S5-07 (audit r2): the 271-char disclaimer used to render
+                  TWICE at step 2 — here AND next to the annotated breakdown
+                  copy. The annotated instance (with the icon + full rule)
+                  is the canonical one; the controls row now shows a short
+                  neutral step marker instead. */}
+              <span className="text-sm text-muted-foreground" aria-hidden="true">
+                •
               </span>
             </div>
           ) : null}

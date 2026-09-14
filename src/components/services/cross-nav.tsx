@@ -62,7 +62,7 @@ export async function ServiceCrossNav({
               >
                 {navT(CROSS_LINKS[id].navKey)}
                 <ArrowRight
-                  className="size-3.5 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-primary rtl:rotate-180 rtl:group-hover:-translate-x-0.5"
+                  className="size-3.5 text-muted-foreground transition-[transform,color] duration-300 group-hover:translate-x-0.5 group-hover:text-primary rtl:rotate-180 rtl:group-hover:-translate-x-0.5"
                   aria-hidden="true"
                 />
               </Link>

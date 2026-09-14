@@ -98,7 +98,7 @@ export default async function AutomationPage({
                     inherit) follows the same corners; h-full keeps the
                     grid-cell → article chain intact. */}
                 <FresnelEdge className="h-full rounded-2xl">
-                  <article className="group h-full rounded-2xl border border-border bg-card p-8 transition-all hover:border-primary/40 hover:shadow-lg">
+                  <article className="group h-full rounded-2xl border border-border bg-card p-8 transition-[border-color,box-shadow] duration-300 hover:border-primary/40 hover:card-lift-hover">
                     <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-transform group-hover:scale-110">
                       <Icon className="size-6" aria-hidden="true" />
                     </div>

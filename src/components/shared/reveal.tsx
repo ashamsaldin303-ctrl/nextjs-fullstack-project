@@ -102,8 +102,13 @@ export function Reveal({
 /**
  * KineticTypography — variable-font weight animation per word, now CSS-only.
  * Each word is an inline-block running the `kinetic-word` keyframes with a
- * per-word stagger. Runs on first paint (no JS dependency, no in-view wait —
- * same as the previous framer implementation which animated on mount).
+ * per-word stagger.
+ *
+ * F-S7-13 (audit r2): the animated class is added only after
+ * document.fonts.ready settles (capped race — the intro overlay's own
+ * pattern, FONTS_READY_TIMEOUT ceiling): before, the variable-font weight
+ * ramp started from first paint, animating fallback-metric glyphs and
+ * re-rasterizing once the real face swapped in.
  *
  * Above-the-fold heroes do NOT use this (LCP discipline — Phase 3 §4.1);
  * it is only for below-fold section headings.
@@ -118,6 +123,28 @@ export function KineticWords({
   wordClassName?: string
 }) {
   const words = text.split(' ').filter(Boolean)
+  // Start un-animated (plain words, no keyframes); flip on once the real
+  // font face is ready (or the 1.5s cap fires). SSR/no-JS keeps plain
+  // words — identical text content, zero reflow risk.
+  const [fontReady, setFontReady] = useState(false)
+
+  useEffect(() => {
+    let disposed = false
+    let ceilingId = 0
+    Promise.race([
+      document.fonts.ready,
+      new Promise<void>((resolve) => {
+        ceilingId = window.setTimeout(resolve, 1500)
+      }),
+    ]).then(() => {
+      if (!disposed) setFontReady(true)
+    })
+    return () => {
+      disposed = true
+      window.clearTimeout(ceilingId)
+    }
+  }, [])
+
   return (
     <span className={cn('inline-block', className)} aria-label={text}>
       <span className="sr-only">{text}</span>
@@ -125,8 +152,8 @@ export function KineticWords({
         {words.map((w, i) => (
           <Fragment key={`${w}-${i}`}>
             <span
-              className={cn('kinetic-word', wordClassName)}
-              style={{ animationDelay: `${i * 80}ms` }}
+              className={cn(fontReady && 'kinetic-word', wordClassName)}
+              style={fontReady ? { animationDelay: `${i * 80}ms` } : undefined}
             >
               {w}
             </span>
@@ -222,7 +249,7 @@ export function Parallax({
   }, [reduced, speed])
 
   return (
-    <div ref={ref} className={className} style={{ willChange: 'transform' }}>
+    <div ref={ref} className={className}>
       {children}
     </div>
   )

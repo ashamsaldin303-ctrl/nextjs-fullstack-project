@@ -17,6 +17,15 @@
  * screen readers never trigger sounds (prompt §5.5) — the hover blip is
  * additionally gated to fine (mouse) pointers so taps on touch devices
  * never produce the stale "hover" chirp.
+ *
+ * F-S7-15 (audit r2) — DECISION RECORD: the audit recommends shipping a
+ * minimal persistent sound toggle (localStorage, default-on). This stays
+ * a DELIBERATE product decision AGAINST it: the OWNER explicitly ordered
+ * the mute button removed («احذف زر الكتم — الصوت دائمًا تلقائيًا»)
+ * after living with the toggle; the mix is tuned to texture-level soft
+ * and arms only after a gesture. If field feedback (RUM sessions, support
+ * tickets) ever shows annoyance, the recommended toggle design is the
+ * agreed reopening path — revisit then, not speculatively.
  */
 
 /* ------------------------------------------------------------------ */

@@ -1,5 +1,4 @@
 import crypto from 'node:crypto'
-import { isIP } from 'node:net'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { Prisma } from '@prisma/client'
@@ -12,6 +11,7 @@ import {
   type CalculatorInput,
 } from '@/lib/calculator'
 import { rateLimit, refundRateLimit } from '@/lib/rate-limit'
+import { clientIp } from '@/lib/client-ip'
 import {
   leadNameSchema,
   leadEmailSchema,
@@ -175,41 +175,12 @@ const leadSchema = z.discriminatedUnion('source', [
 /* ------------------------------------------------------------------ */
 
 /**
- * Rate-limit key derivation (audit P1-1).
- *
- * X-Forwarded-For / X-Real-IP are trivially spoofable by any client that
- * reaches the app directly — trusting them unconditionally lets an attacker
- * rotate the header for a fresh bucket per request. They are honored ONLY
- * when TRUST_PROXY=true, i.e. behind a trusted reverse proxy that
- * OVERWRITES these headers with the real client address (the included
- * Caddyfile does). Otherwise fail closed: all callers share the single
- * 'anonymous' bucket.
- *
- * When X-Forwarded-For carries a LIST, the LAST element is used, never the
- * first: appending proxies (nginx's default proxy_add_x_forwarded_for)
- * grow the list rightward — spoofed client-supplied entries first, the
- * proxy's own trusted observation LAST — so the first element is
- * attacker-controlled and reading it would allow rate-limit bucket
- * rotation. Under an overwriting proxy the list holds a single element,
- * where first and last coincide. Appending proxies are not supported at
- * all with TRUST_PROXY=true (see .env.example).
- *
- * F-S1-06 (gold-standard audit): the extracted value is additionally
- * VALIDATED with net.isIP — under operator misconfiguration (direct
- * exposure with TRUST_PROXY=true) an attacker crafts arbitrary XFF
- * strings to mint unlimited distinct bucket keys; non-IP garbage now
- * collapses to the shared 'anonymous' bucket instead of a free bucket
- * printer (the proxy layer also emits a one-time startup warning).
+ * Rate-limit key derivation lives in the SHARED module @/lib/client-ip
+ * (F-S2-07, gold-standard audit) — /api/vitals derives its bucket key
+ * through the exact same TRUST_PROXY gate + net.isIP validation +
+ * x-real-ip fallback, so both routes agree on client identity. The full
+ * spoofing/append-proxy rationale is documented there.
  */
-function clientIp(req: NextRequest): string {
-  if (process.env.TRUST_PROXY !== 'true') return 'anonymous'
-  const xff = req.headers.get('x-forwarded-for')
-  const last = xff?.split(',').pop()?.trim()
-  if (last && isIP(last) !== 0) return last
-  const real = req.headers.get('x-real-ip')
-  if (real && isIP(real) !== 0) return real
-  return 'anonymous'
-}
 
 function requestLocale(req: NextRequest): 'ar' | 'en' {
   // L6-R5 P3: normalize before comparing — header matching is
@@ -394,18 +365,28 @@ function toStoredLead(input: z.infer<typeof leadSchema>): {
  * p95/p99 aggregation; client-side CWV ride the /api/vitals RUM route).
  */
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  // F-S2-06 (gold-standard audit): per-request correlation ID — minted at
+  // the wrapper (before any handler branch) and threaded into the
+  // completion log line AND every scoped diagnostic below (e.g. the
+  // honeypot discard), so a single request is traceable across log lines
+  // without leaking PII (the UUID carries no request content).
+  const requestId = crypto.randomUUID()
   const startedAt = performance.now()
-  const res = await handlePost(req)
+  const res = await handlePost(req, requestId)
   const durMs = performance.now() - startedAt
   res.headers.set('Server-Timing', `app;dur=${durMs.toFixed(1)}`)
   logger.info('api/leads', 'request completed', {
     status: res.status,
     ms: Math.round(durMs),
+    requestId,
   })
   return res
 }
 
-async function handlePost(req: NextRequest): Promise<NextResponse> {
+async function handlePost(
+  req: NextRequest,
+  requestId: string
+): Promise<NextResponse> {
   const locale = requestLocale(req)
   const t = getApiT(locale)
 
@@ -497,7 +478,21 @@ async function handlePost(req: NextRequest): Promise<NextResponse> {
   const csrfCookie = req.cookies.get(CSRF_COOKIE)?.value
   if (csrfCookie !== undefined) {
     const csrfHeader = req.headers.get(CSRF_HEADER)
-    if (csrfHeader !== csrfCookie) {
+    // F-S1-02 (gold-standard audit): timing-safe comparison — plain
+    // string equality short-circuits at the first differing byte,
+    // leaking token-prefix information over a timing side channel. Both
+    // values are proxy-issued 128-bit hex (32 chars); timingSafeEqual
+    // requires equal-length buffers, so a length mismatch is a plain
+    // reject (the LENGTH is public protocol shape, not secret content —
+    // nothing leaks). Matches the repo's own webhook-verification
+    // standard (scripts/verify-api.mjs, README recipe).
+    const headerBuf = csrfHeader === null ? null : Buffer.from(csrfHeader)
+    const cookieBuf = Buffer.from(csrfCookie)
+    const csrfOk =
+      headerBuf !== null &&
+      headerBuf.length === cookieBuf.length &&
+      crypto.timingSafeEqual(headerBuf, cookieBuf)
+    if (!csrfOk) {
       return apiJson(
         { error: 'cross_origin', message: t('crossOrigin'), fields: {} },
         { status: 403 }
@@ -581,6 +576,13 @@ async function handlePost(req: NextRequest): Promise<NextResponse> {
   // an empty/whitespace string (what the real forms send) proceeds.
   const hp = input.companyWebsite
   if (hp !== undefined && (typeof hp !== 'string' || hp.trim() !== '')) {
+    // F-S2-06 (gold-standard audit): scoped, PII-free discard marker —
+    // the client still gets the indistinguishable 201, but the server log
+    // now separates discards from real stores (correlated via the
+    // requestId threaded from the POST wrapper). Deliberately ONLY the
+    // requestId: the honeypot value itself is attacker-controlled free
+    // text and never rides a log line.
+    logger.info('api/leads', 'honeypot discard', { requestId })
     return apiJson({ reference: randomReference() }, { status: 201 })
   }
 
@@ -721,8 +723,9 @@ async function handlePost(req: NextRequest): Promise<NextResponse> {
     //    Skipped entirely for idempotent replays (the original attempt
     //    already delivered it). F-S2-04: the delivery OUTCOME is persisted
     //    on the row as `webhookStatus` once the attempt settles, so failed
-    //    CRM sync is queryable + replayable (scripts can re-send by
-    //    reference) — the 201 itself never waits on the webhook.
+    //    CRM sync is queryable + replayable — scripts/resend-webhook.ts
+    //    re-sends exactly these rows (same signing module as below) —
+    //    the 201 itself never waits on the webhook.
     if (!resolvedAsReplay) {
       const payload: LeadWebhookPayload = {
         event: 'lead.created',

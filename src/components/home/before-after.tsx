@@ -401,6 +401,23 @@ const SHEET_COLS = 'grid-cols-[10px_1.1fr_1fr_0.72fr_0.95fr]'
    Scene 1 — "site-new": modern e-commerce storefront
    -------------------------------------------------------------------------- */
 
+/* --------------------------------------------------------------------------
+   F-S3-04 (audit r2): scene-photo loading strategy. Every scene photo now
+   defaults to next/image's native lazy (below-fold comparison cards no
+   longer fetch up-front); the page's DOM-FIRST comparison card — claimed
+   inside BeforeAfter via a one-shot DOM-order check — renders its photos
+   with priority + fetchpriority=high (+ preload hint) so the first scene
+   a visitor scrolls toward gets a fetch boost. The transform-based reveal
+   (F-S7-02) keeps every image's net transform at zero (the wrapper's slide
+   and the inner layer's counter-slide cancel), so each img's bounding rect
+   stays at its natural card position and native lazy-load IO fires
+   reliably — which retired the old clip-path-era loading="eager"
+   workaround documented at the store hero below.
+   -------------------------------------------------------------------------- */
+function sceneImgProps(pri?: boolean): { priority?: boolean; fetchPriority?: 'high' } {
+  return pri ? { priority: true, fetchPriority: 'high' } : {}
+}
+
 /** G3-4: real product photography for the storefront's three cards — the
  *  wool-coat crop (from the Stitch lookbook), the leather handbag and the
  *  cashmere-scarf product photo (Stitch storefront grid / IMAGE screen).
@@ -415,10 +432,13 @@ function SiteNewScene({
   accent,
   palette,
   mock,
+  imgPriority,
 }: {
   accent: string
   palette?: ScenePalette
   mock?: MockContent
+  /** F-S3-04: true only on the page's DOM-first card — see sceneImgProps. */
+  imgPriority?: boolean
 }) {
   const t = useTranslations('workSection.scenes')
   const nav = asStringArray(t.raw('site.nav'))
@@ -573,16 +593,17 @@ function SiteNewScene({
           />
           <div className="absolute -top-[25%] start-[8%] size-[80%] rounded-full bg-white/15 blur-[5px]" />
           {/* decorative mock imagery — aria-hidden via the Scene wrapper.
-              Eager (no loading="lazy") by design: these miniature-screenshot
-              images sit inside the slider's clip-path region, and Chromium's
-              lazy-load intersection never fires for clip-concealed images —
-              even after the drag reveals them (IO does not re-evaluate on
-              clip-path changes). They are tiny local webps (~300KB for all
-              19), so eager is the reliable + cheap choice. Verified in the
-              G4 coordinator browser pass. */}
+              Lazy by default since the F-S7-02 transform refactor: the
+              reveal window's slide is cancelled by the inner layer's
+              counter-slide, so this img's bounding rect stays at its
+              natural card position and native lazy-load IO behaves —
+              the OLD eager workaround (lazy IO allegedly never firing
+              for clip-path-concealed images) died with the clip-path.
+              The DOM-first card alone upgrades to priority (see
+              sceneImgProps). */}
           <Image
             src="/work-scenes/store-hero.webp"
-            alt="" loading="eager"
+            alt="" {...sceneImgProps(imgPriority)}
             width={382}
             height={512}
             className="absolute inset-0 size-full object-cover object-[50%_20%]"
@@ -644,7 +665,7 @@ function SiteNewScene({
                     return photo ? (
                       <Image
                         src={photo[0]}
-                        alt="" loading="eager"
+                        alt="" {...sceneImgProps(imgPriority)}
                         width={photo[1]}
                         height={photo[2]}
                         className="absolute inset-0 size-full object-cover"
@@ -805,10 +826,13 @@ function PropertyNewScene({
   accent,
   palette,
   mock,
+  imgPriority,
 }: {
   accent: string
   palette?: ScenePalette
   mock?: MockContent
+  /** F-S3-04: true only on the page's DOM-first card — see sceneImgProps. */
+  imgPriority?: boolean
 }) {
   const t = useTranslations('workSection.scenes')
   const filters = asStringArray(t.raw('property.filters'))
@@ -905,7 +929,7 @@ function PropertyNewScene({
             </div>
             <Image
               src="/work-scenes/property-villa.webp"
-              alt="" loading="eager"
+              alt="" {...sceneImgProps(imgPriority)}
               width={512}
               height={382}
               className="absolute inset-0 size-full object-cover"
@@ -1043,10 +1067,13 @@ function AcademyNewScene({
   accent,
   palette,
   mock,
+  imgPriority,
 }: {
   accent: string
   palette?: ScenePalette
   mock?: MockContent
+  /** F-S3-04: true only on the page's DOM-first card — see sceneImgProps. */
+  imgPriority?: boolean
 }) {
   const t = useTranslations('workSection.scenes')
   const nav = asStringArray(t.raw('academy.nav'))
@@ -1096,7 +1123,7 @@ function AcademyNewScene({
               rides on top of the photo */}
           <Image
             src="/work-scenes/academy-instructor.webp"
-            alt="" loading="eager"
+            alt="" {...sceneImgProps(imgPriority)}
             width={512}
             height={286}
             className="absolute inset-0 size-full object-cover"
@@ -1268,10 +1295,13 @@ function DiningNewScene({
   accent,
   palette,
   mock,
+  imgPriority,
 }: {
   accent: string
   palette?: ScenePalette
   mock?: MockContent
+  /** F-S3-04: true only on the page's DOM-first card — see sceneImgProps. */
+  imgPriority?: boolean
 }) {
   const t = useTranslations('workSection.scenes')
   const nav = asStringArray(t.raw('dining.nav'))
@@ -1316,7 +1346,7 @@ function DiningNewScene({
               art, which stays beneath as the tint fallback */}
           <Image
             src="/work-scenes/dining-grill.webp"
-            alt="" loading="eager"
+            alt="" {...sceneImgProps(imgPriority)}
             width={512}
             height={286}
             className="absolute inset-0 size-full object-cover"
@@ -1404,7 +1434,7 @@ function DiningNewScene({
                   return photo ? (
                     <Image
                       src={photo[0]}
-                      alt="" loading="eager"
+                      alt="" {...sceneImgProps(imgPriority)}
                       width={photo[1]}
                       height={photo[2]}
                       className="absolute inset-0 size-full object-cover"
@@ -2187,7 +2217,16 @@ function asKanbanColumns(value: unknown): KanbanColumn[] {
 
 const KANBAN_NAV_ICONS = [LayoutDashboard, FileText, ListTodo, BarChart3, Archive] as const
 
-function StudioKanbanScene({ accent, mock }: { accent: string; mock?: MockContent }) {
+function StudioKanbanScene({
+  accent,
+  mock,
+  imgPriority,
+}: {
+  accent: string
+  mock?: MockContent
+  /** F-S3-04: true only on the page's DOM-first card — see sceneImgProps. */
+  imgPriority?: boolean
+}) {
   const t = useTranslations('workSection.scenes')
   const nav = asStringArray(t.raw('kanban.nav'))
   const columns = asKanbanColumns(t.raw('kanban.columns'))
@@ -2399,7 +2438,7 @@ function StudioKanbanScene({ accent, mock }: { accent: string; mock?: MockConten
                         <div className="flex min-w-0 items-start gap-[3px]">
                           <Image
                             src={thumb[0]}
-                            alt="" loading="eager"
+                            alt="" {...sceneImgProps(imgPriority)}
                             width={thumb[1]}
                             height={thumb[2]}
                             className="h-[24px] w-[32px] shrink-0 rounded-[3px] object-cover"
@@ -2662,6 +2701,7 @@ function Scene({
   mock,
   industry,
   tone,
+  imgPriority,
 }: {
   variant: SceneVariant
   accent: string
@@ -2672,14 +2712,17 @@ function Scene({
   mock?: MockContent
   industry: OldIndustry
   tone?: 'dark' | 'light'
+  /** F-S3-04: forwarded to the image-bearing "after" scenes only (the
+   *  old/dashboard scenes carry no photos). */
+  imgPriority?: boolean
 }) {
   return (
     <div className="size-full" aria-hidden="true">
-      {variant === 'site-new' && <SiteNewScene accent={accent} palette={palette} mock={mock} />}
-      {variant === 'property-new' && <PropertyNewScene accent={accent} palette={palette} mock={mock} />}
-      {variant === 'academy-new' && <AcademyNewScene accent={accent} palette={palette} mock={mock} />}
-      {variant === 'dining-new' && <DiningNewScene accent={accent} palette={palette} mock={mock} />}
-      {variant === 'kanban-new' && <StudioKanbanScene accent={accent} mock={mock} />}
+      {variant === 'site-new' && <SiteNewScene accent={accent} palette={palette} mock={mock} imgPriority={imgPriority} />}
+      {variant === 'property-new' && <PropertyNewScene accent={accent} palette={palette} mock={mock} imgPriority={imgPriority} />}
+      {variant === 'academy-new' && <AcademyNewScene accent={accent} palette={palette} mock={mock} imgPriority={imgPriority} />}
+      {variant === 'dining-new' && <DiningNewScene accent={accent} palette={palette} mock={mock} imgPriority={imgPriority} />}
+      {variant === 'kanban-new' && <StudioKanbanScene accent={accent} mock={mock} imgPriority={imgPriority} />}
       {/* R8: the OLD scenes receive the mock too — the "before" is the SAME
           business (brand on the 2009 masthead, products echoed in the old
           table), which sells the before→after transformation. R9: the old
@@ -2736,6 +2779,26 @@ export function BeforeAfter({
   // keyboard slider path intentionally skips the squash (event-driven
   // feedback for the physical grab gesture).
   const [grabbed, setGrabbed] = useState(false)
+
+  // F-S3-04 (audit r2): exactly ONE comparison card per page — the first
+  // in DOM order — renders its scene photos with priority (see
+  // sceneImgProps); every other card's photos stay lazy. Claiming via a
+  // one-shot DOM-order check (not mount order, not a module flag) keeps
+  // the render pure (react-hooks/purity), the server stateless (no
+  // cross-request module leak) and /work's filter remounts self-healing
+  // (the grid re-keys, effects re-run, the new DOM-first card claims).
+  // The check rides one rAF after mount — the repo's set-state-in-effect
+  // discipline (reveal.tsx) — and lands long before a visitor's first
+  // scroll brings the below-fold scenes near the viewport.
+  const [imgPriority, setImgPriority] = useState(false)
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const id = window.requestAnimationFrame(() => {
+      if (document.querySelector('[data-ba-compare]') === el) setImgPriority(true)
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [])
 
   // G3-4: the palette's primary IS the scene accent when a palette is
   // provided (single source of truth); bare callers keep the accent prop.
@@ -2815,12 +2878,18 @@ export function BeforeAfter({
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     const step = e.shiftKey ? 10 : 5
+    // Keyboard clamp hardening (found live during the F-S7-02 verification
+    // pass): BOTH arrow directions now clamp to the slider's declared
+    // 2–98 bounds. Previously the ArrowLeft path only floored at 2 and the
+    // ArrowRight path only ceilinged at 98 — in RTL (where ArrowLeft adds
+    // to pos) six taps ran pos to 106, past aria-valuemax, sliding the
+    // reveal window + handle carrier fully off the card.
     if (e.key === 'ArrowLeft') {
       e.preventDefault()
-      setPos((p) => Math.max(2, p - (isRtl ? -step : step)))
+      setPos((p) => Math.min(98, Math.max(2, p - (isRtl ? -step : step))))
     } else if (e.key === 'ArrowRight') {
       e.preventDefault()
-      setPos((p) => Math.min(98, p + (isRtl ? -step : step)))
+      setPos((p) => Math.min(98, Math.max(2, p + (isRtl ? -step : step))))
     } else if (e.key === 'Home') {
       e.preventDefault()
       setPos(2)
@@ -2830,14 +2899,24 @@ export function BeforeAfter({
     }
   }
 
-  // Clip is mirrored in RTL: pos counts from the START edge (right), so the
-  // "after" layer reveals from the LEFT — matching RTL reading order where
-  // "before" sits on the right and "after" on the left (audit P1-13).
-  const clipAfter = isRtl ? `inset(0 ${pos}% 0 0)` : `inset(0 0 0 ${pos}%)`
+  // F-S7-02 (audit r2): the reveal is the standard transform-based
+  // comparison mechanic. pos still counts from the START edge (left in
+  // LTR, right in RTL — audit P1-13) and the reveal mirrors with the
+  // reading direction: the after scene occupies the END side of the
+  // line ("before" at the start, "after" at the end in both locales —
+  // in RTL the after layer reveals from the LEFT, matching the reading
+  // order). The after layer's overflow-hidden wrapper slides END-ward by
+  // `pos`% of the card while the inner scene counter-slides, so the clip
+  // line moves while the imagery stays visually stationary (the classic
+  // parallax window) — every per-frame drag write below is a
+  // compositor-only transform; the old per-frame left/right % +
+  // full-card clip-path inset writes (layout + paint) are gone.
+  const shift = isRtl ? -pos : pos
 
   return (
     <div
       ref={containerRef}
+      data-ba-compare=""
       data-cursor="drag"
       data-cursor-label={tc('cursor.drag')}
       className={cn(
@@ -2864,67 +2943,90 @@ export function BeforeAfter({
         </span>
       </div>
 
-      {/* after layer (top, clipped) */}
+      {/* after layer (top) — F-S7-02: the reveal WINDOW. The wrapper
+          slides END-ward by `shift`% (the card clips whatever slides out,
+          so the after scene shows only on the END side of the line); the
+          inner layer counter-translates by the exact negative, so the
+          scene — and its end-corner chip, pinned at its authored
+          position — never appears to move: only the window over them
+          does. The counter-translation also keeps every <Image> inside
+          at a net-zero transform, so native lazy-load IO sees each
+          photo's natural card rect (see sceneImgProps). Zero
+          width / clip-path writes per frame. */}
       <div
-        className="absolute inset-0"
-        style={{ clipPath: clipAfter, WebkitClipPath: clipAfter }}
+        className="absolute inset-0 overflow-hidden"
+        style={{ transform: `translateX(${shift}%)` }}
       >
-        <Scene variant={afterVariant} accent={sceneAccent} palette={palette} mock={mock} industry={industry} tone={tone} />
-        <span className="absolute end-2 top-2 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground backdrop-blur-sm">
-          {t('after')}
-        </span>
-      </div>
-
-      {/* handle — anchored to the START edge (right in RTL) */}
-      <div
-        className="absolute inset-y-0 z-10 w-0.5 bg-white/80"
-        style={isRtl ? { right: `${pos}%` } : { left: `${pos}%` }}
-        aria-hidden="true"
-      >
-        {/* N2 (REF-3 T1) — handle squash & stretch (Olssons §2.3): the
-            knob — the handle's visual — stretches while grabbed (scaleX
-            0.94 / scaleY 1.06, "pulled" by the pointer) and settles back
-            to 1/1 over a 300ms ease-out on release. Structural safety
-            (the critical check): the drag logic repositions the OUTER
-            hairline via left/right (inset properties — never transform)
-            and reveals via clipPath on the after-layer; this knob's only
-            transform-ish CSS is the Tailwind `translate` centering, so
-            the independent CSS `scale` property composes with it —
-            nothing clobbers anything. Tailwind 4's transition-transform
-            covers `transform, translate, scale, rotate`, so the scale
-            flip is transitioned; since no drag code writes transforms
-            on this element mid-drag, the transition can never fight the
-            drag (per the plan's "handle is free" case — no inner
-            wrapper needed). The 2px hairline stays unscaled on purpose:
-            scaleX(0.94) on 2px is imperceptible and scaleY(1.06) on an
-            inset-y-0 line would only clip against the container. Reduced
-            motion → no scale at all (static knob). */}
-        <div
-          className="absolute top-1/2 left-1/2 flex size-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-white/90 text-elyra-dark shadow-lg transition-transform duration-300 ease-out"
-          style={reduced ? undefined : { scale: grabbed ? '0.94 1.06' : '1 1' }}
-        >
-          <MoveHorizontal className="size-4" />
+        <div className="absolute inset-0" style={{ transform: `translateX(${-shift}%)` }}>
+          <Scene variant={afterVariant} accent={sceneAccent} palette={palette} mock={mock} industry={industry} tone={tone} imgPriority={imgPriority} />
+          <span className="absolute end-2 top-2 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground backdrop-blur-sm">
+            {t('after')}
+          </span>
         </div>
       </div>
 
-      {/* accessible slider control (invisible but focusable) — bounds
-          match the actual clamp range (FIX 2-c/17: was 0–100 while the
-          pointer/keyboard logic clamps to 2–98). */}
+      {/* handle — F-S7-02: ONE full-width carrier translated END-ward by
+          `shift`% carries the hairline (anchored to the carrier's START
+          edge = the reveal line) and the focus strip below; the drag
+          writes a single compositor transform per frame instead of the
+          old per-frame left/right % repositioning. The carrier itself is
+          pointer-events-none — the card root keeps owning the pointer
+          capture path (events on the strip bubble to it exactly as
+          before). */}
       <div
-        role="slider"
-        tabIndex={0}
-        aria-valuemin={2}
-        aria-valuemax={98}
-        aria-valuenow={Math.round(pos)}
-        aria-label={`${label}: ${t('dragHint')}`}
-        aria-valuetext={`${Math.round(pos)}%`}
-        onKeyDown={onKeyDown}
-        className="absolute inset-y-0 z-20 w-2 cursor-ew-resize focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        style={{
-          ...(isRtl ? { right: `calc(${pos}% - 4px)` } : { left: `calc(${pos}% - 4px)` }),
-          touchAction: 'none',
-        }}
-      />
+        className="pointer-events-none absolute inset-0 z-10"
+        style={{ transform: `translateX(${shift}%)` }}
+      >
+        {/* visual hairline (decorative) */}
+        <div className="absolute inset-y-0 start-0 w-0.5 bg-white/80" aria-hidden="true">
+          {/* N2 (REF-3 T1) — handle squash & stretch (Olssons §2.3): the
+              knob — the handle's visual — stretches while grabbed (scaleX
+              0.94 / scaleY 1.06, "pulled" by the pointer) and settles back
+              to 1/1 over a 300ms ease-out on release. Structural safety
+              (the critical check, re-verified for the F-S7-02 carrier): the
+              drag logic now writes its transform ONLY on the carrier — the
+              hairline's PARENT — never on the hairline or the knob
+              themselves, so this knob's only transform-ish CSS remains the
+              Tailwind `translate` centering and the independent CSS `scale`
+              composes with it — nothing clobbers anything (carrier
+              translate × knob translate/scale multiply cleanly). Tailwind
+              4's transition-transform covers `transform, translate, scale,
+              rotate`, so the scale flip stays transitioned; since no drag
+              code writes transforms on the KNOB mid-drag, the transition
+              can never fight the drag. The 2px hairline stays unscaled on
+              purpose: scaleX(0.94) on 2px is imperceptible and scaleY(1.06)
+              on an inset-y-0 line would only clip against the container.
+              Reduced motion → no scale at all (static knob). */}
+          <div
+            className="absolute top-1/2 left-1/2 flex size-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-white/90 text-elyra-dark shadow-lg transition-transform duration-300 ease-out"
+            style={reduced ? undefined : { scale: grabbed ? '0.94 1.06' : '1 1' }}
+          >
+            <MoveHorizontal className="size-4" />
+          </div>
+        </div>
+
+        {/* accessible slider control (invisible but focusable) — bounds
+            match the actual clamp range (FIX 2-c/17: was 0–100 while the
+            pointer/keyboard logic clamps to 2–98). Rides the carrier so
+            the 8px hit band stays centered on the line with ZERO per-frame
+            positioning writes of its own (was left/right calc % writes);
+            start-[-4px] pulls it 4px into the start side so it centers on
+            the hairline in both directions. pointer-events-auto re-enables
+            hover/focus hit-testing inside the pe-none carrier; its events
+            still bubble to the card root's capture handlers. */}
+        <div
+          role="slider"
+          tabIndex={0}
+          aria-valuemin={2}
+          aria-valuemax={98}
+          aria-valuenow={Math.round(pos)}
+          aria-label={`${label}: ${t('dragHint')}`}
+          aria-valuetext={`${Math.round(pos)}%`}
+          onKeyDown={onKeyDown}
+          className="pointer-events-auto absolute inset-y-0 start-[-4px] w-2 cursor-ew-resize focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          style={{ touchAction: 'none' }}
+        />
+      </div>
 
       {/* hint — CSS keyframes cycle (.ba-hint), framer-free (§4.3) */}
       {reduced ? null : (

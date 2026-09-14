@@ -67,7 +67,7 @@ export function FeaturedWork() {
                   {/* subtle hover lift on the comparison mockup (UI-4).
                       W1-05: group-hover:shadow-lg → group-hover:card-lift-hover
                       (layered light-surface shadow, @utility in globals.css). */}
-                  <div className="rounded-2xl transition-all duration-300 ease-out group-hover:-translate-y-1 group-hover:card-lift-hover">
+                  <div className="rounded-2xl transition-transform duration-300 ease-out group-hover:-translate-y-1 group-hover:card-lift-hover">
                     <BeforeAfter
                       variant={p.variant}
                       accent={p.accent}

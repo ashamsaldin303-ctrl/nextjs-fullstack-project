@@ -37,6 +37,7 @@
  */
 
 import * as THREE from 'three'
+import { logger } from '@/lib/logger'
 import { CITY_LANDMARKS, type LandmarkSpec } from './data'
 
 /** A registered landmark at runtime (spec + engine-assigned fields). */
@@ -118,6 +119,31 @@ const CITY_FONT_HREF =
   'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap'
 const CITY_FONT_LINK_ID = 'city-ibm-plex-fonts'
 
+/** F-S8-02 (gold-standard audit): the sessionStorage key the city fps
+ *  watchdog sets — a session-permanent «this renderer cannot hold the
+ *  city» mark (the rune scene's RUNE_MOBILE_DEGRADED_KEY pattern).
+ *  Guarded like every storage access here: private-mode browsers can
+ *  throw on it. */
+const CITY_DEGRADED_KEY = 'elyra.cityDegraded'
+
+function readCityDegraded(): boolean {
+  try {
+    return sessionStorage.getItem(CITY_DEGRADED_KEY) === '1'
+  } catch {
+    // Private mode / storage disabled — do not punish the visitor for
+    // the browser's storage policy: treat the session as not degraded.
+    return false
+  }
+}
+
+function markCityDegraded(): void {
+  try {
+    sessionStorage.setItem(CITY_DEGRADED_KEY, '1')
+  } catch {
+    // Private mode — the in-memory stage flag still degrades this mount.
+  }
+}
+
 /**
  * Make the authored faces actually available before the build:
  * canvas `fillText` NEVER triggers a webfont load on its own, so the sign
@@ -168,11 +194,23 @@ export function mountCityScene(
   const camera = new THREE.PerspectiveCamera(45, 1, 1, 700)
   camera.position.set(0, 95, 170)
 
+  // F-S8-02: a session the watchdog already condemned starts
+  // pre-degraded (stage 1 — dpr 1, shadows never enabled); the watchdog
+  // inside buildEngine stays armed, so only a second offense goes static.
+  const preDegraded = readCityDegraded()
+  // Shared watchdog stage (0 armed → 1 degraded → 2 static): the engine
+  // loop advances it; the shell re-renders one static frame on resize
+  // while stage 2 so the frozen city survives layout changes (immersive
+  // enter/exit, window resize) instead of clearing to an empty canvas.
+  const wdState = { stage: preDegraded ? 1 : 0 }
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
   renderer.setClearColor(0x000000, 0)
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, mobileFlag ? 1.5 : 2))
-  renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap
+  renderer.setPixelRatio(preDegraded ? 1 : Math.min(window.devicePixelRatio, mobileFlag ? 1.5 : 2))
+  renderer.shadowMap.enabled = !preDegraded
+  // F-S8-01: PCFSoftShadowMap is deprecated (r185 warns on every mount
+  // and internally falls back to PCFShadowMap — visually identical), so
+  // the authored soft look now ships as PCF outright.
+  renderer.shadowMap.type = THREE.PCFShadowMap
   renderer.toneMapping = THREE.ACESFilmicToneMapping
   renderer.toneMappingExposure = 1.25
 
@@ -201,6 +239,9 @@ export function mountCityScene(
       camera.fov = 45
     }
     camera.updateProjectionMatrix()
+    // Stage-2 static: setSize just reset the drawing buffer — repaint
+    // the frozen frame (one event-driven render; the loop stays stopped).
+    if (wdState.stage === 2) renderer.render(scene, camera)
   }
   const ro = new ResizeObserver(onResize)
   ro.observe(container)
@@ -230,7 +271,7 @@ export function mountCityScene(
     }
     if (timer !== undefined) clearTimeout(timer)
     if (disposed) return
-    engine = buildEngine(renderer, camera, scene, opts, mobileFlag, activeFlag)
+    engine = buildEngine(renderer, camera, scene, opts, mobileFlag, activeFlag, wdState)
     built = true
   })()
 
@@ -289,7 +330,9 @@ function buildEngine(
   scene: THREE.Scene,
   opts: CityEngineOptions,
   mobile: boolean,
-  active: boolean
+  active: boolean,
+  /** F-S8-02 shared watchdog stage (see mountCityScene). */
+  wdState: { stage: number }
 ): CityEngine {
   const cb = opts.callbacks
   const dom = renderer.domElement
@@ -2521,21 +2564,146 @@ function buildEngine(
   }
 
   // ============================================
-  // 14) Animation loop
+  // 14) Animation loop + fps watchdog (F-S8-01 / F-S8-02)
   // ============================================
-  const clock = new THREE.Clock()
+  // F-S8-01: manual performance.now() delta replaces THREE.Clock
+  // (deprecated since r183 — it warned on every mount; THREE.Timer would
+  // add a new API surface for one call site). Contract preserved from the
+  // authored Clock: the pause gap is flushed in startLoop() so dt resumes
+  // clean, and dt keeps the authored 0.05 cap (the sandbox's SwiftShader
+  // floor runs ~4-5fps — the cap keeps the simulation wall-clock-sane).
+  let lastT = performance.now()
   let t = 0,
     frame = 0
   let rafId = -1
   let running = false
   let disposed = false
 
+  // F-S8-02 — FPS WATCHDOG: the rune scene's safety net (rune-scene.tsx
+  // WD_* ring pattern) ported to the imperative city loop. A rolling ring
+  // of the last WD_N RENDERED-frame deltas; once full AND spanning ≥
+  // WD_WINDOW_S of rendered time AND averaging under WD_FPS_FLOOR, the
+  // renderer is judged pathological (software-GL / thermal floor) and
+  // degradation escalates ONE stage:
+  //   0 → 1 (one-shot): shadows OFF + dpr 1 + session flag — the ring
+  //        re-arms once afterwards to re-measure the cheaper pipeline;
+  //   1 → 2 (fires again): the loop stops entirely — the current frame
+  //        renders as the final static city (never a black canvas); only
+  //        the shell's resize handler repaints it afterwards.
+  // Only RENDERED frames are recorded: the loop is stopped while the tab
+  // or the section is hidden (setActive gating), so hidden time never
+  // pollutes the ring, and startLoop()'s lastT flush keeps the resume gap
+  // out of the first post-pause delta. Above the floor the ring is a few
+  // adds over a preallocated Float32Array — zero allocation, zero
+  // behavior change. A pre-degraded session (sessionStorage flag read by
+  // the shell) starts at stage 1 with the ring armed.
+  const WD_N = 90
+  /** Warm-up frames ignored after (re)arm (shader-compile jank). */
+  const WD_WARMUP = 60
+  const WD_FPS_FLOOR = 24
+  const WD_WINDOW_S = 3
+  /** Per-delta cap (s) — one long frame must not poison the window. */
+  const WD_DELTA_CAP = 0.25
+  const wdBuf = new Float32Array(WD_N)
+  let wdWarm = 0,
+    wdCount = 0,
+    wdIdx = 0,
+    wdSum = 0
+
+  /** Zero the measurement window (initial arm + the one re-arm after
+   * stage 1 — its shadow-off/dpr-1 transition recompiles programs, so
+   * the fresh window skips that jank via the warm-up again). */
+  function armWatchdog(): void {
+    wdWarm = 0
+    wdCount = 0
+    wdIdx = 0
+    wdSum = 0
+  }
+
+  /** Stage 1 — the cheaper pipeline, ONE transition (staging makes it
+   * idempotent). Runtime shadow toggles need every material recompiled
+   * (three's incremental program check does not watch shadowMapEnabled,
+   * though the program cache key flips with it — needsUpdate forces the
+   * swap, per the three.js shadowMap docs). */
+  function applyStage1(): void {
+    renderer.shadowMap.enabled = false
+    type ShadowMatHolder = { material?: THREE.Material | THREE.Material[] }
+    scene.traverse(function (o) {
+      const d = o as unknown as ShadowMatHolder
+      if (d.material) {
+        const mats = Array.isArray(d.material) ? d.material : [d.material]
+        for (const mat of mats) mat.needsUpdate = true
+      }
+    })
+    // Free the now-dead shadow map (the setMobile idiom): shadows stay
+    // off for the rest of this mount, so the depth texture is pure VRAM.
+    if (sun.shadow.map) {
+      sun.shadow.map.dispose()
+      sun.shadow.map = null
+    }
+    renderer.setPixelRatio(1)
+  }
+
   function loop(): void {
     if (!running || disposed) return
     rafId = requestAnimationFrame(loop)
-    const dt = Math.min(clock.getDelta(), 0.05)
+    const now = performance.now()
+    const rawDt = (now - lastT) / 1000
+    lastT = now
+    const dt = Math.min(rawDt, 0.05)
     t += dt
     frame++
+
+    // --- F-S8-02 watchdog (the rune ring math, verbatim) ---------------
+    // The ring measures RAW frame cadence (not the 0.05-clamped dt), each
+    // delta capped at WD_DELTA_CAP so a single spike cannot dominate.
+    if (wdState.stage < 2) {
+      if (wdWarm < WD_WARMUP) {
+        wdWarm++
+      } else {
+        const wd = rawDt > 0 ? Math.min(rawDt, WD_DELTA_CAP) : 1 / 60
+        if (wdCount < WD_N) {
+          wdBuf[wdCount] = wd
+          wdCount++
+          wdSum += wd
+        } else {
+          const old = wdBuf[wdIdx] ?? 0
+          wdSum += wd - old
+          wdBuf[wdIdx] = wd
+          wdIdx = (wdIdx + 1) % WD_N
+        }
+        if (
+          wdCount === WD_N &&
+          wdSum >= WD_WINDOW_S &&
+          wdCount / wdSum < WD_FPS_FLOOR
+        ) {
+          if (wdState.stage === 0) {
+            wdState.stage = 1
+            markCityDegraded()
+            applyStage1()
+            armWatchdog()
+            logger.warn(
+              'city',
+              'fps watchdog: renderer under 24fps — degraded to shadows-off dpr-1 (session flagged)',
+              { avgFps: Math.round(wdCount / wdSum) }
+            )
+          } else {
+            wdState.stage = 2
+            markCityDegraded()
+            logger.warn(
+              'city',
+              'fps watchdog: still under 24fps after degradation — rendering final static frame (loop stopped)',
+              { avgFps: Math.round(wdCount / wdSum) }
+            )
+            // Cancel the next-frame rAF requested at the top of THIS
+            // invocation; the rest of the frame runs to completion and
+            // its renderer.render() below is the static frame the canvas
+            // keeps showing (startLoop refuses to restart in stage 2).
+            stopLoop()
+          }
+        }
+      }
+    }
 
     for (const c of cars) {
       if (c.ax === 'x') {
@@ -2678,8 +2846,11 @@ function buildEngine(
   }
   function startLoop(): void {
     if (running || disposed) return
+    // Stage-2 static: the loop never restarts — the canvas keeps the
+    // final frame and only the shell's resize handler repaints it.
+    if (wdState.stage === 2) return
     running = true
-    clock.getDelta() // flush the pause gap so dt resumes clean
+    lastT = performance.now() // flush the pause gap so dt resumes clean
     rafId = requestAnimationFrame(loop)
   }
   function stopLoop(): void {
@@ -2696,7 +2867,9 @@ function buildEngine(
     else stopLoop()
   }
   function setMobile(on: boolean): void {
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, on ? 1.5 : 2))
+    // F-S8-02: a degraded session owns dpr 1 — tier flips must not undo
+    // the watchdog's cheaper pipeline (stage 1 holds until rebuild).
+    renderer.setPixelRatio(wdState.stage >= 1 ? 1 : Math.min(window.devicePixelRatio, on ? 1.5 : 2))
     sun.shadow.mapSize.set(on ? 1024 : 2048, on ? 1024 : 2048)
     if (sun.shadow.map) {
       sun.shadow.map.dispose()

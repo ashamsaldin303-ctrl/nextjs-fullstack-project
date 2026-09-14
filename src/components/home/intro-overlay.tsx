@@ -56,8 +56,12 @@ import { pokeRuneField } from '@/components/rune/rune-bus'
 
 /** sessionStorage flag — one play per tab session. */
 const INTRO_SESSION_KEY = 'elyra-intro'
-/** How long the wordmark holds before the curtain lifts. */
-const HOLD_MS = 1700
+/** How long the wordmark holds before the curtain lifts.
+ * F-S5-14 (audit r2): 1700 → 1200ms — the curtain held ~2.55s over the
+ * homepage conversion path; 1.2s keeps the brand beat without taxing
+ * every first visit. Still skippable on any input; once per session;
+ * reduced-motion never arms. */
+const HOLD_MS = 1200
 /** Duration of the lift animation (matches the CSS transition). */
 const LIFT_MS = 850
 /** W2-02 — ceiling for the document fonts readiness wait (ms). */

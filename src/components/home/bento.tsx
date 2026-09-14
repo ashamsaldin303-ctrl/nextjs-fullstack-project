@@ -533,7 +533,9 @@ function MiniFlow() {
           })}
         </div>
         {state === 'done' ? (
-          <div className="mt-3 flex items-center justify-center gap-2 text-[10px]">
+          /* F-S5-11 (audit r2): live status labels 10px → 11px (the
+             10px floor stays reserved for aria-hidden chrome). */
+          <div className="mt-3 flex items-center justify-center gap-2 text-[11px]">
             <span className="inline-flex items-center gap-1 font-bold text-g-green">
               <Check className="size-3" /> {t('runs')}
             </span>
@@ -1041,7 +1043,10 @@ function MiniAgent() {
             onChange={(e) => setIdea(e.target.value)}
             placeholder={t('inputPlaceholder')}
             autoComplete="off"
-            className="min-h-11 min-w-0 flex-1 rounded-lg border border-white/10 bg-white/5 px-2.5 text-xs text-white transition-colors placeholder:text-white/55 focus:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            /* F-S3-03 / F-S10-03 (audit r2): text-xs (12px) auto-zooms iOS
+               Safari on focus (it zooms any focused input < 16px). 16px on
+               touch, compact 12px only on md+ (pointer:fine, no zoom). */
+            className="min-h-11 min-w-0 flex-1 rounded-lg border border-white/10 bg-white/5 px-2.5 text-base text-white transition-colors placeholder:text-white/55 focus:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-xs"
           />
           <button
             type="submit"

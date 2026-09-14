@@ -57,6 +57,13 @@
   --color-g-red: var(--g-red);
   --color-g-yellow: var(--g-yellow);
   --color-g-green: var(--g-green);
+  /* F-S5-02 (audit r2): accessible deep shade of the brand green —
+     #1E7A34 ≈ 4.9:1 on white / ~4.5:1 on #F5F5F7. #34A853 is only
+     2.91:1 as small text on light surfaces (AA fail) — it stays the
+     graphics/brand green; light-surface TEXT (the calculator success
+     reference pill, contact success icon) uses this strong variant,
+     mirroring the --primary/--primary-strong pattern. */
+  --color-g-green-strong: var(--g-green-strong);
   --color-elyra-gold: var(--elyra-gold);
   --color-elyra-gold-strong: var(--elyra-gold-strong);
 
@@ -82,9 +89,11 @@
      keep their values; only the easing changes). */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --default-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-  --dur-fast: 180ms;  /* hover/focus — UI tier */
-  --dur-base: 280ms; /* layout shifts, small reveals — UI tier */
-  --dur-slow: 480ms; /* page transitions, sheets — UI tier */
+  /* F-S7-09 (audit r2): the unused --dur-fast/base/slow trio (180/280/480ms)
+     is RETIRED — practice across the repo is duration-300 (the de-facto
+     canon) plus a handful of authored long-form values; the trio was
+     declared but consumed by zero call sites. The motion canon is now
+     explicit: 300ms base for UI transitions, easing via --ease-out-expo. */
 }
 
 /* سجل الـ hex المرجعي: src/lib/brand-colors.ts — (W3-03/D21) the single
@@ -97,13 +106,11 @@
 
   /* Motion token VALUES (W1-01) — mirrored from the @theme inline block
      above because Tailwind 4 only emits namespaced theme variables to
-     :root (--ease-* lands, the --dur-* trio does NOT); hand-written CSS
-     (e.g. the W1-06 focus pulse) consumes var(--ease-out-expo)/var(--dur-*)
-     and needs these declarations to resolve. Keep the two blocks in sync. */
+     :root (--ease-* lands; the retired --dur-* trio is gone — F-S7-09);
+     hand-written CSS (e.g. the W1-06 focus pulse) consumes
+     var(--ease-out-expo) and needs these declarations to resolve. Keep the
+     two blocks in sync. */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --dur-fast: 180ms;  /* hover/focus — UI tier */
-  --dur-base: 280ms; /* layout shifts, small reveals — UI tier */
-  --dur-slow: 480ms; /* page transitions, sheets — UI tier */
 
   /* Brand palette (spec) */
   --elyra-dark: #0F172A;
@@ -127,6 +134,7 @@
   --g-red: #EA4335;
   --g-yellow: #FBBC05;
   --g-green: #34A853;
+  --g-green-strong: #1E7A34;
   /* N5/N9 (REF-3 T2) — Damascus gold. Distinct from --g-yellow (the
      bright Google "star" gold): this is the muted, antique damascene
      brass used by the self-drawing arabesque ornament and the Fresnel
@@ -173,7 +181,13 @@
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
   --border: #D2D2D7;
-  --input: #D2D2D7;
+  /* F-S5-05 (audit r2): input boundaries darkened from #D2D2D7 (1.51:1
+     on white — WCAG 1.4.11 non-text contrast fail) to #9A9AA2
+     (3.05:1 on white, comfortably above the 3:1 threshold). Verified
+     live before: focus ring already passed at 4.31:1; only the resting
+     boundary failed. Border token stays #D2D2D7 (decorative hairlines
+     are exempt — only the INTERACTIVE control boundary is regulated). */
+  --input: #9A9AA2;
   --ring: #0071E3;
 
   /* Typography — Inter default, Cairo for Arabic via :lang(ar).
@@ -385,12 +399,26 @@
 html[data-intro-off] .intro-overlay {
   display: none;
 }
+/* F-S3-06 / F-S7-16 (audit r2): the authored entrance stagger belongs to
+   the FIRST-VISIT build sequence. On same-session repeat visits the
+   pre-paint gate sets data-intro-off (never removed) — the hero content
+   (enter animations, masked words, kinetic words) then rises with ZERO
+   delay: legibility/LCP beats choreography on every repeat view.
+   First visits never carry the flag, so the intro-armed stagger and the
+   post-lift build sequence keep their authored timing untouched
+   (data-intro removal mid-flight does NOT hit this rule). */
+html[data-intro-off] .hero-enter,
+html[data-intro-off] .hr-word,
+html[data-intro-off] .kinetic-word {
+  animation-delay: 0s !important;
+}
 html[data-intro] .hero-enter,
 html[data-intro] .kinetic-word,
 html[data-intro] .hr-word,
 html[data-intro] .hero-marquee-track,
 html[data-intro] .hero-rail-dot,
 html[data-intro] .hero-marquee,
+html[data-intro] .hero-marquee::after,
 html[data-intro] .hero-build-fx,
 html[data-intro] .hero-build-fx * {
   animation-play-state: paused !important;
@@ -411,6 +439,7 @@ html[data-page-wait] .hr-word,
 html[data-page-wait] .hero-marquee-track,
 html[data-page-wait] .hero-rail-dot,
 html[data-page-wait] .hero-marquee,
+html[data-page-wait] .hero-marquee::after,
 html[data-page-wait] .hero-build-fx,
 html[data-page-wait] .hero-build-fx *,
 html[data-page-wait] .hero-atmosphere,
@@ -431,6 +460,7 @@ html[data-page-wait] .hero-atmosphere * {
 .hero-fx-restart .hero-marquee-track,
 .hero-fx-restart .hero-rail-dot,
 .hero-fx-restart .hero-marquee,
+.hero-fx-restart .hero-marquee::after,
 .hero-fx-restart .hero-build-fx,
 .hero-fx-restart .hero-build-fx * {
   animation: none !important;
@@ -1067,14 +1097,28 @@ html[data-page-wait] .hero-atmosphere * {
   100% { transform: translateX(330%) skewX(-16deg); opacity: 0; }
 }
 
-/* Marquee power-on — the bottom edge flashes alive as the scan exits. */
+/* Marquee power-on — the bottom edge flashes alive as the scan exits.
+   F-S7-05 (audit r2): was a 0.6s filter:brightness(2.1)+saturate(1.3)
+   animation — a paint-heavy filter pass over the full-width strip.
+   Now a compositor-only ::after overlay whose opacity pulses over the
+   same window: same flash, zero paint. The strip is already
+   overflow-hidden + masked, so the flash follows its exact shape. */
 .hero-marquee {
+  position: relative;
+}
+.hero-marquee::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
   animation: hb-power-on 0.6s ease-out 2.05s forwards;
 }
 @keyframes hb-power-on {
-  0% { filter: brightness(1); }
-  38% { filter: brightness(2.1) saturate(1.3); }
-  100% { filter: brightness(1); }
+  0%   { opacity: 0; }
+  38%  { opacity: 0.55; }
+  100% { opacity: 0; }
 }
 
 /* Automation pulse node (bento MiniFlow — was framer motion.span).
@@ -1098,7 +1142,11 @@ html[data-page-wait] .hero-atmosphere * {
   content: '';
   position: absolute;
   inset: -2px;
-  border-radius: 9999px;
+  /* F-S7-01 (audit r2): border-radius inherits the host's shape so the
+     ring hugs rounded-square hosts too (the simulator node box is
+     rounded-2xl; the original pill/dot hosts are rounded-full →
+     identical rendering). */
+  border-radius: inherit;
   border: 2px solid rgba(66, 133, 244, 0.6);
   animation: elyra-pulse 0.9s ease-out infinite;
   will-change: transform, opacity;
@@ -1378,6 +1426,60 @@ html:lang(ar) {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+}
+
+/* F-S9-01 (audit r2): the deconstructed card's FRONT layer (.card-deep)
+   sits inside a per-frame 3D-transform scroll scene — backdrop-filter on a
+   transforming element is a continuous blur/repaint hotspot through the
+   whole 100vh pin. While the explosion is in flight the layer drops the
+   glass (its 95%-opaque brand-dark background makes the difference
+   imperceptible); glass is restored at rest. Toggled via classList by
+   applyPaint (a transition on the filter itself would defeat the point). */
+.card-deep-moving {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* F-S7-04 (audit r2): shadow CROSS-FADE for the deconstructed card's three
+   layers. The scroll loop used to write interpolated multi-layer
+   box-shadow strings on three layers EVERY frame (parse + paint at 60fps
+   for the whole pinned viewport). Now: p=0 base shadow lives on ::before
+   (opacity 1−p), p=1 end shadow on ::after (opacity p) — the loop writes
+   ONE custom property (--dc-shadow) per layer; only the pseudos' opacity
+   recomputes, which is compositor-cheap. Hosts must be positioned with a
+   matching border-radius (the three layers are absolute inset-0
+   rounded-2xl — border-radius:inherit mirrors them). */
+.dc-shadow::before,
+.dc-shadow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.dc-shadow::before {
+  opacity: calc(1 - var(--dc-shadow, 0));
+}
+.dc-shadow::after {
+  opacity: var(--dc-shadow, 0);
+}
+.dc-shadow-back::before {
+  box-shadow: 0 8px 20px -10px rgba(52, 168, 83, 0.24);
+}
+.dc-shadow-back::after {
+  box-shadow: 0 20px 42px -10px rgba(52, 168, 83, 0.36);
+}
+.dc-shadow-middle::before {
+  box-shadow: 0 10px 26px -12px rgba(0, 113, 227, 0.3);
+}
+.dc-shadow-middle::after {
+  box-shadow: 0 28px 56px -12px rgba(0, 113, 227, 0.46);
+}
+.dc-shadow-front::before {
+  box-shadow: 0 14px 34px -16px rgba(0, 0, 0, 0.45);
+}
+.dc-shadow-front::after {
+  box-shadow: 0 44px 84px -16px rgba(0, 0, 0, 0.65);
 }
 
 /* --- Phase 4 WS-3: Dark deep section + Blueprint spotlight ---------------
@@ -1710,7 +1812,13 @@ html:lang(ar) {
    surfaces. */
 .grain-overlay {
   position: fixed;
-  inset: 0;
+  /* F-S7-06 (audit r2): the flicker now TRANSLATES this layer (GPU) instead
+     of repositioning the background (paint, 20 paints/s, forever, every
+     tier). 120px of bleed on every side (inset -120px on a fixed element)
+     keeps the viewport fully covered while the tile rides the ±120px
+     keyframe offsets — the visual result (the noise pattern displacing
+     every 0.4s) is identical to the old background-position steps. */
+  inset: -120px;
   z-index: 90; /* above the intro overlay (80); below the cursor (200) */
   pointer-events: none;
   /* REF-2 Phase D: 0.045 → 0.03 — VLM read the old level as a
@@ -1722,18 +1830,19 @@ html:lang(ar) {
   background-repeat: repeat;
   background-size: 240px 240px;
   background-position: 0 0;
+  will-change: transform;
   animation: grain-flicker 0.4s steps(1) infinite;
 }
 @keyframes grain-flicker {
-  0%    { background-position: 0 0; }
-  12.5% { background-position: -48px 96px; }
-  25%   { background-position: 120px -72px; }
-  37.5% { background-position: -96px -48px; }
-  50%   { background-position: 72px 120px; }
-  62.5% { background-position: -120px 36px; }
-  75%   { background-position: 36px -120px; }
-  87.5% { background-position: -72px -96px; }
-  100%  { background-position: 0 0; }
+  0%    { transform: translate3d(0, 0, 0); }
+  12.5% { transform: translate3d(-48px, 96px, 0); }
+  25%   { transform: translate3d(120px, -72px, 0); }
+  37.5% { transform: translate3d(-96px, -48px, 0); }
+  50%   { transform: translate3d(72px, 120px, 0); }
+  62.5% { transform: translate3d(-120px, 36px, 0); }
+  75%   { transform: translate3d(36px, -120px, 0); }
+  87.5% { transform: translate3d(-72px, -96px, 0); }
+  100%  { transform: translate3d(0, 0, 0); }
 }
 
 /* --- Custom cursor (components/sensory/custom-cursor.tsx) ---------------
@@ -1803,8 +1912,11 @@ html:lang(ar) {
   transition:
     transform 0.22s ease-out,
     border-color 0.22s ease-out,
-    border-width 0.22s ease-out,
     background-color 0.22s ease-out;
+  /* F-S7-07 (audit r2): border-width REMOVED from the transition list —
+     it is a layout property (border-box geometry change → paint). The
+     per-mode hairline (label mode's 0.5px) now switches instantly while
+     the existing scale transition carries the perceived change. */
 }
 
 /* Hover over interactive elements: ring grows + brightens, dot shrinks. */
@@ -1855,11 +1967,18 @@ html:lang(ar) {
 /* Hide the native cursor while the custom one is live. The JS only adds
    `elyra-cursor-active` for fine pointers without a reduced-motion
    preference; !important beats per-element cursor utilities. The text
-   caret keeps blinking while typing — cursor:none never hides it. */
+   caret keeps blinking while typing — cursor:none never hides it.
+   F-S5-09 (audit r2): text-entry fields are EXCLUDED so the native I-beam
+   survives over inputs/textareas (the custom ring does not communicate
+   editability; losing the I-beam over form fields is an affordance loss). */
 @media (pointer: fine) {
   html.elyra-cursor-active,
   html.elyra-cursor-active * {
     cursor: none !important;
+  }
+  html.elyra-cursor-active input,
+  html.elyra-cursor-active textarea {
+    cursor: text !important;
   }
 }
 
@@ -1881,7 +2000,9 @@ html:lang(ar) {
   display: inline-block;
   opacity: 1;
   transition: opacity 160ms linear;
-  will-change: opacity;
+  /* F-S7-14 (audit r2): will-change REMOVED — 30-50 word spans held a
+     persistent compositor layer each for an effect that is idle most of
+     the time; the 160ms opacity transition paints fine without it. */
 }
 .manifesto-sig {
   opacity: 1;

@@ -12,7 +12,7 @@ import { Footer } from '@/components/layout/footer'
 import { MotionConfigProvider } from '@/components/layout/motion-config'
 import { ScrollProgress } from '@/components/layout/scroll-progress'
 import { WebVitalsReporter } from '@/components/layout/web-vitals'
-import { Toaster } from '@/components/ui/sonner'
+import { LazyToaster } from '@/components/layout/lazy-toaster'
 import { CustomCursor } from '@/components/sensory/custom-cursor'
 import { GrainOverlay } from '@/components/sensory/grain-overlay'
 import { SmoothScroll } from '@/components/sensory/smooth-scroll'
@@ -42,6 +42,15 @@ const cairo = Cairo({
 // consumers are below-fold sections), so preloading it on every route
 // would only compete with Cairo/Inter for early bandwidth; the face
 // lazy-loads on first actual use instead.
+// F-S4-04 (audit r2) — ACCEPTED DEVIATION, documented: three families
+// (Inter + Cairo + JetBrains Mono) against a ≤2-family budget. Cairo is
+// non-negotiable (the Arabic identity face), Inter is the Latin body
+// face (a single latin-only subset — Cairo's latin glyphs are not used),
+// and the mono face is display:swap + preload:false and lazy-loads on
+// first below-fold use. The consolidation candidate (drop JetBrains
+// Mono → system mono stack) is consciously declined: the terminal /
+// blueprint chrome loses its character with ui-monospace. Revisit only
+// if the font budget ever becomes a measured bottleneck.
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-jetbrains-mono',
@@ -104,6 +113,13 @@ export async function generateMetadata({
   }
 
   return {
+    // F-S10-02 (audit r2): static PWA webmanifest (public/manifest.webmanifest
+    // + the 192/512 icons derived from icon.tsx's E-mark art) — the icon set
+    // was complete but unlinked; one metadata line makes installable-PWA
+    // discovery work. AR-primary (lang ar, dir rtl) matching the default
+    // locale; the EN mirror is served from the same manifest (bilingual
+    // name/description inside it).
+    manifest: '/manifest.webmanifest',
     title: {
       default: t('title'),
       template: `%s — Elyra`,
@@ -271,7 +287,11 @@ export default async function LocaleLayout({
               gone by design — see lib/sound.ts). */}
           <AmbientSound />
         </NextIntlClientProvider>
-        <Toaster
+        {/* F-S3-01 partial (audit r2): the sonner Toaster mounts lazily
+            after the first user gesture (LazyToaster) — toasts only ever
+            fire in response to user actions, so the chunk leaves the
+            initial critical path with zero UX change. */}
+        <LazyToaster
           position="top-center"
           richColors
           closeButton

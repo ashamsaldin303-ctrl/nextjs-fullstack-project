@@ -1,0 +1,15 @@
+# Elyra lead PII purge — one-shot service (audit P2-8 / F-S1-04).
+# Runs the retention policy documented in deploy/OPERATIONS.md §2:
+# deletes Lead rows older than 90 days (ipAddress/userAgent/email/
+# whatsapp/message must not live in SQLite forever).
+# Paths assume /opt/elyra — adjust WorkingDirectory/ExecStart/User to the
+# actual install. The timer lives in leads-purge.timer.
+[Unit]
+Description=Elyra lead purge (--purge-days=90, audit F-S1-04)
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/elyra
+ExecStart=/usr/bin/bun scripts/clean-leads.ts --purge-days=90
+User=elyra
+Group=elyra

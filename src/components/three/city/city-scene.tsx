@@ -435,12 +435,20 @@ export function CityScene({
   }, [isAr])
 
   // Occupancy bar animation (authored: reset to 0%, then fill after 60ms).
+  // F-S7-03 (audit r2): the fill now grows via the CSS `scale` property
+  // (scaleX — origin at the logical start edge: origin-left /
+  // rtl:origin-right in the JSX) instead of animating `width` (a layout
+  // property) over 600ms with an undeclared 5th easing curve; duration +
+  // curve are the site canon (300ms + the global expo ease). The JSX's
+  // scale-x-0 class is the pre-effect initial state; these inline writes
+  // take over from the first selection frame.
   useEffect(() => {
     const fill = occFillRef.current
     if (!fill || !selected || selected.occ === undefined) return
-    fill.style.width = '0%'
+    fill.style.scale = '0 1'
+    const occ = selected.occ
     const id = window.setTimeout(() => {
-      fill.style.width = `${selected.occ}%`
+      fill.style.scale = `${(occ / 100).toFixed(4)} 1`
     }, 60)
     return () => window.clearTimeout(id)
   }, [selected])
@@ -896,7 +904,7 @@ export function CityScene({
             <div className="relative mt-1.5 h-[11px] border border-white/20 bg-white/[0.06]">
               <div
                 ref={occFillRef}
-                className="absolute inset-y-[1px] start-[1px] w-0 [background-image:repeating-linear-gradient(-45deg,rgba(224,145,47,0.8)_0_1px,transparent_1px_4px)] transition-[width] duration-[600ms] [transition-timing-function:cubic-bezier(0.2,0.8,0.2,1)]"
+                className="absolute inset-y-[1px] start-[1px] end-[1px] origin-left scale-x-0 rtl:origin-right [background-image:repeating-linear-gradient(-45deg,rgba(224,145,47,0.8)_0_1px,transparent_1px_4px)] transition-[width] duration-[600ms] [transition-timing-function:cubic-bezier(0.2,0.8,0.2,1)]"
               />
             </div>
           </div>

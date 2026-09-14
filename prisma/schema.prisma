@@ -62,8 +62,9 @@ model Lead {
   // F-S2-04 (gold-standard audit): delivery outcome of the n8n webhook —
   // 'sent' | 'failed' | 'disabled' (null = older rows / pre-column era).
   // Written AFTER the fire-and-forget attempt settles, so failed CRM sync
-  // is queryable (`WHERE webhookStatus = 'failed'`) and a replay worker
-  // can re-send deterministically. The 201 response NEVER waits on it.
+  // is queryable (`WHERE webhookStatus = 'failed'`) and
+  // scripts/resend-webhook.ts re-sends exactly those rows
+  // deterministically. The 201 response NEVER waits on it.
   webhookStatus   String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -71,4 +72,28 @@ model Lead {
   @@index([status, createdAt])
   @@index([email])
   @@index([webhookStatus])
+}
+
+// F-S4-03 (gold-standard audit): RUM web-vitals persistence. The
+// /api/vitals beacon keeps its in-memory ring (cheap, lossy, per-process)
+// AND fire-and-forget-persists every sample here, so the operator summary
+// (GET /api/vitals?token=…) survives restarts and serves p75 per
+// route/metric over a 7-day window. Zero PII by contract — name/value/
+// rating/route/navigationType only (the route validates the route string
+// against a strict allowlist shape BEFORE it reaches this table).
+// Retention: the route prunes rows older than 90 days every 500th write
+// (fire-and-forget, never on the beacon's response path).
+// NOTE: `cuid()` (not the audit spec's `cuuid()` — that is not a Prisma
+// default; cuid matches the Lead model's id convention).
+model VitalSample {
+  id      String   @id @default(cuid())
+  name    String // LCP | INP | CLS | TTFB | FCP
+  value   Float
+  rating  String // good | needs-improvement | poor
+  route   String // site path only — validated allowlist shape, no query
+  nav     String // navigation type
+  at      DateTime @default(now())
+
+  @@index([name, at])
+  @@index([route, at])
 }

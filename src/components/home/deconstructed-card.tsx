@@ -231,6 +231,14 @@ export function DeconstructedCard({ projectKey }: { projectKey: string }) {
   // Geometry comes from refs (not the render closure) so the scroll rAF
   // never depends on a re-render landing first. The template strings are
   // byte-identical to the JSX initial values below.
+  // F-S7-04 (audit r2): the three per-frame box-shadow STRING writes are
+  // gone — shadows now cross-fade between two baked pseudo-elements
+  // (.dc-shadow::before/::after in globals.css) driven by the single
+  // --dc-shadow custom property written here (compositor-only from the
+  // browser's perspective: only the pseudos' opacity recomputes).
+  // F-S9-01 (audit r2): the front layer's backdrop-filter is toggled off
+  // while the fan is in flight (classList no-op when the state is
+  // unchanged) — glass restored at rest.
   const applyPaint = useCallback((p: number) => {
     const { w, h } = sizeRef.current
     const vs = vhScaleRef.current
@@ -242,22 +250,24 @@ export function DeconstructedCard({ projectKey }: { projectKey: string }) {
     if (scene) {
       scene.style.transform = `rotateX(${((1 - p) * 6).toFixed(2)}deg)`
     }
+    const shadowP = p.toFixed(3)
     const back = backRef.current
     if (back) {
       back.style.transform = `translate3d(${lerp(0, bX, p)}px, ${lerp(0, bY, p)}px, ${lerp(0, Z_BACK, p)}px) rotate(${lerp(0, 2, p)}deg) scale(${lerp(1, 0.88, p).toFixed(4)})`
-      back.style.boxShadow = `0 ${(8 + 12 * p).toFixed(1)}px ${(20 + 22 * p).toFixed(1)}px -10px rgba(52,168,83,${(0.24 + 0.12 * p).toFixed(2)})`
+      back.style.setProperty('--dc-shadow', shadowP)
       back.style.opacity = String(lerp(1, 0.95, p))
     }
     const middle = middleRef.current
     if (middle) {
       middle.style.transform = `translate3d(0px, 0px, 0px) scale(${lerp(1, 0.86, p).toFixed(4)})`
-      middle.style.boxShadow = `0 ${(10 + 18 * p).toFixed(1)}px ${(26 + 30 * p).toFixed(1)}px -12px rgba(0,113,227,${(0.3 + 0.16 * p).toFixed(2)})`
+      middle.style.setProperty('--dc-shadow', shadowP)
       middle.style.opacity = String(lerp(1, 0.88, p))
     }
     const front = frontRef.current
     if (front) {
       front.style.transform = `translate3d(${lerp(0, fX, p)}px, ${lerp(0, -fY, p)}px, ${lerp(0, Z_FRONT, p)}px) rotate(${lerp(0, -2, p)}deg) scale(${lerp(1, 0.9, p).toFixed(4)})`
-      front.style.boxShadow = `0 ${(14 + 30 * p).toFixed(1)}px ${(34 + 50 * p).toFixed(1)}px -16px rgba(0,0,0,${(0.45 + 0.2 * p).toFixed(2)})`
+      front.style.setProperty('--dc-shadow', shadowP)
+      front.classList.toggle('card-deep-moving', p > 0.02 && p < 0.98)
     }
   }, [])
 
@@ -325,11 +335,10 @@ export function DeconstructedCard({ projectKey }: { projectKey: string }) {
   const fX = -X_FRAC * size.w // mirrored fan: front drifts start-side,
   const bX = X_FRAC * size.w // back drifts end-side (identical LTR/RTL)
 
-  // Depth cues — blur/offset/opacity grow with separation, per layer
-  // (initial values only; applyPaint owns them from mount on).
-  const frontShadow = `0 ${(14 + 30 * p0).toFixed(1)}px ${(34 + 50 * p0).toFixed(1)}px -16px rgba(0,0,0,${(0.45 + 0.2 * p0).toFixed(2)})`
-  const middleShadow = `0 ${(10 + 18 * p0).toFixed(1)}px ${(26 + 30 * p0).toFixed(1)}px -12px rgba(0,113,227,${(0.3 + 0.16 * p0).toFixed(2)})`
-  const backShadow = `0 ${(8 + 12 * p0).toFixed(1)}px ${(20 + 22 * p0).toFixed(1)}px -10px rgba(52,168,83,${(0.24 + 0.12 * p0).toFixed(2)})`
+  // Depth cues — the layer FAN itself carries no element-level shadow
+  // anymore: both the p=0 base and p=1 end shadows are baked into the
+  // .dc-shadow pseudo-elements (globals.css, F-S7-04), cross-faded by
+  // --dc-shadow which applyPaint owns from mount on.
 
   return (
     // L3 FIX (R3): no data-cursor here — this scene has ZERO pointer
@@ -372,13 +381,12 @@ export function DeconstructedCard({ projectKey }: { projectKey: string }) {
                   progress — no projected-edge math needed. */}
               <div
                 ref={backRef}
-                className="absolute inset-0 flex items-center justify-center rounded-2xl border border-g-green/40 bg-g-green/5 p-5 md:p-6"
+                className="dc-shadow dc-shadow-back absolute inset-0 flex items-center justify-center rounded-2xl border border-g-green/40 bg-g-green/5 p-5 md:p-6"
                 style={{
                   // NO transition — scroll-driven, 1:1 with the scrollbar.
                   // Constant initial value — applyPaint() owns this style
                   // from mount on (identity at p=0 is size-independent).
                   transform: `translate3d(${lerp(0, bX, p0)}px, ${lerp(0, bY, p0)}px, ${lerp(0, Z_BACK, p0)}px) rotate(${lerp(0, 2, p0)}deg) scale(${lerp(1, 0.88, p0).toFixed(4)})`,
-                  boxShadow: backShadow,
                   opacity: lerp(1, 0.95, p0),
                   willChange: 'transform',
                 }}
@@ -400,12 +408,11 @@ export function DeconstructedCard({ projectKey }: { projectKey: string }) {
                   Stays near the centre of the cascade. */}
               <div
                 ref={middleRef}
-                className="absolute inset-0 flex items-center justify-center rounded-2xl border border-primary/40 bg-primary/10 p-5 md:p-6"
+                className="dc-shadow dc-shadow-middle absolute inset-0 flex items-center justify-center rounded-2xl border border-primary/40 bg-primary/10 p-5 md:p-6"
                 style={{
                   // Constant initial value — applyPaint() owns this style
                   // from mount on.
                   transform: `translate3d(0px, 0px, 0px) scale(${lerp(1, 0.86, p0).toFixed(4)})`,
-                  boxShadow: middleShadow,
                   opacity: lerp(1, 0.88, p0),
                   willChange: 'transform',
                 }}
@@ -419,13 +426,12 @@ export function DeconstructedCard({ projectKey }: { projectKey: string }) {
               <div
                 ref={frontRef}
                 className={cn(
-                  'card-deep absolute inset-0 flex flex-col rounded-2xl border border-white/15 bg-elyra-dark/95',
+                  'card-deep dc-shadow dc-shadow-front absolute inset-0 flex flex-col rounded-2xl border border-white/15 bg-elyra-dark/95',
                 )}
                 style={{
                   // Constant initial value — applyPaint() owns this style
                   // from mount on.
                   transform: `translate3d(${lerp(0, fX, p0)}px, ${lerp(0, -fY, p0)}px, ${lerp(0, Z_FRONT, p0)}px) rotate(${lerp(0, -2, p0)}deg) scale(${lerp(1, 0.9, p0).toFixed(4)})`,
-                  boxShadow: frontShadow,
                   // Inline so it beats .card-deep's unlayered
                   // `background: rgba(255,255,255,0.03)` — the utility
                   // `bg-elyra-dark/95` was being overridden (the "dark

@@ -1,0 +1,14 @@
+Elyra — Digital Agency Platform
+Copyright (c) 2026 Elyra (client deliverable). All rights reserved.
+
+LICENSE NOTE (audit F-S6-08): this repository is a priced client
+deliverable, not an open-source project. Until the owner/agency decides
+otherwise, the default proprietary terms apply — no redistribution, no
+derived works, no public hosting of this codebase or its assets.
+
+The owner MAY choose to relicense (e.g., MIT for tooling, or a bespoke
+client agreement covering the site + brand assets) BEFORE any repository
+transfer — swap this file at that point. package.json stays
+"private": true either way.
+
+Contact: ELYRA agency — see the site's /contact page.

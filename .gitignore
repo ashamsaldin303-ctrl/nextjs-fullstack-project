@@ -92,3 +92,10 @@ sbom.cyclonedx.json
 # Production uses deploy/Caddyfile.example; a CI gate
 # (scripts/check-caddy-gate.mjs) fails if the file ever gets re-added.
 Caddyfile
+
+# AUDIT2 / F-S6-02 (audit r2): the 1.3MB process worklog stays ON DISK as
+# the agents' shared memory (agents must keep reading/appending it) but no
+# longer rides in git — the repo was carrying 58MB of history for a
+# 196-file site, mostly historical worklog blobs. Keep appending locally;
+# a trimmed CHANGELOG can be authored later if a handover ever needs it.
+worklog.md

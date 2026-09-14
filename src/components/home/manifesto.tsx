@@ -86,11 +86,15 @@ export function Manifesto() {
         const lit = Math.min(Math.max((p * span - i) / WORD_WINDOW, 0), 1)
         // Direct style writes — the codebase convention for per-frame
         // work (never setState in a scroll-driven rAF loop).
-        el.style.opacity = (0.13 + 0.87 * lit).toFixed(3)
+        // F-S5-06 (audit r2): dim floor 0.13 (1.29:1 — the independent
+        // VLM pass read unlit words as "nearly invisible body text") →
+        // 0.30 (≈3.2:1): unlit text stays perceivable while the light-up
+        // gradient keeps the same authored effect.
+        el.style.opacity = (0.3 + 0.7 * lit).toFixed(3)
       }
       if (sig) {
         const lit = Math.min(Math.max((p * span - n - 0.4) / 1.6, 0), 1)
-        sig.style.opacity = (0.13 + 0.87 * lit).toFixed(3)
+        sig.style.opacity = (0.3 + 0.7 * lit).toFixed(3)
       }
     }
 
@@ -127,16 +131,20 @@ export function Manifesto() {
       aria-labelledby="manifesto-title"
     >
       <div className="elyra-container max-w-container">
-        <Kicker>{t('kicker')}</Kicker>
+        {/* F-S5-13 (audit r2): the section heading is now the SHORT kicker
+            (what heading/rotor navigation should announce); the ~105-char
+            statement below is demoted from h2 to a styled paragraph —
+            heading navigation no longer reads the entire sentence. */}
+        <h2 id="manifesto-title" className="kicker">
+          {t('kicker')}
+        </h2>
 
         <VelocitySkew max={2.2}>
-        <h2
-          id="manifesto-title"
+        <p
           ref={titleRef}
-          /* L6-R4 (fix 8c): ar-lh-loose opts this ONE Arabic heading out of
-             the :lang(ar) h1-h4 1.3 line-height floor so the designed
-             leading-[1.45] survives in AR (it computed 1.3 before — see
-             globals.css for the documented opt-out). */
+          /* L6-R4 (fix 8c): ar-lh-loose keeps the authored Arabic leading
+             on this display-sized statement paragraph (it would otherwise
+             inherit the body default — see the globals.css opt-out note). */
           className="ar-lh-loose mt-8 max-w-4xl text-3xl font-bold leading-[1.45] text-foreground sm:text-4xl lg:text-[3.2rem] lg:leading-[1.32]"
         >
           {words.map((word, i) => (
@@ -151,7 +159,7 @@ export function Manifesto() {
               </span>{' '}
             </span>
           ))}
-        </h2>
+        </p>
         </VelocitySkew>
 
         <p
@@ -170,12 +178,4 @@ export function Manifesto() {
       </div>
     </section>
   )
-}
-
-/** Kicker label — reuses the global .kicker style (small tracked label
- *  with the leading rule). B4 fix 12 (audit NIT): renamed from the stale
- *  `RevealKicker` — the span never carried a reveal animation; it renders
- *  the label statically, and the old name promised motion it never had. */
-function Kicker({ children }: { children: React.ReactNode }) {
-  return <span className="kicker">{children}</span>
 }

@@ -104,7 +104,19 @@ EXPOSE 3000
 
 # Liveness probe without a curl dependency (audit P2-6): the standalone
 # server listens on 127.0.0.1:3000 (HOSTNAME=0.0.0.0 in standalone mode).
+#
+# F-S2-01 (gold-standard audit): the probe doubles as a deploy-time
+# assertion of the proxy-trust posture. While TRUST_PROXY != true, ALL
+# visitors share ONE global 30/5-per-minute rate-limit bucket — correct
+# ONLY for direct/loopback exposure. Every probe run prints a prominent
+# stderr warning in that state, while the container still reports healthy
+# (the warning must never break a deploy). Production topology: behind the
+# OVERWRITING reverse proxy (deploy/Caddyfile.example) with
+# -e TRUST_PROXY=true — see deploy/OPERATIONS.md.
+# STRICT mode: -e TRUST_PROXY_STRICT=1 flips that warning into a probe
+# FAILURE (exit 1 → unhealthy after 3 retries) for fleets where the proxy
+# topology is mandatory.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD bun -e "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD bun -e "let fail=0; if(process.env.TRUST_PROXY!=='true'){process.stderr.write('WARNING: TRUST_PROXY is not true - all visitors share ONE global rate-limit bucket (F-S2-01); production must run behind the overwriting reverse proxy (deploy/Caddyfile.example) with TRUST_PROXY=true\n'); if(process.env.TRUST_PROXY_STRICT==='1')fail=1;} fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok&&!fail?0:1)).catch(()=>process.exit(1))"
 
 CMD ["bun", "server.js"]

@@ -1,26 +1,25 @@
 /**
  * Model loader (HEAVY-1 / MODEL-3) — body loading with a module cache.
  *
- * MODEL-3 dispatches by source: downloaded Poly Haven .gltf files
- * (external .bin + textures resolve relative to the .gltf URL — the
- * exact on-disk layout fetch-models-m3.mjs wrote under public/models/)
- * load through the GLTF cache below; authored technical kits
- * (tech-kits.ts — the server rack, robot arm, dish…) build
- * synchronously from procedural geometry. Both paths yield the SAME
- * RawInstrument contract, so the scene driver treats them
- * identically. The RAW scene is cached at module level either way:
- * route revisits resolve instantly, and the cache OWNS the shared
+ * MODEL-3 dispatched by source: downloaded Poly Haven .gltf files and
+ * authored technical kits (tech-kits.ts). F-S6-06 (gold-standard
+ * audit): the GLTF branch was DEAD code — every registry entry ships
+ * `kit:` (model-registry.ts, 10/10 entries at audit time; public/models
+ * holds only an empty manifest) — yet the GLTFLoader import dragged the
+ * whole GLTF parser into the rune chunk, so the loader, its async cache
+ * and the src: branch were removed. The kit path is byte-identical:
+ * tech-kits owns the module-level kit cache and the shared
  * geometries/textures (never disposed — the per-mount clones share
- * them; only the per-mount cloned MATERIALS are disposed by the
- * scene).
+ * them; only the per-mount cloned MATERIALS are disposed by the scene).
+ * Future extension point: ModelSource.src below — a def carrying
+ * neither src nor kit still rejects with the standing error.
  */
 
 import * as THREE from 'three'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { buildTechKit } from './tech-kits'
 
 export interface RawInstrument {
-  /** The raw scene (gltf or kit) — cache-owned, shared, never disposed. */
+  /** The raw kit scene — cache-owned, shared, never disposed. */
   scene: THREE.Group
   /** Bounding-box size in the model's own units. */
   size: THREE.Vector3
@@ -28,46 +27,18 @@ export interface RawInstrument {
   center: THREE.Vector3
 }
 
-const cache = new Map<string, Promise<RawInstrument>>()
-
-/** Load (or fetch from cache) a real instrument by its /models path. */
-export function loadInstrument(src: string): Promise<RawInstrument> {
-  let entry = cache.get(src)
-  if (!entry) {
-    const loader = new GLTFLoader()
-    entry = loader.loadAsync(src).then((gltf) => {
-      const scene = gltf.scene
-      scene.updateMatrixWorld(true)
-      const box = new THREE.Box3().setFromObject(scene)
-      const size = box.getSize(new THREE.Vector3())
-      const center = box.getCenter(new THREE.Vector3())
-      // Guard degenerate fits (a flat plane axis must never be 0).
-      const safe = size.clone()
-      if (safe.x < 1e-6) safe.x = 1e-6
-      if (safe.y < 1e-6) safe.y = 1e-6
-      if (safe.z < 1e-6) safe.z = 1e-6
-      return { scene, size: safe, center }
-    })
-    cache.set(src, entry)
-    // A failed load must not poison the cache for the next mount.
-    entry.catch(() => {
-      if (cache.get(src) === entry) cache.delete(src)
-    })
-  }
-  return entry
-}
-
 /** A model's source descriptor (the ModelDef fields that pick its
- * loader): a downloaded GLTF path and/or an authored kit name. */
+ * loader): an authored kit name, and/or a downloaded-model path — the
+ * src field is the documented future extension point (no loader ships
+ * for it today; see the header note). */
 export interface ModelSource {
   src?: string
   kit?: string
 }
 
 /** Resolve a body from its def: authored kits build synchronously
- * (module-cached, same contract); GLTF paths load through the async
- * cache. Failures reject — the caller's catch handles them identically
- * (a failed load never poisons either cache). */
+ * (module-cached in tech-kits, same contract). Failures reject — the
+ * caller's catch handles them identically. */
 export function resolveModel(def: ModelSource): Promise<RawInstrument> {
   if (def.kit) {
     try {
@@ -76,6 +47,7 @@ export function resolveModel(def: ModelSource): Promise<RawInstrument> {
       return Promise.reject(err)
     }
   }
-  if (def.src) return loadInstrument(def.src)
+  // No GLTF loader ships (F-S6-06): a src-only def is unreachable in
+  // the registry — the field stays as the documented re-entry point.
   return Promise.reject(new Error('[model-loader] ModelDef carries neither src nor kit'))
 }

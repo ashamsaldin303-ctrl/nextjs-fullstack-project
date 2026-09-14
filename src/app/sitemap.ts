@@ -11,11 +11,16 @@ const STATIC_PATHS = [
   '/contact',
 ]
 
-// Fixed lastmod stamp — `new Date()` would stamp BUILD time on every
-// URL on every deploy, misinforming crawlers about real content change.
+// F-S4-05 (gold-standard audit): the sitemap lastmod stamp is driven by
+// an EXPLICIT content-version constant — NOT `new Date()` (that would
+// stamp BUILD time on every URL on every deploy, misinforming crawlers
+// about real content change) and not a silent constant either (it used to
+// be one and quietly went stale).
+// Bump on the release checklist whenever route content changes (audit F-S4-05).
 // 2026-08-28 = R9 content overhaul (testimonials removed, /work +/ scenes);
 // 2026-09-08 = REF-4-B /contact copy + messages additions (latest content touch).
-const LAST_MODIFIED = new Date('2026-09-08')
+const CONTENT_VERSION = '2026-09-08'
+const LAST_MODIFIED = new Date(CONTENT_VERSION)
 
 /**
  * P2-3 + LOW-3 (R5): Google's localized-sitemap pattern — one <url>

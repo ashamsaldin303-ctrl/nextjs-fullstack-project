@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useTranslations } from 'next-intl'
-import { motion, useReducedMotion } from 'framer-motion'
+import { useReducedMotion } from 'framer-motion'
 import {
   Inbox, Database, KanbanSquare, Mail, Send,
   FileText, Clock, CalendarClock, BarChart3, RefreshCw,
@@ -556,7 +556,10 @@ export function AutomationSimulator({
                   </span>
                   <div
                     className={cn(
-                      'relative flex size-16 items-center justify-center rounded-2xl border backdrop-blur-md transition-all duration-300',
+                      // F-S7-11 (audit r2): transition-all → enumerated
+                      // (border/bg/shadow are the only properties that
+                      // change across the isActive/isDone/idle states).
+                      'relative flex size-16 items-center justify-center rounded-2xl border backdrop-blur-md transition-[border-color,background-color,box-shadow] duration-300',
                       isActive && 'border-primary bg-primary/20 shadow-[0_0_28px_rgba(0,113,227,0.55)]',
                       isDone && 'border-g-green/70 bg-g-green/15',
                       !isActive && !isDone && 'border-white/15 bg-white/5',
@@ -564,10 +567,16 @@ export function AutomationSimulator({
                     )}
                   >
                     {isActive && !reduced ? (
-                      <motion.span
-                        className="absolute inset-0 rounded-2xl border-2 border-primary/50"
-                        animate={{ boxShadow: ['0 0 0 0 rgba(0,113,227,0.5)', '0 0 0 12px rgba(0,113,227,0)'] }}
-                        transition={{ duration: 1, repeat: Infinity }}
+                      /* F-S7-01 (audit r2): the infinite box-shadow framer
+                         loop (1s repaint of a 3-layer shadow, EVERY frame)
+                         is replaced by the codebase's own compositor-only
+                         .elyra-pulse ring (::after transform/opacity —
+                         zero paint). The ring inherits this box's
+                         border-radius (see the elyra-pulse note in
+                         globals.css). */
+                      <span
+                        className="elyra-pulse absolute inset-0 rounded-2xl"
+                        aria-hidden="true"
                       />
                     ) : null}
                     <Icon

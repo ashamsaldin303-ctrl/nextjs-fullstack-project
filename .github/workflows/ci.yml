@@ -2,9 +2,10 @@
 # the repo already owns on push/PR to main. Zero new tooling — the same
 # commands a local contributor runs (see README + scripts/ headers):
 # typecheck, lint, i18n parity (F-S4-05 allowlist gate), secret scan,
-# anti-slop scan. NOT included by design (documented decision): unit/E2E
-# test suites do not exist in this repo — adding a test job that always
-# passes would be cargo-cult CI; the gate list grows when suites land.
+# anti-slop scan. The original "no test job by design" note evolved with
+# AUDIT2-D (F-S2-02): the 13/13 PASSING verify-api.mjs harness now ships
+# as a scheduled/dispatch job against a real built server — wiring it is
+# the opposite of cargo-cult CI (it fails when checks fail).
 name: ci
 
 on:
@@ -12,6 +13,12 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # F-S1-03/F-S4-03 wiring: weekly re-checks between Dependabot runs
+  # (osv-scan) + on-demand full API verification (verify-api). Job-level
+  # `if:` guards scope each trigger to its jobs.
+  schedule:
+    - cron: '17 3 * * 1' # Mondays 03:17 UTC
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -19,6 +26,10 @@ concurrency:
 
 jobs:
   gates:
+    # Existing gate set — unchanged for push/PR. The `if:` ONLY keeps the
+    # new schedule/dispatch triggers (added for the jobs below) from also
+    # running this static-gate job.
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -54,7 +65,108 @@ jobs:
         run: node scripts/check-slop.mjs
 
       - name: Placeholder-contact gate (F-S10-01)
+        # flip to STRICT_CONTACT=1 at launch (F-S5-01) — once the real
+        # NEXT_PUBLIC_CONTACT_WHATSAPP ships in the deploy env, the
+        # placeholder finding must hard-fail instead of warn.
         run: node scripts/check-site-contact.mjs
 
       - name: Caddy open-proxy gate (F-S1-02)
         run: node scripts/check-caddy-gate.mjs
+
+  # F-S2-02 + F-S4-02 (gold-standard audit, AUDIT2-D wiring): boots the
+  # REAL standalone build against a throwaway SQLite and runs the passing
+  # 13/13 API security harness (verify-api.mjs). Dispatch + weekly only —
+  # a full build is too heavy for every push, and the static gates already
+  # cover push/PR. The job FAILS when any check fails (the harness exits 1
+  # and the server log ships as the dev.log artifact for triage).
+  #
+  # Deliberately NOT wired here (perf-budget Lighthouse, F-S4-02 partial):
+  # scripts/lighthouse-prod.sh + scripts/verify-performance.mjs stay
+  # manual/workflow-dispatch until Chrome-in-CI is proven stable — a flaky
+  # headless-Chrome budget gate would train the team to ignore red CI.
+  verify-api:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # verify-api.mjs expectations: API_BASE defaults to
+      # http://localhost:3000; the server starts with NO webhook env vars
+      # so WEBHOOK_EXPECT stays 'disabled' (its own mock n8n receiver on
+      # 127.0.0.1:3100 exercises the HMAC recipe directly). The script
+      # also opens its own PrismaClient → DATABASE_URL must point at the
+      # same throwaway SQLite the server uses (absolute path — see H-3).
+      NEXT_PUBLIC_SITE_URL: https://elyra.agency
+      DATABASE_URL: file:${{ github.workspace }}/db/custom.db
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies (frozen lockfile)
+        run: bun install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: bun run db:generate
+
+      - name: Push schema to throwaway SQLite
+        run: |
+          mkdir -p db
+          bun run db:push
+
+      - name: Build standalone server
+        run: bun run build
+
+      - name: Start server + run verify-api harness
+        run: |
+          NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3000 \
+            bun .next/standalone/server.js > dev.log 2>&1 &
+          SERVER_PID=$!
+          # Readiness wait (errexit-safe: the if-condition context never
+          # trips bash -e while the server is still booting).
+          for i in $(seq 1 30); do
+            if curl -sf -o /dev/null http://localhost:3000/; then break; fi
+            sleep 1
+          done
+          if ! curl -sf -o /dev/null http://localhost:3000/; then
+            echo "✗ server did not become ready — dev.log tail:"
+            tail -n 40 dev.log
+            kill $SERVER_PID 2>/dev/null || true
+            exit 1
+          fi
+          set +e
+          bun scripts/verify-api.mjs
+          RESULT=$?
+          set -e
+          kill $SERVER_PID 2>/dev/null || true
+          exit $RESULT
+
+      - name: Upload dev.log artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-log
+          path: dev.log
+          if-no-files-found: ignore
+
+  # F-S1-03 (gold-standard audit): in-repo CVE scan of bun.lock against
+  # the OSV.dev API — defense-in-depth on top of daily Dependabot.
+  # Warn-only by default (exit 0 even with findings; the report is the
+  # value). STRICT=1 exists for launch posture (see scripts/check-osv.mjs
+  # header). An OSV outage downgrades to warn + exit 0 — a scanning gate
+  # must never break CI on a third-party outage.
+  osv-scan:
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # Zero-dependency script (node builtins only) — no install step.
+      - name: OSV scan of bun.lock (warn-only)
+        run: bun scripts/check-osv.mjs

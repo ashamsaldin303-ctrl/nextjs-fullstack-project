@@ -90,10 +90,20 @@ export function KineticHeading({
     [t, titleTopKey, titleAccentKey, titleBottomKey],
   )
 
+  // F-S7-12 (audit r2): the split-text a11y contract (the KineticWords
+  // pattern) — the h1's accessible name is the plain sentence; the
+  // animated per-word runs are aria-hidden so rotor/heading navigation
+  // reads one clean heading instead of a word salad of inline spans.
+  const fullText = useMemo(
+    () => [t(titleTopKey), t(titleAccentKey), t(titleBottomKey)].join(' '),
+    [t, titleTopKey, titleAccentKey, titleBottomKey],
+  )
+
   return (
     <h1
       ref={headingRef}
       id={id}
+      aria-label={fullText}
       className={cn(
         // flex-col: flex containers never collapse the .hr-line negative
         // margins (block siblings would, costing ~2×0.18em per line) —
@@ -107,9 +117,11 @@ export function KineticHeading({
         fontVariationSettings: reduced ? '"wght" 700' : '"wght" var(--wght, 700)',
       }}
     >
+      <span className="sr-only">{fullText}</span>
       {lines.map((line, lineIdx) => (
         <span
           key={lineIdx}
+          aria-hidden="true"
           className={cn('hr-line block', line.indent)}
         >
           {line.accent ? (

@@ -156,6 +156,14 @@ export function ContactForm({
   }, [prefillService, prefillIdea, locale, service, buildTemplate])
   const [errors, setErrors] = useState<FormErrors>({})
   const [submitting, setSubmitting] = useState(false)
+  // F-S5-08 (audit r2): per-field refs for focus-to-first-error on a
+  // failed submit (DOM order: name → email → whatsapp → message).
+  const fieldRefs = useRef<Record<keyof FormValues, HTMLInputElement | HTMLTextAreaElement | null>>({
+    name: null,
+    email: null,
+    whatsapp: null,
+    message: null,
+  })
   // N7 (REF-3 T2) — the success-box ritual state: null = closed box; a
   // string (possibly '' when a 201 body was malformed — the API contract
   // guarantees { reference }, that arm is pure defense since the success
@@ -191,6 +199,19 @@ export function ContactForm({
     setValues((v) => (reseed ? { ...v, message: nextTemplate } : v))
   }
 
+  /** Map a zod issue path to its translated field copy (one source for
+   *  submit-time and blur-time validation — F-S5-08). */
+  const errorFor = useCallback(
+    (path: PropertyKey | undefined): string | undefined => {
+      if (path === 'name') return t('errors.name')
+      if (path === 'email') return t('errors.email')
+      if (path === 'whatsapp') return tApiFields('whatsapp')
+      if (path === 'message') return t('errors.message')
+      return undefined
+    },
+    [t, tApiFields],
+  )
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const parsed = schema.safeParse(values)
@@ -198,12 +219,23 @@ export function ContactForm({
       const fe: FormErrors = {}
       for (const issue of parsed.error.issues) {
         const path = issue.path[0]
-        if (path === 'name') fe.name = t('errors.name')
-        if (path === 'email') fe.email = t('errors.email')
-        if (path === 'whatsapp') fe.whatsapp = tApiFields('whatsapp')
-        if (path === 'message') fe.message = t('errors.message')
+        const msg = errorFor(path)
+        if (msg) {
+          if (path === 'name') fe.name = msg
+          if (path === 'email') fe.email = msg
+          if (path === 'whatsapp') fe.whatsapp = msg
+          if (path === 'message') fe.message = msg
+        }
       }
       setErrors(fe)
+      // F-S5-08 (audit r2): a failed submit moves focus (and the
+      // visitor's attention) to the FIRST invalid field in DOM order —
+      // keyboard and screen-reader users land exactly where the fix is
+      // needed instead of hunting for the red ring.
+      const firstInvalid = (['name', 'email', 'whatsapp', 'message'] as const).find(
+        (k) => fe[k],
+      )
+      if (firstInvalid) fieldRefs.current[firstInvalid]?.focus()
       return
     }
     setErrors({})
@@ -293,6 +325,11 @@ export function ContactForm({
 
   const field = (key: keyof FormValues) => ({
     value: values[key],
+    ref: (el: HTMLInputElement | HTMLTextAreaElement | null) => {
+      fieldRefs.current[key] = el
+      // Keep the existing "send another" focus target live (name field).
+      if (key === 'name') nameInputRef.current = el as HTMLInputElement | null
+    },
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setValues((v) => ({ ...v, [key]: e.target.value }))
       // AUDIT-A5 LOW (fix 6): editing a field clears THAT field's error
@@ -305,8 +342,28 @@ export function ContactForm({
         return next
       })
     },
+    // F-S5-08 (audit r2): blur re-validation — fields the visitor has
+    // ENGAGED with (has content) or that already show an error get
+    // instant per-field feedback; tabbing through an empty untouched
+    // field stays quiet (no premature "required" noise).
+    onBlur: () => {
+      if (!values[key] && !errors[key]) return
+      const parsed = schema.safeParse(values)
+      const issue = parsed.success
+        ? undefined
+        : parsed.error.issues.find((i) => i.path[0] === key)
+      const msg = errorFor(issue?.path[0])
+      setErrors((prev) => {
+        const had = prev[key]
+        if (msg) return had === msg ? prev : { ...prev, [key]: msg }
+        if (!had) return prev
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+    },
     'aria-invalid': !!errors[key],
-    'aria-describedby': errors[key] ? `cf-${key}-err` : undefined,
+    'aria-describedby': errors[key] ? `cf-${key}-err` : key === 'whatsapp' ? 'cf-whatsapp-hint' : undefined,
   })
 
   return (
@@ -379,7 +436,6 @@ export function ContactForm({
             validation stays in the zod schema (form is noValidate). */}
         <Input
           id="cf-name"
-          ref={nameInputRef}
           autoComplete="name"
           required
           aria-required="true"

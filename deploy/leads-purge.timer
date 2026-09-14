@@ -1,0 +1,13 @@
+# Elyra lead PII purge — daily timer (audit P2-8 / F-S1-04).
+# Enable: systemctl enable --now leads-purge.timer
+# (see deploy/OPERATIONS.md §2 for the full checklist)
+[Unit]
+Description=Run the Elyra lead purge daily (F-S1-04)
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target

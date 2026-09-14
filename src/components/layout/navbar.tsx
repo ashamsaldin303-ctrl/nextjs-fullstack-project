@@ -45,8 +45,13 @@ export function Navbar() {
 
   // Transparent over the hero, glassy dark surface once scrolled (inline
   // utilities — the old .glass-dark class was deleted in L6-F1).
+  // F-S9-02 (audit r2): backdrop-blur-xl (24px) + saturate-150 over
+  // Lenis-smoothed scrolling content was a continuous full-width
+  // blur/repaint hotspot — blur-md (12px) keeps the glassy read at half
+  // the cost; saturation boost dropped (the dark /70 tint carries the
+  // contrast).
   const surface = scrolled
-    ? 'bg-elyra-dark/70 backdrop-blur-xl backdrop-saturate-150 border-b border-white/10'
+    ? 'bg-elyra-dark/70 backdrop-blur-md border-b border-white/10'
     : 'bg-transparent border-b border-transparent'
 
   return (
@@ -99,7 +104,7 @@ export function Navbar() {
                       text-opacity shift that VLM could not distinguish. */}
                   <span
                     className={cn(
-                      'pointer-events-none absolute inset-x-2 -bottom-0.5 h-0.5 rounded-full bg-primary transition-all',
+                      'pointer-events-none absolute inset-x-2 -bottom-0.5 h-0.5 rounded-full bg-primary transition-[opacity,transform] duration-300',
                       active
                         ? 'opacity-100 scale-x-100'
                         : 'opacity-0 scale-x-0 group-hover:opacity-50 group-hover:scale-x-75'

@@ -18,7 +18,7 @@
  * the drift; keep Parallax on leaf/decorative layers only).
  */
 
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
 
 import { usePrefersReducedMotion } from '@/lib/use-reduced-motion'
@@ -35,6 +35,11 @@ interface ParallaxProps {
 export function Parallax({ children, className, speed = 40 }: ParallaxProps) {
   const ref = useRef<HTMLDivElement>(null)
   const reduced = usePrefersReducedMotion()
+  // F-S7-14 (audit r2): will-change lives on the layer ONLY while the
+  // wrapper intersects the viewport (the drift is idle otherwise);
+  // framer's scroll-linked y keeps working — this only flips the
+  // compositor hint on/off at the 20% intersection band edges.
+  const [inView, setInView] = useState(true)
 
   // The block's journey through the viewport band (enters bottom, leaves
   // top) → 0..1.
@@ -44,12 +49,23 @@ export function Parallax({ children, className, speed = 40 }: ParallaxProps) {
   })
   const y = useTransform(scrollYProgress, [0, 1], [speed, -speed], { clamp: true })
 
+  useEffect(() => {
+    const el = ref.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver(
+      ([entry]) => setInView(entry?.isIntersecting ?? true),
+      { rootMargin: '20% 0px 20% 0px', threshold: 0 }
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
   if (reduced) return <div className={className}>{children}</div>
 
   return (
     <motion.div
       ref={ref}
-      style={{ y, willChange: 'transform' }}
+      style={{ y, willChange: inView ? 'transform' : 'auto' }}
       className={className}
     >
       {children}

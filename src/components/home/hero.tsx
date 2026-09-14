@@ -82,7 +82,7 @@ function OrbitBadge({ label }: { label: string }) {
           </textPath>
         </text>
       </svg>
-      <span className="flex size-11 items-center justify-center rounded-full border border-white/15 bg-white/5 transition-all duration-300 group-hover:scale-110 group-hover:border-g-blue/50 group-hover:bg-g-blue/15">
+      <span className="flex size-11 items-center justify-center rounded-full border border-white/15 bg-white/5 transition-[transform,border-color,background-color] duration-300 group-hover:scale-110 group-hover:border-g-blue/50 group-hover:bg-g-blue/15">
         <ArrowUpLeft
           className="size-4 text-white/85 transition-transform duration-300 group-hover:-translate-y-0.5 rtl:-scale-x-100 rtl:group-hover:translate-x-0.5"
           aria-hidden="true"

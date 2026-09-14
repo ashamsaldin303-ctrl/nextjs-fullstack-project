@@ -141,9 +141,9 @@ export default async function ContactPage({
                       <a
                         href={href}
                         {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                        className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"
+                        className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:card-lift-hover"
                       >
-                        <span className={`flex size-11 items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-110 ${chipClass}`}>
+                        <span className={`flex size-11 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 ${chipClass}`}>
                           <Icon className="size-5" aria-hidden="true" />
                         </span>
                         <span className="flex-1">
